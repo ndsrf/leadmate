@@ -1,0 +1,48 @@
+{
+  "name": "leadmate",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "private": true,
+  "scripts": {
+    "start": "npm run sim:embed && expo start",
+    "android": "npm run sim:embed && expo start --android",
+    "ios": "npm run sim:embed && expo start --ios",
+    "web": "expo start --web",
+    "sim:dev": "vite --config bundle/vite.config.mts",
+    "sim:build": "vite build --config bundle/vite.config.mts",
+    "test": "jest",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p bundle",
+    "sim:embed": "node scripts/embed-sim.mjs"
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "~57.0.17",
+    "@fission-ai/openspec": "^1.14.3",
+    "babel-preset-expo": "~57.0.0",
+    "expo": "^57",
+    "expo-constants": "~57.0.22",
+    "expo-screen-orientation": "~57.0.3",
+    "expo-status-bar": "~57.0.1",
+    "nativewind": "^4.2.7",
+    "phaser": "^3.90.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-reanimated": "4.5.1",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-web": "^0.21.4",
+    "react-native-webview": "13.16.1",
+    "react-native-worklets": "0.10.1"
+  },
+  "devDependencies": {
+    "@types/jest": "29.5.14",
+    "@types/react": "~19.2.4",
+    "jest": "~29.7.0",
+    "playwright-core": "^1.64.1",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "tailwindcss": "^3.4.19",
+    "ts-jest": "^29.4.15",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.4",
+    "vite-plugin-singlefile": "^2.3.4"
+  }
+}
