@@ -4,6 +4,8 @@ export const es = {
   'hud.marker': 'Marcar',
   'hud.joystick': 'Mover',
   'hud.loading': 'Cargando…',
+  'hint.taut': 'La correa se tensa: frena para que el perro vuelva a tu lado.',
+  'hint.rigid': 'Tirón rígido: no tires del perro, detente y espera.',
   'pause.title': 'Pausa',
   'pause.resume': 'Continuar',
   'results.title': 'Resultados del paseo',

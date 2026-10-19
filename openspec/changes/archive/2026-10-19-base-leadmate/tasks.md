@@ -39,7 +39,7 @@
 
 ## 7. Validation
 
-- [ ] 7.1 Have you and 3-5 dog owners play the Stage unassisted on desktop, Android and iPhone; record in README, per player, whether they understood the Poste and the Marker without being told and whether they wanted to play again; also compare portrait and landscape and record which was preferred
+- [x] 7.1 Have you and 3-5 dog owners play the Stage unassisted on desktop, Android and iPhone; record in README, per player, whether they understood the Poste and the Marker without being told and whether they wanted to play again; also compare portrait and landscape and record which was preferred
 
 ## 8. Handling feedback (`reward-timing`, `dog-drives`, `leash-physics`, `simulation-telemetry`)
 
@@ -52,5 +52,5 @@
 
 ## 9. Playtest follow-ups (`leash-physics`)
 
-- [ ] 9.1 Add camera auto-zoom from the Handler-Dog distance with limits and smoothing, and verify unit tests on the zoom function (close, at the leash limit, limits) and in Chrome and on a phone that both stay in view
-- [ ] 9.2 Add the first-time Taut and Rigid Pull hints with catalog keys, shown once per Stage, and verify tests for once-only behavior, that no literal text is added, and the layout in Chrome
+- [x] 9.1 Add camera auto-zoom from the Handler-Dog distance with limits and smoothing, and verify unit tests on the zoom function (close, at the leash limit, limits) and in Chrome and on a phone that both stay in view
+- [x] 9.2 Add the first-time Taut and Rigid Pull hints with catalog keys, shown once per Stage, and verify tests for once-only behavior, that no literal text is added, and the layout in Chrome

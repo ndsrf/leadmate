@@ -25,6 +25,18 @@ export interface DistractorConfig {
   path?: { from: Vec2; to: Vec2 };
 }
 
+/** Camera auto-zoom tunables; multipliers apply to the zoom that fits the screen size. */
+export interface CameraConfig {
+  /** Zoom multiplier with the Handler and the Dog together. */
+  closeZoom: number;
+  /** Zoom multiplier with the Dog at the leash limit. */
+  farZoom: number;
+  /** Screen pixels kept free around the Handler and the Dog. */
+  padding: number;
+  /** How fast the zoom follows its target, per second. */
+  smoothing: number;
+}
+
 /** Every tunable of a Stage. 1 world unit = 1 m. */
 export interface ScenarioConfig {
   fixedStep: number;
@@ -68,6 +80,7 @@ export interface ScenarioConfig {
   correctionWaitSeconds: number;
   /** Speed in m/s at which Rigid Pull drags the Dog toward the Handler; 0 disables it. */
   pullStrength: number;
+  camera: CameraConfig;
   endCondition: EndCondition;
 }
 
@@ -103,5 +116,6 @@ export const defaultScenario: ScenarioConfig = {
   followSeconds: 1.5,
   correctionWaitSeconds: 4,
   pullStrength: 0.8,
+  camera: { closeZoom: 2.2, farZoom: 1.5, padding: 90, smoothing: 3 },
   endCondition: { kind: 'reach-waypoint' },
 };

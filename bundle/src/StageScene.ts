@@ -3,6 +3,8 @@ import type { Translate } from '../../src/i18n';
 import { fitFontSize } from '../../src/hud/layout';
 import { applyDetents, keyboardInput, screenToWorldDirection, type Keys } from '../../src/hud/input';
 import { project } from '../../src/hud/iso';
+import { smoothZoom, targetZoom } from '../../src/hud/camera';
+import { HINT_SECONDS, HintTracker } from '../../src/hud/hints';
 import { defaultScenario, type ScenarioConfig } from '../../src/sim/config';
 import { leashCurve, leashPoint, type TensionState } from '../../src/sim/leash';
 import { buildPayload, type SimulationDebriefPayload } from '../../src/sim/payload';
@@ -36,6 +38,11 @@ export class StageScene extends Phaser.Scene {
   private hudCam!: Phaser.Cameras.Scene2D.Camera;
   private markerLabel!: Phaser.GameObjects.Text;
   private markerCount!: Phaser.GameObjects.Text;
+  private hintText!: Phaser.GameObjects.Text;
+  private hintUntil = 0;
+  private hints = new HintTracker();
+  private baseZoom = 1;
+  private zoom = 0;
   private keys!: Record<keyof Keys | 'marker' | 'marker2', Phaser.Input.Keyboard.Key>;
   private joy: { id: number; base: Vec2; knob: Vec2 } | null = null;
   private joyHome: Vec2 = { x: 120, y: 300 };
@@ -56,6 +63,9 @@ export class StageScene extends Phaser.Scene {
     this.ended = false;
     this.accumulator = 0;
     this.flash = null;
+    this.hints = new HintTracker();
+    this.hintUntil = 0;
+    this.zoom = 0;
     this.joy = null;
     this.markerPointerDown = false;
     this.markerPressed = false;
@@ -79,10 +89,14 @@ export class StageScene extends Phaser.Scene {
     this.markerCount = this.add
       .text(0, 0, '', { fontFamily: 'system-ui, sans-serif', color: '#052e16', fontSize: '15px', fontStyle: 'bold' })
       .setOrigin(0.5);
+    this.hintText = this.add
+      .text(0, 0, '', { fontFamily: 'system-ui, sans-serif', color: '#f8fafc', fontSize: '16px', backgroundColor: '#0f172acc', padding: { x: 10, y: 6 }, align: 'center' })
+      .setOrigin(0.5, 0)
+      .setVisible(false);
     // the HUD has its own unzoomed camera so it stays in screen pixels
     this.hudCam = this.cameras.add(0, 0, this.scale.width, this.scale.height);
     this.hudCam.ignore(world);
-    this.cameras.main.ignore([this.hud, this.markerLabel, this.markerCount]);
+    this.cameras.main.ignore([this.hud, this.markerLabel, this.markerCount, this.hintText]);
 
     const kb = this.input.keyboard!;
     const K = Phaser.Input.Keyboard.KeyCodes;
@@ -137,8 +151,8 @@ export class StageScene extends Phaser.Scene {
     const font = fitFontSize(this.options.t('hud.marker'), MARKER_RADIUS * 2.4, 16);
     this.markerLabel.setFontSize(font).setPosition(this.markerHome.x, this.markerHome.y + MARKER_RADIUS + 6);
     this.markerCount.setPosition(this.markerHome.x + MARKER_RADIUS * 0.72, this.markerHome.y - MARKER_RADIUS * 0.72);
-    const zoom = Phaser.Math.Clamp(Math.min(width / 640, height / 380), 0.8, 2);
-    this.cameras.main.setZoom(zoom);
+    this.baseZoom = Phaser.Math.Clamp(Math.min(width / 640, height / 380), 0.8, 2);
+    this.hintText.setPosition(width / 2, 12).setWordWrapWidth(width * 0.8);
     this.hudCam?.setSize(width, height);
   }
 
@@ -229,6 +243,7 @@ export class StageScene extends Phaser.Scene {
         this.accumulator -= step;
       }
     }
+    this.showHints();
     this.followCamera(delta);
     this.draw(input);
     this.drawHud();
@@ -253,7 +268,30 @@ export class StageScene extends Phaser.Scene {
     const mid = scale(add(project(this.sim.handler), project(this.sim.dog)), 0.5);
     const k = 1 - Math.pow(0.001, delta / 1000);
     this.camPos = add(this.camPos, scale(sub(mid, this.camPos), k));
+    const { width, height } = this.scale;
+    const target = targetZoom(
+      length(sub(this.sim.handler, this.sim.dog)),
+      this.sim.config.leashLength,
+      project(this.sim.handler),
+      project(this.sim.dog),
+      { width, height },
+      this.baseZoom,
+      this.sim.config.camera,
+    );
+    this.zoom = this.zoom === 0 ? target : smoothZoom(this.zoom, target, delta, this.sim.config.camera);
+    this.cameras.main.setZoom(this.zoom);
     this.cameras.main.centerOn(this.camPos.x, this.camPos.y);
+  }
+
+  private showHints(): void {
+    if (this.sim.paused || this.ended) return;
+    const key = this.hints.observe(this.sim.tension);
+    if (key) {
+      this.hintText.setText(this.options.t(key)).setVisible(true);
+      this.hintUntil = this.time.now + HINT_SECONDS * 1000;
+    } else if (this.hintText.visible && this.time.now >= this.hintUntil) {
+      this.hintText.setVisible(false);
+    }
   }
 
   // -- drawing ---------------------------------------------------------------------------------
