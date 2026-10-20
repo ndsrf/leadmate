@@ -19,7 +19,7 @@ const ok = (name, value) => {
 const text = () => page.innerText('body');
 const record = () => page.evaluate(() => JSON.parse(localStorage.getItem('leadmate.dog')));
 const home = async () => {
-  await page.waitForSelector('text=Lecciones', { timeout: 60000 });
+  await page.waitForSelector('text=El Paseo del Día', { timeout: 60000 });
 };
 const frame = async () => {
   await page.waitForFunction(() => window.frames.length > 0);
@@ -34,15 +34,19 @@ const today = await page.evaluate(() => {
 });
 
 await page.goto(url);
-await page.evaluate(() => localStorage.clear());
+await page.evaluate(() => { localStorage.clear(); localStorage.setItem('leadmate.dog', '{}'); }); // an existing Dog skips the first-run funnel
 await page.reload();
 await home();
 
 // -- World progression: a new Dog sees World 1 open and the rest locked
 let body = await text();
 ok('World 1 is open with its three Nodes', body.includes('Mundo 1 · Casa y umbrales') && body.includes('El ritual del arnés') && body.includes('La alfombra del timbre') && body.includes('Práctica: el Poste'));
-ok('World 2 shows as locked, its Nodes hidden', body.includes('Completa el mundo anterior para abrir este.') && !body.includes('La esquina ciega'));
-ok('streak banner invites to start', body.includes('Haz una lección hoy para empezar tu racha.'));
+ok('World 2 shows as locked with its requirement', body.includes('Completa el mundo anterior para abrir este.'));
+const lockedNotes = async () => ((await text()).match(/Completa el mundo anterior para abrir este\./g) ?? []).length;
+const notesBefore = await lockedNotes();
+await page.click('text=La esquina ciega');
+ok('pressing a locked Node explains why and does not start it', (await lockedNotes()) === notesBefore + 1 && !(await text()).includes('Pregunta rápida'));
+ok('streak banner invites to start', body.includes('Empieza tu racha'));
 await page.screenshot({ path: `${out}/home-new.png`, fullPage: false });
 
 // -- Harness Ritual: hold while the Dog settles, three rounds
@@ -61,6 +65,7 @@ for (let round = 0; round < 6 && !(await text()).includes('Resultados del paseo'
   await page.waitForTimeout(500);
 }
 await page.waitForSelector('text=Resultados del paseo', { timeout: 10000 });
+await page.waitForSelector('text=Continuar', { timeout: 10000 }); // the result is revealed step by step
 ok('Harness Ritual Debrief shows a minigame result', (await text()).includes('Postes que calmaron al perro'));
 
 // -- Walk Diary on the Debrief: one tap, logged with date and Node
@@ -90,6 +95,7 @@ for (let round = 0; round < 3; round++) {
   await page.waitForTimeout(300);
 }
 await page.waitForSelector('text=Resultados del paseo', { timeout: 10000 });
+await page.waitForSelector('text=Continuar', { timeout: 10000 }); // the result is revealed step by step
 ok('Doorbell Mat Debrief shows the timing result', (await text()).includes('Marcas a tiempo'));
 await page.screenshot({ path: `${out}/debrief-doorbell.png` });
 await page.click('text=Continuar');
@@ -103,7 +109,7 @@ await home();
 body = await text();
 ok('World 2 opens once World 1 is complete', body.includes('La esquina ciega') && body.includes('Paseo con distracción'));
 ok('only Worlds 3 and 4 are still locked', (body.match(/Completa el mundo anterior para abrir este\./g) ?? []).length === 2);
-ok('World 3 is still locked, its Nodes hidden', body.includes('Mundo 3 · Rutas urbanas') && !body.includes('Mundo 3 · Déjalo'));
+ok('World 3 is still locked and dimmed', body.includes('Mundo 3 · Rutas urbanas'));
 await page.screenshot({ path: `${out}/home-world2.png` });
 
 // -- a walking Node: Debrief with the diary and the new score rows
@@ -116,19 +122,21 @@ const sim = (fn) => f.evaluate(`(${fn})(window.__leadmate.scene().sim)`);
 ok('World 2 Stage has scenery and the Go Sniff world', await sim((s) => s.config.scenery.length >= 8 && s.config.world >= 2));
 await f.evaluate(() => { const s = window.__leadmate.scene().sim; s.handler = { x: 89, y: 0 }; s.dog = { x: 89.5, y: 0 }; });
 await page.waitForSelector('text=Resultados del paseo', { timeout: 15000 });
+await page.waitForSelector('text=Continuar', { timeout: 10000 }); // the result is revealed step by step
 ok('Stage Debrief shows the handling score', (await text()).includes('Puntuación del paseo') && (await text()).includes('de 1000'));
 await page.click('text=¡Conseguido!');
 await page.click('text=Continuar');
 await home();
 
 // -- Daily Stage: straight to the walk, scored, replayable, streak credited once
-await page.click('text=Jugar');
+await page.click('text=El Paseo del Día');
 f = await frame();
 ok('Daily Stage skips Primer and Checkpoint and has a Distractor schedule', await sim((s) => s.config.moreDistractors.length >= 2));
 const first = await sim((s) => JSON.stringify([s.config.waypoints, s.config.walls, s.config.moreDistractors.map((d) => d.path)]));
 await page.screenshot({ path: `${out}/daily-stage.png` });
 await f.evaluate(() => { const s = window.__leadmate.scene().sim; const e = s.config.waypoint; s.handler = { x: e.x, y: e.y }; s.dog = { x: e.x + 0.5, y: e.y }; });
 await page.waitForSelector('text=Resultado del Paseo del Día', { timeout: 15000 });
+await page.waitForSelector('text=Volver', { timeout: 10000 });
 body = await text();
 ok('Daily result shows the 0-1000 score and no campaign progress', body.includes('de 1000') && body.includes('no cambia lo aprendido'));
 await page.screenshot({ path: `${out}/daily-result.png` });
@@ -143,12 +151,13 @@ const second = await sim((s) => JSON.stringify([s.config.waypoints, s.config.wal
 ok('Replay gets the identical Stage', first === second);
 await f.evaluate(() => { const s = window.__leadmate.scene().sim; const e = s.config.waypoint; s.handler = { x: e.x, y: e.y }; s.dog = { x: e.x + 0.5, y: e.y }; });
 await page.waitForSelector('text=Resultado del Paseo del Día', { timeout: 15000 });
+await page.waitForSelector('text=Volver', { timeout: 10000 });
 r = await record();
 ok('Replay keeps the best score and does not add to the Streak', r.dailyBest[today] >= best1 && r.streak.current === streak1);
 ok('Daily leaves the campaign Nodes alone', JSON.stringify(r.completedNodes) === nodesBefore);
 await page.click('text=Volver');
 await home();
-ok('Home shows the best Daily score of today', (await text()).includes('Mejor de hoy'));
+ok('World Map shows the best Daily score of today', (await text()).includes(' de 1000'));
 
 console.log(failed === 0 ? 'ALL PASS' : `${failed} FAILED`);
 await browser.close();

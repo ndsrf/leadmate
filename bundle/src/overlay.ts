@@ -1,18 +1,22 @@
 import type { Translate } from '../../src/i18n';
 import type { SimulationDebriefPayload } from '../../src/sim/payload';
+import { HUD_COLOR, HUD_CSS_VARS, HUD_FONT, HUD_PRIMARY_BUTTON } from './tokens.generated';
 
 /**
  * Minimal DOM overlays for the standalone simulation page. Inside the app shell the shell draws
  * the results screen and the Resume overlay instead, so these only run when there is no shell.
  */
 const STYLE = `
+  ${HUD_CSS_VARS}
   .lm-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
-    background: rgba(15, 23, 42, 0.85); color: #f8fafc; font-family: system-ui, sans-serif; z-index: 10; }
-  .lm-card { background: #1e293b; border-radius: 12px; padding: 20px 24px; min-width: 260px; max-width: 90vw; }
-  .lm-card h2 { margin: 0 0 12px; font-size: 20px; }
+    background: ${HUD_COLOR.overlay}d9; color: ${HUD_COLOR.ink}; font-family: system-ui, sans-serif; z-index: 10; }
+  .lm-card { background: ${HUD_COLOR.surface}; border-radius: var(--lm-radius-lg); padding: 20px 24px; min-width: 260px; max-width: 90vw; }
+  .lm-card h2 { margin: 0 0 12px; font-size: 20px; font-family: ${HUD_FONT.display}, system-ui, sans-serif; font-weight: normal; }
   .lm-row { display: flex; justify-content: space-between; gap: 16px; padding: 3px 0; font-size: 14px; }
-  .lm-btn { margin-top: 16px; width: 100%; padding: 12px; font-size: 16px; border: 0; border-radius: 8px;
-    background: #22c55e; color: #052e16; cursor: pointer; }
+  .lm-btn { margin-top: 16px; width: 100%; min-height: 44px; padding: 12px; font-size: 16px; border: 0; border-radius: ${HUD_PRIMARY_BUTTON.radius}px;
+    background: ${HUD_PRIMARY_BUTTON.fill}; color: ${HUD_PRIMARY_BUTTON.label}; cursor: pointer;
+    font-family: ${HUD_FONT.display}, system-ui, sans-serif; box-shadow: 0 ${HUD_PRIMARY_BUTTON.depth}px 0 ${HUD_PRIMARY_BUTTON.edge}; }
+  .lm-btn:active { transform: translateY(${HUD_PRIMARY_BUTTON.depth}px); box-shadow: none; }
 `;
 
 function root(): HTMLDivElement {

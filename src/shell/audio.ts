@@ -33,6 +33,15 @@ export function playDogSound(sound: DogSound): void {
   }
 }
 
+/** True while a Cue or a Dog sound is playing, so UI sounds can stay out of its way. */
+export function cueAudioActive(): boolean {
+  try {
+    return player?.playing === true || dogPlayer?.playing === true;
+  } catch {
+    return false;
+  }
+}
+
 /** Lets the Cue sound even when a phone is on silent, and lets the microphone record. */
 export async function prepareAudio(recording: boolean): Promise<void> {
   try {

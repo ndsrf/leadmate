@@ -1,6 +1,6 @@
 import { defaultScenario, type ScenarioConfig } from './config';
 import { runScripted } from './harness';
-import { BUNDLE_MESSAGE_TYPES, createOutbox, decode, encode, type BundleMessage } from './messages';
+import { BUNDLE_MESSAGE_TYPES, SHELL_MESSAGE_TYPES, createOutbox, decode, encode, type BundleMessage, type ShellMessage } from './messages';
 import { buildPayload, handlingScore, SCORE_WEIGHTS, type SimulationDebriefPayload } from './payload';
 import { createState, noInput, tick, type SimInput, type SimState } from './sim';
 
@@ -86,6 +86,12 @@ describe('message adapter', () => {
     expect(decode<BundleMessage>(encode(message), BUNDLE_MESSAGE_TYPES)).toEqual(message);
     expect(decode<BundleMessage>('not json', BUNDLE_MESSAGE_TYPES)).toBeNull();
     expect(decode<BundleMessage>({ type: 'webpack-hmr' }, BUNDLE_MESSAGE_TYPES)).toBeNull();
+  });
+
+  it('decodes the suspend and wake shell messages', () => {
+    for (const type of ['suspend', 'wake'] as const) {
+      expect(decode<ShellMessage>(encode({ type }), SHELL_MESSAGE_TYPES)).toEqual({ type });
+    }
   });
 
   it('sends the same payload shape through the native bridge and the browser parent', () => {

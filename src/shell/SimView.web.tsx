@@ -1,3 +1,4 @@
+import { color } from './ui/theme';
 import { createElement, forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import { getSimUrl } from './simUrl';
 import type { SimViewHandle, SimViewProps } from './simViewTypes';
@@ -33,6 +34,6 @@ export const SimView = forwardRef<SimViewHandle, SimViewProps>(function SimView(
     ref: frame,
     src: getSimUrl(),
     onError: () => onLoadError?.(),
-    style: { border: 0, width: '100%', height: '100%', flex: 1, background: '#0f172a' },
+    style: { border: 0, width: '100%', height: '100%', flex: 1, background: color.bg },
   });
 });

@@ -12,11 +12,12 @@ import {
 } from '../sim/learning';
 import type { SimulationDebriefPayload } from '../sim/payload';
 import { DEFAULT_VOICE_PACK } from './voice';
+import { bestStars, isStars, starsFor, type Stars } from './stars';
 import { nextPosture, updateLearning, updateTriggerProfile } from './learning';
 import { isOnboardingStep, type OnboardingStep } from './onboarding/flow';
 import { addDiaryEntry, DIARY_OUTCOMES, isDateString, localDateString, markActive, NO_STREAK, type DiaryOutcome, type StreakRecord, type WalkDiaryEntry } from './streak';
 
-export const RECORD_VERSION = 3;
+export const RECORD_VERSION = 4;
 export const RECORD_KEY = 'leadmate.dog';
 
 /** Seconds of the Checkpoint timer; 0 turns it off. */
@@ -36,6 +37,8 @@ export interface DogRecord {
   voicePack: string;
   checkpointSeconds: CheckpointSeconds;
   completedNodes: string[];
+  /** Best star rating (1-3) per completed Node; derived from handling quality, only ever raised, and a Node completed before stars existed shows 1. */
+  stars: Record<string, Stars>;
   /** ISO date-time of the last graded Stage; null before the first. */
   lastStageDate: string | null;
   /** Failed Poste attempts in a row, for the link back to the practice Node. */
@@ -87,6 +90,7 @@ export function newDogRecord(): DogRecord {
     voicePack: DEFAULT_VOICE_PACK,
     checkpointSeconds: 5,
     completedNodes: [],
+    stars: {},
     lastStageDate: null,
     posteFailures: 0,
     posture: 0,
@@ -117,6 +121,13 @@ function readStreak(raw: unknown): StreakRecord {
   const current = Math.max(0, Math.floor(num(r.current, 0)));
   const last = isDateString(r.lastActiveDate) ? r.lastActiveDate : '';
   return { current: last ? current : 0, best: Math.max(current, Math.floor(num(r.best, 0))), lastActiveDate: last };
+}
+
+function readStars(raw: unknown): Record<string, Stars> {
+  const stars: Record<string, Stars> = {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return stars;
+  for (const [id, value] of Object.entries(raw)) if (isStars(value)) stars[id] = value;
+  return stars;
 }
 
 function readDailyBest(raw: unknown): Record<string, number> {
@@ -174,6 +185,7 @@ export function migrateRecord(raw: unknown): DogRecord {
     voicePack: typeof r.voicePack === 'string' ? r.voicePack : base.voicePack,
     checkpointSeconds: checkpoint === 0 || checkpoint === 10 ? checkpoint : 5,
     completedNodes: Array.isArray(r.completedNodes) ? r.completedNodes.filter((n): n is string => typeof n === 'string') : [],
+    stars: readStars(r.stars),
     lastStageDate: typeof r.lastStageDate === 'string' ? r.lastStageDate : null,
     posteFailures: Math.max(0, Math.floor(num(r.posteFailures, 0))),
     posture: r.posture === 1 || r.posture === 2 ? r.posture : 0,

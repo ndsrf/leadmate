@@ -5,7 +5,7 @@ import { DIARY_OUTCOMES } from '../streak';
 import { payloadWith } from '../testPayload';
 import { DOORBELL_MAT_NODE, HARNESS_RITUAL_NODE, LEAVE_IT_NODE, NODES, POSTE_PRACTICE, SCOOTER_NODE, URBAN_MIX_NODE, WALK_DISTRACTION } from './content';
 import { worldOfNode } from '../world';
-import { advance, checkpointLimit, isAvailable, metricScores, missingPrerequisites, onDebrief, pickExercise, startNode, type NodeRun } from './node';
+import { advance, checkpointLimit, isAvailable, metricScores, missingPrerequisites, onDebrief, pickExercise, shouldShowPosteLink, startNode, type NodeRun } from './node';
 import { newPosteMinigame, posteMinigameMetrics, POSTE_MINIGAME, stepPosteMinigame, tensionOf } from './posteMinigame';
 
 const stageResult = (over = {}) => ({ kind: 'stage' as const, payload: payloadWith(over) });
@@ -126,6 +126,16 @@ describe('Stage and Minigame modes', () => {
   it('does nothing before the Debrief', () => {
     const record = newDogRecord();
     expect(onDebrief(record, toSimulation(), new Date())).toBe(record);
+  });
+
+  it('shows the Poste practice link after two failed Poste attempts on other Nodes, never on the practice itself', () => {
+    const record = newDogRecord();
+    expect(shouldShowPosteLink(record, WALK_DISTRACTION.id)).toBe(false);
+    const failedOnce = { ...record, posteFailures: 1 };
+    expect(shouldShowPosteLink(failedOnce, WALK_DISTRACTION.id)).toBe(false);
+    const failedTwice = { ...record, posteFailures: 2 };
+    expect(shouldShowPosteLink(failedTwice, WALK_DISTRACTION.id)).toBe(true);
+    expect(shouldShowPosteLink(failedTwice, POSTE_PRACTICE.id)).toBe(false);
   });
 });
 

@@ -40,6 +40,9 @@ export interface SimulationDebriefPayload {
 
 /** Points each part of the handling score is worth; they add up to 1000 (ADR 0005). */
 export const SCORE_WEIGHTS = { composure: 400, slack: 300, markerAccuracy: 200, sintonia: 100 } as const;
+
+/** Handling score (0-1000) from which a Node earns its 2nd and 3rd star; the 1st is for completing it. */
+export const STAR_THRESHOLDS = { two: 650, three: 850 } as const;
 /** A Marker hit this slow scores nothing for accuracy: the Reward Window is about 1.1 s. */
 export const SCORE_SLOWEST_HIT_MS = 1100;
 /** Sintonía for this share of the Stage scores the full points. */

@@ -1,6 +1,8 @@
 import { DEFAULT_ATTRIBUTES } from '../sim/learning';
 import { applyActivity, applyDiary, applyStage, failedPoste, touch, loadDogRecord, migrateRecord, newDogRecord, RECORD_KEY, recordDailyScore, saveDogRecord, setTriggerLevel, toSnapshot, type KeyValueStore } from './dogRecord';
 import { payloadWith } from './testPayload';
+import { advance, onDebrief, startNode, type NodeRun } from './nodes/node';
+import { DOORBELL_MAT_NODE, WALK_DISTRACTION } from './nodes/content';
 
 function memoryStore(): KeyValueStore & { data: Map<string, string> } {
   const data = new Map<string, string>();
@@ -30,7 +32,7 @@ describe('Dog record', () => {
 
   it('is versioned and repairs unreadable fields', () => {
     const fixed = migrateRecord({ attributes: { followChance: 7, reactivityThreshold: 'x' }, triggerProfile: { child: 9, dog: 1 }, equipment: 'rope' });
-    expect(fixed.version).toBe(3);
+    expect(fixed.version).toBe(4);
     expect(fixed.attributes.followChance).toBe(1);
     expect(fixed.attributes.reactivityThreshold).toBe(DEFAULT_ATTRIBUTES.reactivityThreshold);
     expect(fixed.triggerProfile.child).toBe(2);
@@ -89,7 +91,7 @@ describe('Dog record: Walk Diary, Streak and Daily best', () => {
   it('migrates a version 1 record: keeps what it had and adds the new fields', () => {
     const v1 = { version: 1, attributes: { followChance: 0.9 }, completedNodes: ['poste-practice'], equipment: 'harness', posture: 1 };
     const r = migrateRecord(v1);
-    expect(r.version).toBe(3);
+    expect(r.version).toBe(4);
     expect(r.attributes.followChance).toBeCloseTo(0.9);
     expect(r.completedNodes).toEqual(['poste-practice']);
     expect(r.equipment).toBe('harness');
@@ -170,7 +172,7 @@ describe('Dog record: version 3', () => {
   it('migrates a version 2 record as an existing user who has finished onboarding', () => {
     const v2 = { version: 2, attributes: { followChance: 0.9 }, completedNodes: ['poste-practice'], streak: { current: 2, best: 3, lastActiveDate: '2026-05-01' } };
     const r = migrateRecord(v2);
-    expect(r.version).toBe(3);
+    expect(r.version).toBe(4);
     expect(r.onboarding.step).toBe('done');
     expect(r.weights).toEqual({ dogKg: null, handlerKg: null });
     expect(r.seenHints).toEqual([]);
@@ -209,5 +211,55 @@ describe('Dog record: version 3', () => {
     expect(a.updatedAt).toBe(t.toISOString());
     expect(Date.parse(b.updatedAt)).toBeGreaterThan(Date.parse(a.updatedAt));
     expect(Date.parse(c.updatedAt)).toBeGreaterThan(Date.parse(b.updatedAt));
+  });
+});
+
+describe('stars on the record', () => {
+  const debrief = (record: ReturnType<typeof newDogRecord>, score: number) => {
+    const run: NodeRun = { ...startNode(WALK_DISTRACTION), step: 'simulation' };
+    const done = advance(run, { type: 'finish', result: { kind: 'stage', payload: payloadWith({ handlingScore: score }) } });
+    return onDebrief(record, done, new Date('2026-03-01T10:00:00Z'));
+  };
+
+  it('migrates an old record to an empty stars map', () => {
+    const old = { version: 3, completedNodes: ['poste-practice'] };
+    const r = migrateRecord(old);
+    expect(r.version).toBe(4);
+    expect(r.stars).toEqual({});
+    expect(r.completedNodes).toEqual(['poste-practice']);
+  });
+
+  it('ignores invalid star values', () => {
+    const r = migrateRecord({ stars: { a: 3, b: 0, c: 4, d: '2', e: null, f: 1.5, g: 2 } });
+    expect(r.stars).toEqual({ a: 3, g: 2 });
+    expect(migrateRecord({ stars: [1, 2] }).stars).toEqual({});
+    expect(migrateRecord({ stars: 'x' }).stars).toEqual({});
+  });
+
+  it('awards stars from the handling score on completion', () => {
+    expect(debrief(newDogRecord(), 400).stars[WALK_DISTRACTION.id]).toBe(1);
+    expect(debrief(newDogRecord(), 700).stars[WALK_DISTRACTION.id]).toBe(2);
+    expect(debrief(newDogRecord(), 870).stars[WALK_DISTRACTION.id]).toBe(3);
+  });
+
+  it('keeps the best: a worse replay never lowers it, a better one raises it', () => {
+    const three = debrief(newDogRecord(), 900);
+    expect(debrief(three, 300).stars[WALK_DISTRACTION.id]).toBe(3);
+    const one = debrief(newDogRecord(), 300);
+    expect(debrief(one, 900).stars[WALK_DISTRACTION.id]).toBe(3);
+  });
+
+  it('gives a Minigame completion 1 star', () => {
+    const run: NodeRun = { ...startNode(DOORBELL_MAT_NODE), step: 'simulation' };
+    const done = advance(run, { type: 'finish', result: { kind: 'minigame', metrics: { timing: 1 } } });
+    expect(onDebrief(newDogRecord(), done, new Date()).stars[DOORBELL_MAT_NODE.id]).toBe(1);
+  });
+
+  it('does not touch Learning Attributes or the Trigger Profile for a Minigame', () => {
+    const before = newDogRecord();
+    const run: NodeRun = { ...startNode(DOORBELL_MAT_NODE), step: 'simulation' };
+    const after = onDebrief(before, advance(run, { type: 'finish', result: { kind: 'minigame', metrics: { timing: 1 } } }), new Date());
+    expect(after.attributes).toEqual(before.attributes);
+    expect(after.triggerProfile).toEqual(before.triggerProfile);
   });
 });

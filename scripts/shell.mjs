@@ -12,9 +12,13 @@ const ok = (name, value) => console.log(value ? 'PASS' : 'FAIL', name);
 const text = () => page.innerText('body');
 
 await page.goto(url);
-await page.waitForSelector('text=Lecciones', { timeout: 60000 });
+await page.evaluate(() => localStorage.setItem('leadmate.dog', '{}')); // an existing Dog skips the first-run funnel
+await page.reload();
+await page.waitForSelector('text=El Paseo del Día', { timeout: 60000 });
 ok('home lists the World 1 Nodes', (await text()).includes('Práctica: el Poste'));
-ok('walking Node is behind World 1', !(await text()).includes('Paseo con distracción') && (await text()).includes('Completa el mundo anterior para abrir este.'));
+ok('walking Node is behind World 1', (await text()).includes('Completa el mundo anterior para abrir este.'));
+await page.click('text=Paseo con distracción');
+ok('pressing it does not start it', !(await text()).includes('Pregunta rápida'));
 await page.screenshot({ path: `${out}/home.png` });
 
 // -- Poste practice: Primer, Checkpoint, Minigame, Debrief
@@ -36,17 +40,18 @@ for (let round = 0; round < 6 && !(await text()).includes('Resultados del paseo'
   await page.waitForTimeout(600);
 }
 await page.waitForSelector('text=Resultados del paseo', { timeout: 10000 });
+await page.waitForSelector('text=Continuar', { timeout: 10000 }); // the result is revealed step by step
 ok('minigame Debrief has one exercise', (await text()).includes('Para practicar en la vida real'));
 await page.screenshot({ path: `${out}/debrief-minigame.png` });
 await page.click('text=Continuar');
-await page.waitForSelector('text=Lecciones');
-ok('Poste practice completed', (await text()).includes('Completada'));
-ok('walking Node still locked: World 2 opens only once World 1 is complete', !(await text()).includes('Paseo con distracción'));
+await page.waitForSelector('text=El Paseo del Día');
+ok('Poste practice completed, with its star', (await text()).includes('★'));
+ok('walking Node still locked: World 2 opens only once World 1 is complete', (await text()).includes('Completa el mundo anterior para abrir este.'));
 // finish World 1 (see playtest.mjs for the two other World 1 Minigames played for real)
 const seeded = await page.evaluate(() => JSON.parse(localStorage.getItem('leadmate.dog')));
 await page.evaluate((r) => localStorage.setItem('leadmate.dog', JSON.stringify({ ...r, completedNodes: ['harness-ritual', 'doorbell-mat', 'poste-practice'] })), seeded);
 await page.reload();
-await page.waitForSelector('text=Lecciones', { timeout: 60000 });
+await page.waitForSelector('text=El Paseo del Día', { timeout: 60000 });
 ok('walking Node unlocked', (await text()).includes('Paseo con distracción'));
 
 // -- walking Node with a Cue
@@ -79,6 +84,7 @@ await page.waitForTimeout(300);
 ok('resumed, time runs', (await sim((s) => s.time)) > t1);
 await f.evaluate(() => { const s = window.__leadmate.scene().sim; s.handler = { x: 89, y: 0 }; s.dog = { x: 89.5, y: 0 }; });
 await page.waitForSelector('text=Resultados del paseo', { timeout: 10000 });
+await page.waitForSelector('text=Continuar', { timeout: 10000 }); // the result is revealed step by step
 const debrief = await text();
 ok('Debrief shows peak Arousal text', debrief.includes('Cuánto se alteró tu perro'));
 ok('Debrief says the Checkpoint was missed', debrief.includes('se acabó el tiempo'));
@@ -100,7 +106,7 @@ ok('attributes stored after a Stage', stored.attributes.followChance !== undefin
 stored.lastStageDate = new Date(Date.now() - 5 * 86400000).toISOString();
 await page.evaluate((r) => localStorage.setItem('leadmate.dog', JSON.stringify(r)), stored);
 await page.reload();
-await page.waitForSelector('text=Lecciones', { timeout: 60000 });
+await page.waitForSelector('text=El Paseo del Día', { timeout: 60000 });
 ok('Rusty Dog banner', (await text()).includes('Tu perro está oxidado'));
 const before = await page.evaluate(() => localStorage.getItem('leadmate.dog'));
 await page.screenshot({ path: `${out}/rusty.png` });
@@ -118,6 +124,6 @@ f = page.frames().find((x) => x !== page.mainFrame());
 await f.waitForFunction(() => window.__leadmate?.scene()?.sim?.time >= 0, null, { timeout: 60000 });
 ok('warm-up has no Distractor and no Marks', await sim((s) => s.config.markBudget === 0 && s.config.endCondition.seconds >= 30 && s.config.endCondition.seconds <= 45));
 await f.evaluate(() => { window.__leadmate.scene().sim.time = 41; });
-await page.waitForSelector('text=Lecciones', { timeout: 10000 });
+await page.waitForSelector('text=El Paseo del Día', { timeout: 10000 });
 ok('warm-up done: banner gone, Dog record unchanged', !(await text()).includes('Tu perro está oxidado') && stored2 === (await page.evaluate(() => localStorage.getItem('leadmate.dog'))));
 await browser.close();

@@ -56,3 +56,18 @@ describe('resolve', () => {
     expect(resolve(r, r)).toEqual(r);
   });
 });
+
+describe('resolve stars', () => {
+  it('lets a stale device never lower stars, whichever copy is newer', () => {
+    const newer = rec({ ...at('2026-05-03T00:00:00.000Z'), stars: { 'poste-practice': 1 } });
+    const stale = rec({ ...at('2026-05-01T00:00:00.000Z'), stars: { 'poste-practice': 3 } });
+    expect(resolve(newer, stale).stars['poste-practice']).toBe(3);
+    expect(resolve(stale, newer).stars['poste-practice']).toBe(3);
+  });
+
+  it('takes a better replay from either device and unions Nodes', () => {
+    const a = rec({ ...at('2026-05-01T00:00:00.000Z'), stars: { 'poste-practice': 1, 'walk-distraction': 2 } });
+    const b = rec({ ...at('2026-05-02T00:00:00.000Z'), stars: { 'poste-practice': 3 } });
+    expect(resolve(a, b).stars).toEqual({ 'poste-practice': 3, 'walk-distraction': 2 });
+  });
+});

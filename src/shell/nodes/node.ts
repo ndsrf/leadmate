@@ -1,6 +1,7 @@
 import type { ScenarioConfig } from '../../sim/config';
 import type { SimulationDebriefPayload } from '../../sim/payload';
 import type { TextKey } from '../../i18n';
+import { bestStars, starsFor } from '../stars';
 import { applyActivity, applyStage, type CheckpointSeconds, type DogRecord } from '../dogRecord';
 
 /** What a Debrief can say the user is weakest at; every exercise targets one of these. */
@@ -150,6 +151,18 @@ export function onDebrief(record: DogRecord, run: NodeRun, now: Date): DogRecord
   if (run.step !== 'debrief' || !run.result) return record;
   const graded = run.node.mode === 'stage' && run.result.kind === 'stage' ? applyStage(record, run.result.payload, now) : record;
   const completedNodes = graded.completedNodes.includes(run.node.id) ? graded.completedNodes : [...graded.completedNodes, run.node.id];
+  // stars come from handling quality alone (a Minigame has no score) and only ever go up
+  const earned = starsFor(run.result.kind === 'stage' ? run.result.payload.handlingScore : undefined);
+  const stars = { ...graded.stars, [run.node.id]: bestStars(graded.stars[run.node.id], earned)! };
   // reaching a Debrief makes today an active day for the Streak
-  return applyActivity({ ...graded, completedNodes }, now);
+  return applyActivity({ ...graded, completedNodes, stars }, now);
 }
+
+/**
+ * Whether to show the practice link back to the Poste practice Node after two consecutive
+ * Poste failures in a scenario (it is never shown on the Poste practice Node itself).
+ */
+export function shouldShowPosteLink(record: DogRecord, nodeId: string): boolean {
+  return record.posteFailures >= 2 && nodeId !== 'poste-practice';
+}
+

@@ -1,3 +1,4 @@
+import { color } from './ui/theme';
 import { forwardRef, useImperativeHandle, useRef, type ComponentType, type Ref } from 'react';
 import { StyleSheet } from 'react-native';
 import { WebView, type WebViewMessageEvent, type WebViewProps } from 'react-native-webview';
@@ -45,4 +46,4 @@ export const SimView = forwardRef<SimViewHandle, SimViewProps>(function SimView(
   );
 });
 
-const styles = StyleSheet.create({ fill: { flex: 1, backgroundColor: '#0f172a' } });
+const styles = StyleSheet.create({ fill: { flex: 1, backgroundColor: color.bg } });

@@ -1,10 +1,17 @@
 import type { DogRecord } from '../dogRecord';
+import { bestStars, type Stars } from '../stars';
 import type { StreakRecord, WalkDiaryEntry } from '../streak';
 
 const union = <T>(first: readonly T[], second: readonly T[], key: (item: T) => string): T[] => {
   const seen = new Set(first.map(key));
   return [...first, ...second.filter((item) => !seen.has(key(item)))];
 };
+
+function mergeStars(a: Record<string, Stars>, b: Record<string, Stars>): Record<string, Stars> {
+  const best = { ...a };
+  for (const [id, stars] of Object.entries(b)) best[id] = bestStars(best[id], stars)!;
+  return best;
+}
 
 function mergeStreaks(base: StreakRecord, other: StreakRecord): StreakRecord {
   // a Streak is a run, not a list of days: the run that was active later is the current one
@@ -21,7 +28,7 @@ function mergeDailyBest(a: Record<string, number>, b: Record<string, number>): R
 /**
  * Resolves two copies of the same Dog (ADR 0006). The copy with the later `updatedAt` wins whole, Learning
  * Attributes included, which are never blended field by field. Records that only grow are then combined:
- * the Walk Diary and completed Nodes by union, the best Daily Stage score per date, and the longer Streak.
+ * the Walk Diary and completed Nodes by union, the best Daily Stage score per date, the best stars per Node (so a stale device can never lower them), and the longer Streak.
  * A tie goes to `local`.
  */
 export function resolve(local: DogRecord, remote: DogRecord): DogRecord {
@@ -34,6 +41,7 @@ export function resolve(local: DogRecord, remote: DogRecord): DogRecord {
     walkDiary: union(base.walkDiary, other.walkDiary, entryKey),
     completedNodes: union(base.completedNodes, other.completedNodes, (id) => id),
     dailyBest: mergeDailyBest(base.dailyBest, other.dailyBest),
+    stars: mergeStars(base.stars, other.stars),
     streak: mergeStreaks(base.streak, other.streak),
   };
 }

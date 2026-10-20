@@ -2,7 +2,12 @@ import './global.css';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, View } from 'react-native';
+import { useFonts } from 'expo-font';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
 import { createTranslator, es } from './src/i18n';
+import { installFeedback } from './src/shell/ui/feedbackBackends';
+import { useUiSettings } from './src/shell/ui/useUiSettings';
 import { defaultScenario, type ScenarioConfig } from './src/sim/config';
 import type { SimulationDebriefPayload } from './src/sim/payload';
 import { BUNDLE_MESSAGE_TYPES, decode, type BundleMessage, type ShellMessage } from './src/sim/messages';
@@ -10,14 +15,15 @@ import { newSeed } from './src/sim/rng';
 import { playDogSound, playResolvedCue, prepareAudio } from './src/shell/audio';
 import { createVocalizer } from './src/shell/vocalize';
 import { applyDiary, applyStage, toSnapshot } from './src/shell/dogRecord';
+import { celebrationsFor, starsShown, type Celebration } from './src/shell/celebrations';
 import { completeDaily, dateSeed, generateDailyStage, todayString, warmupAfterDaily, type DailyCompletion } from './src/shell/daily';
 import { ErrorOverlay, HintOverlay, LoadingOverlay, ResumeOverlay } from './src/shell/Overlays';
 import { POSTE_PRACTICE } from './src/shell/nodes/content';
 import { withPull } from './src/shell/nodes/scenarios';
-import { advance, onDebrief, startNode, type Metric, type NodeAction, type NodeDef, type NodeRun } from './src/shell/nodes/node';
+import { advance, onDebrief, shouldShowPosteLink, startNode, type Metric, type NodeAction, type NodeDef, type NodeRun } from './src/shell/nodes/node';
 import { DailyResultScreen } from './src/shell/screens/DailyResultScreen';
 import { DoorbellMatView } from './src/shell/screens/DoorbellMatView';
-import { HomeScreen } from './src/shell/screens/HomeScreen';
+import { WorldMapScreen } from './src/shell/screens/WorldMapScreen';
 import { CheckpointScreen, DebriefScreen, PrimerScreen } from './src/shell/screens/NodeScreens';
 import { PosteMinigameView } from './src/shell/screens/PosteMinigameView';
 import { DiagnosticView } from './src/shell/screens/DiagnosticView';
@@ -41,7 +47,7 @@ import { useAccount } from './src/shell/sync/useAccount';
 import { AccountBanner, AuthScreen, ChooseDogScreen, RegisterPrompt } from './src/shell/screens/AccountScreens';
 import { resolveCue, type Language } from './src/shell/voice';
 
-type DailyRun = { payload: SimulationDebriefPayload; completion: DailyCompletion };
+type DailyRun = { payload: SimulationDebriefPayload; completion: DailyCompletion; celebrations: Celebration[] };
 type Page =
   | { name: 'home' }
   | { name: 'settings' }
@@ -58,7 +64,12 @@ const LANGUAGE: Language = 'es';
 const LOAD_TIMEOUT_MS = 20000;
 const HINT_MS = 7000;
 
+installFeedback();
+
 export default function App() {
+  // the display font loads in the background: text shows in the system font until it is ready
+  useFonts({ LilitaOne: LilitaOne_400Regular });
+  const ui = useUiSettings(dogStore);
   const sim = useRef<SimViewHandle>(null);
   const { record, update, replace } = useDog(dogStore);
   const account = useAccount(dogStore, record, replace);
@@ -70,6 +81,8 @@ export default function App() {
   const [view, setView] = useState<Page>({ name: 'home' });
   const [hint, setHint] = useState<HintId | null>(null);
   const [warmup, setWarmup] = useState<WarmupOutcome>('none');
+  // celebrations are diffed once when a result opens and then only displayed, so each shows once
+  const [celebrations, setCelebrations] = useState<{ id: string; list: Celebration[] } | null>(null);
   const [attempt, setAttempt] = useState(0); // bumping it reloads the bundle
   const t = useMemo(() => createTranslator(CATALOG), []);
 
@@ -156,7 +169,13 @@ export default function App() {
   useEffect(() => {
     const v = viewRef.current;
     if (debriefId === null || v.name !== 'node') return;
-    update((r) => onDebrief(r, v.run, new Date()));
+    let diff: Celebration[] = [];
+    update((r) => {
+      const after = onDebrief(r, v.run, new Date());
+      diff = celebrationsFor(r, after, { kind: 'node', nodeId: v.run.node.id });
+      return after;
+    });
+    setCelebrations({ id: debriefId, list: diff });
   }, [debriefId, update]);
 
   const onMessage = useCallback(
@@ -186,10 +205,12 @@ export default function App() {
         const v = viewRef.current;
         if (v.name === 'daily' && v.result === null) {
           // the score and the Streak are kept; what the Dog has learned and the campaign are not touched
-          const completion = completeDaily(recordRef.current!, payload, new Date());
+          const before = recordRef.current!;
+          const completion = completeDaily(before, payload, new Date());
           update(() => completion.record);
           setWarmup((w) => warmupAfterDaily(w));
-          setView({ ...v, result: { payload, completion } });
+          const list = celebrationsFor(before, completion.record, { kind: 'daily', improved: completion.improved, firstOfDay: completion.firstOfDay, best: completion.best });
+          setView({ ...v, result: { payload, completion, celebrations: list } });
         } else if (v.name === 'first-stage') {
           update((r) => completeFirstStage(r, payload, new Date()));
           accountRef.current.countStage();
@@ -221,7 +242,14 @@ export default function App() {
 
   // leaving the app pauses the Stage; no Stage time elapses until the user chooses Resume
   useEffect(() => {
-    const sub = AppState.addEventListener('change', (state) => state !== 'active' && send({ type: 'pause' }));
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        if (playingStageRef.current) send({ type: 'wake' });
+      } else {
+        send({ type: 'pause' });
+        send({ type: 'suspend' });
+      }
+    });
     return () => sub.remove();
   }, [send]);
 
@@ -246,6 +274,12 @@ export default function App() {
 
   const startNodeRun = (node: NodeDef) => setView({ name: 'node', run: startNode(node), attempt: 0 });
   const playingStage = simulationKey !== null || view.name === 'warmup' || view.name === 'first-stage' || dailyKey !== null;
+  // the bundle only draws while a Stage is on screen; 'start' wakes it, leaving the Stage puts it to sleep
+  const playingStageRef = useRef(playingStage);
+  playingStageRef.current = playingStage;
+  useEffect(() => {
+    if (!playingStage) send({ type: 'suspend' });
+  }, [playingStage, send]);
   const funnelStep = record ? pageForStep(record.onboarding.step) === 'funnel' ? record.onboarding.step : null : null;
 
   let screen: React.ReactNode = null;
@@ -261,9 +295,11 @@ export default function App() {
     screen = <ChooseDogScreen t={t} local={record} cloud={migrateRecord(account.choice[0].record)} onChoose={account.chooseDog} />;
   else if (view.name === 'home') {
     screen = (
-      <HomeScreen
+      <WorldMapScreen
         t={t}
         completed={record.completedNodes}
+        stars={record.stars}
+        rusty={rusty.current === true && warmup !== 'completed'}
         streak={record.streak}
         today={todayString()}
         dailyBest={record.dailyBest[todayString()]}
@@ -294,10 +330,10 @@ export default function App() {
   } else if (view.name === 'daily') {
     if (view.result)
       screen = (
-        <DailyResultScreen t={t} payload={view.result.payload} completion={view.result.completion} onReplay={() => setView({ name: 'daily', attempt: view.attempt + 1, result: null })} onDone={goHome} />
+        <DailyResultScreen t={t} payload={view.result.payload} completion={view.result.completion} celebrations={view.result.celebrations} onReplay={() => setView({ name: 'daily', attempt: view.attempt + 1, result: null })} onDone={goHome} />
       );
   } else if (view.name === 'settings') {
-    screen = <SettingsScreen t={t} language={LANGUAGE} record={record} update={update} onClose={goHome} account={account} onLogIn={() => setView({ name: 'auth', mode: 'login' })} />;
+    screen = <SettingsScreen t={t} language={LANGUAGE} record={record} update={update} onClose={goHome} account={account} onLogIn={() => setView({ name: 'auth', mode: 'login' })} ui={ui} />;
   } else if (view.name === 'register') {
     screen = <RegisterPrompt t={t} onCreate={() => setView({ name: 'auth', mode: 'signup' })} onNotNow={goHome} />;
   } else if (view.name === 'auth') {
@@ -321,9 +357,11 @@ export default function App() {
         <DebriefScreen
           t={t}
           run={run}
-          showPosteLink={record.posteFailures >= 2 && run.node.id !== 'poste-practice'}
+          showPosteLink={shouldShowPosteLink(record, run.node.id)}
           diary={record.walkDiary.find((e) => e.date === todayString() && e.nodeId === run.node.id)?.outcome ?? null}
           onDiary={(outcome) => update((r) => applyDiary(r, run.node.id, outcome, new Date()))}
+          best={starsShown(record, run.node.id) ?? 1}
+          celebrations={celebrations?.id === `${run.node.id}:${view.attempt}` ? celebrations.list : []}
           onPosteLink={() => startNodeRun(POSTE_PRACTICE)}
           onPlayAgain={() => setView({ name: 'node', run: { ...run, step: 'simulation', result: null }, attempt: view.attempt + 1 })}
           onDone={goHome}
@@ -332,7 +370,8 @@ export default function App() {
   }
 
   return (
-    <View className="flex-1 bg-slate-900">
+    <SafeAreaProvider>
+    <View className="flex-1 bg-bg">
       <SimView key={attempt} ref={sim} onMessage={onMessage} onLoadError={() => setBundle('error')} />
       {screen}
       {playingStage && hint && !paused && <HintOverlay text={t(HINT_TEXT[hint])} />}
@@ -350,5 +389,6 @@ export default function App() {
       {bundle === 'error' && <ErrorOverlay t={t} onRetry={retry} />}
       <StatusBar style="light" hidden />
     </View>
+    </SafeAreaProvider>
   );
 }

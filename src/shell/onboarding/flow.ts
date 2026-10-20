@@ -17,7 +17,7 @@ export function inFunnel(step: OnboardingStep): boolean {
   return ONBOARDING_STEPS.indexOf(step) < ONBOARDING_STEPS.indexOf('first-stage');
 }
 
-/** What the app shows for a persisted step: the funnel screens, the guided first Stage, or the usual home. */
+/** What the app shows for a persisted step: the funnel screens, the guided first Stage, or the World Map. */
 export type OnboardingPage = 'funnel' | 'first-stage' | 'home';
 
 export function pageForStep(step: OnboardingStep): OnboardingPage {

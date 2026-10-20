@@ -1,10 +1,12 @@
 import Phaser from 'phaser';
 import type { Translate } from '../../src/i18n';
+import { HUD_COLOR, HUD_COLOR_NUM, HUD_DEPTH, HUD_PRIMARY_BUTTON } from './tokens.generated';
 import { CUE_LABEL_WIDTH, CUE_RADIUS, fitFontSize, hudLayout, MARKER_RADIUS, SNIFF_RADIUS, visibleCues } from '../../src/hud/layout';
 import { dogPose, gaitPeriod } from '../../src/hud/pose';
 import { applyDetents, keyboardInput, screenToWorldDirection, type Keys } from '../../src/hud/input';
 import { project } from '../../src/hud/iso';
 import { smoothZoom, targetZoom } from '../../src/hud/camera';
+import { createChangeDetector } from '../../src/hud/dirty';
 import { HINT_SECONDS, HintTracker } from '../../src/hud/hints';
 import type { CueType, ScenarioConfig } from '../../src/sim/config';
 import { leashCurve, leashPath, leashPoint, type TensionState } from '../../src/sim/leash';
@@ -25,6 +27,8 @@ export interface StageOptions {
   /** The Dog crossed a Reaction Tier threshold; the shell plays a vocalization. */
   onTier?: (tier: ReactionTier, time: number) => void;
   onSignal?: (signal: StageSignal, time: number) => void;
+  /** The scene finished creating; the render loop may now sleep when the Stage is paused or ended. */
+  onReady?: () => void;
 }
 
 const COLORS: Record<TensionState, number> = { slack: 0x22c55e, taut: 0xfacc15, rigid: 0xef4444 };
@@ -70,6 +74,10 @@ export class StageScene extends Phaser.Scene {
   private markerPointerDown = false;
   private markerPressed = false;
   private accumulator = 0;
+  private hudDirty = createChangeDetector();
+  private cameraDirty = createChangeDetector();
+  /** Fixed simulation steps run so far (dev readout). */
+  simSteps = 0;
   private flash: { color: number; until: number } | null = null;
   private camPos: Vec2 = { x: 0, y: 0 };
   private ended = false;
@@ -110,24 +118,26 @@ export class StageScene extends Phaser.Scene {
     this.gfx = this.add.graphics();
     const world = [...this.children.list];
     this.hud = this.add.graphics();
+    this.hudDirty.reset();
+    this.cameraDirty.reset();
     this.markerLabel = this.add
-      .text(0, 0, this.options.t('hud.marker'), { fontFamily: 'system-ui, sans-serif', color: '#f8fafc', fontSize: '16px' })
+      .text(0, 0, this.options.t('hud.marker'), { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '16px' })
       .setOrigin(0.5, 0);
     this.cueLabel = this.add
-      .text(0, 0, this.options.t('hud.cue'), { fontFamily: 'system-ui, sans-serif', color: '#f8fafc', fontSize: '14px' })
+      .text(0, 0, this.options.t('hud.cue'), { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '14px' })
       .setOrigin(0.5, 1);
     this.leaveItLabel = this.add
-      .text(0, 0, this.options.t('hud.leaveIt'), { fontFamily: 'system-ui, sans-serif', color: '#f8fafc', fontSize: '14px' })
+      .text(0, 0, this.options.t('hud.leaveIt'), { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '14px' })
       .setOrigin(0.5, 1);
     this.sniffLabel = this.add
-      .text(0, 0, this.options.t('hud.sniff'), { fontFamily: 'system-ui, sans-serif', color: '#f8fafc', fontSize: '14px' })
+      .text(0, 0, this.options.t('hud.sniff'), { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '14px' })
       .setOrigin(0.5, 1)
       .setVisible(false);
     this.markerCount = this.add
-      .text(0, 0, '', { fontFamily: 'system-ui, sans-serif', color: '#052e16', fontSize: '15px', fontStyle: 'bold' })
+      .text(0, 0, '', { fontFamily: 'system-ui, sans-serif', color: HUD_PRIMARY_BUTTON.label, fontSize: '15px', fontStyle: 'bold' })
       .setOrigin(0.5);
     this.hintText = this.add
-      .text(0, 0, '', { fontFamily: 'system-ui, sans-serif', color: '#f8fafc', fontSize: '16px', backgroundColor: '#0f172acc', padding: { x: 10, y: 6 }, align: 'center' })
+      .text(0, 0, '', { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '16px', backgroundColor: `${HUD_COLOR.bg}cc`, padding: { x: 10, y: 6 }, align: 'center' })
       .setOrigin(0.5, 0)
       .setVisible(false);
     // the HUD has its own unzoomed camera so it stays in screen pixels
@@ -167,6 +177,7 @@ export class StageScene extends Phaser.Scene {
     const start = project(this.sim.handler);
     this.camPos = { ...start };
     this.cameras.main.centerOn(start.x, start.y);
+    this.options.onReady?.();
   }
 
   /** Pauses the simulation clock; time stops until `resumeStage`. */
@@ -356,6 +367,7 @@ export class StageScene extends Phaser.Scene {
     } else {
       this.accumulator += Math.min(delta, 100) / 1000;
       while (this.accumulator >= step && !this.sim.ended) {
+        this.simSteps++;
         this.handleEvents(tick(this.sim, input, step));
         input = { ...input, marker: false, cue: false, sniff: false }; // a press counts for one tick only
         this.markerPressed = false;
@@ -416,8 +428,10 @@ export class StageScene extends Phaser.Scene {
       this.sim.config.camera,
     );
     this.zoom = this.zoom === 0 ? target : smoothZoom(this.zoom, target, delta, this.sim.config.camera);
-    this.cameras.main.setZoom(this.zoom);
-    this.cameras.main.centerOn(this.camPos.x, this.camPos.y);
+    if (this.cameraDirty.changed(`${this.zoom},${this.camPos.x},${this.camPos.y},${width},${height}`)) {
+      this.cameras.main.setZoom(this.zoom);
+      this.cameras.main.centerOn(this.camPos.x, this.camPos.y);
+    }
   }
 
   private showHints(): void {
@@ -630,6 +644,29 @@ export class StageScene extends Phaser.Scene {
 
   private drawHud(): void {
     const h = this.hud;
+    const cues = visibleCues(this.options.scenario.cues);
+    const offer = this.sniffOnOffer;
+    const left = this.marksLeft;
+    const { width, height } = this.scale;
+    const barW = Math.min(220, width * 0.4);
+    const level = this.sim.arousal / 100;
+    const sniffLeft = offer ? Math.max(0, this.sim.sniffOfferUntil - this.sim.time) / this.sim.config.goSniff.offerSeconds : 0;
+    // everything the HUD drawing below reads; unchanged since the last frame means nothing to redraw
+    const key = [
+      this.joy ? `${this.joy.base.x},${this.joy.base.y},${this.joy.knob.x},${this.joy.knob.y}` : '-',
+      width,
+      height,
+      left,
+      cues.join('+'),
+      offer ? sniffLeft : '-',
+      Math.round(barW * level),
+      level < 0.5 ? 0 : level < 0.75 ? 1 : 2,
+      this.markerPointerDown || this.keys.marker.isDown || this.keys.marker2.isDown,
+      this.cuePointerDown || this.keys.cue.isDown,
+      this.leaveItPointerDown || this.keys.leaveIt.isDown,
+      this.sniffPointerDown || this.keys.sniff.isDown,
+    ].join('|');
+    if (!this.hudDirty.changed(key)) return;
     h.clear();
     const base = this.joy?.base ?? this.joyHome;
     let knob = this.joy?.knob ?? base;
@@ -642,19 +679,20 @@ export class StageScene extends Phaser.Scene {
     h.fillStyle(0xffffff, this.joy ? 0.7 : 0.4).fillCircle(knob.x, knob.y, 26);
 
     const m = this.markerHome;
-    const left = this.marksLeft;
     const enabled = left > 0;
     const down = enabled && (this.markerPointerDown || this.keys.marker.isDown || this.keys.marker2.isDown);
-    const fill = !enabled ? 0x64748b : down ? 0x16a34a : 0x22c55e;
-    h.fillStyle(fill, enabled ? 0.85 : 0.5).fillCircle(m.x, m.y, MARKER_RADIUS);
-    h.lineStyle(3, 0xffffff, enabled ? 0.8 : 0.35).strokeCircle(m.x, m.y, MARKER_RADIUS);
+    // raised like the shell's primary button: the face sinks onto its darker edge while pressed
+    const sink = down ? HUD_DEPTH : 0;
+    const my = m.y + sink;
+    h.fillStyle(enabled ? HUD_COLOR_NUM.brandEdge : HUD_COLOR_NUM.quietEdge, enabled ? 0.95 : 0.5).fillCircle(m.x, m.y + HUD_DEPTH, MARKER_RADIUS);
+    h.fillStyle(enabled ? HUD_COLOR_NUM.brand : HUD_COLOR_NUM.quiet, enabled ? 0.95 : 0.5).fillCircle(m.x, my, MARKER_RADIUS);
+    h.lineStyle(3, 0xffffff, enabled ? 0.8 : 0.35).strokeCircle(m.x, my, MARKER_RADIUS);
     // remaining Marks, as a badge on the button
     const badge = { x: m.x + MARKER_RADIUS * 0.72, y: m.y - MARKER_RADIUS * 0.72 };
-    h.fillStyle(enabled ? 0xfef08a : 0xcbd5e1).fillCircle(badge.x, badge.y, 14);
+    h.fillStyle(enabled ? HUD_COLOR_NUM.accent : 0xcbd5e1).fillCircle(badge.x, badge.y, 14);
     this.markerCount.setText(String(Math.max(0, left)));
     this.markerLabel.setAlpha(enabled ? 1 : 0.5);
     // Cue buttons above the Marker: "Let's Go" is a speech bubble, "Leave It" a raised hand
-    const cues = visibleCues(this.options.scenario.cues);
     this.cueLabel.setVisible(cues.includes('lets-go'));
     this.leaveItLabel.setVisible(cues.includes('leave-it'));
     if (cues.includes('lets-go')) {
@@ -674,11 +712,10 @@ export class StageScene extends Phaser.Scene {
       if (this.leaveItPointerDown || this.keys.leaveIt.isDown) h.lineStyle(4, 0xfef08a).strokeCircle(c.x, c.y, CUE_RADIUS + 3);
     }
     // Go Sniff: only while on offer, a nose over scent dots
-    const offer = this.sniffOnOffer;
     this.sniffLabel.setVisible(offer);
     if (offer) {
       const n = this.sniffHome;
-      const timeLeft = Math.max(0, this.sim.sniffOfferUntil - this.sim.time) / this.sim.config.goSniff.offerSeconds;
+      const timeLeft = sniffLeft;
       h.fillStyle(0x0ea5e9, 0.9).fillCircle(n.x, n.y, SNIFF_RADIUS);
       h.lineStyle(3, 0xffffff, 0.85).strokeCircle(n.x, n.y, SNIFF_RADIUS);
       h.fillStyle(0xffffff).fillEllipse(n.x, n.y + 2, 20, 14);
@@ -689,13 +726,11 @@ export class StageScene extends Phaser.Scene {
     }
 
     // Arousal: a thin bar at the top of the screen, no text
-    const barW = Math.min(220, this.scale.width * 0.4);
-    const barX = (this.scale.width - barW) / 2;
-    const level = this.sim.arousal / 100;
-    h.fillStyle(0xffffff, 0.15).fillRect(barX, this.scale.height - 14, barW, 6);
-    h.fillStyle(level < 0.5 ? 0x22c55e : level < 0.75 ? 0xfacc15 : 0xef4444).fillRect(barX, this.scale.height - 14, barW * level, 6);
+    const barX = (width - barW) / 2;
+    h.fillStyle(0xffffff, 0.15).fillRect(barX, height - 14, barW, 6);
+    h.fillStyle(level < 0.5 ? 0x22c55e : level < 0.75 ? 0xfacc15 : 0xef4444).fillRect(barX, height - 14, barW * level, 6);
 
     // checkmark icon: the Marker says "right now, good"
-    h.lineStyle(8, 0xffffff, enabled ? 1 : 0.5).beginPath().moveTo(m.x - 18, m.y).lineTo(m.x - 5, m.y + 14).lineTo(m.x + 20, m.y - 14).strokePath();
+    h.lineStyle(8, 0xffffff, enabled ? 1 : 0.5).beginPath().moveTo(m.x - 18, my).lineTo(m.x - 5, my + 14).lineTo(m.x + 20, my - 14).strokePath();
   }
 }

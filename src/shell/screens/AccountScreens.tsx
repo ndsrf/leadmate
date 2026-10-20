@@ -24,8 +24,8 @@ type Mode = 'signup' | 'login' | 'reset';
 export function RegisterPrompt({ t, onCreate, onNotNow }: { t: Translate; onCreate: () => void; onNotNow: () => void }) {
   return (
     <Screen>
-      <Text className="mb-2 text-2xl font-bold text-white">{t('account.register.title')}</Text>
-      <Text className="mb-2 text-base text-slate-200">{t('account.register.body')}</Text>
+      <Text className="mb-2 text-2xl font-bold text-ink">{t('account.register.title')}</Text>
+      <Text className="mb-2 text-base text-inkMuted">{t('account.register.body')}</Text>
       <Button label={t('account.register.create')} onPress={onCreate} />
       <Button label={t('account.register.notNow')} tone="quiet" onPress={onNotNow} />
     </Screen>
@@ -60,18 +60,18 @@ export function AuthScreen({ t, auth, initial = 'signup', onDone, onBack }: { t:
   const title: TextKey = mode === 'signup' ? 'account.signUp' : mode === 'login' ? 'account.logIn' : 'account.reset';
   return (
     <Screen>
-      <Text className="mb-4 text-2xl font-bold text-white">{t(title)}</Text>
-      <View className="rounded-xl bg-slate-800 p-4">
-        <Text className="text-sm text-white">{t('account.email')}</Text>
-        <TextInput value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" accessibilityLabel={t('account.email')} className="mt-1 rounded-lg bg-slate-700 px-3 py-2 text-white" />
+      <Text className="mb-4 text-2xl font-bold text-ink">{t(title)}</Text>
+      <View className="rounded-game-lg bg-surface p-4">
+        <Text className="text-sm text-ink">{t('account.email')}</Text>
+        <TextInput value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" accessibilityLabel={t('account.email')} className="mt-1 rounded-game-md bg-surfaceHigh px-3 py-2 text-ink" />
         {mode !== 'reset' && (
           <>
-            <Text className="mt-3 text-sm text-white">{t('account.password')}</Text>
-            <TextInput value={password} onChangeText={setPassword} secureTextEntry accessibilityLabel={t('account.password')} className="mt-1 rounded-lg bg-slate-700 px-3 py-2 text-white" />
+            <Text className="mt-3 text-sm text-ink">{t('account.password')}</Text>
+            <TextInput value={password} onChangeText={setPassword} secureTextEntry accessibilityLabel={t('account.password')} className="mt-1 rounded-game-md bg-surfaceHigh px-3 py-2 text-ink" />
           </>
         )}
-        {error && <Text className="mt-2 text-sm text-amber-200">{t(ERROR_KEYS[error])}</Text>}
-        {notice && <Text className="mt-2 text-sm text-green-300">{t(notice)}</Text>}
+        {error && <Text className="mt-2 text-sm text-accent">{t(ERROR_KEYS[error])}</Text>}
+        {notice && <Text className="mt-2 text-sm text-brand">{t(notice)}</Text>}
         <Button label={t(mode === 'reset' ? 'account.reset.send' : title)} onPress={() => !busy && submit()} />
         {mode === 'signup' && <Button label={t('account.haveAccount')} tone="quiet" onPress={() => setMode('login')} />}
         {mode === 'login' && <Button label={t('account.needAccount')} tone="quiet" onPress={() => setMode('signup')} />}
@@ -87,17 +87,17 @@ export function ChooseDogScreen({ t, local, cloud, onChoose }: { t: Translate; l
   const side = (labelKey: TextKey, record: DogRecord) => {
     const s = summarize(record);
     return (
-      <View className="mb-3 rounded-xl bg-slate-800 p-4">
-        <Text className="text-base font-bold text-white">{t(labelKey)}</Text>
-        <Text className="mt-1 text-sm text-slate-200">{`${t('account.choose.streak')}: ${s.streak}`}</Text>
-        <Text className="text-sm text-slate-200">{`${t('account.choose.nodes')}: ${s.nodes}`}</Text>
+      <View className="mb-3 rounded-game-lg bg-surface p-4">
+        <Text className="text-base font-bold text-ink">{t(labelKey)}</Text>
+        <Text className="mt-1 text-sm text-inkMuted">{`${t('account.choose.streak')}: ${s.streak}`}</Text>
+        <Text className="text-sm text-inkMuted">{`${t('account.choose.nodes')}: ${s.nodes}`}</Text>
       </View>
     );
   };
   return (
     <Screen>
-      <Text className="mb-2 text-2xl font-bold text-white">{t('account.choose.title')}</Text>
-      <Text className="mb-3 text-base text-slate-200">{t('account.choose.body')}</Text>
+      <Text className="mb-2 text-2xl font-bold text-ink">{t('account.choose.title')}</Text>
+      <Text className="mb-3 text-base text-inkMuted">{t('account.choose.body')}</Text>
       {side('account.choose.device', local)}
       {side('account.choose.cloud', cloud)}
       <Button label={t('account.choose.keepCloud')} onPress={() => onChoose('cloud')} />
@@ -109,15 +109,15 @@ export function ChooseDogScreen({ t, local, cloud, onChoose }: { t: Translate; l
 /** A non-blocking card on the home screen: the verification pause or the registration reminder. */
 export function AccountBanner({ t, kind, onAction, onDismiss }: { t: Translate; kind: 'verify' | 'remind'; onAction?: () => void; onDismiss?: () => void }) {
   return (
-    <View className="mb-4 rounded-xl bg-sky-900/60 p-4">
+    <View className="mb-4 rounded-game-lg bg-info p-4">
       {kind === 'verify' ? (
         <>
-          <Text className="text-lg font-bold text-sky-100">{t('account.verify.title')}</Text>
-          <Text className="mt-1 text-sm text-sky-50">{t('account.verify.body')}</Text>
+          <Text className="text-lg font-bold text-onInfo">{t('account.verify.title')}</Text>
+          <Text className="mt-1 text-sm text-onInfo">{t('account.verify.body')}</Text>
         </>
       ) : (
         <>
-          <Text className="text-sm text-sky-50">{t('account.reminder.body')}</Text>
+          <Text className="text-sm text-onInfo">{t('account.reminder.body')}</Text>
           {onAction && <Button label={t('account.register.create')} onPress={onAction} />}
         </>
       )}
@@ -132,18 +132,18 @@ export function AccountSection({ t, account, onLogIn, onForget }: { t: Translate
   const [message, setMessage] = useState<TextKey | null>(null);
   const { auth } = account;
   return (
-    <View className="mb-5 rounded-xl bg-slate-800 p-4">
-      <Text className="mb-1 text-base font-bold text-white">{t('account.title')}</Text>
+    <View className="mb-5 rounded-game-lg bg-surface p-4">
+      <Text className="mb-1 text-base font-bold text-ink">{t('account.title')}</Text>
       {!auth ? (
-        <Text className="text-sm text-slate-300">{t('account.unavailable')}</Text>
+        <Text className="text-sm text-inkMuted">{t('account.unavailable')}</Text>
       ) : account.signedIn ? (
         <>
-          <Text className="text-sm text-slate-300">{t('account.signedIn')}</Text>
-          {account.sync.paused === 'verify' && <Text className="mt-2 text-sm text-amber-200">{t('account.verify.body')}</Text>}
+          <Text className="text-sm text-inkMuted">{t('account.signedIn')}</Text>
+          {account.sync.paused === 'verify' && <Text className="mt-2 text-sm text-accent">{t('account.verify.body')}</Text>}
           <Button label={t('account.logOut')} tone="quiet" onPress={() => auth.signOut()} />
           {confirming ? (
             <View className="mt-2">
-              <Text className="text-sm text-amber-200">{t('account.delete.confirm')}</Text>
+              <Text className="text-sm text-accent">{t('account.delete.confirm')}</Text>
               <Button
                 label={t('account.delete.yes')}
                 onPress={async () => {
@@ -163,14 +163,14 @@ export function AccountSection({ t, account, onLogIn, onForget }: { t: Translate
         </>
       ) : (
         <>
-          <Text className="text-sm text-slate-300">{t('account.signedOut')}</Text>
+          <Text className="text-sm text-inkMuted">{t('account.signedOut')}</Text>
           <Button label={t('account.logIn')} onPress={onLogIn} />
         </>
       )}
-      {message && <Text className="mt-2 text-sm text-green-300">{t(message)}</Text>}
+      {message && <Text className="mt-2 text-sm text-brand">{t(message)}</Text>}
       {account.backup && (
         <View className="mt-3">
-          <Text className="text-sm text-slate-300">{t('account.backup')}</Text>
+          <Text className="text-sm text-inkMuted">{t('account.backup')}</Text>
           <Button label={t('account.backup.restore')} tone="quiet" onPress={account.restoreBackup} />
         </View>
       )}

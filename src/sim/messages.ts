@@ -14,7 +14,11 @@ export type ShellMessage =
       scenario?: Partial<ScenarioConfig>;
     }
   | { type: 'pause' }
-  | { type: 'resume' };
+  | { type: 'resume' }
+  /** No Stage is on screen (World Map, menus, screen off): stop drawing frames. */
+  | { type: 'suspend' }
+  /** A Stage is on screen again: restart the render loop. */
+  | { type: 'wake' };
 
 /** Bundle -> shell. */
 export type BundleMessage =
@@ -50,7 +54,7 @@ export function decode<T extends { type: string }>(raw: unknown, types: readonly
   return null;
 }
 
-export const SHELL_MESSAGE_TYPES: readonly ShellMessage['type'][] = ['start', 'pause', 'resume'];
+export const SHELL_MESSAGE_TYPES: readonly ShellMessage['type'][] = ['start', 'pause', 'resume', 'suspend', 'wake'];
 export const BUNDLE_MESSAGE_TYPES: readonly BundleMessage['type'][] = ['ready', 'paused', 'debrief', 'playCue', 'reaction-tier-change', 'stage-signal', 'error'];
 
 /** Where the bundle sends its messages: the native WebView bridge, the parent window, or nowhere. */

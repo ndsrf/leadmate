@@ -13,19 +13,19 @@ export function PlanScreen({ t, latency, plan, onContinue }: { t: Translate; lat
   const band = latencyBand(latency);
   return (
     <Screen>
-      <Text className="mb-4 text-2xl font-bold text-white">{t('plan.title')}</Text>
-      <View className="mb-5 rounded-xl bg-slate-800 p-4">
-        <Text className="text-sm text-slate-300">{t('plan.latency')}</Text>
-        <Text className="text-3xl font-bold text-white">{`${latency.toFixed(2)} ${t('plan.seconds')}`}</Text>
-        <Text className="mt-1 text-base font-semibold text-green-400">{t(BAND_KEYS[band])}</Text>
-        <Text className="mt-2 text-sm text-slate-300">{t(NOTE_KEYS[band])}</Text>
+      <Text className="mb-4 text-2xl font-bold text-ink">{t('plan.title')}</Text>
+      <View className="mb-5 rounded-game-lg bg-surface p-4">
+        <Text className="text-sm text-inkMuted">{t('plan.latency')}</Text>
+        <Text className="text-3xl font-bold text-ink">{`${latency.toFixed(2)} ${t('plan.seconds')}`}</Text>
+        <Text className="mt-1 text-base font-semibold text-brand">{t(BAND_KEYS[band])}</Text>
+        <Text className="mt-2 text-sm text-inkMuted">{t(NOTE_KEYS[band])}</Text>
       </View>
-      <View className="mb-5 rounded-xl bg-slate-800 p-4">
-        <Text className="mb-2 text-base font-bold text-white">{t('plan.walkPlan')}</Text>
+      <View className="mb-5 rounded-game-lg bg-surface p-4">
+        <Text className="mb-2 text-base font-bold text-ink">{t('plan.walkPlan')}</Text>
         {plan.map((id, i) => {
           const node = findNode(id);
           return node ? (
-            <Text key={id} className="py-0.5 text-sm text-white">{`${i + 1}. ${t(node.title)}`}</Text>
+            <Text key={id} className="py-0.5 text-sm text-ink">{`${i + 1}. ${t(node.title)}`}</Text>
           ) : null;
         })}
       </View>

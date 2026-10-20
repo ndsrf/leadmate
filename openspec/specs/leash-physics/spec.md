@@ -78,15 +78,26 @@ The system SHALL halt the Handler immediately and anchor the leash origin when t
 - **AND** blocks the Dog from advancing farther in its current direction
 
 ### Requirement: HUD control split
-The HUD SHALL place the movement joystick under the left thumb and the Marker button under the right thumb. On a desktop browser, the system SHALL also accept keyboard input for movement and the Marker, for debugging.
+The HUD SHALL place the movement joystick under the left thumb and the Marker button and the Cue button under the right thumb. On a desktop browser, the system SHALL also accept keyboard input for movement, the Marker and the Cue, for debugging.
 
 #### Scenario: Touch layout
 - **WHEN** the Stage is shown on a phone
-- **THEN** the joystick is on the left and the Marker button is on the right
+- **THEN** the joystick is on the left and the Marker and Cue buttons are on the right
 
 #### Scenario: Desktop keyboard
 - **WHEN** the Stage runs in a desktop browser
-- **THEN** W, A, S, D move the Handler at walk speed, the 2 key replaces W for quick forward movement, and a key press triggers the Marker
+- **THEN** W, A, S, D move the Handler at walk speed, the 2 key replaces W for quick forward movement, one key triggers the Marker and another key triggers the Cue
+
+### Requirement: Abrupt stop measure
+The system SHALL measure, when the Handler's strength reaches 0 with the Tension Ratio at least 1.0, the Dog's outward speed at that moment and whether the Handler slowed beforehand, so Equipment can scale the Arousal bump.
+
+#### Scenario: Abrupt stop
+- **WHEN** the Handler goes from quick strength to 0 in one step at the leash limit
+- **THEN** the stop is reported as abrupt with the Dog's outward speed
+
+#### Scenario: Smooth stop
+- **WHEN** the Handler slows to walk strength before reaching 0
+- **THEN** the stop is reported as smooth
 
 ### Requirement: Camera zoom follows the action
 The system SHALL adjust the camera zoom automatically so the Handler and the Dog stay in view, zooming in when they are close and out as they separate, within configured limits and with smoothing.

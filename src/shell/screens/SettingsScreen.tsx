@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import { RecordingPresets, requestRecordingPermissionsAsync, useAudioRecorder } from 'expo-audio';
 import type { Translate } from '../../i18n';
 import { DISTRACTOR_KINDS, type DistractorKind, type Equipment, type TriggerLevel } from '../../sim/learning';
 import { deleteRecording, keepRecording, playResolvedCue, prepareAudio } from '../audio';
 import { setTriggerLevel, type CheckpointSeconds, type DogRecord } from '../dogRecord';
 import { Button } from '../Overlays';
+import { Choice, Panel } from '../ui/components';
 import { CUSTOM_CUE_MS, resolveCue, VOICE_PACKS, type Language } from '../voice';
 import type { Account } from '../sync/useAccount';
 import { AccountSection } from './AccountScreens';
+import type { UiSettings } from '../ui/uiSettings';
 import { Screen } from './Screen';
 
 const CHECKPOINT_OPTIONS: { value: CheckpointSeconds; key: 'settings.checkpoint.5' | 'settings.checkpoint.10' | 'settings.checkpoint.off' }[] = [
@@ -26,25 +28,12 @@ const KIND_KEYS = {
   other: 'settings.kind.other',
 } as const;
 
-function Choice({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      className={`mr-2 mt-2 rounded-lg px-4 py-2 ${selected ? 'bg-green-500' : 'bg-slate-700'}`}
-    >
-      <Text className={selected ? 'font-semibold text-green-950' : 'text-white'}>{label}</Text>
-    </Pressable>
-  );
-}
-
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <View className="mb-5 rounded-xl bg-slate-800 p-4">
-      <Text className="mb-1 text-base font-bold text-white">{title}</Text>
+    <Panel className="mb-5">
+      <Text className="mb-1 font-display text-base text-ink">{title}</Text>
       {children}
-    </View>
+    </Panel>
   );
 }
 
@@ -58,6 +47,7 @@ export function SettingsScreen({
   onClose,
   account,
   onLogIn,
+  ui,
 }: {
   t: Translate;
   language: Language;
@@ -66,6 +56,8 @@ export function SettingsScreen({
   onClose: () => void;
   account: Account;
   onLogIn: () => void;
+  /** This device's UI sounds and haptics (never part of the Dog's record). */
+  ui: { settings: UiSettings; change: (patch: Partial<UiSettings>) => void };
 }) {
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [recording, setRecording] = useState<RecordState>('idle');
@@ -109,7 +101,7 @@ export function SettingsScreen({
 
   return (
     <Screen>
-      <Text className="mb-4 text-2xl font-bold text-white">{t('settings.title')}</Text>
+      <Text className="mb-4 text-2xl font-bold text-ink">{t('settings.title')}</Text>
 
       <Section title={t('settings.equipment')}>
         <View className="flex-row flex-wrap">
@@ -117,14 +109,14 @@ export function SettingsScreen({
             <Choice key={e} label={t(e === 'collar' ? 'settings.equipment.collar' : 'settings.equipment.harness')} selected={record.equipment === e} onPress={() => update((r) => ({ ...r, equipment: e }))} />
           ))}
         </View>
-        <Text className="mt-2 text-sm text-slate-300">{t(record.equipment === 'collar' ? 'settings.equipment.collarNote' : 'settings.equipment.harnessNote')}</Text>
+        <Text className="mt-2 text-sm text-inkMuted">{t(record.equipment === 'collar' ? 'settings.equipment.collarNote' : 'settings.equipment.harnessNote')}</Text>
       </Section>
 
       <Section title={t('settings.triggers')}>
-        <Text className="mb-1 text-xs text-slate-400">{t('settings.triggers.help')}</Text>
+        <Text className="mb-1 text-xs text-inkDim">{t('settings.triggers.help')}</Text>
         {DISTRACTOR_KINDS.map((kind: DistractorKind) => (
           <View key={kind} className="mt-2">
-            <Text className="text-sm text-white">{t(KIND_KEYS[kind])}</Text>
+            <Text className="text-sm text-ink">{t(KIND_KEYS[kind])}</Text>
             <View className="flex-row">
               {([0, 1, 2, 3] as TriggerLevel[]).map((level) => (
                 <Choice key={level} label={String(level)} selected={record.triggerProfile[kind] === level} onPress={() => update((r) => setTriggerLevel(r, kind, level))} />
@@ -140,6 +132,20 @@ export function SettingsScreen({
             <Choice key={o.value} label={t(o.key)} selected={record.checkpointSeconds === o.value} onPress={() => update((r) => ({ ...r, checkpointSeconds: o.value }))} />
           ))}
         </View>
+      </Section>
+
+      <Section title={t('settings.feedback')}>
+        <Text className="mt-2 text-sm text-ink">{t('settings.feedback.sounds')}</Text>
+        <View className="flex-row flex-wrap">
+          <Choice label={t('settings.on')} selected={ui.settings.sounds} onPress={() => ui.change({ sounds: true })} />
+          <Choice label={t('settings.off')} selected={!ui.settings.sounds} onPress={() => ui.change({ sounds: false })} />
+        </View>
+        <Text className="mt-2 text-sm text-ink">{t('settings.feedback.haptics')}</Text>
+        <View className="flex-row flex-wrap">
+          <Choice label={t('settings.on')} selected={ui.settings.haptics} onPress={() => ui.change({ haptics: true })} />
+          <Choice label={t('settings.off')} selected={!ui.settings.haptics} onPress={() => ui.change({ haptics: false })} />
+        </View>
+        <Text className="mt-2 text-xs text-inkDim">{t('settings.feedback.help')}</Text>
       </Section>
 
       <Section title={t('settings.voicePack')}>
@@ -160,10 +166,10 @@ export function SettingsScreen({
       </Section>
 
       <Section title={t('settings.customCue')}>
-        <Text className="text-sm text-slate-300">{t('settings.customCue.help')}</Text>
-        {!canRecord && <Text className="mt-2 text-sm text-amber-200">{t('settings.customCue.webUnavailable')}</Text>}
-        <Text className="mt-2 text-sm text-white">{hasCustom ? t('settings.customCue.saved') : t('settings.customCue.none')}</Text>
-        {recording === 'denied' && <Text className="mt-2 text-sm text-amber-200">{t('settings.customCue.denied')}</Text>}
+        <Text className="text-sm text-inkMuted">{t('settings.customCue.help')}</Text>
+        {!canRecord && <Text className="mt-2 text-sm text-accent">{t('settings.customCue.webUnavailable')}</Text>}
+        <Text className="mt-2 text-sm text-ink">{hasCustom ? t('settings.customCue.saved') : t('settings.customCue.none')}</Text>
+        {recording === 'denied' && <Text className="mt-2 text-sm text-accent">{t('settings.customCue.denied')}</Text>}
         {canRecord && <Button label={recording === 'recording' ? t('settings.customCue.recording') : t('settings.customCue.record')} onPress={() => recording !== 'recording' && recordCue()} />}
         {hasCustom && <Button label={t('settings.customCue.play')} tone="quiet" onPress={() => playResolvedCue(resolveCue(record, language))} />}
         {hasCustom && <Button label={t('settings.customCue.remove')} tone="quiet" onPress={removeCue} />}

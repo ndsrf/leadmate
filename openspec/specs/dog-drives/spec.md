@@ -26,11 +26,19 @@ All randomness in the Stage SHALL come from a seed, so the same seed and inputs 
 - **THEN** the Dog's path is identical
 
 ### Requirement: Fixation on Distractors
-The system SHALL make the Dog fixate on a Distractor when it comes within the Distractor's trigger radius.
+The system SHALL make the Dog fixate on a Distractor when the Dog's Arousal reaches its reactivity threshold because of that Distractor. A Distractor SHALL affect Arousal only within its trigger radius.
 
 #### Scenario: Fixation starts
-- **WHEN** a Distractor enters the trigger radius of the Dog
+- **WHEN** the Dog's Arousal due to a Distractor reaches its reactivity threshold
 - **THEN** the Dog stops following its Drive and fixates on the Distractor
+
+#### Scenario: Outside the radius
+- **WHEN** a Distractor is outside its trigger radius
+- **THEN** it does not raise the Dog's Arousal
+
+#### Scenario: Lower threshold reacts earlier
+- **WHEN** the Dog's reactivity threshold is lower
+- **THEN** it fixates from a greater distance for the same Distractor
 
 ### Requirement: Follow after a turn
 When the Handler changes direction by more than a set angle while the leash is Slack, the system SHALL give the Dog a short follow window. With a seeded chance (`followChance`) the Dog turns with the Handler and looks at the Handler; otherwise it keeps its heading and, if the leash reaches Taut, a small correction turns it toward the Handler without Rigid Pull.

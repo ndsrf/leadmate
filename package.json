@@ -9,12 +9,13 @@
     "ios": "npm run sim:embed && expo start --ios",
     "web": "expo start --web",
     "sim:dev": "vite --config bundle/vite.config.mts",
-    "sim:build": "vite build --config bundle/vite.config.mts",
+    "sim:build": "node scripts/gen-hud-tokens.mjs && vite build --config bundle/vite.config.mts",
     "test": "jest",
     "typecheck": "tsc --noEmit && tsc --noEmit -p bundle",
     "sim:embed": "node scripts/embed-sim.mjs"
   },
   "dependencies": {
+    "@expo-google-fonts/lilita-one": "^0.4.1",
     "@expo/metro-runtime": "~57.0.17",
     "@fission-ai/openspec": "^1.14.3",
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -24,6 +25,7 @@
     "expo-audio": "~57.0.5",
     "expo-constants": "~57.0.22",
     "expo-file-system": "~57.0.7",
+    "expo-haptics": "~57.0.3",
     "expo-screen-orientation": "~57.0.3",
     "expo-status-bar": "~57.0.1",
     "nativewind": "^4.2.7",

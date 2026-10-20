@@ -34,6 +34,10 @@ _Avoid_: Route, track, road
 A solid obstacle segment (such as an apartment wall or house facade) that blocks movement, occludes line of sight, and anchors corner leash wraps.
 _Avoid_: Wall collision, invisible wall
 
+**Obstacle**:
+A prop with a footprint (such as a bench, a tree or a lamp post) that blocks movement and anchors leash wraps like a Boundary, but does not block sight unless it is also a Visual Shield.
+_Avoid_: Collider, solid prop
+
 ### Leash
 
 **Tension Ratio**:
@@ -76,6 +80,22 @@ _Avoid_: Command, call, order
 **Node**:
 One lesson unit: Theory Primer, Checkpoint, Interactive Simulation, Debrief. A Node's Interactive Simulation is one Stage (walking) or one Minigame (static).
 _Avoid_: Lesson, level
+
+**Theory Primer**:
+The first step of a Node: a concise 30-60 second sequence of tappable cards establishing lesson concepts.
+_Avoid_: Intro, slideshow
+
+**Dual-Aspect Primer**:
+A Theory Primer structured into foundational real-world canine training theory followed by virtual dog simulation guidance.
+_Avoid_: Theory split, dual tutorial
+
+**Canine Posture**:
+The observable physical stance and ear/tail orientation of the virtual Dog (e.g. standing alert, straining against leash, settling, resting on mat) that acts as the primary behavioral cue in Minigames and Stages.
+_Avoid_: Dog sprite, animation frame
+
+**Tutorial Link**:
+An optional external URL declared on a Theory Primer card pointing to web-hosted instructional articles, illustrations, or video tutorials, viewable in an in-app browser with graceful offline placeholders.
+_Avoid_: Webview modal, external resource
 
 **Minigame**:
 The static Interactive Simulation of a Node, such as a Tap & Hold or timing exercise. It is not a Stage and does not change the Dog's Learning Attributes.
@@ -137,6 +157,14 @@ _Avoid_: Sniff button, treat break
 A themed grouping of Nodes with distinct environment rules and mechanics.
 _Avoid_: Chapter, zone, campaign level
 
+**World Map**:
+The main screen: all Worlds laid out as a path of Nodes showing which are locked, open, next up or completed, with each Node's Stars.
+_Avoid_: Home, level select, menu
+
+**Star**:
+A 1 to 3 rating of how well a Node was handled, earned at completion and kept at its best. It reflects handling quality only and never unlocks anything.
+_Avoid_: Medal, rank, points
+
 **Daily Stage**:
 A procedurally generated Stage that changes every 24 hours and is shared by all users on a given date, protecting the Streak and warming up a Rusty Dog without mutating Learning Attributes.
 _Avoid_: Daily level, daily run
@@ -150,9 +178,13 @@ A one-tap log of the real-world homework assigned in a Node's Debrief, which cre
 _Avoid_: Homework log, walk notes
 
 **Scenery Set**:
-The props a scenario declares to match its environment theme (indoor apartment, quiet suburb, urban street, open park), at least one per 5 meters of Pathway and never fewer than 8. A prop marked as a Visual Shield also blocks sight.
+The props a scenario declares to match its environment theme (indoor apartment, quiet suburb, urban street, open park), dense enough to feel lived in and varied in type. A prop may be an Obstacle, a Visual Shield, both, or neither; the Scenery Set also includes the Ground Cover that gives each zone its look.
 _Avoid_: Decoration, background
 
+**Ground Cover**:
+Flat decoration painted on the ground of a Stage (such as paving, carpet, a rug, a path, a flower patch or painted lines) that never blocks movement or sight and has no effect on the simulation.
+_Avoid_: Floor prop, decal
+
 **Visual Shield**:
-An obstacle in a Stage (such as a parked car) that breaks the Dog's line of sight to a Distractor, stopping Arousal accumulation.
+A prop in a Stage (such as a parked car) that breaks the Dog's line of sight to a Distractor, stopping Arousal accumulation.
 _Avoid_: Cover, screen, barrier
