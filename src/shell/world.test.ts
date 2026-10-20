@@ -8,7 +8,7 @@ import { distance, normalize, sub } from '../sim/vec';
 import {
   BLIND_CORNER_NODE, DOORBELL_MAT_NODE, HARNESS_RITUAL_NODE, LEAVE_IT_NODE, NODES, PARK_JOGGER_NODE, PARK_MIX_NODE, POSTE_PRACTICE, SCOOTER_NODE, SLACK_U_NODE, URBAN_MIX_NODE, WALK_DISTRACTION,
 } from './nodes/content';
-import { isAvailable, type NodeDef } from './nodes/node';
+import { isAvailable, primerCardOf, type NodeDef } from './nodes/node';
 import { currentWorld, findWorld, isNodeOpen, isWorldComplete, isWorldUnlocked, nodesOfWorld, WORLDS, worldOfNode } from './world';
 import type { ScenarioConfig } from '../sim/config';
 import { defaultScenario } from '../sim/config';
@@ -74,7 +74,7 @@ describe('World unlocking', () => {
 
 describe('Node content of every World', () => {
   it.each(NODES.map((n) => [n.id, n] as const))('%s has all its text in the catalog and one right answer', (_id, node) => {
-    const keys = [node.title, ...node.primerCards, node.checkpoint.question, ...node.checkpoint.options.map((o) => o.text), ...node.exercises.map((e) => e.key)];
+    const keys = [node.title, ...node.primerCards.map((c) => primerCardOf(c).text), node.checkpoint.question, ...node.checkpoint.options.map((o) => o.text), ...node.exercises.map((e) => e.key)];
     for (const key of keys) expect(es[key]).toBeTruthy();
     expect(node.primerCards.length).toBeGreaterThanOrEqual(3);
     expect(node.primerCards.length).toBeLessThanOrEqual(5);

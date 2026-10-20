@@ -1,22 +1,40 @@
 import type { TextKey } from '../../i18n';
-import type { Metric, NodeDef } from './node';
+import type { Metric, NodeDef, PrimerCardDef } from './node';
 import { BLIND_CORNER, ELEVATOR_LOBBY, HALLWAY, LEAVE_IT_INTRO, PARK_JOGGER, PARK_MIX, SCOOTER_CROSSING, SLACK_U, URBAN_MIX } from './scenarios';
 
 /** Slugs of the Nodes whose texts follow the `node.<slug>.*` pattern (see the catalog). */
 type Slug = 'harness' | 'doorbell' | 'corner' | 'u' | 'leaveit' | 'scooter' | 'urban' | 'jogger' | 'park';
 
+/** Where the web-hosted full guides live (EXPO_PUBLIC_TUTORIAL_BASE); unset, the cards show no guide button. */
+const TUTORIAL_BASE = (process.env.EXPO_PUBLIC_TUTORIAL_BASE ?? '').replace(/\/+$/, '');
+
+/**
+ * The dual-aspect Primer: three real-world cards, then two on the virtual dog. The first card carries
+ * a (still pending) illustration and the second the link to the full web guide.
+ */
+function dualPrimer(slug: 'harness' | 'doorbell' | 'poste', media: 'image' | 'video'): PrimerCardDef[] {
+  const text = (suffix: string) => `node.${slug}.${suffix}` as TextKey;
+  return [
+    { kind: 'real-world', text: text('card1'), media: { type: media, url: '', caption: `media.caption.${slug}` as TextKey, placeholder: true } },
+    { kind: 'real-world', text: text('card2'), ...(TUTORIAL_BASE ? { tutorialUrl: `${TUTORIAL_BASE}/${slug}` } : {}) },
+    { kind: 'real-world', text: text('card3') },
+    { kind: 'virtual-dog', text: text('vcard1') },
+    { kind: 'virtual-dog', text: text('vcard2') },
+  ];
+}
+
 /** A Node from the catalog's standard keys: title, four Primer cards, a question with one right answer, exercises. */
 function textNode<S extends Slug>(
   slug: S,
   id: string,
-  rest: Pick<NodeDef, 'mode' | 'simulation' | 'prerequisites'> & { exercises: { metric: Metric; n: 1 | 2 | 3 }[] },
+  rest: Pick<NodeDef, 'mode' | 'simulation' | 'prerequisites'> & { exercises: { metric: Metric; n: 1 | 2 | 3 }[]; primer?: PrimerCardDef[] },
 ): NodeDef {
   const key = (suffix: string) => `node.${slug}.${suffix}` as TextKey;
   return {
     id,
     title: key('title'),
     mode: rest.mode,
-    primerCards: [key('card1'), key('card2'), key('card3'), key('card4')],
+    primerCards: rest.primer ?? [key('card1'), key('card2'), key('card3'), key('card4')],
     checkpoint: {
       question: key('question'),
       options: [
@@ -36,7 +54,7 @@ export const POSTE_PRACTICE: NodeDef = {
   id: 'poste-practice',
   title: 'node.poste.title',
   mode: 'minigame',
-  primerCards: ['node.poste.card1', 'node.poste.card2', 'node.poste.card3', 'node.poste.card4'],
+  primerCards: dualPrimer('poste', 'image'),
   checkpoint: {
     question: 'node.poste.question',
     options: [
@@ -81,6 +99,7 @@ export const WALK_DISTRACTION: NodeDef = {
 
 export const HARNESS_RITUAL_NODE = textNode('harness', 'harness-ritual', {
   mode: 'minigame',
+  primer: dualPrimer('harness', 'image'),
   simulation: { minigame: 'harness-ritual', scenario: ELEVATOR_LOBBY },
   exercises: [{ metric: 'poste', n: 1 }, { metric: 'tension', n: 2 }],
   prerequisites: [],
@@ -88,6 +107,7 @@ export const HARNESS_RITUAL_NODE = textNode('harness', 'harness-ritual', {
 
 export const DOORBELL_MAT_NODE = textNode('doorbell', 'doorbell-mat', {
   mode: 'minigame',
+  primer: dualPrimer('doorbell', 'video'),
   simulation: { minigame: 'doorbell-mat', scenario: HALLWAY },
   exercises: [{ metric: 'timing', n: 1 }, { metric: 'attention', n: 2 }],
   prerequisites: [HARNESS_RITUAL_NODE.id],

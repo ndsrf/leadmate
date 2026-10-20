@@ -5,7 +5,7 @@ import { DIARY_OUTCOMES } from '../streak';
 import { payloadWith } from '../testPayload';
 import { DOORBELL_MAT_NODE, HARNESS_RITUAL_NODE, LEAVE_IT_NODE, NODES, POSTE_PRACTICE, SCOOTER_NODE, URBAN_MIX_NODE, WALK_DISTRACTION } from './content';
 import { worldOfNode } from '../world';
-import { advance, checkpointLimit, isAvailable, metricScores, missingPrerequisites, onDebrief, pickExercise, shouldShowPosteLink, startNode, type NodeRun } from './node';
+import { advance, checkpointLimit, isAvailable, metricScores, missingPrerequisites, onDebrief, pickExercise, primerCardOf, shouldShowPosteLink, startNode, type NodeRun } from './node';
 import { newPosteMinigame, posteMinigameMetrics, POSTE_MINIGAME, stepPosteMinigame, tensionOf } from './posteMinigame';
 
 const stageResult = (over = {}) => ({ kind: 'stage' as const, payload: payloadWith(over) });
@@ -170,7 +170,7 @@ describe('Debrief exercise', () => {
 describe('initial content', () => {
   it('comes from the catalog', () => {
     for (const node of NODES) {
-      const keys = [node.title, ...node.primerCards, node.checkpoint.question, ...node.checkpoint.options.map((o) => o.text), ...node.exercises.map((e) => e.key)];
+      const keys = [node.title, ...node.primerCards.map((c) => primerCardOf(c).text), node.checkpoint.question, ...node.checkpoint.options.map((o) => o.text), ...node.exercises.map((e) => e.key)];
       for (const key of keys) expect(es[key]).toBeTruthy();
       expect(node.checkpoint.options.filter((o) => o.correct)).toHaveLength(1);
     }
@@ -310,6 +310,40 @@ describe('World 3 Cue ramp', () => {
       const cues = node.simulation.scenario?.cues ?? ['lets-go'];
       const world = worldOfNode(node.id)!.worldNumber;
       if (world <= 2) expect(cues).toEqual(['lets-go']);
+    }
+  });
+});
+
+describe('structured Primer cards', () => {
+  it('reads a legacy text key as a real-world card', () => {
+    expect(primerCardOf('node.poste.card1')).toEqual({ kind: 'real-world', text: 'node.poste.card1' });
+  });
+
+  it('keeps a structured card with its media and tutorial as plain data', () => {
+    const card = { kind: 'virtual-dog' as const, text: 'node.poste.card1' as const, media: { type: 'video' as const, url: '', caption: 'media.caption.poste' as const, placeholder: true }, tutorialUrl: 'https://example.com/poste' };
+    expect(primerCardOf(card)).toBe(card);
+    expect(JSON.parse(JSON.stringify(card))).toEqual(card);
+  });
+
+  it('advances through structured cards like legacy ones', () => {
+    const node = { ...POSTE_PRACTICE, primerCards: [{ kind: 'real-world' as const, text: 'node.poste.card1' as const }, { kind: 'virtual-dog' as const, text: 'node.poste.card2' as const }] };
+    let run = startNode(node);
+    run = advance(run, { type: 'next' });
+    expect(run).toMatchObject({ step: 'primer', card: 1 });
+    expect(advance(run, { type: 'next' }).step).toBe('checkpoint');
+  });
+
+  it('gives the dual-aspect Nodes both kinds of card, real-world first, with texts in the catalog', () => {
+    for (const node of [HARNESS_RITUAL_NODE, DOORBELL_MAT_NODE, POSTE_PRACTICE]) {
+      const cards = node.primerCards.map(primerCardOf);
+      expect(cards[0].kind).toBe('real-world');
+      expect(cards.some((c) => c.kind === 'virtual-dog')).toBe(true);
+      const firstVirtual = cards.findIndex((c) => c.kind === 'virtual-dog');
+      expect(cards.slice(firstVirtual).every((c) => c.kind === 'virtual-dog')).toBe(true);
+      for (const c of cards) {
+        expect(es[c.text]).toBeTruthy();
+        if (c.media) expect(es[c.media.caption]).toBeTruthy();
+      }
     }
   });
 });
