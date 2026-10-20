@@ -24,4 +24,13 @@ describe('text catalog', () => {
     }
     expect(tr('not.a.key' as TextKey)).toBe('');
   });
+
+  it('has the Debrief wording for harsh stops, the Equipment trade-off and the peak Arousal', () => {
+    const t = createTranslator({});
+    expect(t('results.harshStopNote')).toMatch(/brusca/);
+    expect(t('results.equipmentNote')).toMatch(/compromiso/);
+    expect(t('results.equipmentNote')).not.toMatch(/incorrect|mal\b/);
+    expect(t('results.peakArousal')).toBe('Cuánto se alteró tu perro');
+    for (const answer of ['correct', 'wrong', 'missed'] as const) expect(t(`results.checkpoint.${answer}`)).not.toBe('');
+  });
 });

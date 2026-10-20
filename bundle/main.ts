@@ -8,6 +8,7 @@ import {
   type ShellMessage,
 } from '../src/sim/messages';
 import { newSeed } from '../src/sim/rng';
+import { validateScenario } from '../src/sim/scenery';
 import { showPause, showResults } from './src/overlay';
 import { StageScene, type StageOptions } from './src/StageScene';
 
@@ -41,11 +42,16 @@ function startStage(message: Extract<ShellMessage, { type: 'start' }> | null): v
     seed: message?.seed ?? newSeed(),
     scenario: { ...defaultScenario, ...message?.scenario },
     t,
+    onCue: (cueType) => send({ type: 'playCue', cueType }),
+    onTier: (tier, time) => send({ type: 'reaction-tier-change', tier, time }),
+    onSignal: (signal, time) => send({ type: 'stage-signal', signal, time }),
     onEnd: (payload) => {
       send({ type: 'debrief', payload });
       if (!embedded) closeOverlay = showResults(t, payload, () => startStage(null));
     },
   };
+  const problems = validateScenario(options.scenario);
+  if (problems.length > 0) console.warn('scenario problems:', problems.join('; '));
   game.scene.start('stage', options);
 }
 

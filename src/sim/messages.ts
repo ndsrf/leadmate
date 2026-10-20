@@ -1,6 +1,7 @@
 import type { Catalog } from '../i18n';
-import type { ScenarioConfig } from './config';
+import type { CueType, ScenarioConfig } from './config';
 import type { SimulationDebriefPayload } from './payload';
+import type { ReactionTier } from './sim';
 
 /** Shell -> bundle. */
 export type ShellMessage =
@@ -20,7 +21,19 @@ export type BundleMessage =
   | { type: 'ready' }
   | { type: 'paused' }
   | { type: 'debrief'; payload: SimulationDebriefPayload }
+  /** A Cue took effect in the simulation; the shell picks and plays the audio (fire and forget). */
+  | { type: 'playCue'; cueType?: CueType }
+  /** The Dog crossed a Reaction Tier threshold; the shell plays a vocalization (fire and forget). */
+  | { type: 'reaction-tier-change'; tier: ReactionTier; time: number }
+  /**
+   * A moment the shell may explain to a new user, sent at most once per Stage and signal: the leash first gets
+   * Taut, the Dog first fixates (a Reward Window follows its calming), the leash first reaches its limit.
+   */
+  | { type: 'stage-signal'; signal: StageSignal; time: number }
   | { type: 'error'; message: string };
+
+export const STAGE_SIGNALS = ['first-taut', 'first-fixation', 'leash-limit'] as const;
+export type StageSignal = (typeof STAGE_SIGNALS)[number];
 
 export function encode(message: ShellMessage | BundleMessage): string {
   return JSON.stringify(message);
@@ -38,7 +51,7 @@ export function decode<T extends { type: string }>(raw: unknown, types: readonly
 }
 
 export const SHELL_MESSAGE_TYPES: readonly ShellMessage['type'][] = ['start', 'pause', 'resume'];
-export const BUNDLE_MESSAGE_TYPES: readonly BundleMessage['type'][] = ['ready', 'paused', 'debrief', 'error'];
+export const BUNDLE_MESSAGE_TYPES: readonly BundleMessage['type'][] = ['ready', 'paused', 'debrief', 'playCue', 'reaction-tier-change', 'stage-signal', 'error'];
 
 /** Where the bundle sends its messages: the native WebView bridge, the parent window, or nowhere. */
 export type Outbox = (message: BundleMessage) => void;

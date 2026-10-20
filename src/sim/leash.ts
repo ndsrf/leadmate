@@ -1,10 +1,16 @@
 import { RATIO_EPSILON, RIGID_MIN, SLACK_MAX } from './config';
+import { leashLength as pathLength, leashPath, type Wall } from './geometry';
 import { distance, type Vec2 } from './vec';
 
+export { leashPath };
 export type TensionState = 'slack' | 'taut' | 'rigid';
 
-export function tensionRatio(handler: Vec2, dog: Vec2, leashLength: number): number {
-  return distance(handler, dog) / leashLength;
+/**
+ * Distance over maximum leash length. Where a wall corner is in the way the leash wraps around it
+ * and the distance is the sum of the segments, so the leash never counts as passing through a wall.
+ */
+export function tensionRatio(handler: Vec2, dog: Vec2, leashLength: number, walls: readonly Wall[] = []): number {
+  return pathLength(handler, dog, walls) / leashLength;
 }
 
 /** Slack below 0.85, Taut from 0.85 to 1.0, Rigid Pull above 1.0. */

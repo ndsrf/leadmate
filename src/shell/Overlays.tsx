@@ -1,16 +1,16 @@
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import type { Translate } from '../i18n';
-import type { SimulationDebriefPayload } from '../sim/payload';
 
-function Button({ label, onPress }: { label: string; onPress: () => void }) {
+export function Button({ label, onPress, tone = 'primary' }: { label: string; onPress: () => void; tone?: 'primary' | 'quiet' }) {
+  const style = tone === 'primary' ? 'bg-green-500 active:bg-green-600' : 'bg-slate-600 active:bg-slate-500';
   return (
-    <Pressable onPress={onPress} className="mt-4 items-center rounded-lg bg-green-500 px-6 py-3 active:bg-green-600">
-      <Text className="text-base font-semibold text-green-950">{label}</Text>
+    <Pressable onPress={onPress} accessibilityRole="button" className={`mt-4 items-center rounded-lg px-6 py-3 ${style}`}>
+      <Text className={`text-base font-semibold ${tone === 'primary' ? 'text-green-950' : 'text-white'}`}>{label}</Text>
     </Pressable>
   );
 }
 
-function Backdrop({ children }: { children: React.ReactNode }) {
+export function Backdrop({ children }: { children: React.ReactNode }) {
   return (
     <View className="absolute inset-0 items-center justify-center bg-slate-900/85 p-4">
       <View className="max-h-full w-full max-w-sm rounded-xl bg-slate-800 p-5">{children}</View>
@@ -18,7 +18,7 @@ function Backdrop({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+export function Row({ label, value }: { label: string; value: string }) {
   return (
     <View className="flex-row justify-between gap-4 py-0.5">
       <Text className="flex-1 text-sm text-slate-200">{label}</Text>
@@ -27,38 +27,12 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function ResultsScreen({ t, payload, onPlayAgain }: { t: Translate; payload: SimulationDebriefPayload; onPlayAgain: () => void }) {
-  const p = payload;
-  return (
-    <Backdrop>
-      <ScrollView>
-        <Text className="mb-3 text-xl font-bold text-white">{t('results.title')}</Text>
-        <Row label={t('results.duration')} value={`${p.durationSeconds} ${t('results.seconds')}`} />
-        <Row label={t('results.slack')} value={`${p.slackPercentage}%`} />
-        <Row label={t('results.taut')} value={`${p.tautPercentage}%`} />
-        <Row label={t('results.pull')} value={`${p.pullPercentage}%`} />
-        <Row
-          label={t('results.markerAccuracy')}
-          value={p.markerAccuracyMs === undefined ? t('results.markerAccuracyNone') : `${p.markerAccuracyMs} ${t('results.ms')}`}
-        />
-        <Row label={t('results.hits')} value={String(p.markerHits)} />
-        <Row label={t('results.misses')} value={String(p.markerMisses)} />
-        <Row label={t('results.reactive')} value={String(p.reactiveMarkers)} />
-        <Row label={t('results.missed')} value={String(p.missedOpportunities)} />
-        <Row label={t('results.checkIns')} value={String(p.checkInHits)} />
-        <Row label={t('results.marks')} value={`${p.marksUsed} / ${p.markBudget}`} />
-        <Row label={t('results.seed')} value={String(p.seed)} />
-        <Button label={t('results.playAgain')} onPress={onPlayAgain} />
-      </ScrollView>
-    </Backdrop>
-  );
-}
-
-export function ResumeOverlay({ t, onResume }: { t: Translate; onResume: () => void }) {
+export function ResumeOverlay({ t, onResume, onExit }: { t: Translate; onResume: () => void; onExit: () => void }) {
   return (
     <Backdrop>
       <Text className="text-xl font-bold text-white">{t('pause.title')}</Text>
       <Button label={t('pause.resume')} onPress={onResume} />
+      <Button label={t('node.back')} tone="quiet" onPress={onExit} />
     </Backdrop>
   );
 }
@@ -76,6 +50,17 @@ export function LoadingOverlay({ t }: { t: Translate }) {
   return (
     <View className="absolute inset-0 items-center justify-center bg-slate-900">
       <Text className="text-base text-slate-300">{t('hud.loading')}</Text>
+    </View>
+  );
+}
+
+/** A one-shot hint over the Stage: it never takes a touch, so play goes on underneath. */
+export function HintOverlay({ text }: { text: string }) {
+  return (
+    <View pointerEvents="none" className="absolute inset-x-0 top-16 items-center px-4">
+      <View className="w-full max-w-md rounded-xl bg-slate-800/90 p-4">
+        <Text className="text-base text-white">{text}</Text>
+      </View>
     </View>
   );
 }

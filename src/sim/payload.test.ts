@@ -1,8 +1,8 @@
 import { defaultScenario, type ScenarioConfig } from './config';
 import { runScripted } from './harness';
 import { BUNDLE_MESSAGE_TYPES, createOutbox, decode, encode, type BundleMessage } from './messages';
-import { buildPayload } from './payload';
-import { createState, type SimInput, type SimState } from './sim';
+import { buildPayload, handlingScore, SCORE_WEIGHTS, type SimulationDebriefPayload } from './payload';
+import { createState, noInput, tick, type SimInput, type SimState } from './sim';
 
 const scenario = (o: Partial<ScenarioConfig>): ScenarioConfig => ({ ...defaultScenario, ...o });
 const nearbyDistractor = {
@@ -32,7 +32,8 @@ describe('SimulationDebriefPayload', () => {
       [
         'durationSeconds', 'slackPercentage', 'tautPercentage', 'pullPercentage', 'markerAccuracyMs',
         'markerHits', 'markerMisses', 'reactiveMarkers', 'missedOpportunities', 'checkInHits',
-        'marksUsed', 'markBudget', 'seed',
+        'followMarks', 'posteSuccesses', 'harshStops', 'peakArousalScore', 'calmEncounters',
+        'marksUsed', 'markBudget', 'seed', 'sintoniaTimeSeconds', 'goSniffs', 'handlingScore', 'configVersion',
       ].sort(),
     );
     expect(payload.slackPercentage + payload.tautPercentage + payload.pullPercentage).toBeGreaterThanOrEqual(99);
@@ -103,5 +104,88 @@ describe('message adapter', () => {
     win.self = win;
     win.parent = win as never;
     expect(() => createOutbox(win)({ type: 'ready' })).not.toThrow();
+  });
+});
+
+describe('Sintonía telemetry', () => {
+  it('aggregates the seconds of active Sintonía into the payload', () => {
+    const free = scenario({ leashLength: 100, dogGoalSpeed: 0, distractor: { ...defaultScenario.distractor, activateAfterMeters: 1e9 } });
+    const s = createState(1, free);
+    for (let i = 0; i < 6 * 60; i++) tick(s, { direction: { x: Math.cos(s.time), y: Math.sin(s.time) }, strength: 0.6, marker: false });
+    const p = buildPayload(s);
+    expect(p.sintoniaTimeSeconds).toBeCloseTo(s.telemetry.sintoniaTime, 1);
+    expect(p.sintoniaTimeSeconds).toBeGreaterThan(3);
+    expect(p.sintoniaTimeSeconds).toBeLessThanOrEqual(p.durationSeconds);
+  });
+
+  it('is 0 for a Stage without it', () => {
+    const s = createState(1, scenario({ distractor: { ...defaultScenario.distractor, activateAfterMeters: 1e9 } }));
+    for (let i = 0; i < 120; i++) tick(s, noInput);
+    expect(buildPayload(s).sintoniaTimeSeconds).toBe(0);
+  });
+});
+
+describe('handling score', () => {
+  const perfect: Omit<SimulationDebriefPayload, 'handlingScore' | 'configVersion'> = {
+    durationSeconds: 100, slackPercentage: 100, tautPercentage: 0, pullPercentage: 0, markerAccuracyMs: 0, markerHits: 3,
+    markerMisses: 0, reactiveMarkers: 0, missedOpportunities: 0, checkInHits: 0, followMarks: 0, posteSuccesses: 0, harshStops: 0,
+    peakArousalScore: 0, calmEncounters: {}, marksUsed: 3, markBudget: 5, seed: 1, sintoniaTimeSeconds: 40, goSniffs: 0,
+  };
+
+  it('weights add up to 1000', () => expect(Object.values(SCORE_WEIGHTS).reduce((a, b) => a + b, 0)).toBe(1000));
+  it('gives 1000 for a perfect Stage', () => expect(handlingScore(perfect)).toBe(1000));
+
+  it('scores composure out of 400 from 100 minus the peak Arousal', () => {
+    expect(handlingScore({ ...perfect, peakArousalScore: 50 })).toBe(800);
+    expect(handlingScore({ ...perfect, peakArousalScore: 100 })).toBe(600);
+  });
+
+  it('scores the Slack share out of 300', () => expect(handlingScore({ ...perfect, slackPercentage: 50 })).toBe(850));
+
+  it('scores Marker accuracy out of 200, falling to 0 at the end of the Reward Window', () => {
+    expect(handlingScore({ ...perfect, markerAccuracyMs: 550 })).toBe(900);
+    expect(handlingScore({ ...perfect, markerAccuracyMs: 1100 })).toBe(800);
+  });
+
+  it('gives no Marker points when there were encounters but no hit, and all of them when there were none', () => {
+    expect(handlingScore({ ...perfect, markerAccuracyMs: undefined, markerHits: 0, missedOpportunities: 1 })).toBe(800);
+    expect(handlingScore({ ...perfect, markerAccuracyMs: undefined, markerHits: 0 })).toBe(1000);
+  });
+
+  it('scores Sintonía out of 100, full at 40% of the Stage', () => {
+    expect(handlingScore({ ...perfect, sintoniaTimeSeconds: 20 })).toBe(950);
+    expect(handlingScore({ ...perfect, sintoniaTimeSeconds: 0 })).toBe(900);
+    expect(handlingScore({ ...perfect, sintoniaTimeSeconds: 90 })).toBe(1000);
+  });
+
+  it('stays within 0 to 1000 and ends up in every payload', () => {
+    expect(handlingScore({ ...perfect, peakArousalScore: 300, slackPercentage: -5 })).toBeGreaterThanOrEqual(0);
+    const { payload } = runScripted(11, player(scenario({})), scenario({}));
+    expect(payload.handlingScore).toBeGreaterThanOrEqual(0);
+    expect(payload.handlingScore).toBeLessThanOrEqual(1000);
+    expect(payload.handlingScore).toBe(handlingScore(payload));
+  });
+
+  it('is the same for the same seed and inputs, so a replay can be compared', () => {
+    const config = scenario({});
+    expect(runScripted(11, player(config), config).payload.handlingScore).toBe(runScripted(11, player(config), config).payload.handlingScore);
+  });
+});
+
+describe('Reaction Tier bridge event', () => {
+  it('round-trips through the bridge with its tier and simulation time', () => {
+    const message: BundleMessage = { type: 'reaction-tier-change', tier: 'reactive', time: 12.5 };
+    expect(decode<BundleMessage>(encode(message), BUNDLE_MESSAGE_TYPES)).toEqual(message);
+  });
+
+  it('goes native and browser the same way', () => {
+    const native: string[] = [];
+    createOutbox({ ReactNativeWebView: { postMessage: (d) => native.push(d) } })({ type: 'reaction-tier-change', tier: 'alert', time: 3 });
+    expect(JSON.parse(native[0])).toEqual({ type: 'reaction-tier-change', tier: 'alert', time: 3 });
+  });
+
+  it('carries the Cue type on playCue', () => {
+    const message: BundleMessage = { type: 'playCue', cueType: 'leave-it' };
+    expect(decode<BundleMessage>(encode(message), BUNDLE_MESSAGE_TYPES)).toEqual(message);
   });
 });

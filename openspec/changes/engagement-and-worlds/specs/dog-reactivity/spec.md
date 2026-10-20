@@ -2,42 +2,41 @@
 
 ## Purpose
 
-Makes the dog's arousal visible and audible, so a Distractor produces a real reaction (not only an exclamation mark) and the user can read how close the dog is to losing control.
+Expresses the Dog's Arousal visibly and audibly across distinct Reaction Tiers, so approaching Distractors elicit readable physical escalation and audible vocalizations, allowing the Handler to recognize early warning signs before the Dog reaches full reactivity.
 
 ## ADDED Requirements
 
-### Requirement: Reaction stages
-The system SHALL express the dog's arousal in stages (calm, alert, reactive), each with its own visible behavior and sound, driven by the arousal meter and the dog's reactivity threshold.
+### Requirement: Reaction Tiers
+The system SHALL express the Dog's emotional escalation in three distinct Reaction Tiers (Calm, Alert, Reactive), driven by the Arousal meter and the Dog's `reactivityThreshold` ($T_R$):
+1. **Calm**: $\text{Arousal} < 0.6 \times T_R$. The dog exhibits relaxed posture, natural gait, and standard check-in glances.
+2. **Alert**: $0.6 \times T_R \le \text{Arousal} < T_R$. The dog perks up, raises head, decelerates slightly, and orients toward the Distractor without lunging or barking.
+3. **Reactive**: $\text{Arousal} \ge T_R$. Fixation locks in, the dog barks, lunges toward the Distractor with an additional $+1.5\text{ m/s}^2$ outward acceleration, and pulls the leash into Rigid Pull.
 
-#### Scenario: Rising arousal
-- **WHEN** arousal rises past a stage threshold during a Fixation
-- **THEN** the dog's behavior and sound change to that stage
+#### Scenario: Escalating to Alert
+- **WHEN** Arousal rises to or above 60% of `reactivityThreshold` while below 100%
+- **THEN** the Dog transitions to the Alert tier, perks up its posture, and orients toward the Distractor
 
-#### Scenario: Falling arousal
-- **WHEN** arousal falls below a stage threshold after Disengagement
-- **THEN** the dog returns to the previous stage
+#### Scenario: Escalating to Reactive
+- **WHEN** Arousal reaches 100% of `reactivityThreshold`
+- **THEN** the Dog transitions to the Reactive tier, barks, lunges toward the Distractor, and pulls the leash into Rigid Pull
 
-### Requirement: Barking and lunging
-In the reactive stage the system SHALL make the dog bark and lunge toward the Distractor, with extra pull on the leash, and SHALL NOT allow a Marker to score a hit while the dog is reactive.
+### Requirement: Marker locked out during Reactive tier
+The system SHALL NOT award a Marker hit if the Handler presses the Marker while the Dog is in the Reactive tier, and SHALL record the press as a `marker-reactive` event.
 
-#### Scenario: Dog goes reactive
-- **WHEN** arousal reaches the reactive stage
-- **THEN** the dog barks, lunges toward the Distractor and pulls harder on the leash
+#### Scenario: Marker pressed while Reactive
+- **WHEN** the user presses the Marker while the Dog is in the Reactive tier
+- **THEN** the press is recorded in telemetry as `reactiveMarkers` and no hit credit is awarded
 
-#### Scenario: Marker while reactive
-- **WHEN** the user presses the Marker while the dog is reactive
-- **THEN** it is counted as a reactive Marker, not a hit
+### Requirement: Reactivity audio bridge event
+The system SHALL emit a `{ type: 'reaction-tier-change', tier: 'calm' | 'alert' | 'reactive', time: number }` simulation event across the message bridge whenever the Dog crosses a tier threshold, enabling the shell audio pipeline to trigger non-blocking, fire-and-forget dog vocalizations (low alert whine/growl on Alert, sharp barking on Reactive).
 
-### Requirement: Recovery
-The system SHALL let the dog come back from reactive to calm only after the Distractor is out of sight or far enough away, with distance, line of sight and a calm Handler shortening the recovery.
+#### Scenario: Event emitted on tier change
+- **WHEN** the Dog's Reaction Tier changes
+- **THEN** a `reaction-tier-change` event is dispatched across the bridge to the shell audio service
 
-#### Scenario: Distractor leaves
-- **WHEN** the Distractor leaves the dog's line of sight
-- **THEN** arousal falls and the dog recovers to calm
+### Requirement: Recovery through Arousal decay
+The system SHALL return the Dog from Reactive back to Alert and Calm once line of sight to the Distractor is broken or distance exceeds the Distractor's trigger radius, with Arousal decaying through its standard decay rate.
 
-### Requirement: Reactivity is configurable and optional by world
-The system SHALL read the stage thresholds and the sound set from configuration, and SHALL show reaction stages only from the world that enables them.
-
-#### Scenario: Early world
-- **WHEN** the user plays a world that does not enable reactivity
-- **THEN** the dog only shows the Fixation indicator
+#### Scenario: Line of sight broken or distance opened
+- **WHEN** a visual shield blocks line of sight or the Distractor moves out of range
+- **THEN** Arousal decays, and the Dog transitions back from Reactive to Alert, and subsequently to Calm once Arousal falls below 60% of `reactivityThreshold`

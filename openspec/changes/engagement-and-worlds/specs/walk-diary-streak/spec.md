@@ -2,38 +2,37 @@
 
 ## Purpose
 
-Closes the loop between simulation and real life by logging real-world walk outcomes and tracking a daily streak.
+Closes the habit loop between virtual simulation and real-world dog walking by logging homework exercise outcomes in a Walk Diary and tracking a daily activity streak.
 
 ## ADDED Requirements
 
-### Requirement: Walk Diary check-in
-The system SHALL let the user log the outcome of the debrief's real-world task with a single tap.
+### Requirement: Walk Diary one-tap check-in
+The system SHALL provide a one-tap check-in on the Debrief screen for the assigned real-world exercise, offering three discrete outcome options:
+- `'completed'` ("¡Conseguido!")
+- `'struggled'` ("Costó un poco")
+- `'skipped'` ("Hoy no pudimos")
 
-#### Scenario: One-tap log
-- **WHEN** the user taps an outcome option in the Walk Diary
-- **THEN** the system stores the entry with its date and the node it relates to
+#### Scenario: One-tap check-in logged
+- **WHEN** the user selects an outcome option in the Debrief Walk Diary
+- **THEN** the entry is stored in the Dog record with its date, Node ID, and chosen outcome
 
-### Requirement: Daily streak
-The system SHALL maintain a daily streak that increases by one for each calendar day on which the user completes a qualifying activity (a node, a Walk Diary check-in, or the daily walk).
+### Requirement: Daily streak calculation
+The system SHALL maintain a daily streak tracking consecutive active local calendar dates (`YYYY-MM-DD`). Completing any qualifying activity (a Node Debrief, any Walk Diary check-in, or the Daily Stage) on date $D$ marks $D$ as active.
+- If $D = D_{\text{last}}$, the current streak remains unchanged.
+- If $D = D_{\text{last}} + 1\text{ calendar day}$, the streak increments by 1.
+- If $D > D_{\text{last}} + 1\text{ calendar day}$, the streak resets to 1.
 
-#### Scenario: Streak increments
-- **WHEN** the user completes a qualifying activity on a day following a streak day
-- **THEN** the streak increases by one
+#### Scenario: Streak increments on consecutive day
+- **WHEN** the user completes a qualifying activity on the calendar day immediately following the last active date
+- **THEN** the streak increments by one
 
-#### Scenario: Streak resets
-- **WHEN** a full calendar day passes without a qualifying activity
-- **THEN** the streak resets to zero on the next day
+#### Scenario: Streak resets after missed day
+- **WHEN** a full calendar day passes with no qualifying activity
+- **THEN** the streak resets to 1 upon the next qualifying activity
 
-### Requirement: Streak does not penalize the dog
-Streak loss SHALL NOT change the dog's learning attributes.
+### Requirement: Strict streak isolation from Dog Learning Attributes
+A broken streak or missed calendar day SHALL NOT degrade or modify the Dog's persistent Learning Attributes or Trigger Profile.
 
-#### Scenario: Reset leaves dog intact
-- **WHEN** the streak resets
-- **THEN** the dog's attributes are unchanged
-
-### Requirement: Debrief closes with Walk Diary
-The Debrief step SHALL offer a Walk Diary check-in for the node's real-world task.
-
-#### Scenario: Check-in offered
-- **WHEN** the debrief is shown
-- **THEN** a one-tap Walk Diary check-in is available
+#### Scenario: Streak reset leaves Dog intact
+- **WHEN** the streak counter resets to 1 after an inactive gap
+- **THEN** the Dog's Learning Attributes, posture, and Trigger Profile remain completely untouched

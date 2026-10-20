@@ -62,7 +62,11 @@ export function showResults(t: Translate, p: SimulationDebriefPayload, onAgain: 
     [t('results.reactive'), String(p.reactiveMarkers)],
     [t('results.missed'), String(p.missedOpportunities)],
     [t('results.checkIns'), String(p.checkInHits)],
+    [t('results.followMarks'), String(p.followMarks)],
+    [t('results.posteSuccesses'), String(p.posteSuccesses)],
+    [t('results.harshStops'), String(p.harshStops)],
     [t('results.marks'), `${p.marksUsed} / ${p.markBudget}`],
+    [t('results.peakArousal'), `${p.peakArousalScore} / 100`],
     [t('results.seed'), String(p.seed)],
   ];
   return card(t('results.title'), rows, t('results.playAgain'), onAgain);

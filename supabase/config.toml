@@ -1,0 +1,29 @@
+# Local development settings for `supabase start` / `supabase test db`.
+# Ports are offset from the defaults so this stack can run next to another local Supabase project.
+project_id = "leadmate"
+
+[api]
+port = 55321
+
+[db]
+port = 55322
+shadow_port = 55320
+major_version = 17
+
+[studio]
+port = 55323
+
+[inbucket]
+port = 55324
+
+[analytics]
+enabled = false
+
+[auth]
+enable_signup = true
+
+[auth.email]
+enable_confirmations = true
+
+[functions.delete-account]
+verify_jwt = true
