@@ -13,6 +13,7 @@ import {
 import type { SimulationDebriefPayload } from '../sim/payload';
 import { DEFAULT_VOICE_PACK } from './voice';
 import { bestStars, isStars, starsFor, type Stars } from './stars';
+import { isCoat, type DogCoat } from './onboarding/look';
 import { nextPosture, updateLearning, updateTriggerProfile } from './learning';
 import { isOnboardingStep, type OnboardingStep } from './onboarding/flow';
 import { addDiaryEntry, DIARY_OUTCOMES, isDateString, localDateString, markActive, NO_STREAK, type DiaryOutcome, type StreakRecord, type WalkDiaryEntry } from './streak';
@@ -34,6 +35,8 @@ export interface DogRecord {
   /** Calm encounters counted toward lowering each kind's level. */
   calmCounts: Partial<Record<DistractorKind, number>>;
   equipment: Equipment;
+  /** The Dog's coat colour, drawn in the Stage; purely cosmetic. */
+  coat: DogCoat;
   voicePack: string;
   checkpointSeconds: CheckpointSeconds;
   completedNodes: string[];
@@ -87,6 +90,7 @@ export function newDogRecord(): DogRecord {
     triggerProfile: { ...DEFAULT_TRIGGER_PROFILE },
     calmCounts: {},
     equipment: 'collar',
+    coat: 'golden',
     voicePack: DEFAULT_VOICE_PACK,
     checkpointSeconds: 5,
     completedNodes: [],
@@ -182,6 +186,7 @@ export function migrateRecord(raw: unknown): DogRecord {
     triggerProfile: profile,
     calmCounts: typeof r.calmCounts === 'object' && r.calmCounts ? (r.calmCounts as DogRecord['calmCounts']) : {},
     equipment: r.equipment === 'harness' ? 'harness' : 'collar',
+    coat: isCoat(r.coat) ? r.coat : 'golden',
     voicePack: typeof r.voicePack === 'string' ? r.voicePack : base.voicePack,
     checkpointSeconds: checkpoint === 0 || checkpoint === 10 ? checkpoint : 5,
     completedNodes: Array.isArray(r.completedNodes) ? r.completedNodes.filter((n): n is string => typeof n === 'string') : [],

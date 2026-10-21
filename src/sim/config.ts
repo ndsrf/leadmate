@@ -133,6 +133,10 @@ export interface CameraConfig {
 }
 
 /** Every tunable of a Stage. 1 world unit = 1 m. */
+/** Dog coats the bundle can draw (visual only). */
+export const DOG_COAT_NAMES = ['golden', 'black', 'chocolate', 'cream', 'white', 'grey', 'red'] as const;
+export type DogCoat = (typeof DOG_COAT_NAMES)[number];
+
 export interface ScenarioConfig {
   /** World the Stage belongs to, 1 to 4; Go Sniff exists from World 2. */
   world: number;
@@ -156,6 +160,8 @@ export interface ScenarioConfig {
   walls: Wall[];
   /** The scenery set (see `validateScenery`). */
   scenery: SceneryItem[];
+  /** How the Dog looks (visual only; the simulation ignores it): a coat and a size factor. */
+  look?: { dogCoat?: DogCoat; dogScale?: number };
   /** Cues on the HUD in this Stage. */
   cues: CueType[];
   dogGoalSpeed: number;

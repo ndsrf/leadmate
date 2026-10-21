@@ -1,6 +1,7 @@
 import { classifyTension, tensionRatio, type TensionState } from './leash';
 import { defaultScenario, RATIO_EPSILON, requiredCue, RIGID_MIN, SLACK_MAX, type CueType, type DistractorConfig, type ScenarioConfig } from './config';
-import { hasLineOfSight, leashLength, resolveWalls, segmentsCross } from './geometry';
+import { BODY_RADIUS, buildWallIndex, closestOnSegment, hasLineOfSight, leashLength, leashPath, resolveWalls, segmentsCross, wallsNear, type LeashPath, type Wall, type WallIndex } from './geometry';
+import { propWalls } from './scenery';
 import { GoalDrive, type Drive } from './drives';
 import { resolveDog, TRIGGER_FACTORS, type DistractorKind, type ResolvedDog } from './learning';
 import { createRng, type Rng } from './rng';
@@ -152,6 +153,11 @@ export interface SimState {
   headingAnchor: Vec2;
   /** The Dog heads this way instead of following its Drive, until `until`. */
   steer: { dir: Vec2; until: number } | null;
+  /** Seconds the Dog has been held up by an Obstacle while trying to walk. */
+  stalledFor: number;
+  /** The Dog takes a detour around an Obstacle until this time, heading `detourDir`. */
+  detourUntil: number;
+  detourDir: Vec2;
   /** The Dog did not follow a turn; the leash reaching Taut will correct it before `until`. */
   correctionPending: { dir: Vec2; until: number } | null;
   /** When the last Cue took effect (for the cooldown and the follow boost). */
@@ -216,6 +222,9 @@ export function createState(seed: number, config: ScenarioConfig = defaultScenar
     nextCheckInAt: 0,
     headingAnchor: normalize(sub(routeOf(config)[0], config.handlerStart)),
     steer: null,
+    stalledFor: 0,
+    detourUntil: -1,
+    detourDir: vec(),
     correctionPending: null,
     lastCueAt: -1e9,
     prevStrength: 0,
@@ -267,13 +276,98 @@ export function activeDistractor(state: SimState): DistractorConfig {
   return state.distractorIndex === 0 ? state.config.distractor : (state.config.moreDistractors[state.distractorIndex - 1] ?? state.config.distractor);
 }
 
-/** Leash length between two bodies, around wall corners when a wall is in the way. */
+interface SolidSet {
+  walls: ScenarioConfig['walls'];
+  scenery: ScenarioConfig['scenery'];
+  index: WallIndex;
+  /** The Obstacle walls among the indexed ones. */
+  props: ReadonlySet<Wall>;
+}
+
+const solidCache = new WeakMap<ScenarioConfig, SolidSet>();
+
+/** The Boundaries plus the collision walls of the Obstacles, bucketed by grid; built once per scenario. */
+function solidSet(config: ScenarioConfig): SolidSet {
+  const hit = solidCache.get(config);
+  if (hit && hit.walls === config.walls && hit.scenery === config.scenery) return hit;
+  const props = propWalls(config.scenery);
+  const set: SolidSet = { walls: config.walls, scenery: config.scenery, index: buildWallIndex([...config.walls, ...props]), props: new Set(props) };
+  solidCache.set(config, set);
+  return set;
+}
+
+const solidIndex = (config: ScenarioConfig): WallIndex => solidSet(config).index;
+
+/** The Boundaries and Obstacle walls near the segment `a`-`b`. */
+function solidsNear(state: SimState, a: Vec2, b: Vec2): readonly Wall[] {
+  return wallsNear(solidIndex(state.config), a, b);
+}
+
+/** The leash path from the Handler to the Dog around Boundaries and Obstacles, or null when it runs straight. */
+export function wrappedLeash(state: SimState): LeashPath | null {
+  const nearby = solidsNear(state, state.handler, state.dog);
+  if (nearby.length === 0) return null;
+  const path = leashPath(state.handler, state.dog, nearby);
+  return path.points.length > 2 ? path : null;
+}
+
+/** Pushes a body out of the Boundaries and Obstacles around `pos`. */
+function resolveSolids(state: SimState, pos: Vec2): Vec2 {
+  return resolveWalls(pos, wallsNear(solidIndex(state.config), pos, pos, 0.5));
+}
+
+/** Seconds of being held up by an Obstacle after which the Dog tries a way around it. */
+const STALL_SECONDS = 3;
+/** How long the detour lasts, in seconds. */
+const DETOUR_SECONDS = 2;
+/** The Dog counts as at an Obstacle within this distance of its edge, in meters. */
+const OBSTACLE_REACH = BODY_RADIUS + 0.15;
+
+/** The nearest Obstacle wall point to `pos` within `OBSTACLE_REACH`, or null. */
+function obstacleNear(state: SimState, pos: Vec2): Vec2 | null {
+  const { props } = solidSet(state.config);
+  if (props.size === 0) return null;
+  let best: Vec2 | null = null;
+  let bestD = OBSTACLE_REACH;
+  for (const w of wallsNear(solidIndex(state.config), pos, pos, 0.5)) {
+    if (!props.has(w)) continue;
+    const c = closestOnSegment(pos, w.from, w.to);
+    const d = distance(pos, c);
+    if (d < bestD) {
+      bestD = d;
+      best = c;
+    }
+  }
+  return best;
+}
+
+/**
+ * Where a Dog that has been held up by an Obstacle heads for a moment: toward the first point
+ * where its leash is wrapped (which unwraps it), or else sideways along the Obstacle.
+ */
+function detourDirection(state: SimState, goal: Vec2): Vec2 {
+  const wrapped = leashPath(state.handler, state.dog, solidsNear(state, state.handler, state.dog));
+  if (wrapped.points.length > 2) {
+    // aim just outside the corner, on the side away from what the leash wraps, so the Dog's body clears the edge
+    const n = wrapped.points.length;
+    const corner = wrapped.points[n - 2];
+    const inside = normalize(add(normalize(sub(wrapped.points[n - 3], corner)), normalize(sub(state.dog, corner))));
+    return normalize(sub(add(corner, scale(inside, -(BODY_RADIUS + 0.15))), state.dog));
+  }
+  const edge = obstacleNear(state, state.dog);
+  if (!edge) return goal;
+  const out = normalize(sub(state.dog, edge));
+  const side = { x: -out.y, y: out.x };
+  return dot(side, goal) >= 0 ? side : scale(side, -1);
+}
+
+/** Leash length between two bodies, around wall corners and Obstacles when they are in the way. */
 function leashDist(state: SimState, a: Vec2, b: Vec2): number {
-  return leashLength(a, b, state.config.walls);
+  return leashLength(a, b, solidsNear(state, a, b));
 }
 
 function leashRatio(state: SimState): number {
-  return tensionRatio(state.handler, state.dog, state.config.leashLength, state.config.walls);
+  return tensionRatio(state.handler, state.dog, state.config.leashLength, solidsNear(state, state.handler, state.dog));
 }
 
 /** Whether the Go Sniff button is on offer: World 2 or later, in the window, with the leash Slack. */
@@ -304,7 +398,7 @@ function limitDistance(anchor: Vec2, from: Vec2, to: Vec2, max: number): Vec2 {
  * stopped at the leash limit instead of slid, since the wrapped path has no single direction.
  */
 function limitLeash(state: SimState, anchor: Vec2, from: Vec2, to: Vec2, max: number): Vec2 {
-  const { walls } = state.config;
+  const walls = solidsNear(state, anchor, to);
   if (walls.length === 0 || !walls.some((w) => segmentsCross(anchor, to, w.from, w.to))) return limitDistance(anchor, from, to, max);
   const allowed = Math.max(max, leashLength(anchor, from, walls));
   if (leashLength(anchor, to, walls) <= allowed) return to;
@@ -369,15 +463,20 @@ function moveHandler(state: SimState, input: SimInput, dt: number, events: SimEv
     // back once the push stops, so Rigid Pull ends when the Handler does.
     const wrapped = leashDist(state, state.handler, state.dog);
     if (wrapped > config.leashLength * (1 + RATIO_EPSILON)) {
-      state.handler =
-        config.walls.length === 0
-          ? add(state.dog, scale(normalize(sub(state.handler, state.dog)), config.leashLength))
-          : add(state.handler, scale(normalize(sub(state.dog, state.handler)), wrapped - config.leashLength));
+      const nearby = solidsNear(state, state.handler, state.dog);
+      if (nearby.length === 0) {
+        state.handler = add(state.dog, scale(normalize(sub(state.handler, state.dog)), config.leashLength));
+      } else {
+        // along the wrapped leash, toward its first corner, and never into a solid
+        const first = leashPath(state.handler, state.dog, nearby).points[1];
+        const step = Math.min(wrapped - config.leashLength, distance(state.handler, first));
+        state.handler = resolveSolids(state, add(state.handler, scale(normalize(sub(first, state.handler)), step)));
+      }
     }
     return;
   }
   const next = add(state.handler, scale(dir, strength * config.quickSpeed * dt));
-  state.handler = resolveWalls(limitLeash(state, state.dog, state.handler, next, config.leashLength + config.leashTolerance), config.walls);
+  state.handler = resolveSolids(state, limitLeash(state, state.dog, state.handler, next, config.leashLength + config.leashTolerance));
   state.handlerFacing = dir;
   detectTurn(state, dir, events);
 }
@@ -481,6 +580,7 @@ function moveDog(state: SimState, dt: number): void {
     speed = config.dogGoalSpeed;
   } else if (state.dogMode === 'goal') {
     ({ direction, speed } = state.drive.desire({ dog: state.dog, handler: state.handler, waypoint: currentTarget(state), dt }));
+    if (state.time < state.detourUntil) direction = state.detourDir;
     // an Alert Dog slows down a little as it watches
     if (state.tier === 'alert') speed *= config.reaction.alertSlowdown;
   } else if (state.dogMode === 'fixated') {
@@ -510,13 +610,33 @@ function moveDog(state: SimState, dt: number): void {
   const dist = leashDist(state, state.handler, state.dog);
   if (dist / config.leashLength >= RIGID_MIN - RATIO_EPSILON) {
     // at the leash limit the Dog cannot advance farther away, it can only move sideways or back
-    const out = normalize(offset);
+    // with the leash wrapped around a corner, "away" is away from the last corner
+    const nearby = solidsNear(state, state.handler, state.dog);
+    const wrapped = nearby.length > 0 ? leashPath(state.handler, state.dog, nearby) : null;
+    const out = wrapped && wrapped.points.length > 2 ? normalize(sub(state.dog, wrapped.points[wrapped.points.length - 2])) : normalize(offset);
     const outward = dot(velocity, out);
     if (outward > 0) velocity = sub(velocity, scale(out, outward));
   }
   const next = add(state.dog, scale(velocity, dt));
-  state.dog = resolveWalls(limitLeash(state, state.handler, state.dog, next, config.leashLength), config.walls);
+  const before = state.dog;
+  state.dog = resolveSolids(state, limitLeash(state, state.handler, state.dog, next, config.leashLength));
+  trackStall(state, before, length(velocity) * dt, dt);
   if (length(velocity) > 0) state.dogFacing = normalize(velocity);
+}
+
+/** A Dog walking by its Drive that barely moves beside an Obstacle for a few seconds gets a detour. */
+function trackStall(state: SimState, before: Vec2, intended: number, dt: number): void {
+  if (state.dogMode !== 'goal' || intended === 0 || distance(before, state.dog) > intended * 0.1 || !obstacleNear(state, state.dog)) {
+    state.stalledFor = 0;
+    return;
+  }
+  state.stalledFor += dt;
+  if (state.stalledFor >= STALL_SECONDS) {
+    state.stalledFor = 0;
+    state.detourUntil = state.time + DETOUR_SECONDS;
+    // the side is chosen once, so the Dog does not flip between the two ways around
+    state.detourDir = detourDirection(state, normalize(sub(currentTarget(state), state.dog)));
+  }
 }
 
 /** While the Dog follows its Drive it glances at the Handler at seeded moments. */
@@ -536,7 +656,7 @@ function dragDog(state: SimState, input: SimInput, dt: number): void {
   // a lunging Dog braces against the leash: it cannot be dragged, so the Rigid Pull stays
   if (state.dogMode === 'fixated' && state.tier === 'reactive') return;
   if (leashRatio(state) <= RIGID_MIN + RATIO_EPSILON) return;
-  state.dog = resolveWalls(add(state.dog, scale(normalize(sub(state.handler, state.dog)), config.pullStrength * dt)), config.walls);
+  state.dog = resolveSolids(state, add(state.dog, scale(normalize(sub(state.handler, state.dog)), config.pullStrength * dt)));
 }
 
 /** A Distractor still in play that is close enough to affect the Dog's Arousal. */

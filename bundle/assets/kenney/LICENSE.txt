@@ -1,8 +1,9 @@
- ---
+Kenney assets used by LeadMate (www.kenney.nl), released under Creative Commons CC0 (public domain):
 
-Road tile graphics (NOVA) by Kenney Vleugels (www.kenney.nl)
+  Isometric Roads (road and ground tiles)   Nature Kit        Furniture Kit
+  Car Kit                                   City Kit (Roads)  City Kit (Suburban)
+  Mini Characters                           Cube Pets
 
-You may use these graphics in personal and commercial projects.
-Credit (www.kenney.nl) would be nice but is not mandatory.
-
- --
+You may use these in personal and commercial projects. Credit (www.kenney.nl) is not mandatory but appreciated.
+sprites.png / sprites.json are derived from the Nature Kit and Furniture Kit isometric previews, and from
+isometric renders of the 3D models in the other packs (see scripts/kenney/).

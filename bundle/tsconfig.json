@@ -7,7 +7,8 @@
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "resolveJsonModule": true
   },
   "include": ["./**/*.ts", "../src/sim/**/*.ts", "../src/i18n/**/*.ts", "../src/hud/**/*.ts"],
   "exclude": ["**/*.test.ts", "../src/**/*.test.ts", "vite.config.mts"]

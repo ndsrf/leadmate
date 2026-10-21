@@ -7,6 +7,7 @@ import { Button } from '../Overlays';
 import { Choice } from '../ui/components';
 import { ANSWERS, answerOf, applyAnswer, QUESTION_KINDS, type AnswerId } from '../onboarding/questionnaire';
 import { finishSetup, setupStart, type SetupPart } from '../onboarding/setup';
+import { DOG_COAT_NAMES } from '../onboarding/look';
 import { isDogKg, isHandlerKg, parseKg } from '../onboarding/weights';
 import { Screen } from './Screen';
 
@@ -49,7 +50,7 @@ export function SetupScreen({ t, record, update }: { t: Translate; record: DogRe
     if (handlerKg === null || !isHandlerKg(handlerKg)) return setError('setup.weights.invalidHandler');
     setError(null);
     update((r) => ({ ...r, weights: { dogKg, handlerKg } }));
-    setPart('questions');
+    setPart('look');
   };
 
   return (
@@ -83,9 +84,22 @@ export function SetupScreen({ t, record, update }: { t: Translate; record: DogRe
             tone="quiet"
             onPress={() => {
               setError(null);
-              setPart('questions');
+              setPart('look');
             }}
           />
+        </View>
+      )}
+
+      {part === 'look' && (
+        <View className="rounded-game-lg bg-surface p-4">
+          <Text className="mb-1 text-base font-bold text-ink">{t('setup.look.title')}</Text>
+          <Text className="text-sm text-inkMuted">{t('setup.look.help')}</Text>
+          <View className="flex-row flex-wrap">
+            {DOG_COAT_NAMES.map((c) => (
+              <Choice key={c} label={t(`coat.${c}`)} selected={record.coat === c} onPress={() => update((r) => ({ ...r, coat: c }))} />
+            ))}
+          </View>
+          <Button label={t('setup.next')} onPress={() => setPart('questions')} />
         </View>
       )}
 

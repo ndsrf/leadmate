@@ -247,9 +247,12 @@ with sounds and haptics off and reduced motion on, and checks for clipping (need
 The UI sounds in `assets/ui/` are synthesized by `scripts/gen-ui-sounds.mjs` and need no credit. The display
 font is **Lilita One** (SIL Open Font License 1.1, via `@expo-google-fonts/lilita-one`).
 
-Scenery tiles and trees are from Kenney's **Isometric Roads** pack (<https://www.kenney.nl>),
-free to use in personal and commercial projects, credit appreciated. The license text ships at
-`bundle/assets/kenney/LICENSE.txt`. Handler, Dog and Distractor are placeholder shapes.
+Art is by Kenney (<https://www.kenney.nl>), CC0: free to use in personal and commercial projects, credit
+appreciated. The ground and road tiles are from **Isometric Roads**. The props come from the **Nature Kit**,
+**Furniture Kit**, **Car Kit** and **City Kit (Roads, Suburban)**, and the Handler, the Dog and the Distractors from
+**Mini Characters** and **Cube Pets**. The 3D models are rendered to isometric sprites with `scripts/kenney/`
+(`render-sprites.mjs`, then `pack-sprites.py`) into one atlas, `bundle/assets/kenney/sprites.{png,json}`.
+The license text ships at `bundle/assets/kenney/LICENSE.txt`.
 
 ## Playtest log (task 7.1)
 

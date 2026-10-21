@@ -11,6 +11,7 @@ import { CUSTOM_CUE_MS, resolveCue, VOICE_PACKS, type Language } from '../voice'
 import type { Account } from '../sync/useAccount';
 import { AccountSection } from './AccountScreens';
 import type { UiSettings } from '../ui/uiSettings';
+import { DOG_COAT_NAMES } from '../onboarding/look';
 import { Screen } from './Screen';
 
 const CHECKPOINT_OPTIONS: { value: CheckpointSeconds; key: 'settings.checkpoint.5' | 'settings.checkpoint.10' | 'settings.checkpoint.off' }[] = [
@@ -110,6 +111,14 @@ export function SettingsScreen({
           ))}
         </View>
         <Text className="mt-2 text-sm text-inkMuted">{t(record.equipment === 'collar' ? 'settings.equipment.collarNote' : 'settings.equipment.harnessNote')}</Text>
+      </Section>
+
+      <Section title={t('settings.coat')}>
+        <View className="flex-row flex-wrap">
+          {DOG_COAT_NAMES.map((c) => (
+            <Choice key={c} label={t(`coat.${c}`)} selected={record.coat === c} onPress={() => update((r) => ({ ...r, coat: c }))} />
+          ))}
+        </View>
       </Section>
 
       <Section title={t('settings.triggers')}>

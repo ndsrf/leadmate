@@ -15,6 +15,8 @@ export interface SceneryItem {
   visualShield?: boolean;
   /** Footprint radius of a shield in meters; defaults to `DEFAULT_SHIELD_RADIUS`. */
   radius?: number;
+  /** Direction of a long prop's footprint, in radians from the x axis; 0 when absent. */
+  angle?: number;
 }
 
 export const DEFAULT_SHIELD_RADIUS = 1.2;
@@ -71,6 +73,51 @@ export function resolveWalls(pos: Vec2, walls: readonly Wall[], radius: number =
   return p;
 }
 
+/** Walls bucketed by a coarse grid, so a query only looks at the walls near a body or a leash. */
+export interface WallIndex {
+  all: readonly Wall[];
+  cells: Map<string, Wall[]>;
+}
+
+const CELL = 4;
+/** Up to this many walls are always returned whole: scenarios without scenery keep their exact behavior. */
+const SMALL_SET = 16;
+
+const cellKey = (i: number, j: number) => `${i},${j}`;
+
+export function buildWallIndex(walls: readonly Wall[]): WallIndex {
+  const cells = new Map<string, Wall[]>();
+  if (walls.length > SMALL_SET) {
+    for (const w of walls) {
+      const [i0, i1] = [Math.floor(Math.min(w.from.x, w.to.x) / CELL), Math.floor(Math.max(w.from.x, w.to.x) / CELL)];
+      const [j0, j1] = [Math.floor(Math.min(w.from.y, w.to.y) / CELL), Math.floor(Math.max(w.from.y, w.to.y) / CELL)];
+      for (let i = i0; i <= i1; i++) {
+        for (let j = j0; j <= j1; j++) {
+          const key = cellKey(i, j);
+          const list = cells.get(key);
+          if (list) list.push(w);
+          else cells.set(key, [w]);
+        }
+      }
+    }
+  }
+  return { all: walls, cells };
+}
+
+/** The walls within `margin` meters of the segment `a`-`b` (all of them for a small set). */
+export function wallsNear(index: WallIndex, a: Vec2, b: Vec2, margin = 2): readonly Wall[] {
+  if (index.all.length <= SMALL_SET) return index.all;
+  const i0 = Math.floor((Math.min(a.x, b.x) - margin) / CELL);
+  const i1 = Math.floor((Math.max(a.x, b.x) + margin) / CELL);
+  const j0 = Math.floor((Math.min(a.y, b.y) - margin) / CELL);
+  const j1 = Math.floor((Math.max(a.y, b.y) + margin) / CELL);
+  const found = new Set<Wall>();
+  for (let i = i0; i <= i1; i++) {
+    for (let j = j0; j <= j1; j++) for (const w of index.cells.get(cellKey(i, j)) ?? []) found.add(w);
+  }
+  return [...found];
+}
+
 function segmentHitsCircle(a: Vec2, b: Vec2, center: Vec2, radius: number): boolean {
   return distance(closestOnSegment(center, a, b), center) < radius;
 }
@@ -92,7 +139,7 @@ export interface LeashPath {
 }
 
 /** Corner vertices considered per query: the nearest ones to the straight line, so the cost stays O(k). */
-const MAX_CORNERS = 4;
+const MAX_CORNERS = 6;
 
 /**
  * The shortest leash path from `handler` to `dog` that does not cut through a wall: straight when

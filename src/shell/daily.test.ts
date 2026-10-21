@@ -1,8 +1,8 @@
 import { validateScenario } from '../sim/scenery';
-import { runScripted } from '../sim/harness';
-import { activeDistractor, currentTarget, type SimInput, type SimState } from '../sim/sim';
+import { routeWalker, runScripted } from '../sim/harness';
+import { activeDistractor, type SimInput, type SimState } from '../sim/sim';
 import { closestOnSegment, segmentsCross } from '../sim/geometry';
-import { distance, normalize, sub } from '../sim/vec';
+import { distance } from '../sim/vec';
 import { completeDaily, dateSeed, generateDailyStage, warmupAfterDaily } from './daily';
 import { applyStage, newDogRecord, recordDailyScore } from './dogRecord';
 import { isRusty, sessionCapacity } from './rusty';
@@ -68,9 +68,11 @@ describe('Daily Stage generator', () => {
   it.each(DATES)('can be walked to the end on %s, with the same result on a replay', (date) => {
     const c = generateDailyStage(date);
     const seed = dateSeed(date);
+    const walk = routeWalker(c);
     const play = (s: SimState): SimInput => {
       const stand = s.dogMode === 'fixated' || s.dogMode === 'holding';
-      return { direction: normalize(sub(currentTarget(s), s.handler)), strength: stand ? 0 : s.ratio >= 1 ? 0.3 : 1, marker: false, cue: s.dogMode === 'fixated', cueType: 'lets-go' };
+      const { direction, strength } = walk(s);
+      return { direction, strength: stand ? 0 : strength, marker: false, cue: s.dogMode === 'fixated', cueType: 'lets-go' };
     };
     const first = runScripted(seed, play, c, 900);
     expect(first.state.ended).toBe(true);
@@ -78,6 +80,28 @@ describe('Daily Stage generator', () => {
     const second = runScripted(seed, play, c, 900);
     expect(second.payload).toEqual(first.payload);
     expect(first.payload.handlingScore).toBeGreaterThan(0);
+  });
+});
+
+describe('Daily Stage winnability', () => {
+  it('can be walked to the end, with solid props in the way, on 200 different dates', () => {
+    for (let i = 0; i < 200; i++) {
+      const date = new Date(Date.UTC(2026, 0, 1 + i)).toISOString().slice(0, 10);
+      const c = generateDailyStage(date);
+      expect(validateScenario(c)).toEqual([]);
+      const walk = routeWalker(c);
+      const { state } = runScripted(
+        dateSeed(date),
+        (s: SimState): SimInput => {
+          const stand = s.dogMode === 'fixated' || s.dogMode === 'holding';
+          const { direction, strength } = walk(s);
+          return { direction, strength: stand ? 0 : strength, marker: false, cue: s.dogMode === 'fixated', cueType: 'lets-go' };
+        },
+        c,
+        300,
+      );
+      if (!state.ended) throw new Error(`the Daily Stage of ${date} was not finished in 300 s`);
+    }
   });
 });
 

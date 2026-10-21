@@ -3,7 +3,7 @@ import type { DistractorKind } from '../sim/learning';
 import { closestOnSegment, type SceneryTheme, type Wall } from '../sim/geometry';
 import type { SimulationDebriefPayload } from '../sim/payload';
 import { createRng, type Rng } from '../sim/rng';
-import { routePoints, scatterScenery } from '../sim/scenery';
+import { routePoints, scatterScenery, scatterSetPieces } from '../sim/scenery';
 import { distance, type Vec2 } from '../sim/vec';
 import { recordDailyScore, type DailyResult, type DogRecord } from './dogRecord';
 import type { WarmupOutcome } from './rusty';
@@ -151,7 +151,10 @@ export function generateDailyStage(date: string): ScenarioConfig {
     moreDistractors: distractors.slice(1),
     scenery: [],
   };
-  return { ...base, scenery: scatterScenery(theme, routePoints(base), seed ^ 0x5bd1e995, walls) };
+  // seeded set pieces (bench + bin, tree + bush, a row of parked cars), then scatter around them
+  const points = routePoints(base);
+  const pieces = scatterSetPieces(theme, points, seed ^ 0x3c6ef372, walls, 3);
+  return { ...base, scenery: [...pieces, ...scatterScenery(theme, points, seed ^ 0x5bd1e995, walls, { existing: pieces })] };
 }
 
 /** Today's date in the user's time zone. */

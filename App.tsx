@@ -15,6 +15,7 @@ import { newSeed } from './src/sim/rng';
 import { playDogSound, playResolvedCue, prepareAudio } from './src/shell/audio';
 import { createVocalizer } from './src/shell/vocalize';
 import { applyDiary, applyStage, toSnapshot } from './src/shell/dogRecord';
+import { lookOf } from './src/shell/onboarding/look';
 import { celebrationsFor, starsShown, type Celebration } from './src/shell/celebrations';
 import { completeDaily, dateSeed, generateDailyStage, todayString, warmupAfterDaily, type DailyCompletion } from './src/shell/daily';
 import { ErrorOverlay, HintOverlay, LoadingOverlay, ResumeOverlay } from './src/shell/Overlays';
@@ -119,7 +120,7 @@ export default function App() {
         type: 'start',
         seed,
         catalog: CATALOG,
-        scenario: { ...withPull(scenario, current.weights), learning: toSnapshot(current, capacityRef.current) },
+        scenario: { ...withPull(scenario, current.weights), learning: toSnapshot(current, capacityRef.current), look: lookOf(current) },
       };
       setPaused(false);
       setHint(null);

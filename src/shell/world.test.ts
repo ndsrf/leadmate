@@ -1,10 +1,10 @@
 import { es } from '../i18n';
 import { requiredCue } from '../sim/config';
 import { BODY_RADIUS, closestOnSegment, hasLineOfSight, routeLength } from '../sim/geometry';
-import { runScripted } from '../sim/harness';
+import { routeWalker, runScripted } from '../sim/harness';
 import { requiredProps, routePoints, validateScenario } from '../sim/scenery';
-import { activeDistractor, currentTarget, routeOf, type SimInput, type SimState } from '../sim/sim';
-import { distance, normalize, sub } from '../sim/vec';
+import { activeDistractor, routeOf, type SimInput, type SimState } from '../sim/sim';
+import { distance } from '../sim/vec';
 import {
   BLIND_CORNER_NODE, DOORBELL_MAT_NODE, HARNESS_RITUAL_NODE, LEAVE_IT_NODE, NODES, PARK_JOGGER_NODE, PARK_MIX_NODE, POSTE_PRACTICE, SCOOTER_NODE, SLACK_U_NODE, URBAN_MIX_NODE, WALK_DISTRACTION,
 } from './nodes/content';
@@ -118,15 +118,15 @@ describe('World 1: Home & Thresholds', () => {
 
 /** Walks the route, stops for a fixated Dog and presses the Cue that fits it. */
 function walker(config: ScenarioConfig) {
+  const walk = routeWalker(config);
   return (s: SimState): SimInput => {
-    const target = currentTarget(s);
-    const direction = normalize(sub(target, s.handler));
+    const { direction, strength } = walk(s);
     const stand = s.dogMode === 'fixated' || s.dogMode === 'holding';
     const cue = s.dogMode === 'fixated' && s.config.cues.length > 0;
     const wanted = requiredCue(activeDistractor(s));
     return {
       direction,
-      strength: stand ? 0 : s.ratio >= 1 ? 0.3 : 1,
+      strength: stand ? 0 : strength,
       marker: false,
       cue,
       cueType: s.config.cues.includes(wanted) ? wanted : s.config.cues[0],
