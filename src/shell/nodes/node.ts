@@ -17,6 +17,32 @@ export interface NodeExercise {
   key: TextKey;
 }
 
+/** An external media attachment of a Primer card; an empty `url` or `placeholder` shows the themed placeholder. */
+export interface NodeMedia {
+  type: 'image' | 'video';
+  url: string;
+  caption: TextKey;
+  placeholder?: boolean;
+}
+
+/** Whether a Primer card teaches the real dog or the virtual one. */
+export type PrimerKind = 'real-world' | 'virtual-dog';
+
+export interface PrimerCardDef {
+  kind: PrimerKind;
+  text: TextKey;
+  media?: NodeMedia;
+  /** A web-hosted full guide, opened in the in-app browser. */
+  tutorialUrl?: string;
+}
+
+/** A Primer card: a plain text key (legacy, real-world) or a structured card. */
+export type PrimerCard = TextKey | PrimerCardDef;
+
+export function primerCardOf(card: PrimerCard): PrimerCardDef {
+  return typeof card === 'string' ? { kind: 'real-world', text: card } : card;
+}
+
 export type MinigameKind = 'poste-hold' | 'harness-ritual' | 'doorbell-mat';
 
 /** A Node as plain data (design decision 11); all text comes from the catalog. */
@@ -25,8 +51,8 @@ export interface NodeDef {
   title: TextKey;
   /** 'stage' is a walking Stage that updates the Dog; 'minigame' is static and never does. */
   mode: 'stage' | 'minigame';
-  /** 3 to 5 short cards. */
-  primerCards: TextKey[];
+  /** 3 to 5 short cards; real-world dog theory first, then the virtual dog's mechanics. */
+  primerCards: PrimerCard[];
   checkpoint: CheckpointQuestion;
   /** For a Stage: scenario overrides. For a Minigame: which one to run. */
   simulation: { scenario?: Partial<ScenarioConfig>; minigame?: MinigameKind };

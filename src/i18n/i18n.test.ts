@@ -34,3 +34,12 @@ describe('text catalog', () => {
     for (const answer of ['correct', 'wrong', 'missed'] as const) expect(t(`results.checkpoint.${answer}`)).not.toBe('');
   });
 });
+
+describe('Primer and media text', () => {
+  it('has the section badges, guide button and in-app browser strings', () => {
+    const t = createTranslator({});
+    for (const key of ['primer.kind.real-world', 'primer.kind.virtual-dog', 'primer.openGuide', 'browser.title', 'browser.close', 'browser.retry', 'browser.offline', 'media.pending', 'media.unavailable'] as const) {
+      expect(t(key)).not.toBe('');
+    }
+  });
+});

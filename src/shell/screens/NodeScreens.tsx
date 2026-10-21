@@ -3,28 +3,36 @@ import { Pressable, Text, View } from 'react-native';
 import type { Translate } from '../../i18n';
 import type { SimulationDebriefPayload } from '../../sim/payload';
 import { Button, Row } from '../Overlays';
-import { Choice, OptionCard, Panel, ProgressBar, StarRow } from '../ui/components';
+import { Badge, Choice, OptionCard, Panel, ProgressBar, StarRow } from '../ui/components';
+import { InAppBrowserModal } from '../ui/InAppBrowserModal';
+import { MediaPlaceholder } from '../ui/MediaPlaceholder';
 import { CelebrationList } from '../ui/CelebrationList';
 import { useReveal } from '../ui/useReveal';
 import { useTicker } from '../ui/useTicker';
 import type { Celebration } from '../celebrations';
 import { starsFor, type Stars } from '../stars';
-import { checkpointLimit, pickExercise, type NodeRun } from '../nodes/node';
+import { checkpointLimit, pickExercise, primerCardOf, type NodeRun } from '../nodes/node';
 import type { CheckpointSeconds } from '../dogRecord';
 import { DIARY_OUTCOMES, type DiaryOutcome } from '../streak';
 import { Screen } from './Screen';
 
 export function PrimerScreen({ t, run, onNext, onExit }: { t: Translate; run: NodeRun; onNext: () => void; onExit: () => void }) {
   const total = run.node.primerCards.length;
+  const card = primerCardOf(run.node.primerCards[run.card]);
+  const [guideOpen, setGuideOpen] = useState(false);
   return (
     <Screen>
       <Text className="mb-1 text-sm text-inkDim">{t(run.node.title)}</Text>
       <View className="my-4 min-h-40 justify-center rounded-game-lg bg-surface p-6">
-        <Text className="text-xl text-ink">{t(run.node.primerCards[run.card])}</Text>
+        <Badge label={t(`primer.kind.${card.kind}`)} tone={card.kind === 'real-world' ? 'info' : 'quiet'} />
+        <Text className="mt-3 text-xl text-ink">{t(card.text)}</Text>
+        {card.media && <MediaPlaceholder key={`${run.node.id}:${run.card}`} t={t} media={card.media} />}
+        {card.tutorialUrl && <Button label={t('primer.openGuide')} tone="quiet" onPress={() => setGuideOpen(true)} />}
       </View>
       <Text className="text-center text-sm text-inkDim">{`${run.card + 1} / ${total}`}</Text>
       <Button label={t('node.next')} onPress={onNext} />
       <Button label={t('node.back')} tone="quiet" onPress={onExit} />
+      {guideOpen && card.tutorialUrl && <InAppBrowserModal t={t} url={card.tutorialUrl} onClose={() => setGuideOpen(false)} />}
     </Screen>
   );
 }

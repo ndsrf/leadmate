@@ -3,8 +3,10 @@ import { Text, View } from 'react-native';
 import type { Translate } from '../../i18n';
 import { Button } from '../Overlays';
 import { HARNESS_RITUAL, newPosteMinigame, posteMinigameMetrics, POSTE_MINIGAME, stepPosteMinigame, tensionOf, type HoldMinigameConfig, type PosteMinigameState, type RoundOutcome } from '../nodes/posteMinigame';
-import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import { AGITATION_SECONDS, holdPosture, quantizeTension } from '../ui/canine';
+import { CanineMinigameAvatar } from '../ui/CanineMinigameAvatar';
 import { Pad } from '../ui/components';
+import { LeashProp } from '../ui/MinigameProps';
 import { useTicker } from '../ui/useTicker';
 import { Screen } from './Screen';
 
@@ -23,7 +25,7 @@ const VARIANTS = {
 export function PosteMinigameView({ t, onFinish, variant = 'poste' }: { t: Translate; onFinish: (metrics: { poste: number; tension: number }) => void; variant?: keyof typeof VARIANTS }) {
   const { config, hold, help } = VARIANTS[variant];
   const [started, setStarted] = useState(false);
-  // per-tick state lives in a ref; the bar follows a shared value, React only hears about round, outcome and bar colour
+  // per-tick state lives in a ref; React only hears about round, outcome and a coarse leash tension
   const state = useRef<PosteMinigameState>(newPosteMinigame());
   const holding = useRef(false);
   const finished = useRef(false);
@@ -31,18 +33,21 @@ export function PosteMinigameView({ t, onFinish, variant = 'poste' }: { t: Trans
   finish.current = onFinish;
   const [round, setRound] = useState(state.current.round);
   const [lastOutcome, setLastOutcome] = useState<RoundOutcome | null>(null);
-  const [band, setBand] = useState(0);
-  const tension = useSharedValue(tensionOf(state.current, config));
-  const barStyle = useAnimatedStyle(() => ({ width: `${tension.value * 100}%` }));
+  const [tension, setTension] = useState(0);
+  // a release that ended the round sends the Dog lunging forward again for a moment
+  const lunge = useRef(0);
 
   useTicker(started && !finished.current, TICK_MS, (dt) => {
     const prev = state.current;
     const next = stepPosteMinigame(prev, dt, holding.current, config);
     state.current = next;
-    if (next.outcomes.length > prev.outcomes.length) setLastOutcome(next.outcomes[next.outcomes.length - 1]);
-    const value = tensionOf(next, config);
-    tension.value = value;
-    setBand(value > 0.8 ? 2 : value > 0.5 ? 1 : 0);
+    if (next.outcomes.length > prev.outcomes.length) {
+      const outcome = next.outcomes[next.outcomes.length - 1];
+      setLastOutcome(outcome);
+      if (outcome === 'released') lunge.current = AGITATION_SECONDS;
+    }
+    lunge.current = Math.max(0, lunge.current - dt);
+    setTension(lunge.current > 0 ? 1 : quantizeTension(tensionOf(next, config)));
     setRound(next.round);
     if (next.done && !finished.current) {
       finished.current = true;
@@ -54,8 +59,11 @@ export function PosteMinigameView({ t, onFinish, variant = 'poste' }: { t: Trans
     <Screen>
       <Text className="mb-1 text-sm text-inkDim">{`${t('minigame.poste.round')} ${Math.min(round + 1, config.rounds)} ${t('minigame.poste.of')} ${config.rounds}`}</Text>
       <Text className="mb-4 text-base text-ink">{t(help)}</Text>
-      <View className="h-6 overflow-hidden rounded-game-pill bg-surfaceHigh">
-        <Animated.View className={`h-6 ${band === 2 ? 'bg-danger' : band === 1 ? 'bg-accent' : 'bg-brand'}`} style={barStyle} />
+      <View className="rounded-game-lg bg-surface p-4">
+        <View className="flex-row items-end justify-between">
+          <LeashProp t={t} tension={tension} />
+          <CanineMinigameAvatar t={t} posture={holdPosture(tension, false)} />
+        </View>
       </View>
       <Text className="my-3 h-6 text-center text-sm text-inkMuted">{lastOutcome ? t(OUTCOME_KEYS[lastOutcome]) : ''}</Text>
       {started ? (
