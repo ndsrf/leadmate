@@ -26,3 +26,13 @@ Currently, static minigames (Doorbell Mat, Poste, Harness Ritual) rely on abstra
 - **New UI Components**: `CanineMinigameAvatar` for static minigames; `MediaPlaceholder`, `InAppBrowserModal`, and `MediaViewer` components.
 - **Node Data & Schemas**: Updates to `NodeDef`, `NodeRun`, `content.ts`, and i18n text catalogs (`en`, `es`) with expanded real-world and virtual dog guidance.
 - **Dependencies**: React Native standard image and webview integration patterns (or lightweight safe SVG/vector rendering without heavy native binary overhead).
+
+## Reopened: visual rework (2026-10-21)
+
+After `solid-props-and-richer-scenery` the walking Stages look rich while the static Minigames still look crude: the Dog is a blob of rounded rectangles in a fixed amber, the Door and Mat are flat boxes, the Leash is a stack of rotated bars, and a 160px-tall text-only button is the only affordance. It is unclear what the Dog is doing, when to act, and whether an action worked.
+
+- Redraw the Dog, Door, Mat, Handler and Leash as vector art (`react-native-svg`) with real anatomy per posture, in the Dog's chosen coat.
+- Stage each Minigame as one scene (wall, floor, props); in the Doorbell Mat the Dog walks from the door to the mat.
+- Name what the Dog is doing in a short caption, so the user learns to read body language instead of guessing.
+- Replace the plain Pad with a raised action button carrying an icon, a pressed state, and a clear idle/active look.
+- Show round progress and each outcome as colour-coded pips and a result chip.

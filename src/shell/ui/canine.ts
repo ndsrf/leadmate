@@ -1,4 +1,5 @@
 import type { TextKey } from '../../i18n';
+import type { DogCoat } from '../../sim/config';
 import type { DoorbellOutcome, DoorbellState } from '../nodes/doorbellMat';
 
 /** What the Dog's body is doing in a static Minigame; the avatar draws one of these. */
@@ -16,15 +17,17 @@ export interface PostureSpec {
   mouthOpen: boolean;
   /** Read aloud by screen readers. */
   label: TextKey;
+  /** A few words on screen naming what the Dog is doing, so the user learns to read it. */
+  cue: TextKey;
 }
 
 const SPECS: Record<CaninePosture, PostureSpec> = {
-  standing_waiting: { leanDeg: 0, height: 1, tail: 'wag', earsUp: true, mouthOpen: false, label: 'minigame.dog.standing_waiting' },
-  alert_barking: { leanDeg: 12, height: 1, tail: 'up', earsUp: true, mouthOpen: true, label: 'minigame.dog.alert_barking' },
-  settling_towards_mat: { leanDeg: -4, height: 0.8, tail: 'down', earsUp: false, mouthOpen: false, label: 'minigame.dog.settling_towards_mat' },
-  calm_sphinx_on_mat: { leanDeg: 0, height: 0.55, tail: 'down', earsUp: false, mouthOpen: false, label: 'minigame.dog.calm_sphinx_on_mat' },
-  straining: { leanDeg: 24, height: 0.95, tail: 'up', earsUp: true, mouthOpen: false, label: 'minigame.dog.straining' },
-  slack: { leanDeg: 0, height: 0.7, tail: 'down', earsUp: false, mouthOpen: false, label: 'minigame.dog.slack' },
+  standing_waiting: { leanDeg: 0, height: 1, tail: 'wag', earsUp: true, mouthOpen: false, label: 'minigame.dog.standing_waiting', cue: 'minigame.cue.waiting' },
+  alert_barking: { leanDeg: 12, height: 1, tail: 'up', earsUp: true, mouthOpen: true, label: 'minigame.dog.alert_barking', cue: 'minigame.cue.barking' },
+  settling_towards_mat: { leanDeg: -4, height: 0.8, tail: 'down', earsUp: false, mouthOpen: false, label: 'minigame.dog.settling_towards_mat', cue: 'minigame.cue.settling' },
+  calm_sphinx_on_mat: { leanDeg: 0, height: 0.55, tail: 'down', earsUp: false, mouthOpen: false, label: 'minigame.dog.calm_sphinx_on_mat', cue: 'minigame.cue.calm' },
+  straining: { leanDeg: 24, height: 0.95, tail: 'up', earsUp: true, mouthOpen: false, label: 'minigame.dog.straining', cue: 'minigame.cue.straining' },
+  slack: { leanDeg: 0, height: 0.7, tail: 'down', earsUp: false, mouthOpen: false, label: 'minigame.dog.slack', cue: 'minigame.cue.slack' },
 };
 
 export function postureSpec(posture: CaninePosture): PostureSpec {
@@ -61,15 +64,19 @@ export function holdPosture(tension: number, lunged: boolean): CaninePosture {
   return lunged || tension >= 0.5 ? 'straining' : 'slack';
 }
 
-export interface LeashSegment {
-  x: number;
-  y: number;
-  length: number;
-  /** Degrees, clockwise from the x axis. */
-  angleDeg: number;
-}
+/** The Dog drawing's own coordinate space; the scene scales it. */
+export const DOG_VIEW = { w: 160, h: 110 } as const;
 
-export const LEASH_SEGMENTS = 14;
+/** Where the collar sits in the Dog drawing, in `DOG_VIEW` units, facing right: the Leash is clipped to it. */
+export const COLLAR_POINT: Record<CaninePosture, { x: number; y: number }> = {
+  standing_waiting: { x: 110, y: 52 },
+  alert_barking: { x: 110, y: 46 },
+  settling_towards_mat: { x: 108, y: 53 },
+  calm_sphinx_on_mat: { x: 108, y: 74 },
+  straining: { x: 116, y: 58 },
+  slack: { x: 92, y: 40 },
+};
+
 /** Tension is shown in steps so the leash only redraws when it visibly changes. */
 export const TENSION_STEPS = 10;
 
@@ -77,24 +84,61 @@ export function quantizeTension(tension: number): number {
   return Math.round(Math.max(0, Math.min(1, tension)) * TENSION_STEPS) / TENSION_STEPS;
 }
 
-/**
- * The leash as short straight segments along a quadratic Bezier from the Handler to the Dog: it sags
- * by `sag` pixels when slack and runs straight when rigid.
- */
-export function leashSegments(tension: number, from: { x: number; y: number }, to: { x: number; y: number }, sag: number): LeashSegment[] {
-  const t0 = Math.max(0, Math.min(1, tension));
-  const control = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 + sag * (1 - t0) };
-  const at = (u: number) => ({
-    x: (1 - u) ** 2 * from.x + 2 * (1 - u) * u * control.x + u ** 2 * to.x,
-    y: (1 - u) ** 2 * from.y + 2 * (1 - u) * u * control.y + u ** 2 * to.y,
-  });
-  const out: LeashSegment[] = [];
-  for (let i = 0; i < LEASH_SEGMENTS; i++) {
-    const a = at(i / LEASH_SEGMENTS);
-    const b = at((i + 1) / LEASH_SEGMENTS);
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
-    out.push({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, length: Math.hypot(dx, dy), angleDeg: (Math.atan2(dy, dx) * 180) / Math.PI });
-  }
-  return out;
+/** Which colour a leash tension reads as: calm, warming up, or about to pull. */
+export function tensionTone(tension: number): 'calm' | 'warn' | 'high' {
+  return tension < 0.4 ? 'calm' : tension < 0.7 ? 'warn' : 'high';
 }
+
+/** Degrees the Handler leans back against a pull. */
+export const HANDLER_LEAN_DEG = 9;
+
+/** The Handler's hand and feet in scene units, upright; leaning rotates the hand about the feet. */
+const HANDLER_HAND = { x: 62, y: 98 };
+const HANDLER_FEET = { x: 40, y: 148 };
+
+/** Where the Handler's hand is at a leash tension, in scene units. */
+export function handlerHand(tension: number): { x: number; y: number } {
+  const a = (-HANDLER_LEAN_DEG * Math.max(0, Math.min(1, tension)) * Math.PI) / 180;
+  const dx = HANDLER_HAND.x - HANDLER_FEET.x;
+  const dy = HANDLER_HAND.y - HANDLER_FEET.y;
+  return { x: HANDLER_FEET.x + dx * Math.cos(a) - dy * Math.sin(a), y: HANDLER_FEET.y + dx * Math.sin(a) + dy * Math.cos(a) };
+}
+
+export const HANDLER_PIVOT = HANDLER_FEET;
+
+/** The Leash as one SVG quadratic path from the hand to the collar: it sags by `sag` when slack and runs straight when rigid. */
+export function leashPath(tension: number, from: { x: number; y: number }, to: { x: number; y: number }, sag: number): string {
+  const t0 = Math.max(0, Math.min(1, tension));
+  const cx = (from.x + to.x) / 2;
+  const cy = (from.y + to.y) / 2 + sag * (1 - t0);
+  const r = (n: number) => Math.round(n * 10) / 10;
+  return `M${r(from.x)} ${r(from.y)} Q${r(cx)} ${r(cy)} ${r(to.x)} ${r(to.y)}`;
+}
+
+export interface HandlerPalette {
+  skin: string;
+  hair: string;
+  shirt: string;
+  trousers: string;
+  shoes: string;
+}
+
+export const HANDLER_PALETTE: HandlerPalette = { skin: '#8d5a3b', hair: '#1f2937', shirt: '#16a34a', trousers: '#334155', shoes: '#f59e0b' };
+
+export interface CoatPalette {
+  fill: string;
+  /** Ears, tail tip and the far legs. */
+  shade: string;
+  belly: string;
+}
+
+/** Coat colours of the Minigame Dog; they follow the Stage tints in `bundle/src/sprites.ts`. */
+export const COAT_PALETTE: Record<DogCoat, CoatPalette> = {
+  golden: { fill: '#f0b45c', shade: '#c98a2e', belly: '#f8d596' },
+  black: { fill: '#55555c', shade: '#34343a', belly: '#74747c' },
+  chocolate: { fill: '#9a6a4a', shade: '#704a31', belly: '#b88a6a' },
+  cream: { fill: '#f6e3bc', shade: '#d8bf8c', belly: '#fff3d8' },
+  white: { fill: '#ffffff', shade: '#cfd5df', belly: '#ffffff' },
+  grey: { fill: '#b0b6c2', shade: '#868d9b', belly: '#ccd1da' },
+  red: { fill: '#e2703a', shade: '#b4501f', belly: '#f0996a' },
+};

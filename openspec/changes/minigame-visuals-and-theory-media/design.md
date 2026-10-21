@@ -64,3 +64,17 @@ Furthermore, Theory Primers (`PrimerScreen.tsx`) currently present 3-5 short sen
 4. Upgrade `PosteMinigameView.tsx` with handler-dog layout, dynamic leash curve, and canine strain/settle postures.
 5. Upgrade `PrimerScreen.tsx` with dual-aspect section indicators, media placeholder rendering, and in-app tutorial launcher.
 6. Update node definitions and i18n catalogs (`en.ts`, `es.ts`) for Poste, Harness, and Doorbell nodes.
+
+## Reopened: visual rework decisions
+
+### Decision 5: Vector scenes with `react-native-svg`
+- **Choice**: Draw the Dog, Handler, Door, Mat and Leash as SVG. Postures differ in anatomy (standing, barking with head up and open mouth, walking mid-stride, lying sphinx, braced straining, sitting), not just in a tilt. The Leash is one path whose control point follows tension.
+- **Rationale**: The Kenney atlas Dog only has idle/walk/run/eat frames, so it cannot show sit, lie or bark; rectangles cannot read as a dog. SVG stays resolution independent and needs no assets.
+- **Trade-off**: One new dependency, `react-native-svg` (bundled in Expo Go and supported on web).
+
+### Decision 6: Coat from the Dog record, palette outside screens
+- Coat colours (fill, shade, belly) live in `canine.ts`, mirroring the Stage tints in `bundle/src/sprites.ts`; screen files keep drawing only from theme tokens.
+
+### Decision 7: Caption and button state teach the cue
+- A short caption names the Dog's state ("Barking at the bell", "Settling", "Calm on the mat") without colouring the right moment, so the exercise still tests reading the Dog.
+- The action button is raised with an icon and a pressed state; results appear as a coloured chip and round pips.

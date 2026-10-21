@@ -348,9 +348,9 @@ export default function App() {
       const finish = (metrics: Partial<Record<Metric, number>>) => act({ type: 'finish', result: { kind: 'minigame', metrics } });
       screen =
         run.node.simulation.minigame === 'doorbell-mat' ? (
-          <DoorbellMatView key={`minigame-${view.attempt}`} t={t} seed={view.attempt + 1 + (dateSeed(todayString()) % 1000)} onFinish={finish} />
+          <DoorbellMatView key={`minigame-${view.attempt}`} t={t} coat={record.coat} seed={view.attempt + 1 + (dateSeed(todayString()) % 1000)} onFinish={finish} />
         ) : (
-          <PosteMinigameView key={`minigame-${view.attempt}`} t={t} variant={run.node.simulation.minigame === 'harness-ritual' ? 'harness' : 'poste'} onFinish={finish} />
+          <PosteMinigameView key={`minigame-${view.attempt}`} t={t} coat={record.coat} variant={run.node.simulation.minigame === 'harness-ritual' ? 'harness' : 'poste'} onFinish={finish} />
         );
     }
     else if (run.step === 'debrief')

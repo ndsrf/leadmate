@@ -30,3 +30,12 @@
 - [x] 5.1 Update Node definitions in `src/shell/nodes/content.ts` for Doorbell Mat, Poste Practice, and Harness Ritual to use structured dual-aspect primer cards, web tutorial placeholders, and real-world Checkpoints; verify with `npm test`.
 - [x] 5.2 Expand localization catalogs in `src/i18n/` (English and Spanish) with comprehensive real-world dog training explanations, virtual dog simulation guidance, media captions, and in-app browser strings; verify catalog tests pass via `npm test -- src/i18n/`.
 - [x] 5.3 Run full test suite and TypeScript validation (`npm test && npx tsc --noEmit`) to verify complete integration and zero regressions.
+
+## 6. Visual rework (reopened)
+
+- [x] 6.1 Add coat palette and short cue-caption mapping to `src/shell/ui/canine.ts` with tests; verify `npm test -- src/shell/ui/canine.test.ts`.
+- [x] 6.2 Redraw `CanineMinigameAvatar` as SVG (six postures, coat, size prop); verify it renders each posture.
+- [x] 6.3 Redraw Door, Mat, Handler and Leash props as SVG in `MinigameProps.tsx`.
+- [x] 6.4 Add `MinigameButton`, round pips and result chip; replace `Pad` in both views.
+- [x] 6.5 Rework `DoorbellMatView` as one scene where the Dog walks door to mat; rework `PosteMinigameView` as handler, leash and Dog scene with a tension gauge; pass the Dog's coat from `App.tsx`.
+- [ ] 6.6 Add i18n strings, update specs, run `npm test` and `npm run typecheck`, and check both Minigames in the web build.

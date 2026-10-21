@@ -1,6 +1,6 @@
 import { es } from '../../i18n';
 import { DOORBELL_MAT, newDoorbell, stepDoorbell } from '../nodes/doorbellMat';
-import { agitatesDog, CANINE_POSTURES, doorbellPosture, holdPosture, LEASH_SEGMENTS, leashSegments, postureSpec, quantizeTension } from './canine';
+import { agitatesDog, CANINE_POSTURES, doorbellPosture, holdPosture, COAT_PALETTE, COLLAR_POINT, handlerHand, leashPath, postureSpec, quantizeTension, tensionTone } from './canine';
 
 describe('canine postures', () => {
   it('describes every posture with a spoken label from the catalog', () => {
@@ -64,20 +64,43 @@ describe('hold minigame posture and leash', () => {
     expect(quantizeTension(3)).toBe(1);
   });
 
-  const from = { x: 0, y: 0 };
-  const to = { x: 200, y: 0 };
-  const lowest = (t: number) => Math.max(...leashSegments(t, from, to, 40).map((s) => s.y));
+  const from = { x: 0, y: 40 };
+  const to = { x: 200, y: 40 };
+  const controlY = (tension: number) => Number(/Q[\d.-]+ ([\d.-]+)/.exec(leashPath(tension, from, to, 40))?.[1]);
 
   it('sags when slack and runs straight when rigid', () => {
-    expect(leashSegments(1, from, to, 40)).toHaveLength(LEASH_SEGMENTS);
-    expect(lowest(1)).toBeCloseTo(0);
-    expect(lowest(0)).toBeGreaterThan(15);
-    expect(lowest(0.5)).toBeLessThan(lowest(0));
+    expect(controlY(1)).toBe(40);
+    expect(controlY(0)).toBe(80);
+    expect(controlY(0.5)).toBeLessThan(controlY(0));
   });
 
-  it('spans the handler to the dog', () => {
-    const total = leashSegments(1, from, to, 40).reduce((sum, s) => sum + s.length, 0);
-    expect(total).toBeCloseTo(200);
-    expect(leashSegments(0, from, to, 40).reduce((sum, s) => sum + s.length, 0)).toBeGreaterThan(200);
+  it('starts at the hand and ends at the collar', () => {
+    expect(leashPath(0.3, from, to, 40)).toMatch(/^M0 40 Q100 [\d.]+ 200 40$/);
+  });
+
+  it('reads calm, warm and high tension', () => {
+    expect(tensionTone(0)).toBe('calm');
+    expect(tensionTone(0.5)).toBe('warn');
+    expect(tensionTone(0.9)).toBe('high');
+  });
+
+  it('moves the hand back as the Handler leans against a pull', () => {
+    expect(handlerHand(1).x).toBeLessThan(handlerHand(0).x);
+    expect(handlerHand(0)).toEqual({ x: 62, y: 98 });
+  });
+});
+
+describe('canine drawing data', () => {
+  it('gives every posture a collar point inside the drawing', () => {
+    for (const posture of CANINE_POSTURES) {
+      const c = COLLAR_POINT[posture];
+      expect(c.x).toBeGreaterThan(0);
+      expect(c.x).toBeLessThan(160);
+      expect(c.y).toBeLessThan(110);
+    }
+  });
+
+  it('has a coat palette for every Dog coat', () => {
+    expect(Object.keys(COAT_PALETTE).sort()).toEqual(['black', 'chocolate', 'cream', 'golden', 'grey', 'red', 'white']);
   });
 });
