@@ -40,3 +40,18 @@ The system SHALL align user input timing to observable canine body language cues
 #### Scenario: Premature release in hold minigame
 - **WHEN** the Handler releases the hold button before the Dog has fully settled into slack
 - **THEN** the Dog immediately lunges forward again and the round ends as a release failure
+
+### Requirement: Readable minigame scenes
+The system SHALL draw each static Minigame as one scene with vector art for the Dog in its chosen coat, the Door, Mat, Handler and Leash, name the Dog's current state in a short caption, and show round results as pips and a coloured result chip.
+
+#### Scenario: Dog walks from door to mat
+- **WHEN** the Doorbell Mat Dog moves from barking to settling
+- **THEN** the Dog walks from the door to the mat and the mat lights up
+
+#### Scenario: Dog coat is respected
+- **WHEN** the Dog record has a coat other than golden
+- **THEN** the Minigame Dog is drawn in that coat
+
+#### Scenario: Pull is visible at a glance
+- **WHEN** the leash tension rises
+- **THEN** the Handler leans back, the Leash runs straight and the tension gauge moves from green through amber to red

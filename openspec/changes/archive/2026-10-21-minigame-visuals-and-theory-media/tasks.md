@@ -38,4 +38,4 @@
 - [x] 6.3 Redraw Door, Mat, Handler and Leash props as SVG in `MinigameProps.tsx`.
 - [x] 6.4 Add `MinigameButton`, round pips and result chip; replace `Pad` in both views.
 - [x] 6.5 Rework `DoorbellMatView` as one scene where the Dog walks door to mat; rework `PosteMinigameView` as handler, leash and Dog scene with a tension gauge; pass the Dog's coat from `App.tsx`.
-- [ ] 6.6 Add i18n strings, update specs, run `npm test` and `npm run typecheck`, and check both Minigames in the web build.
+- [x] 6.6 Add i18n strings, update specs, run `npm test` and `npm run typecheck`, and check both Minigames in the web build.
