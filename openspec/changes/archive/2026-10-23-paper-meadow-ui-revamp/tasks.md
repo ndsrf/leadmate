@@ -33,6 +33,6 @@
 ## 5. Verification
 
 - [x] 5.1 Run `npm test` and type-check; grep that no screen uses colours outside the tokens
-- [ ] 5.2 Walk every screen at 320 pt and at desktop width; check long Spanish strings, reduced motion, large text
-- [ ] 5.3 Compare each restyled screen against its board; list intentional differences, including Spanish copy that differs from the board, in the PR
+- [x] 5.2 Walk every screen at 320 pt and at desktop width; check long Spanish strings, reduced motion, large text
+- [x] 5.3 Compare each restyled screen against its board; list intentional differences, including Spanish copy that differs from the board, in the PR
 - [x] 5.4 `openspec validate paper-meadow-ui-revamp`
