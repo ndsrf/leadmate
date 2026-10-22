@@ -162,9 +162,14 @@ function readOnboarding(raw: unknown, version: unknown): OnboardingState {
   const r = raw as Partial<Record<keyof OnboardingState, unknown>>;
   // before version 5 the paywall came ahead of the first Stage; a user at it still has that Stage to play
   const old = typeof version !== 'number' || version < 5;
+  const completedAt = strOrNull(r.firstStageCompletedAt);
+  let step: OnboardingStep = isOnboardingStep(r.step) ? r.step : 'setup';
+  if (old && step === 'paywall') step = 'first-stage';
+  // before version 5 the first Stage came after the paywall: one who has played it has seen everything
+  else if (old && step === 'first-stage' && completedAt) step = 'done';
   return {
-    step: isOnboardingStep(r.step) ? (old && r.step === 'paywall' ? 'first-stage' : r.step) : 'setup',
-    firstStageCompletedAt: strOrNull(r.firstStageCompletedAt),
+    step,
+    firstStageCompletedAt: completedAt,
     trialStartedAt: strOrNull(r.trialStartedAt),
     diagnosticLatency: kg(r.diagnosticLatency),
     plan: strings(r.plan),

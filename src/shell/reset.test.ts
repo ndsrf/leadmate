@@ -2,7 +2,7 @@ jest.mock('expo-audio', () => ({}));
 jest.mock('expo-file-system', () => ({}));
 jest.mock('./audio', () => ({ deleteRecording: jest.fn() }));
 
-import { loadDogRecord, migrateRecord, touch, type DogRecord, type KeyValueStore } from './dogRecord';
+import { loadDogRecord, newDogRecord, migrateRecord, touch, type DogRecord, type KeyValueStore } from './dogRecord';
 import { createResetRecord, resetProgress, shouldShowResetSection } from './reset';
 import { loadSyncState, SYNC_KEY, type SyncState } from './sync/state';
 import { migrateOnRegister, runSync } from './sync/sync';
@@ -38,6 +38,28 @@ function createMemoryStore(initial: Record<string, string> = {}): KeyValueStore 
     },
   };
 }
+
+describe('resetProgress failure', () => {
+  it('restores the old record when detaching the sync state fails', async () => {
+    const storage: Record<string, string> = {};
+    const store: KeyValueStore = {
+      async getItem(k) {
+        return storage[k] ?? null;
+      },
+      async setItem(k, v) {
+        if (k === SYNC_KEY) throw new Error('disk full');
+        storage[k] = v;
+      },
+      async removeItem(k) {
+        delete storage[k];
+      },
+    };
+    const old = { ...newDogRecord(), name: 'Luna', updatedAt: '2026-06-15T10:00:00.000Z' };
+    storage['leadmate.dog'] = JSON.stringify(old);
+    await expect(resetProgress(store, old, new Date('2026-06-16T12:00:00.000Z'), jest.fn())).rejects.toThrow('disk full');
+    expect(JSON.parse(storage['leadmate.dog']).name).toBe('Luna');
+  });
+});
 
 describe('resetProgress', () => {
   const oldDate = new Date('2026-06-15T10:00:00.000Z');

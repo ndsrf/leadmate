@@ -10,7 +10,7 @@ import { Choice, Panel, TextField } from '../ui/components';
 import { Screen } from './Screen';
 
 /** The first screen of the funnel: one action, and a way back in for a user who already has an account. */
-export function WelcomeScreen({ t, onStart, onLogIn }: { t: Translate; onStart: () => void; onLogIn: () => void }) {
+export function WelcomeScreen({ t, onStart, onLogIn }: { t: Translate; onStart: () => void; onLogIn?: () => void }) {
   return (
     <Screen>
       <Text className="mb-2 font-display text-displayM text-ink" accessibilityRole="header">
@@ -18,9 +18,11 @@ export function WelcomeScreen({ t, onStart, onLogIn }: { t: Translate; onStart: 
       </Text>
       <Text className="mb-4 text-bodyL text-inkMuted">{t('welcome.body')}</Text>
       <Button label={t('welcome.start')} onPress={onStart} />
-      <Pressable onPress={onLogIn} accessibilityRole="link" className="mt-2 items-center justify-center" style={{ minHeight: 44 }}>
-        <Text className="text-body text-inkMuted underline">{t('welcome.haveAccount')}</Text>
-      </Pressable>
+      {onLogIn && (
+        <Pressable onPress={onLogIn} accessibilityRole="link" className="mt-2 items-center justify-center" style={{ minHeight: 44 }}>
+          <Text className="text-body text-inkMuted underline">{t('welcome.haveAccount')}</Text>
+        </Pressable>
+      )}
     </Screen>
   );
 }

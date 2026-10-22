@@ -82,7 +82,7 @@ export async function runSync(deps: SyncDeps): Promise<SyncResult> {
     if (!paired) {
       // an account that already has a Dog is never merged or overwritten without asking, even if this device was paired before
       if (migrateOnRegister(local, remoteDogs) === 'choose') {
-        if (!isFirstRun(local) || state.dogId) return { outcome: 'needs-choice', remoteDogs };
+        if (!isFirstRun(local) || state.dogId || remoteDogs.length > 1) return { outcome: 'needs-choice', remoteDogs };
         // logging in from the welcome screen: the account's Dog replaces the empty one and its own step applies
         const [theirs] = remoteDogs;
         deps.replaceRecord(migrateRecord(theirs.record));

@@ -133,6 +133,19 @@ describe('runSync', () => {
     expect(d.record.name).toBe('');
   });
 
+  it('asks which Dog to keep when a first-run device logs in to an account with several', async () => {
+    const remote = new FakeRemote();
+    const rec = begun(played(newDogRecord(), '2026-05-02T09:00:00Z'));
+    remote.dogs = [
+      { dogId: 'a', record: rec, updatedAt: rec.updatedAt },
+      { dogId: 'b', record: rec, updatedAt: rec.updatedAt },
+    ];
+    const first = newDogRecord();
+    const { d, run } = device(remote, first);
+    expect((await run()).outcome).toBe('needs-choice');
+    expect(d.record).toBe(first);
+  });
+
   it('asks again when this device was paired with a Dog the account no longer has', async () => {
     const remote = new FakeRemote();
     remote.dogs = [{ dogId: 'other', record: newDogRecord(), updatedAt: newDogRecord().updatedAt }];

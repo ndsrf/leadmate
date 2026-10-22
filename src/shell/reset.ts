@@ -44,7 +44,17 @@ export async function resetProgress(
 
   // 2. Persist fresh record and detach sync pairing before touching any recording
   await saveDogRecord(store, fresh);
-  await saveSyncState(store, { ...NEW_SYNC_STATE });
+  try {
+    await saveSyncState(store, { ...NEW_SYNC_STATE });
+  } catch (e) {
+    // keep storage and memory agreeing: put the old record back so the caller's "nothing changed" holds
+    try {
+      await saveDogRecord(store, oldRecord);
+    } catch {
+      // best effort
+    }
+    throw e;
+  }
 
   // 3. Delete custom-cue recordings only once nothing references them any more
   for (const uri of Object.values(oldRecord.customCues)) {

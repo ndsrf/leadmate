@@ -295,6 +295,11 @@ describe('Dog record: version 5 (names and the new funnel)', () => {
     expect(migrateRecord({ ...base, onboarding: { step: 'paywall' } }).onboarding.step).toBe('first-stage');
   });
 
+  it('sends a version 4 user who already played the first Stage to done, not to a second paywall', () => {
+    const r = migrateRecord({ ...base, onboarding: { step: 'first-stage', firstStageCompletedAt: '2026-06-01T10:00:00.000Z' } });
+    expect(r.onboarding.step).toBe('done');
+  });
+
   it('keeps a version 5 record at the paywall', () => {
     expect(migrateRecord({ version: 5, onboarding: { step: 'paywall' } }).onboarding.step).toBe('paywall');
   });

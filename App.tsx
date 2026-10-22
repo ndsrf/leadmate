@@ -417,7 +417,7 @@ export default function App() {
   } else if (route.name === 'funnel') {
     if (record) {
       if (route.step === 'welcome')
-        screen = <WelcomeScreen t={t} onStart={() => update(leaveWelcome)} onLogIn={() => setFlow({ name: 'auth', mode: 'login', returnTo: 'map' })} />;
+        screen = <WelcomeScreen t={t} onStart={() => update(leaveWelcome)} onLogIn={account.configured ? () => setFlow({ name: 'auth', mode: 'login', returnTo: 'map' }) : undefined} />;
       else if (route.step === 'dog') screen = <DogLookScreen t={t} record={record} onDone={(name, coat) => update((r) => saveNameAndLook(r, name, coat))} />;
       else if (route.step === 'payoff') screen = <PayoffScreen t={t} name={record.name} onContinue={() => update(leavePayoff)} />;
       else if (route.step === 'setup') screen = <SetupScreen t={t} record={record} update={update} />;
@@ -553,7 +553,13 @@ export default function App() {
               setPaused(false);
               send({ type: 'resume' });
             }}
-            onExit={goHome}
+            onExit={() => {
+              if (route.name === 'taste' || route.name === 'first-stage') {
+                // the funnel cannot be left from a Stage; Exit just carries on
+                setPaused(false);
+                send({ type: 'resume' });
+              } else goHome();
+            }}
           />
         )}
         {bundle === 'error' && <ErrorOverlay t={t} onRetry={retry} />}
