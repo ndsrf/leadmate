@@ -6,7 +6,7 @@ Defines how the app starts and moves between screens: the branded Splash, routin
 ## Requirements
 
 ### Requirement: Splash on launch
-The system SHALL show a branded splash on every cold start, SHALL keep it up until the Dog record and display font are loaded and for a short minimum time so it does not flash, and SHALL then show the first screen the Dog's onboarding state calls for. The splash SHALL NOT accept input and SHALL NOT delay launch by more than 2 seconds beyond the time loading takes.
+The system SHALL show a branded splash on every cold start, SHALL keep it up until the Dog record and display font are loaded and for a short minimum time so it does not flash, and SHALL then show the first screen the Dog's onboarding state calls for. The splash SHALL NOT accept input while it loads and SHALL NOT delay launch by more than 2.5 seconds beyond the time loading takes. For a new user the same screen stays up once loading is done, as the welcome screen.
 
 #### Scenario: Cold start
 - **WHEN** the user opens the app
@@ -24,12 +24,16 @@ The system SHALL show a branded splash on every cold start, SHALL keep it up unt
 - **WHEN** the device prefers reduced motion
 - **THEN** the splash uses a plain fade and no looping animation
 
+#### Scenario: New user
+- **WHEN** loading is done and the Dog is at the first-run step
+- **THEN** the splash's loader is replaced by the welcome actions on the same screen, with no second screen in between
+
 ### Requirement: Launch routing
 After the splash the system SHALL route by the persisted onboarding step: to the onboarding funnel while the funnel is unfinished, to the guided first Stage when that is the next step, and otherwise to the World Map.
 
 #### Scenario: First run
 - **WHEN** a new user passes the splash
-- **THEN** Dog setup is shown
+- **THEN** the welcome actions are shown on the splash screen itself
 
 #### Scenario: Returning user
 - **WHEN** a user who has finished the funnel passes the splash

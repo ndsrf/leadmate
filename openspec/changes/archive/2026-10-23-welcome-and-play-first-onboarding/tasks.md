@@ -40,7 +40,7 @@
 - [x] 6.2 Wire introductory `NodeRun` (Primer cards, Checkpoint, Simulation, Debrief) into `first-stage` in `App.tsx` using `PrimerScreen`, `CheckpointScreen`, and `DebriefScreen`.
 - [x] 6.3 Update `completeFirstStage` flow so completing the Debrief advances to the registration prompt and paywall.
 - [x] 6.4 Update unit and navigation tests (`flow.test.ts`, `navigation.test.ts`, `firstStage.test.ts`, `catalog-usage.test.ts`) for the new intro node flow.
-- [ ] 6.5 Run the full test suite and walk the complete funnel on device from a reset Dog: welcome, name, taste, setup, Diagnostic, Walk Plan, Theory Primer, Checkpoint, first Stage walk, Debrief, registration, paywall, World Map.
+- [x] 6.5 Run the full test suite and walk the complete funnel on device from a reset Dog: welcome, name, taste, setup, Diagnostic, Walk Plan, Theory Primer, Checkpoint, first Stage walk, Debrief, registration, paywall, World Map.
 
 ## Workflow follow-up
 
