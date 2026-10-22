@@ -21,16 +21,11 @@ export function saveNameAndLook(record: DogRecord, rawName: string, coat: DogCoa
 }
 
 /**
- * The taste Stage ended (the Dog went Reactive, or the time ran out). Only the step changes: the
+ * The payoff over the taste Stage was dismissed (the Dog went Reactive, or the time ran out). Only the step changes: the
  * Stage's payload is never applied, so nothing is learned from it (ADR 0010).
  */
 export function completeTaste(record: DogRecord): DogRecord {
   return leave(record, 'taste');
-}
-
-/** The payoff screen's button. */
-export function leavePayoff(record: DogRecord): DogRecord {
-  return leave(record, 'payoff');
 }
 
 /** Replaces `{name}` in catalog text with the Dog's name, or the neutral "your Dog" text when it has none. */

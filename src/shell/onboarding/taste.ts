@@ -5,6 +5,9 @@ import { DEFAULT_ATTRIBUTES, DEFAULT_TRIGGER_PROFILE, type LearningSnapshot } fr
 /** Seconds the taste Stage lasts at most; it ends sooner when the Dog goes Reactive. */
 export const TASTE_SECONDS = 20;
 
+/** How long the camera zooms in on the Handler and the Dog after the Dog goes Reactive, before the payoff shows. */
+export const TASTE_LINGER_MS = 1500;
+
 /** An untrained Dog: no Cue skill, every Trigger at the highest level, whatever the Dog record says. */
 export const TASTE_SNAPSHOT: LearningSnapshot = {
   attributes: { ...DEFAULT_ATTRIBUTES, followChance: 0 },
@@ -15,12 +18,12 @@ export const TASTE_SNAPSHOT: LearningSnapshot = {
 };
 
 /**
- * The taste Stage (ADR 0010): another Dog with its owner walks at the Dog from the start, built so
+ * The taste Stage (ADR 0010): another Dog with its owner walks at the Dog from off-screen, closing to within sight before it triggers, built so
  * that nearly any play ends with the Dog Reactive. Its result is discarded, so nothing is learned.
  */
 export const tasteScenario: ScenarioConfig = {
   ...defaultScenario,
-  distractor: { ...defaultScenario.distractor, kind: 'dog', speed: 3, triggerRadius: 16, activateAfterMeters: 0, startOffset: 6, path: { from: { x: 24, y: 3 }, to: { x: -6, y: 3 } } },
+  distractor: { ...defaultScenario.distractor, kind: 'dog', speed: 3, triggerRadius: 8, activateAfterMeters: 0, startOffset: 6, path: { from: { x: 36, y: 3 }, to: { x: -6, y: 3 } } },
   moreDistractors: [],
   learning: TASTE_SNAPSHOT,
   markBudget: 0,

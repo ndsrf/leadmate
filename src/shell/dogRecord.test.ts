@@ -287,6 +287,10 @@ describe('Dog record: version 5 (names and the new funnel)', () => {
     expect(migrateRecord({ ...base, onboarding: { step } }).onboarding.step).toBe(step);
   });
 
+  it('moves a record stored at the removed payoff step on to setup', () => {
+    expect(migrateRecord({ ...base, onboarding: { step: 'payoff' } }).onboarding.step).toBe('setup');
+  });
+
   it('keeps a finished record done', () => {
     expect(migrateRecord({ ...base, onboarding: { step: 'done' } }).onboarding.step).toBe('done');
   });

@@ -15,6 +15,8 @@ export type ShellMessage =
     }
   | { type: 'pause' }
   | { type: 'resume' }
+  /** Zoom the camera in on the Handler and the Dog; the Stage keeps running. */
+  | { type: 'focus' }
   /** No Stage is on screen (World Map, menus, screen off): stop drawing frames. */
   | { type: 'suspend' }
   /** A Stage is on screen again: restart the render loop. */
@@ -55,7 +57,7 @@ export function decode<T extends { type: string }>(raw: unknown, types: readonly
   return null;
 }
 
-export const SHELL_MESSAGE_TYPES: readonly ShellMessage['type'][] = ['start', 'pause', 'resume', 'suspend', 'wake'];
+export const SHELL_MESSAGE_TYPES: readonly ShellMessage['type'][] = ['start', 'pause', 'resume', 'focus', 'suspend', 'wake'];
 export const BUNDLE_MESSAGE_TYPES: readonly BundleMessage['type'][] = ['ready', 'paused', 'debrief', 'playCue', 'reaction-tier-change', 'stage-signal', 'error'];
 
 /** Where the bundle sends its messages: the native WebView bridge, the parent window, or nowhere. */

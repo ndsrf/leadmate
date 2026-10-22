@@ -17,7 +17,9 @@ import { newSeed } from './src/sim/rng';
 import { playDogSound, playResolvedCue, prepareAudio } from './src/shell/audio';
 import { createVocalizer } from './src/shell/vocalize';
 import { applyDiary, applyStage, toSnapshot } from './src/shell/dogRecord';
+import { starsFor } from './src/shell/stars';
 import { lookOf } from './src/shell/onboarding/look';
+import { INTRO_NODE } from './src/shell/onboarding/introNode';
 import { celebrationsFor, starsShown, type Celebration } from './src/shell/celebrations';
 import { completeDaily, dateSeed, generateDailyStage, todayString, warmupAfterDaily, type DailyCompletion } from './src/shell/daily';
 import { ErrorOverlay, HintOverlay, LoadingOverlay, ResumeOverlay } from './src/shell/Overlays';
@@ -32,7 +34,7 @@ import { PosteMinigameView } from './src/shell/screens/PosteMinigameView';
 import { DiagnosticView } from './src/shell/screens/DiagnosticView';
 import { PaywallScreen } from './src/shell/screens/PaywallScreen';
 import { PlanScreen } from './src/shell/screens/PlanScreen';
-import { DogLookScreen, PayoffScreen, WelcomeScreen } from './src/shell/screens/IntroScreens';
+import { DogLookScreen, PayoffOverlay } from './src/shell/screens/IntroScreens';
 import { SetupScreen } from './src/shell/screens/SetupScreen';
 import { SettingsScreen } from './src/shell/screens/SettingsScreen';
 import { SplashScreen } from './src/shell/screens/SplashScreen';
@@ -44,9 +46,9 @@ import { completeFirstStage } from './src/shell/onboarding/firstStage';
 import { nextStep } from './src/shell/onboarding/flow';
 import { recordDiagnostic } from './src/shell/onboarding/diagnostic';
 import { HINT_TEXT, hintFor, markHintSeen, type HintId } from './src/shell/onboarding/hints';
-import { completeTaste, leavePayoff, leaveWelcome, saveNameAndLook } from './src/shell/onboarding/intro';
+import { completeTaste, leaveWelcome, saveNameAndLook } from './src/shell/onboarding/intro';
 import { passPaywall } from './src/shell/onboarding/paywall';
-import { TASTE_LINE_KEY, TASTE_SNAPSHOT, tasteScenario } from './src/shell/onboarding/taste';
+import { TASTE_LINE_KEY, TASTE_LINGER_MS, TASTE_SNAPSHOT, tasteScenario } from './src/shell/onboarding/taste';
 import { useDog } from './src/shell/useDog';
 import { migrateRecord } from './src/shell/dogRecord';
 import { resolveScenario } from './src/shell/sync/configs';
@@ -72,7 +74,7 @@ const CATALOG = es;
 const LANGUAGE: Language = 'es';
 const LOAD_TIMEOUT_MS = 20000;
 const HINT_MS = 7000;
-const MIN_SPLASH_MS = 1200;
+const MIN_SPLASH_MS = 2200;
 const FONT_TIMEOUT_MS = 2000;
 
 installFeedback();
@@ -123,7 +125,7 @@ export default function App() {
   const pendingStart = useRef<ShellMessage | null>(null);
   const bundleReady = useRef(false);
 
-  // Ready to leave splash: record loaded, font loaded or timed out (2 s cap), and min splash time elapsed (~1.2 s)
+  // Ready to leave splash: record loaded, font loaded or timed out (2 s cap), and min splash time elapsed (~2.2 s)
   const [splashReady, setSplashReady] = useState(false);
   useEffect(() => {
     if (splashReady) return;
@@ -214,16 +216,37 @@ export default function App() {
 
   // the taste Stage: an untrained Dog on a scenario built to fail; the control line stays until the first input
   const [tasteLine, setTasteLine] = useState(false);
+  const [tastePayoff, setTastePayoff] = useState(false);
+  const tastePayoffTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showTastePayoff = useCallback(() => {
+    if (tastePayoffTimer.current) return;
+    send({ type: 'focus' });
+    tastePayoffTimer.current = setTimeout(() => setTastePayoff(true), TASTE_LINGER_MS);
+  }, [send]);
   useEffect(() => {
     if (route.name !== 'taste') return;
     setTasteLine(true);
+    setTastePayoff(false);
+    if (tastePayoffTimer.current) clearTimeout(tastePayoffTimer.current);
+    tastePayoffTimer.current = null;
     startStage(tasteScenario, newSeed(), TASTE_SNAPSHOT);
   }, [route.name, startStage]);
 
-  // the guided first Stage: it starts by itself once the paywall screen has been passed
+  // the guided first Stage: runs the introductory "Node 0" loop (Primer, Checkpoint, Simulation, Debrief)
+  const [introRun, setIntroRun] = useState<NodeRun | null>(null);
   useEffect(() => {
-    if (route.name === 'first-stage') startStage({});
-  }, [route.name, startStage]);
+    if (route.name === 'first-stage') {
+      setIntroRun((current) => current ?? startNode(INTRO_NODE));
+    } else {
+      setIntroRun(null);
+    }
+  }, [route.name]);
+
+  useEffect(() => {
+    if (route.name === 'first-stage' && introRun?.step === 'simulation' && introRun.result === null) {
+      startStage({});
+    }
+  }, [route.name, introRun?.step, introRun?.result, startStage]);
 
   // the Daily Stage skips the Primer and the Checkpoint: it goes straight to the walk, same seed all day
   const dailyKey = route.name === 'flow' && route.flow.name === 'daily' && route.flow.result === null ? route.flow.attempt : null;
@@ -289,8 +312,8 @@ export default function App() {
         }
       } else if (message.type === 'reaction-tier-change') {
         vocalizer.current.onTier(message.tier);
-        // the taste ends the moment the Dog goes Reactive
-        if (message.tier === 'reactive' && routeRef.current.name === 'taste') update(completeTaste);
+        // the taste zooms in on the Handler and the Dog, then the payoff shows over it
+        if (message.tier === 'reactive' && routeRef.current.name === 'taste') showTastePayoff();
       }
       else if (message.type === 'playCue') {
         if (recordRef.current) playResolvedCue(resolveCue(recordRef.current, LANGUAGE));
@@ -307,16 +330,9 @@ export default function App() {
           setFlow({ ...f, result: { payload, completion, celebrations: list } });
         } else if (routeRef.current.name === 'taste') {
           // the time limit: the payload is dropped, nothing is learned from the taste
-          update(completeTaste);
+          showTastePayoff();
         } else if (routeRef.current.name === 'first-stage') {
-          update((r) => completeFirstStage(r, payload, new Date()));
-          accountRef.current.countStage();
-          // registration is offered after the first Stage, and only where there is a backend to register with
-          if (accountRef.current.configured && !accountRef.current.signedIn) {
-            setFlow({ name: 'register' });
-          } else {
-            goHome();
-          }
+          setIntroRun((r) => (r ? advance(r, { type: 'finish', result: { kind: 'stage', payload } }) : null));
         } else if (f?.name === 'warmup') {
           // ungraded: the warm-up never changes the Dog
           setWarmup('completed');
@@ -327,7 +343,7 @@ export default function App() {
         }
       } else if (message.type === 'error') setBundle('error');
     },
-    [act, goHome, send, update],
+    [act, goHome, send, showTastePayoff, update],
   );
 
   useEffect(() => {
@@ -377,7 +393,7 @@ export default function App() {
     simulationKey !== null ||
     (route.name === 'flow' && route.flow.name === 'warmup') ||
     route.name === 'taste' ||
-    route.name === 'first-stage' ||
+    (route.name === 'first-stage' && introRun?.step === 'simulation') ||
     dailyKey !== null;
 
   // the bundle only draws while a Stage is on screen; 'start' wakes it, leaving the Stage puts it to sleep
@@ -417,17 +433,71 @@ export default function App() {
   } else if (route.name === 'funnel') {
     if (record) {
       if (route.step === 'welcome')
-        screen = <WelcomeScreen t={t} onStart={() => update(leaveWelcome)} onLogIn={account.configured ? () => setFlow({ name: 'auth', mode: 'login', returnTo: 'map' }) : undefined} />;
+        screen = (
+          <SplashScreen
+            t={t}
+            onShown={hideNativeSplash}
+            actions={{ onStart: () => update(leaveWelcome), onLogIn: account.configured ? () => setFlow({ name: 'auth', mode: 'login', returnTo: 'map' }) : undefined }}
+          />
+        );
       else if (route.step === 'dog') screen = <DogLookScreen t={t} record={record} onDone={(name, coat) => update((r) => saveNameAndLook(r, name, coat))} />;
-      else if (route.step === 'payoff') screen = <PayoffScreen t={t} name={record.name} onContinue={() => update(leavePayoff)} />;
       else if (route.step === 'setup') screen = <SetupScreen t={t} record={record} update={update} />;
       else if (route.step === 'diagnostic')
         screen = <DiagnosticView key="diagnostic" t={t} seed={newSeed()} onFinish={(latency) => update((r) => recordDiagnostic(r, latency))} />;
       else if (route.step === 'plan')
         screen = <PlanScreen t={t} latency={record.onboarding.diagnosticLatency ?? 0.5} plan={record.onboarding.plan} onContinue={() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: nextStep('plan') } }))} />;
     }
-  } else if (route.name === 'taste' || route.name === 'first-stage') {
+  } else if (route.name === 'taste') {
     screen = null;
+  } else if (route.name === 'first-stage') {
+    if (introRun?.step === 'primer') {
+      screen = (
+        <PrimerScreen
+          t={t}
+          run={introRun}
+          onNext={() => setIntroRun((r) => (r ? advance(r, { type: 'next' }) : null))}
+          onExit={() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: 'plan' } }))}
+        />
+      );
+    } else if (introRun?.step === 'checkpoint') {
+      screen = (
+        <CheckpointScreen
+          t={t}
+          run={introRun}
+          setting={record?.checkpointSeconds ?? 0}
+          onAnswer={(option) => setIntroRun((r) => (r ? advance(r, { type: 'answer', option }) : null))}
+          onTimeout={() => setIntroRun((r) => (r ? advance(r, { type: 'timeout' }) : null))}
+        />
+      );
+    } else if (introRun?.step === 'debrief' && introRun.result?.kind === 'stage') {
+      const payload = introRun.result.payload;
+      screen = (
+        <DebriefScreen
+          t={t}
+          run={introRun}
+          showPosteLink={false}
+          diary={null}
+          onDiary={() => {}}
+          onPosteLink={() => {}}
+          best={starsFor(payload.handlingScore)}
+          celebrations={[]}
+          onPlayAgain={() => {
+            setIntroRun((r) => (r ? { ...r, step: 'simulation', result: null } : null));
+          }}
+          onDone={() => {
+            update((r) => completeFirstStage(r, payload, new Date()));
+            accountRef.current.countStage();
+            if (accountRef.current.configured && !accountRef.current.signedIn) {
+              setFlow({ name: 'register' });
+            } else {
+              goHome();
+            }
+          }}
+        />
+      );
+    } else {
+      screen = null;
+    }
   } else if (route.name === 'paywall') {
     if (account.choice && account.signedIn && record) {
       screen = <ChooseDogScreen t={t} local={record} cloud={migrateRecord(account.choice[0].record)} onChoose={account.chooseDog} />;
@@ -439,7 +509,7 @@ export default function App() {
       screen = <ChooseDogScreen t={t} local={record} cloud={migrateRecord(account.choice[0].record)} onChoose={account.chooseDog} />;
     } else if (record) {
       screen = (
-        <View className="flex-1">
+        <View className="absolute inset-0">
           <WorldMapScreen
             t={t}
             completed={record.completedNodes}
@@ -544,7 +614,8 @@ export default function App() {
         <SimView key={attempt} ref={sim} onMessage={onMessage} onLoadError={() => setBundle('error')} />
         {screen}
         {playingStage && hint && !paused && <HintOverlay text={t(HINT_TEXT[hint])} />}
-        {route.name === 'taste' && tasteLine && !paused && bundle === 'ready' && <HintOverlay text={t(TASTE_LINE_KEY)} />}
+        {route.name === 'taste' && tasteLine && !tastePayoff && !paused && bundle === 'ready' && <HintOverlay text={t(TASTE_LINE_KEY)} />}
+        {route.name === 'taste' && tastePayoff && record && <PayoffOverlay t={t} name={record.name} onContinue={() => update(completeTaste)} />}
         {playingStage && bundle === 'loading' && <LoadingOverlay t={t} />}
         {playingStage && paused && (
           <ResumeOverlay

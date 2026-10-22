@@ -142,6 +142,7 @@ function onMessage(raw: unknown): void {
   if (!message) return;
   if (message.type === 'start') startStage(message);
   else if (message.type === 'pause') pause();
+  else if (message.type === 'focus') scene()?.focusCamera();
   else if (message.type === 'suspend') {
     suspended = true;
     setRunning();

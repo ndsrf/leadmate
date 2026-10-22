@@ -1,11 +1,11 @@
 import { loadDogRecord, newDogRecord, saveDogRecord, type DogRecord, type KeyValueStore } from '../dogRecord';
-import { completeTaste, leavePayoff, leaveWelcome, renameDog, saveNameAndLook, withDogName } from './intro';
+import { completeTaste, leaveWelcome, renameDog, saveNameAndLook, withDogName } from './intro';
 import type { OnboardingStep } from './flow';
 
 const at = (step: OnboardingStep): DogRecord => ({ ...newDogRecord(), onboarding: { ...newDogRecord().onboarding, step } });
 
 describe('the funnel before setup', () => {
-  it('goes welcome, dog, taste, payoff, setup', () => {
+  it('goes welcome, dog, taste, setup', () => {
     let r = newDogRecord();
     expect(r.onboarding.step).toBe('welcome');
     r = leaveWelcome(r);
@@ -13,8 +13,6 @@ describe('the funnel before setup', () => {
     r = saveNameAndLook(r, 'Luna', 'black');
     expect(r.onboarding.step).toBe('taste');
     r = completeTaste(r);
-    expect(r.onboarding.step).toBe('payoff');
-    r = leavePayoff(r);
     expect(r.onboarding.step).toBe('setup');
   });
 
@@ -33,7 +31,6 @@ describe('the funnel before setup', () => {
     const later = at('diagnostic');
     expect(leaveWelcome(later)).toBe(later);
     expect(completeTaste(later)).toBe(later);
-    expect(leavePayoff(later)).toBe(later);
     expect(saveNameAndLook(later, 'Luna', 'black')).toBe(later);
   });
 
@@ -41,7 +38,7 @@ describe('the funnel before setup', () => {
     const before = { ...at('taste'), name: 'Luna', coat: 'black' as const };
     const after = completeTaste(before);
     expect({ ...after, onboarding: before.onboarding }).toEqual(before);
-    expect(after.onboarding.step).toBe('payoff');
+    expect(after.onboarding.step).toBe('setup');
     expect(after.seenHints).toEqual([]);
     expect(after.attributes).toEqual(before.attributes);
     expect(after.streak).toEqual(before.streak);

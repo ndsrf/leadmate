@@ -35,6 +35,7 @@ export interface StageOptions {
 
 const COLORS: Record<TensionState, number> = { slack: HUD_TENSION_NUM.slack, taut: HUD_TENSION_NUM.taut, rigid: HUD_TENSION_NUM.rigid };
 const JOY_RADIUS = 70;
+const FOCUS_ZOOM_FACTOR = 1.6; // how much closer than the close zoom the camera goes on the Handler and the Dog
 const TILE_M = 2; // one ground tile is 2 m wide
 /** Half the width of the road drawn along the route, which Ground Cover leaves alone. */
 const ROAD_HALF: Partial<Record<ScenarioConfig['theme'], number>> = { quiet_suburb: 1.2 };
@@ -69,6 +70,7 @@ export class StageScene extends Phaser.Scene {
   private hints = new HintTracker();
   private baseZoom = 1;
   private zoom = 0;
+  private focused = false;
   private keys!: Record<keyof Keys | 'marker' | 'marker2' | 'cue' | 'leaveIt' | 'sniff', Phaser.Input.Keyboard.Key>;
   private joy: { id: number; base: Vec2; knob: Vec2 } | null = null;
   private joyHome: Vec2 = { x: 120, y: 300 };
@@ -106,6 +108,7 @@ export class StageScene extends Phaser.Scene {
     this.hints = new HintTracker();
     this.hintUntil = 0;
     this.zoom = 0;
+    this.focused = false;
     this.joy = null;
     this.markerPointerDown = false;
     this.markerPressed = false;
@@ -198,6 +201,11 @@ export class StageScene extends Phaser.Scene {
   /** Pauses the simulation clock; time stops until `resumeStage`. */
   pauseStage(): void {
     setPaused(this.sim, true);
+  }
+
+  /** Zooms in on the Handler and the Dog, closer than the usual close zoom. */
+  focusCamera(): void {
+    this.focused = true;
   }
 
   resumeStage(): void {
@@ -516,15 +524,17 @@ export class StageScene extends Phaser.Scene {
     const k = 1 - Math.pow(0.001, delta / 1000);
     this.camPos = add(this.camPos, scale(sub(mid, this.camPos), k));
     const { width, height } = this.scale;
-    const target = targetZoom(
-      length(sub(this.sim.handler, this.sim.dog)),
-      this.sim.config.leashLength,
-      project(this.sim.handler),
-      project(this.sim.dog),
-      { width, height },
-      this.baseZoom,
-      this.sim.config.camera,
-    );
+    const target = this.focused
+      ? this.baseZoom * this.sim.config.camera.closeZoom * FOCUS_ZOOM_FACTOR
+      : targetZoom(
+          length(sub(this.sim.handler, this.sim.dog)),
+          this.sim.config.leashLength,
+          project(this.sim.handler),
+          project(this.sim.dog),
+          { width, height },
+          this.baseZoom,
+          this.sim.config.camera,
+        );
     this.zoom = this.zoom === 0 ? target : smoothZoom(this.zoom, target, delta, this.sim.config.camera);
     if (this.cameraDirty.changed(`${this.zoom},${this.camPos.x},${this.camPos.y},${width},${height}`)) {
       this.cameras.main.setZoom(this.zoom);

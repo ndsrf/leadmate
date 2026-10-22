@@ -198,7 +198,7 @@ A deliberate, confirmed return of a local-only Dog to its first-run state, avail
 _Avoid_: Delete account, wipe, factory reset
 
 **Funnel**:
-The first-run sequence a new Dog goes through once: welcome, name and look, Taste Stage, payoff, Dog setup, Diagnostic, Walk Plan, the guided first Stage and the soft paywall. It ends at the World Map and runs again only after Reset Progress.
+The first-run sequence a new Dog goes through once: welcome, name and look, Taste Stage with its payoff, Dog setup, Diagnostic, Walk Plan, the guided first Stage and the soft paywall. It ends at the World Map and runs again only after Reset Progress.
 _Avoid_: Onboarding flow, wizard, tutorial
 
 **Taste Stage**:
@@ -206,5 +206,5 @@ The first Stage a new user plays, before any setup question: a strong Distractor
 _Avoid_: Demo, intro level, failure stage
 
 **Payoff Screen**:
-The Funnel screen after the Taste Stage that names the Dog and says the game will be tuned to it, whatever the Taste Stage's result.
+The message shown over the Taste Stage, after a zoom on the Handler and the Dog, that says the Dog has reacted, names the Dog and says the game will be tuned to it, whatever the Taste Stage's result.
 _Avoid_: Result screen, fail screen

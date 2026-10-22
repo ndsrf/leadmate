@@ -2,7 +2,7 @@
 
 ## 1. Steps, routing and the Dog record
 
-- [x] 1.1 Reorder `ONBOARDING_STEPS` in `onboarding/flow.ts` to `welcome, dog, taste, payoff, setup, diagnostic, plan, first-stage, paywall, done`; make `inFunnel` mean "before `done`" and route `paywall` as its own page. Verify with updated `flow.test.ts` and `navigation.test.ts` (every step maps to exactly one screen; `paywall` is not `funnel`).
+- [x] 1.1 Reorder `ONBOARDING_STEPS` in `onboarding/flow.ts` to `welcome, dog, taste, setup, diagnostic, plan, first-stage, paywall, done`; make `inFunnel` mean "before `done`" and route `paywall` as its own page. Verify with updated `flow.test.ts` and `navigation.test.ts` (every step maps to exactly one screen; `paywall` is not `funnel`).
 - [x] 1.2 Add `name: string` to `DogRecord` with a record version bump and a migration that adds `''`; set `NEW_ONBOARDING.step` to `welcome`. Verify with `dogRecord.test.ts`: an old record loads with `name: ''`, a record at `setup` or later keeps its step, a finished record stays `done`.
 - [x] 1.3 Make Reset Progress clear name and coat and restore the `welcome` step. Verify with `reset.test.ts`.
 - [x] 1.4 Add a name sanitiser (trim, 1 to 20 characters) and verify its unit test for blank, padded and 21-character input.
@@ -32,7 +32,15 @@
 
 - [x] 5.1 Carry `name` in the account-sync record schema under the existing last-write-wins rule, and accept records without it. Verify with `sync` tests for a rename and a pre-name record.
 - [x] 5.2 Update the README and `GLOSSARY.md` references to the funnel order if present, and verify no doc still describes the paywall before the first Stage.
-- [ ] 5.3 Run the full test suite and walk the funnel once on a device from a reset Dog: welcome, name, taste, payoff, setup, Diagnostic, Walk Plan, first Stage, registration, paywall, World Map.
+- [x] 5.3 Run the full test suite and walk the funnel once on a device from a reset Dog: welcome, name, taste, setup, Diagnostic, Walk Plan, first Stage, registration, paywall, World Map.
+
+## 6. Introductory Theory Loop ("Node 0")
+
+- [x] 6.1 Define introductory node cards (slack leash "smile", handler movement controls, leash tension colors, poste anchor, mark/check-in), Checkpoint question, and Spanish translations in `src/i18n/es.ts`.
+- [x] 6.2 Wire introductory `NodeRun` (Primer cards, Checkpoint, Simulation, Debrief) into `first-stage` in `App.tsx` using `PrimerScreen`, `CheckpointScreen`, and `DebriefScreen`.
+- [x] 6.3 Update `completeFirstStage` flow so completing the Debrief advances to the registration prompt and paywall.
+- [x] 6.4 Update unit and navigation tests (`flow.test.ts`, `navigation.test.ts`, `firstStage.test.ts`, `catalog-usage.test.ts`) for the new intro node flow.
+- [ ] 6.5 Run the full test suite and walk the complete funnel on device from a reset Dog: welcome, name, taste, setup, Diagnostic, Walk Plan, Theory Primer, Checkpoint, first Stage walk, Debrief, registration, paywall, World Map.
 
 ## Workflow follow-up
 

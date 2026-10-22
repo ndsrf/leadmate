@@ -14,18 +14,19 @@ See proposal.md for motivation. Facts that shape the approach:
 **Goals:**
 - A new user plays the real simulation, and feels the Dog react, before any setup question.
 - The taste costs nothing to the Dog record and needs no new simulation code.
+- The first Stage introduces the game's core theory and mechanics through a complete "Node 0" loop (Theory Primer ➔ Checkpoint ➔ Guided Walk ➔ Debrief) so the user understands the mechanics and plays with intent.
 - Users already in the old funnel are not disturbed.
 
 **Non-Goals:**
 - A contextual paywall trigger, entitlement checks or a free week (follow-up change).
 - Per-step analytics.
 - A forced-failure mode in the simulation.
-- Changing the guided first Stage or the Diagnostic.
+- Changing the Diagnostic.
 
 ## Decisions
 
 **1. New steps in the same step list, ahead of `setup`.**
-`welcome`, `dog`, `taste` and `payoff` join `ONBOARDING_STEPS` before `setup`, and `paywall` moves after `first-stage`, giving `welcome, dog, taste, payoff, setup, diagnostic, plan, first-stage, paywall, done`. The Funnel is every step before `done`, so `inFunnel` is true up to and including `paywall`, and `paywall` routes as its own page like `first-stage`. `inFunnel` and `pageForStep` are updated so the routing stays one pure function (the app-shell rule). Alternative: a separate pre-funnel state machine. Rejected: two sources of truth for "where is the user" would need their own persistence and reset rules.
+`welcome`, `dog` and `taste` join `ONBOARDING_STEPS` before `setup`, and `paywall` moves after `first-stage`, giving `welcome, dog, taste, setup, diagnostic, plan, first-stage, paywall, done`. The Funnel is every step before `done`, so `inFunnel` is true up to and including `paywall`, and `paywall` routes as its own page like `first-stage`. `inFunnel` and `pageForStep` are updated so the routing stays one pure function (the app-shell rule). Alternative: a separate pre-funnel state machine. Rejected: two sources of truth for "where is the user" would need their own persistence and reset rules.
 
 **2. The taste is a scenario config, tuned to fail.**
 A Stage config with a `dog` Distractor (high Trigger level, large `triggerRadius`, short `activateAfterMeters`, small `startOffset`), a default snapshot with no Cue skill, and a short time limit. The shell ends it on the first Reactive tier. Alternative: a `forceReaction` flag in the simulation. Rejected: it adds a demo mode to a pure sim for one screen, and the user decided that "hard enough that nobody succeeds" is enough. A user who holds on anyway reaches the same Payoff Screen (spec scenario "Succeeding anyway"). See ADR 0010. The Taste Stage shows no Hints, but one fixed control line (for example "Walk the Dog away from the trigger") is shown over it. It is not a Hint, is never stored, and goes away at the first input.
@@ -49,7 +50,15 @@ A record whose step is `setup` or later keeps it. Only a record in the first-run
 It stays a stub (both buttons continue, nothing is gated). The position is a deliberate placeholder so the screen is not lost. A contextual trigger, such as the third Stage or a 3-day Streak, replaces it in a follow-up. The registration prompt is a transient flow, not a step, so the persisted step is the source of truth: finishing the first Stage sets the step to `paywall` before the registration prompt opens. When registration or auth ends, routing follows the step, and auth reached from the Funnel returns to `paywall`, not `map`. Registration comes before the paywall.
 
 **9. New screens reuse the Paper Meadow components.**
-Welcome, name and payoff are built from the existing `Panel`, `GameButton`, `TextField`, `Choice`, `MeadowBackdrop` and `Migas` pieces. The text comes from the i18n catalog (`catalog-usage` test applies).
+The welcome is the splash screen itself in a ready state (one screen, no second one after it); name and payoff are built from the existing `Panel`, `GameButton`, `TextField`, `Choice`, `MeadowBackdrop` and `Migas` pieces. The text comes from the i18n catalog (`catalog-usage` test applies).
+
+**10. The first Stage is structured as an introductory "Node 0" loop.**
+The first Stage replaces the uncontextualized raw walk with the full LeadMate learning loop: Theory Primer cards ➔ Checkpoint quiz ➔ Guided walk simulation ➔ Debrief.
+- **Primer**: 4 cards. Card 1 (real-world): Slack leash ("the smile") and why tension drives arousal. Card 2 (virtual-dog): Walking & steering controls to keep slack. Card 3 (virtual-dog): Leash tension indicators (Green/Yellow/Red) and the Poste anchor (stopping when tension rises). Card 4 (virtual-dog): Marking check-ins and rewarding calm behavior.
+- **Checkpoint**: A quick quiz question confirming the anchor rule ("What do you do when tension spikes? Stop and anchor").
+- **Simulation**: The guided first walk with in-game hints reinforcing the concepts.
+- **Debrief**: Displays handling score and metrics, giving a rewarding conclusion before proceeding to registration and the paywall.
+- **Implementation**: Reuses `PrimerScreen`, `CheckpointScreen`, and `DebriefScreen` by running an intro `NodeRun` inside the existing `first-stage` onboarding step, ensuring persisted step backward-compatibility without altering the step enum.
 
 ## Risks / Trade-offs
 

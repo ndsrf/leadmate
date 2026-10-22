@@ -25,7 +25,7 @@ export interface RouteForParams<F = unknown> {
  *
  * Precedence:
  * 1. Splash until ready.
- * 2. Funnel steps ('welcome', 'dog', 'payoff', 'setup', 'diagnostic', 'plan'), the 'taste' and
+ * 2. Funnel steps ('welcome', 'dog', 'setup', 'diagnostic', 'plan'), the 'taste' and
  *    'first-stage' Stages and the 'paywall' win over any leftover flow/settings. The one exception is
  *    an account flow (login from 'welcome', registration at 'paywall'), which shows over its step.
  * 4. Active flow (node, daily, warmup, auth, register) over map/settings.
@@ -68,7 +68,7 @@ export interface SplashReadyParams {
 
 /**
  * Pure decision for leaving the splash screen:
- * requires record loaded, font loaded or timed out (2 s cap), and minimum splash duration elapsed (~1.2 s).
+ * requires record loaded, font loaded or timed out (2 s cap), and minimum splash duration elapsed (~2.2 s).
  */
 export function isReadyToLeaveSplash({
   recordLoaded,
