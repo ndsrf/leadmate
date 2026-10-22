@@ -8,7 +8,7 @@ export function Migas({ width = 180, label }: { width?: number; label?: string }
   const ink = color.ink;
   const leg = (x: number, rot: number, fill: string) => <Rect x={x} y={88} width={14} height={38} rx={7} fill={fill} stroke={ink} strokeWidth={3} transform={`rotate(${rot} ${x + 7} 92)`} />;
   return (
-    <Svg width={width} height={(width * 150) / 210} viewBox="0 0 210 150" accessibilityLabel={label} accessible={label !== undefined}>
+    <Svg width={width} height={(width * 150) / 210} viewBox="0 0 210 150" {...(label !== undefined ? { role: "img" as const, "aria-label": label } : { "aria-hidden": true })}>
       <Ellipse cx={100} cy={132} rx={72} ry={6} fill={ink} opacity={0.14} />
       <Path d="M38 70C18 66 10 44 24 32" fill="none" stroke={ink} strokeWidth={17} strokeLinecap="round" />
       <Path d="M38 70C18 66 10 44 24 32" fill="none" stroke={coatDark} strokeWidth={11} strokeLinecap="round" />
@@ -37,7 +37,7 @@ export function Migas({ width = 180, label }: { width?: number; label?: string }
 /** The Lead: a leash line with a coral clip on one end and a loop on the other. It underlines titles and divides sections. */
 export function LeadLine({ width = 220, className = '' }: { width?: number; className?: string }) {
   return (
-    <Svg width={width} height={(width * 30) / 310} viewBox="0 0 310 30" className={className} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+    <Svg width={width} height={(width * 30) / 310} viewBox="0 0 310 30" className={className} aria-hidden>
       <Path d="M10 10H120C140 10 146 24 155 24S170 10 190 10H300" fill="none" stroke={color.ink} strokeWidth={4} strokeLinecap="round" />
       <Circle cx={10} cy={10} r={6} fill={color.coral} stroke={color.ink} strokeWidth={3} />
       <Circle cx={301} cy={10} r={7} fill="none" stroke={color.ink} strokeWidth={4} />
@@ -50,7 +50,7 @@ export function MeadowBackdrop({ width, height }: { width: number; height: numbe
   const ink = color.ink;
   const w2 = theme.world.w2;
   return (
-    <Svg width={width} height={height} viewBox="0 0 390 844" preserveAspectRatio="xMidYMax slice" style={{ position: 'absolute', left: 0, top: 0 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+    <Svg width={width} height={height} viewBox="0 0 390 844" preserveAspectRatio="xMidYMax slice" style={{ position: 'absolute', left: 0, top: 0 }} aria-hidden>
       <Rect width={390} height={844} fill={color.sky} />
       <Circle cx={296} cy={300} r={40} fill={color.accent} stroke={ink} strokeWidth={4} />
       <G fill={color.surface} stroke={ink} strokeWidth={3.5}>

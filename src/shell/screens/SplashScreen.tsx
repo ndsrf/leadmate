@@ -24,7 +24,7 @@ function LoaderLead({ animate }: { animate: boolean }) {
   }, [animate, offset]);
   const props = useAnimatedProps(() => ({ strokeDashoffset: offset.value }));
   return (
-    <Svg width={72} height={24} viewBox="0 0 160 50" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+    <Svg width={72} height={24} viewBox="0 0 160 50" aria-hidden>
       <Path d={LOADER_PATH} fill="none" stroke={color.edge} strokeWidth={7} strokeLinecap="round" />
       <AnimatedPath d={LOADER_PATH} fill="none" stroke={color.ink} strokeWidth={7} strokeLinecap="round" strokeDasharray="200" animatedProps={props} />
     </Svg>
