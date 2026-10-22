@@ -55,12 +55,12 @@ export interface NodeVisual {
 export function nodeVisual(state: 'locked' | 'open' | 'next' | 'done'): NodeVisual {
   switch (state) {
     case 'done':
-      return { fill: color.brand, edge: color.brandEdge, ink: color.onBrand, glyph: 'check', ring: false };
+      return { fill: color.brand, edge: color.ink, ink: color.onBrand, glyph: 'check', ring: false };
     case 'next':
-      return { fill: color.accent, edge: color.accentEdge, ink: color.onAccent, glyph: 'number', ring: true };
+      return { fill: color.accent, edge: color.ink, ink: color.onAccent, glyph: 'number', ring: true };
     case 'open':
-      return { fill: color.info, edge: color.infoEdge, ink: color.onInfo, glyph: 'number', ring: false };
+      return { fill: color.info, edge: color.ink, ink: color.onInfo, glyph: 'number', ring: false };
     default:
-      return { fill: color.locked, edge: color.quietEdge, ink: color.onLocked, glyph: 'lock', ring: false };
+      return { fill: color.locked, edge: color.lockedText, ink: color.lockedText, glyph: 'lock', ring: false };
   }
 }

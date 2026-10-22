@@ -32,7 +32,7 @@ describe('Dog record', () => {
 
   it('is versioned and repairs unreadable fields', () => {
     const fixed = migrateRecord({ attributes: { followChance: 7, reactivityThreshold: 'x' }, triggerProfile: { child: 9, dog: 1 }, equipment: 'rope' });
-    expect(fixed.version).toBe(4);
+    expect(fixed.version).toBe(5);
     expect(fixed.attributes.followChance).toBe(1);
     expect(fixed.attributes.reactivityThreshold).toBe(DEFAULT_ATTRIBUTES.reactivityThreshold);
     expect(fixed.triggerProfile.child).toBe(2);
@@ -91,7 +91,7 @@ describe('Dog record: Walk Diary, Streak and Daily best', () => {
   it('migrates a version 1 record: keeps what it had and adds the new fields', () => {
     const v1 = { version: 1, attributes: { followChance: 0.9 }, completedNodes: ['poste-practice'], equipment: 'harness', posture: 1 };
     const r = migrateRecord(v1);
-    expect(r.version).toBe(4);
+    expect(r.version).toBe(5);
     expect(r.attributes.followChance).toBeCloseTo(0.9);
     expect(r.completedNodes).toEqual(['poste-practice']);
     expect(r.equipment).toBe('harness');
@@ -162,9 +162,9 @@ describe('Dog record: Walk Diary, Streak and Daily best', () => {
 });
 
 describe('Dog record: version 3', () => {
-  it('starts a new Dog at the first setup step with no weights', () => {
+  it('starts a new Dog at the welcome step with no weights', () => {
     const r = newDogRecord();
-    expect(r.onboarding).toEqual({ step: 'setup', firstStageCompletedAt: null, trialStartedAt: null, diagnosticLatency: null, plan: [] });
+    expect(r.onboarding).toEqual({ step: 'welcome', firstStageCompletedAt: null, trialStartedAt: null, diagnosticLatency: null, plan: [] });
     expect(r.weights).toEqual({ dogKg: null, handlerKg: null });
     expect(r.seenHints).toEqual([]);
   });
@@ -172,7 +172,7 @@ describe('Dog record: version 3', () => {
   it('migrates a version 2 record as an existing user who has finished onboarding', () => {
     const v2 = { version: 2, attributes: { followChance: 0.9 }, completedNodes: ['poste-practice'], streak: { current: 2, best: 3, lastActiveDate: '2026-05-01' } };
     const r = migrateRecord(v2);
-    expect(r.version).toBe(4);
+    expect(r.version).toBe(5);
     expect(r.onboarding.step).toBe('done');
     expect(r.weights).toEqual({ dogKg: null, handlerKg: null });
     expect(r.seenHints).toEqual([]);
@@ -182,10 +182,10 @@ describe('Dog record: version 3', () => {
 
   it('loads nothing or unreadable input as a new Dog', async () => {
     const store = memoryStore();
-    expect((await loadDogRecord(store)).onboarding.step).toBe('setup');
+    expect((await loadDogRecord(store)).onboarding.step).toBe('welcome');
     store.data.set(RECORD_KEY, '{not json');
-    expect((await loadDogRecord(store)).onboarding.step).toBe('setup');
-    expect(migrateRecord(42).onboarding.step).toBe('setup');
+    expect((await loadDogRecord(store)).onboarding.step).toBe('welcome');
+    expect(migrateRecord(42).onboarding.step).toBe('welcome');
   });
 
   it('repairs unreadable onboarding, weight and hint fields', () => {
@@ -224,7 +224,7 @@ describe('stars on the record', () => {
   it('migrates an old record to an empty stars map', () => {
     const old = { version: 3, completedNodes: ['poste-practice'] };
     const r = migrateRecord(old);
-    expect(r.version).toBe(4);
+    expect(r.version).toBe(5);
     expect(r.stars).toEqual({});
     expect(r.completedNodes).toEqual(['poste-practice']);
   });
@@ -261,5 +261,41 @@ describe('stars on the record', () => {
     const after = onDebrief(before, advance(run, { type: 'finish', result: { kind: 'minigame', metrics: { timing: 1 } } }), new Date());
     expect(after.attributes).toEqual(before.attributes);
     expect(after.triggerProfile).toEqual(before.triggerProfile);
+  });
+});
+
+describe('Dog record: version 5 (names and the new funnel)', () => {
+  const base = { version: 4, completedNodes: ['poste-practice'] };
+
+  it('starts a new Dog with an empty name', () => {
+    expect(newDogRecord().name).toBe('');
+  });
+
+  it('loads an old record with an empty name', () => {
+    const r = migrateRecord({ ...base, onboarding: { step: 'done' } });
+    expect(r.name).toBe('');
+    expect(r.version).toBe(5);
+  });
+
+  it('keeps a stored name and repairs an unreadable one', () => {
+    expect(migrateRecord({ name: ' Luna ' }).name).toBe('Luna');
+    expect(migrateRecord({ name: 'x'.repeat(30) }).name).toBe('');
+    expect(migrateRecord({ name: 5 }).name).toBe('');
+  });
+
+  it.each(['setup', 'diagnostic', 'plan', 'first-stage'] as const)('keeps an old record at %s on that step', (step) => {
+    expect(migrateRecord({ ...base, onboarding: { step } }).onboarding.step).toBe(step);
+  });
+
+  it('keeps a finished record done', () => {
+    expect(migrateRecord({ ...base, onboarding: { step: 'done' } }).onboarding.step).toBe('done');
+  });
+
+  it('sends a user who was at the old paywall (before the first Stage) to the first Stage', () => {
+    expect(migrateRecord({ ...base, onboarding: { step: 'paywall' } }).onboarding.step).toBe('first-stage');
+  });
+
+  it('keeps a version 5 record at the paywall', () => {
+    expect(migrateRecord({ version: 5, onboarding: { step: 'paywall' } }).onboarding.step).toBe('paywall');
   });
 });

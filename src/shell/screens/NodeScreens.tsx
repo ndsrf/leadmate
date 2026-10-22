@@ -22,14 +22,15 @@ export function PrimerScreen({ t, run, onNext, onExit }: { t: Translate; run: No
   const [guideOpen, setGuideOpen] = useState(false);
   return (
     <Screen>
-      <Text className="mb-1 text-sm text-inkDim">{t(run.node.title)}</Text>
-      <View className="my-4 min-h-40 justify-center rounded-game-lg bg-surface p-6">
+      <ProgressBar value={run.card + 1} max={total} className="mb-3" />
+      <Badge label={t(run.node.title)} tone="info" />
+      <Panel className="my-4 min-h-40 justify-center">
         <Badge label={t(`primer.kind.${card.kind}`)} tone={card.kind === 'real-world' ? 'info' : 'quiet'} />
-        <Text className="mt-3 text-xl text-ink">{t(card.text)}</Text>
+        <Text className="mt-3 text-bodyL text-ink">{t(card.text)}</Text>
         {card.media && <MediaPlaceholder key={`${run.node.id}:${run.card}`} t={t} media={card.media} />}
         {card.tutorialUrl && <Button label={t('primer.openGuide')} tone="quiet" onPress={() => setGuideOpen(true)} />}
-      </View>
-      <Text className="text-center text-sm text-inkDim">{`${run.card + 1} / ${total}`}</Text>
+      </Panel>
+      <Text className="text-center font-display text-label text-inkMuted">{`${run.card + 1} / ${total}`}</Text>
       <Button label={t('node.next')} onPress={onNext} />
       <Button label={t('node.back')} tone="quiet" onPress={onExit} />
       {guideOpen && card.tutorialUrl && <InAppBrowserModal t={t} url={card.tutorialUrl} onClose={() => setGuideOpen(false)} />}
@@ -70,10 +71,12 @@ export function CheckpointScreen({
 
   return (
     <Screen>
-      <Text className="mb-1 text-sm text-inkDim">{t('node.checkpoint.title')}</Text>
+      <View className="flex-row items-center justify-between">
+        <Badge label={t('node.checkpoint.title')} tone="warn" />
+        {left !== null && <Text className="font-display text-label text-ink">{`${Math.ceil(left)} ${t('node.checkpoint.seconds')}`}</Text>}
+      </View>
       {left !== null && limit !== null && <ProgressBar className="my-2" tone="accent" value={Math.max(0, left)} max={limit} />}
-      {left !== null && <Text className="text-right text-xs text-inkDim">{`${Math.ceil(left)} ${t('node.checkpoint.seconds')}`}</Text>}
-      <Text className="my-4 text-xl font-semibold text-ink">{t(run.node.checkpoint.question)}</Text>
+      <Text className="my-4 font-display text-displayM text-ink">{t(run.node.checkpoint.question)}</Text>
       {run.node.checkpoint.options.map((option, i) => (
         <OptionCard key={option.text} label={t(option.text)} onPress={() => onAnswer(i)} />
       ))}
@@ -103,7 +106,7 @@ function StageRows({ t, p }: { t: Translate; p: SimulationDebriefPayload }) {
       <Row label={t('results.marks')} value={`${p.marksUsed} / ${p.markBudget}`} />
       <Row label={t('results.score')} value={`${p.handlingScore} ${t('results.scoreOutOf')}`} />
       <Row label={t('results.peakArousal')} value={`${p.peakArousalScore} / 100`} />
-      <Text className="mt-1 text-xs text-inkDim">{t('results.peakArousalHint')}</Text>
+      <Text className="mt-1 text-caption text-inkMuted">{t('results.peakArousalHint')}</Text>
       {p.sintoniaTimeSeconds > 0 && <Row label={t('results.sintonia')} value={`${p.sintoniaTimeSeconds} ${t('results.seconds')}`} />}
       {p.goSniffs > 0 && <Row label={t('results.goSniffs')} value={String(p.goSniffs)} />}
       <Row label={t('results.seed')} value={String(p.seed)} />
@@ -116,16 +119,16 @@ const DIARY_KEYS = { completed: 'diary.completed', struggled: 'diary.struggled',
 /** The one-tap check-in on the real-world exercise: three answers, each a single press. */
 export function WalkDiaryBar({ t, chosen, onChoose }: { t: Translate; chosen: DiaryOutcome | null; onChoose: (outcome: DiaryOutcome) => void }) {
   return (
-    <View className="mt-4 rounded-game-lg bg-surface p-4">
-      <Text className="text-sm font-semibold text-inkMuted">{t('diary.title')}</Text>
-      <Text className="mt-1 text-base text-ink">{t('diary.question')}</Text>
+    <Panel className="mt-4">
+      <Text className="font-display text-label text-inkMuted">{t('diary.title')}</Text>
+      <Text className="mt-1 text-body text-ink">{t('diary.question')}</Text>
       <View className="mt-1 flex-row flex-wrap">
         {DIARY_OUTCOMES.map((outcome) => (
           <Choice key={outcome} label={t(DIARY_KEYS[outcome])} selected={chosen === outcome} onPress={() => onChoose(outcome)} />
         ))}
       </View>
-      {chosen && <Text className="mt-2 text-xs text-brand">{t('diary.saved')}</Text>}
-    </View>
+      {chosen && <Text className="mt-2 text-caption text-brandText">{t('diary.saved')}</Text>}
+    </Panel>
   );
 }
 
@@ -196,24 +199,24 @@ function DebriefBody({
   return (
     <Screen>
       <Pressable onPress={reveal.skip} disabled={!revealing} accessibilityLabel={revealing ? t('reveal.skip') : undefined}>
-        <Text className="mb-3 font-display text-xl text-ink">{t('results.title')}</Text>
-        {run.checkpoint && <Text className="mb-2 text-sm text-inkMuted">{t(`results.checkpoint.${run.checkpoint}`)}</Text>}
+        <Text className="mb-3 font-display text-displayM text-ink">{t('results.title')}</Text>
+        {run.checkpoint && <Text className="mb-2 text-body text-inkMuted">{t(`results.checkpoint.${run.checkpoint}`)}</Text>}
         <Panel className="mb-3 items-center">
           {score !== undefined ? (
             <>
-              <Text className="font-display text-5xl text-ink">{String(scoreShown ?? 0)}</Text>
-              <Text className="text-sm text-inkMuted">{t('results.scoreOutOf')}</Text>
+              <Text className="font-display text-numeric text-ink">{String(scoreShown ?? 0)}</Text>
+              <Text className="text-body text-inkMuted">{t('results.scoreOutOf')}</Text>
             </>
           ) : (
-            <Text className="mb-2 text-center text-sm text-inkMuted">{t('reveal.noScore')}</Text>
+            <Text className="mb-2 text-center text-body text-inkMuted">{t('reveal.noScore')}</Text>
           )}
           <View className="mt-2">
             <StarRow stars={starsShown} size={36} label={`${earned} ${t('map.starsOf3')}`} />
           </View>
-          {revealing && <Text className="mt-2 text-xs text-inkDim">{t('reveal.skip')}</Text>}
+          {revealing && <Text className="mt-2 text-caption text-inkMuted">{t('reveal.skip')}</Text>}
           {!revealing && best > earned && (
             <View className="mt-2 flex-row items-center" style={{ gap: 6 }}>
-              <Text className="text-sm text-inkMuted">{t('reveal.best')}</Text>
+              <Text className="text-body text-inkMuted">{t('reveal.best')}</Text>
               <StarRow stars={best} size={18} label={`${best} ${t('map.starsOf3')}`} />
             </View>
           )}
@@ -224,9 +227,11 @@ function DebriefBody({
         <>
           {result.kind === 'stage' ? (
             <>
-              <StageRows t={t} p={result.payload} />
-              {result.payload.harshStops > 0 && <Text className="mt-3 text-sm text-accent">{t('results.harshStopNote')}</Text>}
-              <Text className="mt-3 text-xs text-inkDim">{t('results.equipmentNote')}</Text>
+              <Panel className="mb-1">
+                <StageRows t={t} p={result.payload} />
+              </Panel>
+              {result.payload.harshStops > 0 && <Text className="mt-3 text-body text-ink">{t('results.harshStopNote')}</Text>}
+              <Text className="mt-3 text-caption text-inkMuted">{t('results.equipmentNote')}</Text>
             </>
           ) : (
             <>
@@ -235,19 +240,19 @@ function DebriefBody({
               {result.metrics.tension !== undefined && <Row label={t('results.minigame.tension')} value={`${Math.round(result.metrics.tension * 100)}%`} />}
             </>
           )}
-          <View className="mt-4 rounded-game-lg bg-surface p-4">
-            <Text className="text-sm font-semibold text-inkMuted">{t('results.exercise')}</Text>
-            <Text className="mt-1 text-base text-ink">{t(exercise.key)}</Text>
-          </View>
+          <Panel tone="warn" className="mt-4">
+            <Text className="font-display text-label text-ink">{t('results.exercise')}</Text>
+            <Text className="mt-1 text-bodyL text-ink">{t(exercise.key)}</Text>
+          </Panel>
           <WalkDiaryBar t={t} chosen={diary} onChoose={onDiary} />
           {showPosteLink && (
-            <View className="mt-4 rounded-game-lg bg-warn p-4">
-              <Text className="text-sm text-onWarn">{t('results.posteHint')}</Text>
+            <Panel tone="info" className="mt-4">
+              <Text className="text-body text-ink">{t('results.posteHint')}</Text>
               <Button label={t('results.posteLink')} onPress={onPosteLink} />
-            </View>
+            </Panel>
           )}
           <Button label={t('results.playAgain')} onPress={onPlayAgain} />
-          <Button label={t('results.continue')} tone="quiet" onPress={onDone} />
+          <Button label={t('results.continue')} tone="secondary" onPress={onDone} />
         </>
       )}
     </Screen>

@@ -3,6 +3,7 @@ import { Modal, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import type { Translate } from '../../i18n';
 import { Button } from '../Overlays';
+import { Panel } from './components';
 import { browserNext, isWebUrl, type BrowserState } from './media';
 import { color } from './theme';
 
@@ -18,12 +19,12 @@ export function InAppBrowserModal({ t, url, onClose }: { t: Translate; url: stri
     <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View className="flex-1 bg-bg p-4">
         <View className="mb-3 flex-row items-center justify-between">
-          <Text className="font-display text-lg text-ink">{t('browser.title')}</Text>
-          <Button label={t('browser.close')} tone="quiet" onPress={onClose} />
+          <Text className="font-display text-title text-ink">{t('browser.title')}</Text>
+          <Button label={t('browser.close')} tone="secondary" onPress={onClose} />
         </View>
         {state === 'offline' || !openable ? (
-          <View className="rounded-game-lg bg-warn p-4">
-            <Text className="text-base text-onWarn">{t('browser.offline')}</Text>
+          <Panel tone="warn">
+            <Text className="text-bodyL text-ink">{t('browser.offline')}</Text>
             {openable && (
               <Button
                 label={t('browser.retry')}
@@ -33,7 +34,7 @@ export function InAppBrowserModal({ t, url, onClose }: { t: Translate; url: stri
                 }}
               />
             )}
-          </View>
+          </Panel>
         ) : (
           <WebView
             key={attempt}

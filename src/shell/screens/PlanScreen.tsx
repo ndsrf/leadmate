@@ -1,6 +1,7 @@
 import { Text, View } from 'react-native';
 import type { Translate } from '../../i18n';
 import { Button } from '../Overlays';
+import { Panel } from '../ui/components';
 import { findNode } from '../nodes/content';
 import { latencyBand } from '../onboarding/diagnostic';
 import { Screen } from './Screen';
@@ -13,22 +14,22 @@ export function PlanScreen({ t, latency, plan, onContinue }: { t: Translate; lat
   const band = latencyBand(latency);
   return (
     <Screen>
-      <Text className="mb-4 text-2xl font-bold text-ink">{t('plan.title')}</Text>
-      <View className="mb-5 rounded-game-lg bg-surface p-4">
-        <Text className="text-sm text-inkMuted">{t('plan.latency')}</Text>
-        <Text className="text-3xl font-bold text-ink">{`${latency.toFixed(2)} ${t('plan.seconds')}`}</Text>
-        <Text className="mt-1 text-base font-semibold text-brand">{t(BAND_KEYS[band])}</Text>
-        <Text className="mt-2 text-sm text-inkMuted">{t(NOTE_KEYS[band])}</Text>
-      </View>
-      <View className="mb-5 rounded-game-lg bg-surface p-4">
-        <Text className="mb-2 text-base font-bold text-ink">{t('plan.walkPlan')}</Text>
+      <Text className="mb-4 font-display text-displayM text-ink">{t('plan.title')}</Text>
+      <Panel className="mb-5">
+        <Text className="text-body text-inkMuted">{t('plan.latency')}</Text>
+        <Text className="font-display text-displayL text-ink">{`${latency.toFixed(2)} ${t('plan.seconds')}`}</Text>
+        <Text className="mt-1 font-display text-bodyL text-brandText">{t(BAND_KEYS[band])}</Text>
+        <Text className="mt-2 text-body text-inkMuted">{t(NOTE_KEYS[band])}</Text>
+      </Panel>
+      <Panel className="mb-5">
+        <Text className="mb-2 font-display text-title text-ink">{t('plan.walkPlan')}</Text>
         {plan.map((id, i) => {
           const node = findNode(id);
           return node ? (
-            <Text key={id} className="py-0.5 text-sm text-ink">{`${i + 1}. ${t(node.title)}`}</Text>
+            <Text key={id} className="py-0.5 text-body text-ink">{`${i + 1}. ${t(node.title)}`}</Text>
           ) : null;
         })}
-      </View>
+      </Panel>
       <Button label={t('plan.continue')} onPress={onContinue} />
     </Screen>
   );

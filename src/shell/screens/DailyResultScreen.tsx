@@ -32,27 +32,29 @@ export function DailyResultScreen({
   const showRows = phase === 'rows' || phase === 'done';
   return (
     <Screen>
-      <Text className="mb-1 font-display text-xl text-ink">{t('daily.result.title')}</Text>
-      <Text className="mb-3 text-sm text-inkDim">{completion.date}</Text>
+      <Text className="mb-1 font-display text-displayM text-ink">{t('daily.result.title')}</Text>
+      <Text className="mb-3 text-body text-inkMuted">{completion.date}</Text>
       <Pressable onPress={reveal.skip} disabled={phase === 'done'} accessibilityLabel={phase === 'done' ? undefined : t('reveal.skip')}>
         <Panel className="mb-3 items-center">
-          <Text className="text-xs uppercase text-inkDim">{t('daily.result.score')}</Text>
-          <Text className="font-display text-5xl text-ink">{String(scoreShown ?? 0)}</Text>
-          <Text className="text-sm text-inkDim">{t('results.scoreOutOf')}</Text>
-          {phase !== 'done' && <Text className="mt-2 text-xs text-inkDim">{t('reveal.skip')}</Text>}
+          <Text className="text-caption uppercase text-inkMuted">{t('daily.result.score')}</Text>
+          <Text className="font-display text-numeric text-ink">{String(scoreShown ?? 0)}</Text>
+          <Text className="text-body text-inkMuted">{t('results.scoreOutOf')}</Text>
+          {phase !== 'done' && <Text className="mt-2 text-caption text-inkMuted">{t('reveal.skip')}</Text>}
         </Panel>
       </Pressable>
       {phase === 'done' && <CelebrationList t={t} celebrations={celebrations} />}
       {showRows && (
         <View>
+          <Panel>
           <Row label={t('daily.result.best')} value={String(completion.best)} />
           <Row label={t('daily.result.composure')} value={share(((100 - payload.peakArousalScore) / 100) * SCORE_WEIGHTS.composure, SCORE_WEIGHTS.composure)} />
           <Row label={t('daily.result.slack')} value={`${payload.slackPercentage}%`} />
           <Row label={t('daily.result.marker')} value={payload.markerAccuracyMs === undefined ? t('results.markerAccuracyNone') : `${payload.markerAccuracyMs} ${t('results.ms')}`} />
           <Row label={t('daily.result.sintonia')} value={`${payload.sintoniaTimeSeconds} ${t('results.seconds')}`} />
-          <Text className="mt-3 text-xs text-inkDim">{t('daily.result.noProgress')}</Text>
+          </Panel>
+          <Text className="mt-3 text-caption text-inkMuted">{t('daily.result.noProgress')}</Text>
           <Button label={t('daily.playAgain')} onPress={onReplay} />
-          <Button label={t('daily.result.done')} tone="quiet" onPress={onDone} />
+          <Button label={t('daily.result.done')} tone="secondary" onPress={onDone} />
         </View>
       )}
     </Screen>

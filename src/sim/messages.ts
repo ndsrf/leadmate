@@ -32,11 +32,12 @@ export type BundleMessage =
   /**
    * A moment the shell may explain to a new user, sent at most once per Stage and signal: the leash first gets
    * Taut, the Dog first fixates (a Reward Window follows its calming), the leash first reaches its limit.
+   * `first-input` is not a hint: the Handler first moves or presses a button.
    */
   | { type: 'stage-signal'; signal: StageSignal; time: number }
   | { type: 'error'; message: string };
 
-export const STAGE_SIGNALS = ['first-taut', 'first-fixation', 'leash-limit'] as const;
+export const STAGE_SIGNALS = ['first-taut', 'first-fixation', 'leash-limit', 'first-input'] as const;
 export type StageSignal = (typeof STAGE_SIGNALS)[number];
 
 export function encode(message: ShellMessage | BundleMessage): string {

@@ -1,14 +1,16 @@
 import './global.css';
+import * as ExpoSplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, View } from 'react-native';
 import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
+import { Fredoka_600SemiBold } from '@expo-google-fonts/fredoka';
 import { createTranslator, es } from './src/i18n';
 import { installFeedback } from './src/shell/ui/feedbackBackends';
 import { useUiSettings } from './src/shell/ui/useUiSettings';
 import { defaultScenario, type ScenarioConfig } from './src/sim/config';
+import type { LearningSnapshot } from './src/sim/learning';
 import type { SimulationDebriefPayload } from './src/sim/payload';
 import { BUNDLE_MESSAGE_TYPES, decode, type BundleMessage, type ShellMessage } from './src/sim/messages';
 import { newSeed } from './src/sim/rng';
@@ -30,32 +32,38 @@ import { PosteMinigameView } from './src/shell/screens/PosteMinigameView';
 import { DiagnosticView } from './src/shell/screens/DiagnosticView';
 import { PaywallScreen } from './src/shell/screens/PaywallScreen';
 import { PlanScreen } from './src/shell/screens/PlanScreen';
+import { DogLookScreen, PayoffScreen, WelcomeScreen } from './src/shell/screens/IntroScreens';
 import { SetupScreen } from './src/shell/screens/SetupScreen';
 import { SettingsScreen } from './src/shell/screens/SettingsScreen';
+import { SplashScreen } from './src/shell/screens/SplashScreen';
 import { isRusty, sessionCapacity, warmupScenario, type WarmupOutcome } from './src/shell/rusty';
 import { SimView } from './src/shell/SimView';
 import type { SimViewHandle } from './src/shell/simViewTypes';
 import { dogStore } from './src/shell/storage';
 import { completeFirstStage } from './src/shell/onboarding/firstStage';
-import { nextStep, pageForStep } from './src/shell/onboarding/flow';
+import { nextStep } from './src/shell/onboarding/flow';
 import { recordDiagnostic } from './src/shell/onboarding/diagnostic';
 import { HINT_TEXT, hintFor, markHintSeen, type HintId } from './src/shell/onboarding/hints';
+import { completeTaste, leavePayoff, leaveWelcome, saveNameAndLook } from './src/shell/onboarding/intro';
 import { passPaywall } from './src/shell/onboarding/paywall';
+import { TASTE_LINE_KEY, TASTE_SNAPSHOT, tasteScenario } from './src/shell/onboarding/taste';
 import { useDog } from './src/shell/useDog';
 import { migrateRecord } from './src/shell/dogRecord';
 import { resolveScenario } from './src/shell/sync/configs';
 import { useAccount } from './src/shell/sync/useAccount';
 import { AccountBanner, AuthScreen, ChooseDogScreen, RegisterPrompt } from './src/shell/screens/AccountScreens';
 import { resolveCue, type Language } from './src/shell/voice';
+import { isReadyToLeaveSplash, routeFor } from './src/shell/navigation';
+import { resetProgress } from './src/shell/reset';
+
+// Hold native splash on cold start until ready
+ExpoSplashScreen.preventAutoHideAsync().catch(() => {});
 
 type DailyRun = { payload: SimulationDebriefPayload; completion: DailyCompletion; celebrations: Celebration[] };
-type Page =
-  | { name: 'home' }
-  | { name: 'settings' }
+type Flow =
   | { name: 'warmup' }
-  | { name: 'first-stage' }
   | { name: 'register' }
-  | { name: 'auth'; mode: 'signup' | 'login' }
+  | { name: 'auth'; mode: 'signup' | 'login'; returnTo?: 'settings' | 'map' }
   | { name: 'daily'; attempt: number; result: DailyRun | null }
   | { name: 'node'; run: NodeRun; attempt: number };
 
@@ -64,12 +72,31 @@ const CATALOG = es;
 const LANGUAGE: Language = 'es';
 const LOAD_TIMEOUT_MS = 20000;
 const HINT_MS = 7000;
+const MIN_SPLASH_MS = 1200;
+const FONT_TIMEOUT_MS = 2000;
 
 installFeedback();
 
 export default function App() {
-  // the display font loads in the background: text shows in the system font until it is ready
-  useFonts({ LilitaOne: LilitaOne_400Regular });
+  const [fontsLoaded] = useFonts({ Fredoka_600SemiBold });
+  const [fontTimedOut, setFontTimedOut] = useState(false);
+  const [minSplashElapsed, setMinSplashElapsed] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setFontTimedOut(true), FONT_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setMinSplashElapsed(true), MIN_SPLASH_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Hide the native splash once the in-app splash has been laid out
+  const hideNativeSplash = useCallback(() => {
+    ExpoSplashScreen.hideAsync().catch(() => {});
+  }, []);
+
   const ui = useUiSettings(dogStore);
   const sim = useRef<SimViewHandle>(null);
   const { record, update, replace } = useDog(dogStore);
@@ -79,7 +106,8 @@ export default function App() {
   const [reminder, setReminder] = useState(false);
   const [bundle, setBundle] = useState<'loading' | 'ready' | 'error'>('loading');
   const [paused, setPaused] = useState(false);
-  const [view, setView] = useState<Page>({ name: 'home' });
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [flow, setFlow] = useState<Flow | null>(null);
   const [hint, setHint] = useState<HintId | null>(null);
   const [warmup, setWarmup] = useState<WarmupOutcome>('none');
   // celebrations are diffed once when a result opens and then only displayed, so each shows once
@@ -87,13 +115,39 @@ export default function App() {
   const [attempt, setAttempt] = useState(0); // bumping it reloads the bundle
   const t = useMemo(() => createTranslator(CATALOG), []);
 
-  const viewRef = useRef(view);
-  viewRef.current = view;
+  const flowRef = useRef(flow);
+  flowRef.current = flow;
   const recordRef = useRef(record);
   recordRef.current = record;
   const vocalizer = useRef(createVocalizer(playDogSound));
   const pendingStart = useRef<ShellMessage | null>(null);
   const bundleReady = useRef(false);
+
+  // Ready to leave splash: record loaded, font loaded or timed out (2 s cap), and min splash time elapsed (~1.2 s)
+  const [splashReady, setSplashReady] = useState(false);
+  useEffect(() => {
+    if (splashReady) return;
+    if (
+      isReadyToLeaveSplash({
+        recordLoaded: record !== null,
+        fontLoaded: Boolean(fontsLoaded),
+        fontTimedOut,
+        minElapsed: minSplashElapsed,
+      })
+    ) {
+      setSplashReady(true);
+    }
+  }, [splashReady, record, fontsLoaded, fontTimedOut, minSplashElapsed]);
+
+  const route = routeFor({
+    ready: splashReady,
+    onboardingStep: record?.onboarding.step,
+    flow,
+    accountFlow: flow?.name === 'auth' || flow?.name === 'register',
+    settingsOpen,
+  });
+  const routeRef = useRef(route);
+  routeRef.current = route;
 
   // the Dog is Rusty if the gap was there when the app opened; decided once, per session
   const rusty = useRef<boolean | null>(null);
@@ -113,14 +167,14 @@ export default function App() {
 
   /** Starts a Stage with the Dog's snapshot; waits for the bundle if it is still loading. */
   const startStage = useCallback(
-    (scenario: Partial<ScenarioConfig>, seed: number = newSeed()) => {
+    (scenario: Partial<ScenarioConfig>, seed: number = newSeed(), snapshot?: LearningSnapshot) => {
       const current = recordRef.current;
       if (!current) return;
       const message: ShellMessage = {
         type: 'start',
         seed,
         catalog: CATALOG,
-        scenario: { ...withPull(scenario, current.weights), learning: toSnapshot(current, capacityRef.current), look: lookOf(current) },
+        scenario: { ...withPull(scenario, current.weights), learning: snapshot ?? toSnapshot(current, capacityRef.current), look: lookOf(current) },
       };
       setPaused(false);
       setHint(null);
@@ -131,34 +185,48 @@ export default function App() {
   );
 
   const act = useCallback((action: NodeAction) => {
-    const v = viewRef.current;
-    if (v.name !== 'node') return;
-    setView({ ...v, run: advance(v.run, action) });
+    const f = flowRef.current;
+    if (f?.name !== 'node') return;
+    setFlow({ ...f, run: advance(f.run, action) });
   }, []);
 
   // entering a walking Interactive Simulation starts the Stage
-  const simulationKey = view.name === 'node' && view.run.step === 'simulation' && view.run.node.mode === 'stage' ? `${view.run.node.id}:${view.attempt}` : null;
+  const simulationKey =
+    route.name === 'flow' && route.flow.name === 'node' && route.flow.run.step === 'simulation' && route.flow.run.node.mode === 'stage'
+      ? `${route.flow.run.node.id}:${route.flow.attempt}`
+      : null;
   useEffect(() => {
-    if (simulationKey === null || viewRef.current.name !== 'node') return;
-    const node = viewRef.current.run.node;
+    if (simulationKey === null || flowRef.current?.name !== 'node') return;
+    const node = flowRef.current.run.node;
     startStage(resolveScenario(node.id, node.simulation.scenario ?? {}, accountRef.current.configs).scenario);
   }, [simulationKey, startStage]);
 
+  const warmupActive = route.name === 'flow' && route.flow.name === 'warmup';
   useEffect(() => {
-    if (view.name === 'warmup') startStage(warmupScenario(defaultScenario));
-  }, [view.name, startStage]);
+    if (warmupActive) startStage(warmupScenario(defaultScenario));
+  }, [warmupActive, startStage]);
+
+  // a flow left over while the funnel, a guided Stage or the paywall is showing is dead state: drop it
+  const onboardingStep = record?.onboarding.step;
+  useEffect(() => {
+    if (route.name === 'funnel' || route.name === 'taste' || route.name === 'first-stage' || route.name === 'paywall') setFlow(null);
+  }, [route.name, onboardingStep]);
+
+  // the taste Stage: an untrained Dog on a scenario built to fail; the control line stays until the first input
+  const [tasteLine, setTasteLine] = useState(false);
+  useEffect(() => {
+    if (route.name !== 'taste') return;
+    setTasteLine(true);
+    startStage(tasteScenario, newSeed(), TASTE_SNAPSHOT);
+  }, [route.name, startStage]);
 
   // the guided first Stage: it starts by itself once the paywall screen has been passed
-  const step = record?.onboarding.step;
   useEffect(() => {
-    if (step === 'first-stage' && viewRef.current.name === 'home') setView({ name: 'first-stage' });
-  }, [step, view.name]);
-  useEffect(() => {
-    if (view.name === 'first-stage') startStage({});
-  }, [view.name, startStage]);
+    if (route.name === 'first-stage') startStage({});
+  }, [route.name, startStage]);
 
   // the Daily Stage skips the Primer and the Checkpoint: it goes straight to the walk, same seed all day
-  const dailyKey = view.name === 'daily' && view.result === null ? view.attempt : null;
+  const dailyKey = route.name === 'flow' && route.flow.name === 'daily' && route.flow.result === null ? route.flow.attempt : null;
   useEffect(() => {
     if (dailyKey === null) return;
     const date = todayString();
@@ -166,18 +234,38 @@ export default function App() {
   }, [dailyKey, startStage]);
 
   // reaching the Debrief completes the Node; only a Stage changes the Dog
-  const debriefId = view.name === 'node' && view.run.step === 'debrief' ? `${view.run.node.id}:${view.attempt}` : null;
+  const debriefId =
+    route.name === 'flow' && route.flow.name === 'node' && route.flow.run.step === 'debrief'
+      ? `${route.flow.run.node.id}:${route.flow.attempt}`
+      : null;
   useEffect(() => {
-    const v = viewRef.current;
-    if (debriefId === null || v.name !== 'node') return;
+    const f = flowRef.current;
+    if (debriefId === null || f?.name !== 'node') return;
     let diff: Celebration[] = [];
     update((r) => {
-      const after = onDebrief(r, v.run, new Date());
-      diff = celebrationsFor(r, after, { kind: 'node', nodeId: v.run.node.id });
+      const after = onDebrief(r, f.run, new Date());
+      diff = celebrationsFor(r, after, { kind: 'node', nodeId: f.run.node.id });
       return after;
     });
     setCelebrations({ id: debriefId, list: diff });
   }, [debriefId, update]);
+
+  const goHome = useCallback(() => {
+    setPaused(false);
+    setFlow(null);
+    setSettingsOpen(false);
+  }, []);
+
+  const onAuthDone = useCallback(() => {
+    const f = flowRef.current;
+    const returnTo = f?.name === 'auth' ? f.returnTo : undefined;
+    setFlow(null);
+    if (returnTo === 'settings') {
+      setSettingsOpen(true);
+    } else {
+      setSettingsOpen(false);
+    }
+  }, []);
 
   const onMessage = useCallback(
     (raw: unknown) => {
@@ -192,42 +280,54 @@ export default function App() {
         }
       } else if (message.type === 'paused') setPaused(true);
       else if (message.type === 'stage-signal') {
-        const shown = recordRef.current ? hintFor(message.signal, recordRef.current.seenHints) : null;
+        if (message.signal === 'first-input') setTasteLine(false);
+        // the taste shows no Hints and records none
+        const shown = recordRef.current && routeRef.current.name !== 'taste' ? hintFor(message.signal, recordRef.current.seenHints) : null;
         if (shown) {
           setHint(shown);
           update((r) => markHintSeen(r, shown));
         }
+      } else if (message.type === 'reaction-tier-change') {
+        vocalizer.current.onTier(message.tier);
+        // the taste ends the moment the Dog goes Reactive
+        if (message.tier === 'reactive' && routeRef.current.name === 'taste') update(completeTaste);
       }
-      else if (message.type === 'reaction-tier-change') vocalizer.current.onTier(message.tier);
       else if (message.type === 'playCue') {
         if (recordRef.current) playResolvedCue(resolveCue(recordRef.current, LANGUAGE));
       } else if (message.type === 'debrief') {
         const payload: SimulationDebriefPayload = message.payload;
-        const v = viewRef.current;
-        if (v.name === 'daily' && v.result === null) {
+        const f = flowRef.current;
+        if (f?.name === 'daily' && f.result === null) {
           // the score and the Streak are kept; what the Dog has learned and the campaign are not touched
           const before = recordRef.current!;
           const completion = completeDaily(before, payload, new Date());
           update(() => completion.record);
           setWarmup((w) => warmupAfterDaily(w));
           const list = celebrationsFor(before, completion.record, { kind: 'daily', improved: completion.improved, firstOfDay: completion.firstOfDay, best: completion.best });
-          setView({ ...v, result: { payload, completion, celebrations: list } });
-        } else if (v.name === 'first-stage') {
+          setFlow({ ...f, result: { payload, completion, celebrations: list } });
+        } else if (routeRef.current.name === 'taste') {
+          // the time limit: the payload is dropped, nothing is learned from the taste
+          update(completeTaste);
+        } else if (routeRef.current.name === 'first-stage') {
           update((r) => completeFirstStage(r, payload, new Date()));
           accountRef.current.countStage();
           // registration is offered after the first Stage, and only where there is a backend to register with
-          setView(accountRef.current.configured && !accountRef.current.signedIn ? { name: 'register' } : { name: 'home' });
-        } else if (v.name === 'warmup') {
+          if (accountRef.current.configured && !accountRef.current.signedIn) {
+            setFlow({ name: 'register' });
+          } else {
+            goHome();
+          }
+        } else if (f?.name === 'warmup') {
           // ungraded: the warm-up never changes the Dog
           setWarmup('completed');
-          setView({ name: 'home' });
-        } else if (v.name === 'node') {
+          goHome();
+        } else if (f?.name === 'node') {
           accountRef.current.countStage();
           act({ type: 'finish', result: { kind: 'stage', payload } });
         }
       } else if (message.type === 'error') setBundle('error');
     },
-    [act, send, update],
+    [act, goHome, send, update],
   );
 
   useEffect(() => {
@@ -262,134 +362,203 @@ export default function App() {
 
   // the registration reminder counts as given once shown, and stays up until the user answers it
   useEffect(() => {
-    if (account.remind && view.name === 'home' && !reminder) {
+    if (account.remind && route.name === 'map' && !reminder) {
       setReminder(true);
       account.markReminded();
     }
-  }, [account, account.remind, view.name, reminder]);
+  }, [account, account.remind, route.name, reminder]);
 
-  const goHome = () => {
-    setPaused(false);
-    setView({ name: 'home' });
+  const startNodeRun = (node: NodeDef) => {
+    setSettingsOpen(false);
+    setFlow({ name: 'node', run: startNode(node), attempt: 0 });
   };
 
-  const startNodeRun = (node: NodeDef) => setView({ name: 'node', run: startNode(node), attempt: 0 });
-  const playingStage = simulationKey !== null || view.name === 'warmup' || view.name === 'first-stage' || dailyKey !== null;
+  const playingStage =
+    simulationKey !== null ||
+    (route.name === 'flow' && route.flow.name === 'warmup') ||
+    route.name === 'taste' ||
+    route.name === 'first-stage' ||
+    dailyKey !== null;
+
   // the bundle only draws while a Stage is on screen; 'start' wakes it, leaving the Stage puts it to sleep
   const playingStageRef = useRef(playingStage);
   playingStageRef.current = playingStage;
   useEffect(() => {
     if (!playingStage) send({ type: 'suspend' });
   }, [playingStage, send]);
-  const funnelStep = record ? pageForStep(record.onboarding.step) === 'funnel' ? record.onboarding.step : null : null;
+
+  const resetting = useRef(false);
+  const handleReset = async () => {
+    const current = recordRef.current;
+    if (!current || resetting.current) return;
+    resetting.current = true;
+    try {
+      const fresh = await resetProgress(dogStore, current);
+      account.resetSync();
+      rusty.current = null;
+      setWarmup('none');
+      setCelebrations(null);
+      setReminder(false);
+      setHint(null);
+      setPaused(false);
+      setFlow(null);
+      setSettingsOpen(false);
+      replace(fresh);
+    } catch {
+      // nothing was cleared (recordings are deleted last), so the Dog is untouched; the user can retry
+    } finally {
+      resetting.current = false;
+    }
+  };
 
   let screen: React.ReactNode = null;
-  if (!record) screen = <LoadingOverlay t={t} />;
-  else if (funnelStep === 'setup') screen = <SetupScreen t={t} record={record} update={update} />;
-  else if (funnelStep === 'diagnostic')
-    screen = <DiagnosticView key="diagnostic" t={t} seed={newSeed()} onFinish={(latency) => update((r) => recordDiagnostic(r, latency))} />;
-  else if (funnelStep === 'plan')
-    screen = <PlanScreen t={t} latency={record.onboarding.diagnosticLatency ?? 0.5} plan={record.onboarding.plan} onContinue={() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: nextStep('plan') } }))} />;
-  else if (funnelStep === 'paywall')
-    screen = <PaywallScreen t={t} onStartTrial={() => update((r) => passPaywall(r, true, new Date()))} onLater={() => update((r) => passPaywall(r, false, new Date()))} />;
-  else if (account.choice && account.signedIn && view.name === 'home')
-    screen = <ChooseDogScreen t={t} local={record} cloud={migrateRecord(account.choice[0].record)} onChoose={account.chooseDog} />;
-  else if (view.name === 'home') {
-    screen = (
-      <WorldMapScreen
-        t={t}
-        completed={record.completedNodes}
-        stars={record.stars}
-        rusty={rusty.current === true && warmup !== 'completed'}
-        streak={record.streak}
-        today={todayString()}
-        dailyBest={record.dailyBest[todayString()]}
-        onDaily={() => setView({ name: 'daily', attempt: 0, result: null })}
-        rustyPrompt={rusty.current === true && warmup === 'none'}
-        skippedWarmup={warmup === 'skipped'}
-        onWarmup={() => setView({ name: 'warmup' })}
-        onSkipWarmup={() => setWarmup('skipped')}
-        onStartNode={startNodeRun}
-        onSettings={() => setView({ name: 'settings' })}
-        banner={
-          account.signedIn && account.sync.paused === 'verify' ? (
-            <AccountBanner t={t} kind="verify" />
-          ) : reminder && !account.signedIn ? (
-            <AccountBanner
-              t={t}
-              kind="remind"
-              onAction={() => {
-                setReminder(false);
-                setView({ name: 'auth', mode: 'signup' });
-              }}
-              onDismiss={() => setReminder(false)}
-            />
-          ) : null
-        }
-      />
-    );
-  } else if (view.name === 'daily') {
-    if (view.result)
-      screen = (
-        <DailyResultScreen t={t} payload={view.result.payload} completion={view.result.completion} celebrations={view.result.celebrations} onReplay={() => setView({ name: 'daily', attempt: view.attempt + 1, result: null })} onDone={goHome} />
-      );
-  } else if (view.name === 'settings') {
-    screen = <SettingsScreen t={t} language={LANGUAGE} record={record} update={update} onClose={goHome} account={account} onLogIn={() => setView({ name: 'auth', mode: 'login' })} ui={ui} />;
-  } else if (view.name === 'register') {
-    screen = <RegisterPrompt t={t} onCreate={() => setView({ name: 'auth', mode: 'signup' })} onNotNow={goHome} />;
-  } else if (view.name === 'auth') {
-    screen = account.auth ? <AuthScreen t={t} auth={account.auth} initial={view.mode} onDone={goHome} onBack={goHome} /> : null;
-  } else if (view.name === 'node') {
-    const { run } = view;
-    if (run.step === 'primer') screen = <PrimerScreen t={t} run={run} onNext={() => act({ type: 'next' })} onExit={goHome} />;
-    else if (run.step === 'checkpoint')
-      screen = <CheckpointScreen t={t} run={run} setting={record.checkpointSeconds} onAnswer={(option) => act({ type: 'answer', option })} onTimeout={() => act({ type: 'timeout' })} />;
-    else if (run.step === 'simulation' && run.node.mode === 'minigame') {
-      const finish = (metrics: Partial<Record<Metric, number>>) => act({ type: 'finish', result: { kind: 'minigame', metrics } });
-      screen =
-        run.node.simulation.minigame === 'doorbell-mat' ? (
-          <DoorbellMatView key={`minigame-${view.attempt}`} t={t} coat={record.coat} seed={view.attempt + 1 + (dateSeed(todayString()) % 1000)} onFinish={finish} />
-        ) : (
-          <PosteMinigameView key={`minigame-${view.attempt}`} t={t} coat={record.coat} variant={run.node.simulation.minigame === 'harness-ritual' ? 'harness' : 'poste'} onFinish={finish} />
-        );
+  if (route.name === 'splash') {
+    screen = <SplashScreen t={t} onShown={hideNativeSplash} />;
+  } else if (route.name === 'funnel') {
+    if (record) {
+      if (route.step === 'welcome')
+        screen = <WelcomeScreen t={t} onStart={() => update(leaveWelcome)} onLogIn={() => setFlow({ name: 'auth', mode: 'login', returnTo: 'map' })} />;
+      else if (route.step === 'dog') screen = <DogLookScreen t={t} record={record} onDone={(name, coat) => update((r) => saveNameAndLook(r, name, coat))} />;
+      else if (route.step === 'payoff') screen = <PayoffScreen t={t} name={record.name} onContinue={() => update(leavePayoff)} />;
+      else if (route.step === 'setup') screen = <SetupScreen t={t} record={record} update={update} />;
+      else if (route.step === 'diagnostic')
+        screen = <DiagnosticView key="diagnostic" t={t} seed={newSeed()} onFinish={(latency) => update((r) => recordDiagnostic(r, latency))} />;
+      else if (route.step === 'plan')
+        screen = <PlanScreen t={t} latency={record.onboarding.diagnosticLatency ?? 0.5} plan={record.onboarding.plan} onContinue={() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: nextStep('plan') } }))} />;
     }
-    else if (run.step === 'debrief')
+  } else if (route.name === 'taste' || route.name === 'first-stage') {
+    screen = null;
+  } else if (route.name === 'paywall') {
+    if (account.choice && account.signedIn && record) {
+      screen = <ChooseDogScreen t={t} local={record} cloud={migrateRecord(account.choice[0].record)} onChoose={account.chooseDog} />;
+    } else if (record) {
+      screen = <PaywallScreen t={t} onStartTrial={() => update((r) => passPaywall(r, true, new Date()))} onLater={() => update((r) => passPaywall(r, false, new Date()))} />;
+    }
+  } else if (route.name === 'map' || route.name === 'settings') {
+    if (account.choice && account.signedIn && record) {
+      screen = <ChooseDogScreen t={t} local={record} cloud={migrateRecord(account.choice[0].record)} onChoose={account.chooseDog} />;
+    } else if (record) {
       screen = (
-        <DebriefScreen
-          t={t}
-          run={run}
-          showPosteLink={shouldShowPosteLink(record, run.node.id)}
-          diary={record.walkDiary.find((e) => e.date === todayString() && e.nodeId === run.node.id)?.outcome ?? null}
-          onDiary={(outcome) => update((r) => applyDiary(r, run.node.id, outcome, new Date()))}
-          best={starsShown(record, run.node.id) ?? 1}
-          celebrations={celebrations?.id === `${run.node.id}:${view.attempt}` ? celebrations.list : []}
-          onPosteLink={() => startNodeRun(POSTE_PRACTICE)}
-          onPlayAgain={() => setView({ name: 'node', run: { ...run, step: 'simulation', result: null }, attempt: view.attempt + 1 })}
-          onDone={goHome}
-        />
+        <View className="flex-1">
+          <WorldMapScreen
+            t={t}
+            completed={record.completedNodes}
+            stars={record.stars}
+            rusty={rusty.current === true && warmup !== 'completed'}
+            streak={record.streak}
+            today={todayString()}
+            dailyBest={record.dailyBest[todayString()]}
+            onDaily={() => setFlow({ name: 'daily', attempt: 0, result: null })}
+            rustyPrompt={rusty.current === true && warmup === 'none'}
+            skippedWarmup={warmup === 'skipped'}
+            onWarmup={() => setFlow({ name: 'warmup' })}
+            onSkipWarmup={() => setWarmup('skipped')}
+            onStartNode={startNodeRun}
+            onSettings={() => setSettingsOpen(true)}
+            banner={
+              account.signedIn && account.sync.paused === 'verify' ? (
+                <AccountBanner t={t} kind="verify" />
+              ) : reminder && !account.signedIn ? (
+                <AccountBanner
+                  t={t}
+                  kind="remind"
+                  onAction={() => {
+                    setReminder(false);
+                    setFlow({ name: 'auth', mode: 'signup', returnTo: 'map' });
+                  }}
+                  onDismiss={() => setReminder(false)}
+                />
+              ) : null
+            }
+          />
+          {route.name === 'settings' && (
+            <SettingsScreen
+              t={t}
+              language={LANGUAGE}
+              record={record}
+              update={update}
+              onClose={() => setSettingsOpen(false)}
+              account={account}
+              onLogIn={() => setFlow({ name: 'auth', mode: 'login', returnTo: 'settings' })}
+              ui={ui}
+              onReset={handleReset}
+            />
+          )}
+        </View>
       );
+    }
+  } else if (route.name === 'flow') {
+    const f = route.flow;
+    if (f.name === 'daily') {
+      if (f.result) {
+        screen = (
+          <DailyResultScreen
+            t={t}
+            payload={f.result.payload}
+            completion={f.result.completion}
+            celebrations={f.result.celebrations}
+            onReplay={() => setFlow({ ...f, attempt: f.attempt + 1, result: null })}
+            onDone={goHome}
+          />
+        );
+      }
+    } else if (f.name === 'register') {
+      screen = <RegisterPrompt t={t} onCreate={() => setFlow({ name: 'auth', mode: 'signup', returnTo: 'map' })} onNotNow={goHome} />;
+    } else if (f.name === 'auth') {
+      screen = account.auth ? <AuthScreen t={t} auth={account.auth} initial={f.mode} onDone={onAuthDone} onBack={onAuthDone} /> : null;
+    } else if (f.name === 'node' && record) {
+      const { run } = f;
+      if (run.step === 'primer') screen = <PrimerScreen t={t} run={run} onNext={() => act({ type: 'next' })} onExit={goHome} />;
+      else if (run.step === 'checkpoint')
+        screen = <CheckpointScreen t={t} run={run} setting={record.checkpointSeconds} onAnswer={(option) => act({ type: 'answer', option })} onTimeout={() => act({ type: 'timeout' })} />;
+      else if (run.step === 'simulation' && run.node.mode === 'minigame') {
+        const finish = (metrics: Partial<Record<Metric, number>>) => act({ type: 'finish', result: { kind: 'minigame', metrics } });
+        screen =
+          run.node.simulation.minigame === 'doorbell-mat' ? (
+            <DoorbellMatView key={`minigame-${f.attempt}`} t={t} coat={record.coat} seed={f.attempt + 1 + (dateSeed(todayString()) % 1000)} onFinish={finish} />
+          ) : (
+            <PosteMinigameView key={`minigame-${f.attempt}`} t={t} coat={record.coat} variant={run.node.simulation.minigame === 'harness-ritual' ? 'harness' : 'poste'} onFinish={finish} />
+          );
+      } else if (run.step === 'debrief') {
+        screen = (
+          <DebriefScreen
+            t={t}
+            run={run}
+            showPosteLink={shouldShowPosteLink(record, run.node.id)}
+            diary={record.walkDiary.find((e) => e.date === todayString() && e.nodeId === run.node.id)?.outcome ?? null}
+            onDiary={(outcome) => update((r) => applyDiary(r, run.node.id, outcome, new Date()))}
+            best={starsShown(record, run.node.id) ?? 1}
+            celebrations={celebrations?.id === `${run.node.id}:${f.attempt}` ? celebrations.list : []}
+            onPosteLink={() => startNodeRun(POSTE_PRACTICE)}
+            onPlayAgain={() => setFlow({ ...f, run: { ...run, step: 'simulation', result: null }, attempt: f.attempt + 1 })}
+            onDone={goHome}
+          />
+        );
+      }
+    }
   }
 
   return (
     <SafeAreaProvider>
-    <View className="flex-1 bg-bg">
-      <SimView key={attempt} ref={sim} onMessage={onMessage} onLoadError={() => setBundle('error')} />
-      {screen}
-      {playingStage && hint && !paused && <HintOverlay text={t(HINT_TEXT[hint])} />}
-      {playingStage && bundle === 'loading' && <LoadingOverlay t={t} />}
-      {playingStage && paused && (
-        <ResumeOverlay
-          t={t}
-          onResume={() => {
-            setPaused(false);
-            send({ type: 'resume' });
-          }}
-          onExit={goHome}
-        />
-      )}
-      {bundle === 'error' && <ErrorOverlay t={t} onRetry={retry} />}
-      <StatusBar style="light" hidden />
-    </View>
+      <View className="flex-1 bg-bg">
+        <SimView key={attempt} ref={sim} onMessage={onMessage} onLoadError={() => setBundle('error')} />
+        {screen}
+        {playingStage && hint && !paused && <HintOverlay text={t(HINT_TEXT[hint])} />}
+        {route.name === 'taste' && tasteLine && !paused && bundle === 'ready' && <HintOverlay text={t(TASTE_LINE_KEY)} />}
+        {playingStage && bundle === 'loading' && <LoadingOverlay t={t} />}
+        {playingStage && paused && (
+          <ResumeOverlay
+            t={t}
+            onResume={() => {
+              setPaused(false);
+              send({ type: 'resume' });
+            }}
+            onExit={goHome}
+          />
+        )}
+        {bundle === 'error' && <ErrorOverlay t={t} onRetry={retry} />}
+        <StatusBar style="dark" hidden />
+      </View>
     </SafeAreaProvider>
   );
 }

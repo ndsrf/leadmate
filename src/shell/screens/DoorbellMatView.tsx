@@ -52,10 +52,10 @@ export function DoorbellMatView({ t, seed, coat = 'golden', onFinish }: { t: Tra
   return (
     <Screen>
       <View className="mb-2 flex-row items-center justify-between">
-        <Text className="text-sm text-inkDim">{`${t('minigame.doorbell.round')} ${Math.min(outcomes.length + 1, DOORBELL_MAT.rounds)} ${t('minigame.doorbell.of')} ${DOORBELL_MAT.rounds}`}</Text>
+        <Text className="text-body text-inkMuted">{`${t('minigame.doorbell.round')} ${Math.min(outcomes.length + 1, DOORBELL_MAT.rounds)} ${t('minigame.doorbell.of')} ${DOORBELL_MAT.rounds}`}</Text>
         <RoundPips t={t} total={DOORBELL_MAT.rounds} results={outcomes.map((o) => o === 'hit')} />
       </View>
-      <Text className="mb-4 text-base text-ink">{t('minigame.doorbell.help')}</Text>
+      <Text className="mb-4 text-bodyL text-ink">{t('minigame.doorbell.help')}</Text>
       <DoorbellScene t={t} posture={posture} ringing={phase === 'excited'} coat={coat} />
       <CueCaption t={t} posture={posture} />
       <ResultChip label={lastOutcome ? t(OUTCOME_KEYS[lastOutcome]) : null} good={lastOutcome === 'hit'} />

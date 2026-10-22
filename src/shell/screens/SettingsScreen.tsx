@@ -1,17 +1,22 @@
 import { useState } from 'react';
-import { Platform, Text, View } from 'react-native';
+import { Modal, Platform, Text, View } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { RecordingPresets, requestRecordingPermissionsAsync, useAudioRecorder } from 'expo-audio';
 import type { Translate } from '../../i18n';
 import { DISTRACTOR_KINDS, type DistractorKind, type Equipment, type TriggerLevel } from '../../sim/learning';
 import { deleteRecording, keepRecording, playResolvedCue, prepareAudio } from '../audio';
 import { setTriggerLevel, type CheckpointSeconds, type DogRecord } from '../dogRecord';
+import { shouldShowResetSection } from '../reset';
 import { Button } from '../Overlays';
-import { Choice, Panel } from '../ui/components';
+import { LeadLine } from '../ui/art';
+import { Choice, Panel, TextField, Toggle } from '../ui/components';
 import { CUSTOM_CUE_MS, resolveCue, VOICE_PACKS, type Language } from '../voice';
 import type { Account } from '../sync/useAccount';
 import { AccountSection } from './AccountScreens';
 import type { UiSettings } from '../ui/uiSettings';
+import { renameDog } from '../onboarding/intro';
 import { DOG_COAT_NAMES } from '../onboarding/look';
+import { cleanDogName, DOG_NAME_MAX } from '../onboarding/name';
 import { Screen } from './Screen';
 
 const CHECKPOINT_OPTIONS: { value: CheckpointSeconds; key: 'settings.checkpoint.5' | 'settings.checkpoint.10' | 'settings.checkpoint.off' }[] = [
@@ -32,10 +37,24 @@ const KIND_KEYS = {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <Panel className="mb-5">
-      <Text className="mb-1 font-display text-base text-ink">{title}</Text>
+      <Text className="mb-1 font-display text-title text-ink">{title}</Text>
       {children}
     </Panel>
   );
+}
+
+/** Edits the Dog's name and keeps it when the field is left; a blank name puts the old one back. */
+function DogNameField({ label, value, onCommit }: { label: string; value: string; onCommit: (name: string) => void }) {
+  const [text, setText] = useState(value);
+  const commit = () => {
+    const clean = cleanDogName(text);
+    if (clean === null) setText(value);
+    else {
+      setText(clean);
+      onCommit(clean);
+    }
+  };
+  return <TextField accessibilityLabel={label} value={text} onChangeText={setText} onBlur={commit} onSubmitEditing={commit} maxLength={DOG_NAME_MAX} autoCapitalize="words" returnKeyType="done" />;
 }
 
 type RecordState = 'idle' | 'recording' | 'denied';
@@ -49,6 +68,7 @@ export function SettingsScreen({
   account,
   onLogIn,
   ui,
+  onReset,
 }: {
   t: Translate;
   language: Language;
@@ -59,9 +79,11 @@ export function SettingsScreen({
   onLogIn: () => void;
   /** This device's UI sounds and haptics (never part of the Dog's record). */
   ui: { settings: UiSettings; change: (patch: Partial<UiSettings>) => void };
+  onReset: () => void;
 }) {
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [recording, setRecording] = useState<RecordState>('idle');
+  const [showResetModal, setShowResetModal] = useState(false);
   const hasCustom = Boolean(record.customCues[language]);
   const canRecord = Platform.OS !== 'web';
 
@@ -102,7 +124,8 @@ export function SettingsScreen({
 
   return (
     <Screen>
-      <Text className="mb-4 text-2xl font-bold text-ink">{t('settings.title')}</Text>
+      <Text className="font-display text-displayM text-ink">{t('settings.title')}</Text>
+      <LeadLine className="mb-4 mt-1" />
 
       <Section title={t('settings.equipment')}>
         <View className="flex-row flex-wrap">
@@ -110,7 +133,11 @@ export function SettingsScreen({
             <Choice key={e} label={t(e === 'collar' ? 'settings.equipment.collar' : 'settings.equipment.harness')} selected={record.equipment === e} onPress={() => update((r) => ({ ...r, equipment: e }))} />
           ))}
         </View>
-        <Text className="mt-2 text-sm text-inkMuted">{t(record.equipment === 'collar' ? 'settings.equipment.collarNote' : 'settings.equipment.harnessNote')}</Text>
+        <Text className="mt-2 text-body text-inkMuted">{t(record.equipment === 'collar' ? 'settings.equipment.collarNote' : 'settings.equipment.harnessNote')}</Text>
+      </Section>
+
+      <Section title={t('settings.dogName')}>
+        <DogNameField label={t('settings.dogName')} value={record.name} onCommit={(name) => update((r) => renameDog(r, name))} />
       </Section>
 
       <Section title={t('settings.coat')}>
@@ -122,10 +149,10 @@ export function SettingsScreen({
       </Section>
 
       <Section title={t('settings.triggers')}>
-        <Text className="mb-1 text-xs text-inkDim">{t('settings.triggers.help')}</Text>
+        <Text className="mb-1 text-caption text-inkMuted">{t('settings.triggers.help')}</Text>
         {DISTRACTOR_KINDS.map((kind: DistractorKind) => (
           <View key={kind} className="mt-2">
-            <Text className="text-sm text-ink">{t(KIND_KEYS[kind])}</Text>
+            <Text className="text-body text-ink">{t(KIND_KEYS[kind])}</Text>
             <View className="flex-row">
               {([0, 1, 2, 3] as TriggerLevel[]).map((level) => (
                 <Choice key={level} label={String(level)} selected={record.triggerProfile[kind] === level} onPress={() => update((r) => setTriggerLevel(r, kind, level))} />
@@ -144,17 +171,15 @@ export function SettingsScreen({
       </Section>
 
       <Section title={t('settings.feedback')}>
-        <Text className="mt-2 text-sm text-ink">{t('settings.feedback.sounds')}</Text>
-        <View className="flex-row flex-wrap">
-          <Choice label={t('settings.on')} selected={ui.settings.sounds} onPress={() => ui.change({ sounds: true })} />
-          <Choice label={t('settings.off')} selected={!ui.settings.sounds} onPress={() => ui.change({ sounds: false })} />
+        <View className="mt-2 flex-row items-center justify-between">
+          <Text className="shrink text-body text-ink">{t('settings.feedback.sounds')}</Text>
+          <Toggle label={t('settings.feedback.sounds')} value={ui.settings.sounds} onChange={(sounds) => ui.change({ sounds })} />
         </View>
-        <Text className="mt-2 text-sm text-ink">{t('settings.feedback.haptics')}</Text>
-        <View className="flex-row flex-wrap">
-          <Choice label={t('settings.on')} selected={ui.settings.haptics} onPress={() => ui.change({ haptics: true })} />
-          <Choice label={t('settings.off')} selected={!ui.settings.haptics} onPress={() => ui.change({ haptics: false })} />
+        <View className="flex-row items-center justify-between">
+          <Text className="shrink text-body text-ink">{t('settings.feedback.haptics')}</Text>
+          <Toggle label={t('settings.feedback.haptics')} value={ui.settings.haptics} onChange={(haptics) => ui.change({ haptics })} />
         </View>
-        <Text className="mt-2 text-xs text-inkDim">{t('settings.feedback.help')}</Text>
+        <Text className="mt-2 text-caption text-inkMuted">{t('settings.feedback.help')}</Text>
       </Section>
 
       <Section title={t('settings.voicePack')}>
@@ -175,16 +200,53 @@ export function SettingsScreen({
       </Section>
 
       <Section title={t('settings.customCue')}>
-        <Text className="text-sm text-inkMuted">{t('settings.customCue.help')}</Text>
-        {!canRecord && <Text className="mt-2 text-sm text-accent">{t('settings.customCue.webUnavailable')}</Text>}
-        <Text className="mt-2 text-sm text-ink">{hasCustom ? t('settings.customCue.saved') : t('settings.customCue.none')}</Text>
-        {recording === 'denied' && <Text className="mt-2 text-sm text-accent">{t('settings.customCue.denied')}</Text>}
+        <Text className="text-body text-inkMuted">{t('settings.customCue.help')}</Text>
+        {!canRecord && <Text className="mt-2 text-body text-dangerText">{t('settings.customCue.webUnavailable')}</Text>}
+        <Text className="mt-2 text-body text-ink">{hasCustom ? t('settings.customCue.saved') : t('settings.customCue.none')}</Text>
+        {recording === 'denied' && <Text className="mt-2 text-body text-dangerText">{t('settings.customCue.denied')}</Text>}
         {canRecord && <Button label={recording === 'recording' ? t('settings.customCue.recording') : t('settings.customCue.record')} onPress={() => recording !== 'recording' && recordCue()} />}
-        {hasCustom && <Button label={t('settings.customCue.play')} tone="quiet" onPress={() => playResolvedCue(resolveCue(record, language))} />}
-        {hasCustom && <Button label={t('settings.customCue.remove')} tone="quiet" onPress={removeCue} />}
+        {hasCustom && <Button label={t('settings.customCue.play')} tone="secondary" onPress={() => playResolvedCue(resolveCue(record, language))} />}
+        {hasCustom && <Button label={t('settings.customCue.remove')} tone="secondary" onPress={removeCue} />}
       </Section>
 
       <AccountSection t={t} account={account} onLogIn={onLogIn} onForget={account.forgetAccount} />
+
+      {shouldShowResetSection(account.signedIn, account.sync.dogId !== null) && (
+        <Panel className="mb-5">
+          <Text className="mb-1 font-display text-title text-dangerText">{t('settings.reset.title')}</Text>
+          <Text className="mb-3 text-body text-inkMuted">{t('settings.reset.desc')}</Text>
+          <Button label={t('settings.reset.button')} tone="danger" onPress={() => setShowResetModal(true)} />
+        </Panel>
+      )}
+
+      {showResetModal && (
+        <Modal
+          visible
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowResetModal(false)}
+        >
+          <SafeAreaProvider>
+          <SafeAreaView className="flex-1 items-center justify-center bg-ink/70 p-4">
+            <Panel className="w-full max-w-sm">
+              <Text className="font-display text-title text-dangerText">{t('settings.reset.confirmTitle')}</Text>
+              <Text className="mt-3 text-body text-inkMuted">{t('settings.reset.confirmBody')}</Text>
+              <View className="mt-4 gap-3">
+                <Button label={t('settings.reset.cancelButton')} tone="secondary" onPress={() => setShowResetModal(false)} />
+                <Button
+                  label={t('settings.reset.confirmButton')}
+                  tone="danger"
+                  onPress={() => {
+                    setShowResetModal(false);
+                    onReset();
+                  }}
+                />
+              </View>
+            </Panel>
+          </SafeAreaView>
+          </SafeAreaProvider>
+        </Modal>
+      )}
 
       <Button label={t('settings.close')} onPress={onClose} />
     </Screen>

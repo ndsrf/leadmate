@@ -1,33 +1,89 @@
-import { badgeColors, buttonStyle, desaturate, progressWidth, starSlots, touchTarget } from './styles';
-import { color, theme } from './theme';
+import { badgeColors, buttonStyle, choiceStyle, padStyle, progressWidth, starSlots, touchTarget } from './styles';
+import { color, contrastRatio, MIN_CONTRAST, theme } from './theme';
 
 describe('buttonStyle', () => {
-  it('raises the face with an edge when idle', () => {
+  it('rests on a solid ink shadow with an ink outline', () => {
     const s = buttonStyle('primary');
-    expect(s.edgeHeight).toBe(theme.depth.edge);
-    expect(s.offsetY).toBe(0);
+    expect(s.shadowOffset).toBe(theme.depth.rest.x);
+    expect(s.visibleShadow).toBe(theme.depth.rest.x);
+    expect(s.travel).toBe(0);
+    expect(s.fill).toBe(color.brand);
+    expect(s.edge).toBe(color.ink);
+    expect(s.borderWidth).toBe(theme.border.ink);
+  });
+
+  it('sinks 3 points toward the shadow when pressed, leaving 1', () => {
+    const s = buttonStyle('primary', { pressed: true });
+    expect(s.travel).toBe(theme.depth.pressed.translate);
+    expect(s.visibleShadow).toBe(theme.depth.pressed.x);
     expect(s.fill).toBe(color.brand);
   });
 
-  it('sinks by the edge height when pressed', () => {
-    const s = buttonStyle('primary', { pressed: true });
-    expect(s.offsetY).toBe(theme.depth.edge);
-    expect(s.edgeHeight).toBe(0);
-  });
-
-  it('desaturates and ignores press when disabled', () => {
+  it('is flat, grey and outlined in grey when disabled, and ignores press', () => {
     const s = buttonStyle('primary', { disabled: true, pressed: true });
-    expect(s.fill).not.toBe(color.brand);
-    expect(s.fill).toBe(desaturate(color.brand));
-    expect(s.offsetY).toBe(0);
-    expect(s.opacity).toBeLessThan(1);
+    expect(s.fill).toBe(color.disabled);
+    expect(s.label).toBe(color.disabledText);
+    expect(s.edge).toBe(color.disabledText);
+    expect(s.shadowOffset).toBe(0);
+    expect(s.travel).toBe(0);
   });
 
-  it('is at least 44 points in both directions for every variant', () => {
-    for (const v of ['primary', 'quiet', 'accent', 'info'] as const) {
-      const s = buttonStyle(v);
-      expect(s.minHeight).toBeGreaterThanOrEqual(44);
-      expect(s.minWidth).toBeGreaterThanOrEqual(44);
+  it('draws the quiet variant as an underlined link with no face, outline or shadow', () => {
+    const s = buttonStyle('quiet');
+    expect(s.fill).toBeNull();
+    expect(s.edge).toBe('transparent');
+    expect(s.shadowOffset).toBe(0);
+    expect(s.underline).toBe(true);
+    expect(buttonStyle('quiet', { disabled: true }).underline).toBe(false);
+  });
+
+  it('keeps every label readable on its face, pressed or not', () => {
+    for (const v of ['primary', 'secondary', 'accent', 'info', 'danger'] as const) {
+      for (const pressed of [false, true]) {
+        const s = buttonStyle(v, { pressed });
+        expect(contrastRatio(s.label, s.fill as string)).toBeGreaterThanOrEqual(MIN_CONTRAST);
+      }
+    }
+  });
+
+  it('is at least 44 points in both directions for every variant, in every state', () => {
+    for (const v of ['primary', 'secondary', 'quiet', 'accent', 'info', 'danger'] as const) {
+      for (const state of [{}, { pressed: true }, { disabled: true }]) {
+        const s = buttonStyle(v, state);
+        expect(s.minHeight).toBeGreaterThanOrEqual(44);
+        expect(s.minWidth).toBeGreaterThanOrEqual(44);
+      }
+    }
+  });
+
+  it('makes primary actions 56 points tall', () => {
+    expect(buttonStyle('primary').minHeight).toBe(56);
+  });
+});
+
+describe('focus ring', () => {
+  it('is 3 points wide, offset 3 points, in a colour that holds 4.5:1 on the page and the paper', () => {
+    expect(theme.depth.focusRing).toMatchObject({ width: 3, offset: 3 });
+    expect(contrastRatio(color.focus, color.bg)).toBeGreaterThanOrEqual(MIN_CONTRAST);
+    expect(contrastRatio(color.focus, color.surface)).toBeGreaterThanOrEqual(MIN_CONTRAST);
+  });
+});
+
+describe('choiceStyle and padStyle', () => {
+  it('shows the chosen option in brand with a short shadow and the others flat', () => {
+    expect(choiceStyle(true)).toMatchObject({ fill: color.brand, shadowOffset: 2 });
+    expect(choiceStyle(false)).toMatchObject({ fill: color.surface, shadowOffset: 0 });
+  });
+  it('sinks the pad to its shadow when held', () => {
+    expect(padStyle('brand', true).travel).toBe(theme.depth.md.x - theme.depth.pressed.x);
+    expect(padStyle('brand', false).travel).toBe(0);
+  });
+  it('keeps pad labels readable', () => {
+    for (const fill of ['brand', 'quiet'] as const) {
+      for (const pressed of [false, true]) {
+        const p = padStyle(fill, pressed);
+        expect(contrastRatio(p.label, p.fill)).toBeGreaterThanOrEqual(MIN_CONTRAST);
+      }
     }
   });
 });
@@ -54,6 +110,9 @@ describe('small helpers', () => {
     expect(starSlots(9)).toEqual([true, true, true]);
   });
   it('gives each badge tone readable label colours', () => {
-    expect(badgeColors('warn').label).toBe(color.onWarn);
+    for (const tone of ['brand', 'accent', 'quiet', 'info', 'warn'] as const) {
+      const c = badgeColors(tone);
+      expect(contrastRatio(c.label, c.fill)).toBeGreaterThanOrEqual(MIN_CONTRAST);
+    }
   });
 });

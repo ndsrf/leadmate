@@ -17,21 +17,21 @@ export function Screen({ children, header, scrollRef }: { children: React.ReactN
     <View className="absolute inset-0 bg-bg">
       <Animated.View entering={entering} style={{ flex: 1 }}>
         {header && (
-          <View className="items-center bg-bg" style={{ paddingTop: insets.top + theme.space.sm, paddingLeft: insets.left + theme.space.md, paddingRight: insets.right + theme.space.md, paddingBottom: theme.space.sm }}>
-            <View style={{ width: '100%', maxWidth: theme.readableWidth }}>{header}</View>
+          <View className="items-center bg-bg" style={{ paddingTop: insets.top + theme.space[2], paddingLeft: insets.left + theme.space[4], paddingRight: insets.right + theme.space[4], paddingBottom: theme.space[2] }}>
+            <View style={{ width: '100%', maxWidth: theme.size.readableWidth }}>{header}</View>
           </View>
         )}
         <ScrollView
           ref={scrollRef}
           contentContainerStyle={{
             alignItems: 'center',
-            paddingTop: header ? theme.space.sm : insets.top + theme.space.md,
-            paddingBottom: insets.bottom + theme.space.lg,
-            paddingLeft: insets.left + theme.space.md,
-            paddingRight: insets.right + theme.space.md,
+            paddingTop: header ? theme.space[2] : insets.top + theme.space[4],
+            paddingBottom: insets.bottom + theme.space[6],
+            paddingLeft: insets.left + theme.space[4],
+            paddingRight: insets.right + theme.space[4],
           }}
         >
-          <View style={{ width: '100%', maxWidth: theme.readableWidth }}>{children}</View>
+          <View style={{ width: '100%', maxWidth: theme.size.readableWidth }}>{children}</View>
         </ScrollView>
       </Animated.View>
     </View>

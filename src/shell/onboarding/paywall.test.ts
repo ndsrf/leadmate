@@ -5,17 +5,17 @@ import { passPaywall } from './paywall';
 const atPaywall = { ...newDogRecord(), onboarding: { ...newDogRecord().onboarding, step: 'paywall' as const } };
 
 describe('paywall stub', () => {
-  it('records the trial start on Start trial and continues to the first Stage', () => {
+  it('records the trial start on Start trial and finishes the funnel', () => {
     const r = passPaywall(atPaywall, true, new Date('2026-05-01T10:00:00Z'));
     expect(r.onboarding.trialStartedAt).toBe('2026-05-01T10:00:00.000Z');
-    expect(r.onboarding.step).toBe('first-stage');
+    expect(r.onboarding.step).toBe('done');
     expect(inFunnel(r.onboarding.step)).toBe(false);
   });
 
   it('continues without recording anything on Maybe later', () => {
     const r = passPaywall(atPaywall, false, new Date());
     expect(r.onboarding.trialStartedAt).toBeNull();
-    expect(r.onboarding.step).toBe('first-stage');
+    expect(r.onboarding.step).toBe('done');
   });
 
   it('does not restart a trial that already started', () => {
@@ -23,9 +23,9 @@ describe('paywall stub', () => {
     expect(passPaywall({ ...started, onboarding: { ...started.onboarding, step: 'paywall' } }, true, new Date('2026-06-01T00:00:00Z')).onboarding.trialStartedAt).toBe('2026-05-01T10:00:00.000Z');
   });
 
-  it('comes after the diagnostic card and the plan, and before the first Stage', () => {
-    expect(ONBOARDING_STEPS.indexOf('plan')).toBeLessThan(ONBOARDING_STEPS.indexOf('paywall'));
-    expect(ONBOARDING_STEPS.indexOf('paywall')).toBeLessThan(ONBOARDING_STEPS.indexOf('first-stage'));
+  it('comes after the diagnostic card, the plan and the first Stage', () => {
+    expect(ONBOARDING_STEPS.indexOf('plan')).toBeLessThan(ONBOARDING_STEPS.indexOf('first-stage'));
+    expect(ONBOARDING_STEPS.indexOf('first-stage')).toBeLessThan(ONBOARDING_STEPS.indexOf('paywall'));
   });
 
   it('gates nothing: both choices leave the record playable and the funnel finished', () => {

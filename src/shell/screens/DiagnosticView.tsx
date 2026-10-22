@@ -35,11 +35,11 @@ export function DiagnosticView({ t, seed, onFinish }: { t: Translate; seed: numb
 
   return (
     <Screen>
-      <Text className="mb-1 font-display text-2xl text-ink">{t('diagnostic.title')}</Text>
-      <Text className="mb-4 text-base text-inkMuted">{t('diagnostic.help')}</Text>
+      <Text className="mb-1 font-display text-displayM text-ink">{t('diagnostic.title')}</Text>
+      <Text className="mb-4 text-bodyL text-inkMuted">{t('diagnostic.help')}</Text>
       {started ? (
         <>
-          <Text className="mb-2 text-sm text-inkDim">{`${t('diagnostic.timeLeft')}: ${secondsLeft}`}</Text>
+          <Text className="mb-2 text-body text-inkMuted">{`${t('diagnostic.timeLeft')}: ${secondsLeft}`}</Text>
           <Pad fill={showing ? 'brand' : 'quiet'} label={showing ? t('diagnostic.go') : t('diagnostic.wait')} onPressIn={() => (tapped.current = true)} />
         </>
       ) : (

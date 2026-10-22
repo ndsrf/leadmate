@@ -1,29 +1,37 @@
 import { color, theme, type ColorToken } from './theme';
 
-export type ButtonVariant = 'primary' | 'quiet' | 'accent' | 'info';
+export type ButtonVariant = 'primary' | 'secondary' | 'quiet' | 'accent' | 'info' | 'danger';
 
 interface Palette {
-  fill: ColorToken;
-  edge: ColorToken;
+  fill: ColorToken | null;
+  /** Face while pressed. */
+  pressedFill: ColorToken | null;
   label: ColorToken;
 }
 
 const PALETTES: Record<ButtonVariant, Palette> = {
-  primary: { fill: 'brand', edge: 'brandEdge', label: 'onBrand' },
-  quiet: { fill: 'quiet', edge: 'quietEdge', label: 'onQuiet' },
-  accent: { fill: 'accent', edge: 'accentEdge', label: 'onAccent' },
-  info: { fill: 'info', edge: 'infoEdge', label: 'onInfo' },
+  primary: { fill: 'brand', pressedFill: 'brand', label: 'onBrand' },
+  secondary: { fill: 'surface', pressedFill: 'surfaceSunken', label: 'ink' },
+  quiet: { fill: null, pressedFill: 'infoSoft', label: 'infoText' },
+  accent: { fill: 'accent', pressedFill: 'flame', label: 'onAccent' },
+  info: { fill: 'info', pressedFill: 'infoText', label: 'onInfo' },
+  danger: { fill: 'danger', pressedFill: 'coral', label: 'onDanger' },
 };
 
 export interface ButtonStyle {
-  fill: string;
+  /** Face colour; `null` for the quiet link, which has no face. */
+  fill: string | null;
+  /** The ink outline and the offset shadow share this colour. */
   edge: string;
   label: string;
-  /** Height of the darker bottom edge; it collapses when pressed. */
-  edgeHeight: number;
-  /** How far the face sinks down, in points. */
-  offsetY: number;
-  opacity: number;
+  borderWidth: number;
+  /** Where the solid shadow sits behind the face, in points (it never moves). */
+  shadowOffset: number;
+  /** How far the face travels toward its shadow while pressed, in points. */
+  travel: number;
+  /** Shadow still visible past the face: `shadowOffset - travel`. */
+  visibleShadow: number;
+  underline: boolean;
   minHeight: number;
   minWidth: number;
   borderRadius: number;
@@ -38,28 +46,37 @@ export function desaturate(hex: string, amount = 0.7): string {
   return `#${[mix(r), mix(g), mix(b)].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
 }
 
-/** Pure style of a raised button: the face sinks by the edge height while pressed; disabled is desaturated. */
+/**
+ * Pure style of an ink-outlined button on a solid offset shadow: pressing moves the face toward the
+ * shadow; disabled is flat, grey and outlined in grey; the quiet variant is a link with no face.
+ */
 export function buttonStyle(variant: ButtonVariant, state: { pressed?: boolean; disabled?: boolean } = {}): ButtonStyle {
   const palette = PALETTES[variant];
   const disabled = state.disabled === true;
   const pressed = state.pressed === true && !disabled;
-  const edge = theme.depth.edge;
+  const quiet = variant === 'quiet';
+  const flat = disabled || quiet;
+  const shadowOffset = flat ? 0 : theme.depth.rest.x;
+  const travel = pressed && !flat ? theme.depth.pressed.translate : 0;
+  const fillToken = pressed ? palette.pressedFill : palette.fill;
   return {
-    fill: disabled ? desaturate(color[palette.fill]) : color[palette.fill],
-    edge: disabled ? desaturate(color[palette.edge]) : color[palette.edge],
-    label: color[palette.label],
-    edgeHeight: pressed ? 0 : edge,
-    offsetY: pressed ? edge : 0,
-    opacity: disabled ? 0.6 : 1,
-    minHeight: theme.touchMin,
-    minWidth: theme.touchMin,
+    fill: disabled ? (quiet ? null : color.disabled) : fillToken === null ? null : color[fillToken],
+    edge: disabled ? color.disabledText : quiet ? 'transparent' : color.ink,
+    label: disabled ? color.disabledText : color[palette.label],
+    borderWidth: theme.border.ink,
+    shadowOffset,
+    travel,
+    visibleShadow: shadowOffset - travel,
+    underline: quiet && !disabled,
+    minHeight: quiet ? theme.size.touchMin : 56,
+    minWidth: theme.size.touchMin,
     borderRadius: theme.radius.md,
   };
 }
 
 /** Touchable size and the hit-slop needed to reach the minimum for a control drawn at `size` points. */
 export function touchTarget(size: number): { size: number; hitSlop: number } {
-  const target = Math.max(size, theme.touchMin);
+  const target = Math.max(size, theme.size.touchMin);
   return { size: target, hitSlop: Math.ceil((target - size) / 2) };
 }
 
@@ -81,10 +98,29 @@ export function badgeColors(tone: BadgeTone): { fill: string; label: string } {
   const map: Record<BadgeTone, [ColorToken, ColorToken]> = {
     brand: ['brand', 'onBrand'],
     accent: ['accent', 'onAccent'],
-    quiet: ['quiet', 'onQuiet'],
-    info: ['info', 'onInfo'],
-    warn: ['warn', 'onWarn'],
+    quiet: ['surfaceSunken', 'ink'],
+    info: ['infoSoft', 'infoText'],
+    warn: ['accentSoft', 'ink'],
   };
   const [fill, label] = map[tone];
   return { fill: color[fill], label: color[label] };
+}
+
+/** A selectable pill: the chosen one is brand green on a short shadow, the others are flat paper. */
+export function choiceStyle(selected: boolean): { fill: string; label: string; shadowOffset: number } {
+  return selected
+    ? { fill: color.brand, label: color.onBrand, shadowOffset: theme.depth.sm.x - 1 }
+    : { fill: color.surface, label: color.ink, shadowOffset: 0 };
+}
+
+/** The minigame pad: green while it is time to act, paper while waiting; it sinks to the shadow when held. */
+export function padStyle(fill: 'brand' | 'quiet', pressed: boolean): { fill: string; label: string; shadowOffset: number; travel: number } {
+  const go = fill === 'brand';
+  const shadowOffset = theme.depth.md.x;
+  return {
+    fill: go ? color.brand : color.surfaceSunken,
+    label: go ? color.onBrand : color.ink,
+    shadowOffset,
+    travel: pressed ? shadowOffset - theme.depth.pressed.x : 0,
+  };
 }

@@ -5,7 +5,7 @@ import type { DogRecord } from '../dogRecord';
 export const HINT_IDS = ['leash-colors', 'marker', 'poste'] as const;
 export type HintId = (typeof HINT_IDS)[number];
 
-const HINT_FOR_SIGNAL: Record<StageSignal, HintId> = {
+const HINT_FOR_SIGNAL: Partial<Record<StageSignal, HintId>> = {
   'first-taut': 'leash-colors',
   'first-fixation': 'marker',
   'leash-limit': 'poste',
@@ -20,7 +20,7 @@ export const HINT_TEXT: Record<HintId, TextKey> = {
 /** The hint a Stage signal calls for, or null when that hint was already seen. */
 export function hintFor(signal: StageSignal, seenHints: readonly string[]): HintId | null {
   const id = HINT_FOR_SIGNAL[signal];
-  return seenHints.includes(id) ? null : id;
+  return id === undefined || seenHints.includes(id) ? null : id;
 }
 
 /** True while some hint is still unseen, so the shell has reason to watch the Stage's signals. */

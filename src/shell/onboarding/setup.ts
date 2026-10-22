@@ -1,7 +1,7 @@
 import type { DogRecord } from '../dogRecord';
 import { nextStep } from './flow';
 
-export type SetupPart = 'equipment' | 'weights' | 'look' | 'questions';
+export type SetupPart = 'equipment' | 'weights' | 'questions';
 
 /** Where setup resumes: entered weights mean the Equipment and weights parts were passed. */
 export function setupStart(record: DogRecord): SetupPart {

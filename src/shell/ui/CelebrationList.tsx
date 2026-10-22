@@ -5,6 +5,8 @@ import type { Translate } from '../../i18n';
 import { celebrationSound, celebrationText } from '../celebrationText';
 import type { Celebration } from '../celebrations';
 import { feedback } from './feedback';
+import { Raised } from './components';
+import { color, theme } from './theme';
 import { useMotion } from './useMotion';
 
 /**
@@ -24,8 +26,10 @@ export function CelebrationList({ t, celebrations }: { t: Translate; celebration
   return (
     <>
       {celebrations.map((c, i) => (
-        <Animated.View key={`${c.type}-${i}`} entering={reduced ? FadeIn.duration(150) : ZoomIn.duration(250).delay(i * 120)} className="mb-3 rounded-game-lg bg-accent p-3" accessibilityRole="alert">
-          <Text className="text-center font-display text-lg text-onAccent">{celebrationText(c, t)}</Text>
+        <Animated.View key={`${c.type}-${i}`} entering={reduced ? FadeIn.duration(150) : ZoomIn.duration(250).delay(i * 120)} className="mb-3" accessibilityRole="alert">
+          <Raised fill={color.accent} radius={theme.radius.lg} offset={theme.depth.md.x} faceStyle={{ padding: theme.space[3] }}>
+            <Text className="text-center font-display text-title text-onAccent">{celebrationText(c, t)}</Text>
+          </Raised>
         </Animated.View>
       ))}
     </>

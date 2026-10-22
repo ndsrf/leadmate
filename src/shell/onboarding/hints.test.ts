@@ -4,7 +4,11 @@ import { hintFor, HINT_IDS, hintsRemain, markHintSeen } from './hints';
 
 describe('hints', () => {
   it('maps each Stage signal to one hint', () => {
-    expect(STAGE_SIGNALS.map((s) => hintFor(s, []))).toEqual(['leash-colors', 'marker', 'poste']);
+    expect(STAGE_SIGNALS.map((s) => hintFor(s, []))).toEqual(['leash-colors', 'marker', 'poste', null]);
+  });
+
+  it('never turns the first input into a hint', () => {
+    expect(hintFor('first-input', [])).toBeNull();
   });
 
   it('shows each hint once', () => {

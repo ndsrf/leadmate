@@ -14,11 +14,12 @@ import type { SimulationDebriefPayload } from '../sim/payload';
 import { DEFAULT_VOICE_PACK } from './voice';
 import { bestStars, isStars, starsFor, type Stars } from './stars';
 import { isCoat, type DogCoat } from './onboarding/look';
+import { cleanDogName } from './onboarding/name';
 import { nextPosture, updateLearning, updateTriggerProfile } from './learning';
 import { isOnboardingStep, type OnboardingStep } from './onboarding/flow';
 import { addDiaryEntry, DIARY_OUTCOMES, isDateString, localDateString, markActive, NO_STREAK, type DiaryOutcome, type StreakRecord, type WalkDiaryEntry } from './streak';
 
-export const RECORD_VERSION = 4;
+export const RECORD_VERSION = 5;
 export const RECORD_KEY = 'leadmate.dog';
 
 /** Seconds of the Checkpoint timer; 0 turns it off. */
@@ -35,6 +36,8 @@ export interface DogRecord {
   /** Calm encounters counted toward lowering each kind's level. */
   calmCounts: Partial<Record<DistractorKind, number>>;
   equipment: Equipment;
+  /** What the user calls the Dog; empty for a Dog from before names, and the text then says "your Dog". */
+  name: string;
   /** The Dog's coat colour, drawn in the Stage; purely cosmetic. */
   coat: DogCoat;
   voicePack: string;
@@ -81,7 +84,7 @@ export interface OnboardingState {
   plan: string[];
 }
 
-export const NEW_ONBOARDING: OnboardingState = { step: 'setup', firstStageCompletedAt: null, trialStartedAt: null, diagnosticLatency: null, plan: [] };
+export const NEW_ONBOARDING: OnboardingState = { step: 'welcome', firstStageCompletedAt: null, trialStartedAt: null, diagnosticLatency: null, plan: [] };
 
 export function newDogRecord(): DogRecord {
   return {
@@ -90,6 +93,7 @@ export function newDogRecord(): DogRecord {
     triggerProfile: { ...DEFAULT_TRIGGER_PROFILE },
     calmCounts: {},
     equipment: 'collar',
+    name: '',
     coat: 'golden',
     voicePack: DEFAULT_VOICE_PACK,
     checkpointSeconds: 5,
@@ -153,11 +157,13 @@ function readWeights(raw: unknown): Weights {
 }
 
 /** A record saved before onboarding existed belongs to an existing user, who never sees the funnel. */
-function readOnboarding(raw: unknown): OnboardingState {
+function readOnboarding(raw: unknown, version: unknown): OnboardingState {
   if (!raw || typeof raw !== 'object') return { ...NEW_ONBOARDING, step: 'done' };
   const r = raw as Partial<Record<keyof OnboardingState, unknown>>;
+  // before version 5 the paywall came ahead of the first Stage; a user at it still has that Stage to play
+  const old = typeof version !== 'number' || version < 5;
   return {
-    step: isOnboardingStep(r.step) ? r.step : 'setup',
+    step: isOnboardingStep(r.step) ? (old && r.step === 'paywall' ? 'first-stage' : r.step) : 'setup',
     firstStageCompletedAt: strOrNull(r.firstStageCompletedAt),
     trialStartedAt: strOrNull(r.trialStartedAt),
     diagnosticLatency: kg(r.diagnosticLatency),
@@ -186,6 +192,7 @@ export function migrateRecord(raw: unknown): DogRecord {
     triggerProfile: profile,
     calmCounts: typeof r.calmCounts === 'object' && r.calmCounts ? (r.calmCounts as DogRecord['calmCounts']) : {},
     equipment: r.equipment === 'harness' ? 'harness' : 'collar',
+    name: cleanDogName(r.name) ?? '',
     coat: isCoat(r.coat) ? r.coat : 'golden',
     voicePack: typeof r.voicePack === 'string' ? r.voicePack : base.voicePack,
     checkpointSeconds: checkpoint === 0 || checkpoint === 10 ? checkpoint : 5,
@@ -200,7 +207,7 @@ export function migrateRecord(raw: unknown): DogRecord {
     dailyBest: readDailyBest(r.dailyBest),
     updatedAt: typeof r.updatedAt === 'string' && !Number.isNaN(Date.parse(r.updatedAt)) ? r.updatedAt : base.updatedAt,
     weights: readWeights(r.weights),
-    onboarding: readOnboarding(r.onboarding),
+    onboarding: readOnboarding(r.onboarding, r.version),
     seenHints: strings(r.seenHints),
   };
 }

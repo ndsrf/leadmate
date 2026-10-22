@@ -31,7 +31,7 @@ describe('World Map layout', () => {
   });
 
   it('gives Nodes a touch target of at least 44 points', () => {
-    expect(NODE_SIZE).toBeGreaterThanOrEqual(theme.touchMin);
+    expect(NODE_SIZE).toBeGreaterThanOrEqual(theme.size.touchMin);
   });
 
   it('lets a Node title 40 percent longer than Spanish wrap inside its row at 320 points', () => {

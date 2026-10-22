@@ -8,25 +8,46 @@ import tokens from './tokens.json';
 export const theme = tokens;
 export type ColorToken = keyof typeof tokens.color;
 export const color = tokens.color;
+export const colorNight = tokens.colorNight;
 
 /** A text/background pair the kit draws; `theme.test.ts` checks each against `MIN_CONTRAST`. */
 export const TEXT_PAIRS: readonly (readonly [text: ColorToken, background: ColorToken])[] = [
   ['ink', 'bg'],
   ['ink', 'surface'],
-  ['inkMuted', 'surface'],
+  ['ink', 'surfaceSunken'],
   ['inkMuted', 'bg'],
-  ['inkDim', 'surface'],
-  ['inkDim', 'bg'],
+  ['inkMuted', 'surface'],
+  ['inkMuted', 'surfaceSunken'],
   ['onBrand', 'brand'],
-  ['onQuiet', 'quiet'],
   ['onAccent', 'accent'],
   ['onInfo', 'info'],
-  ['onWarn', 'warn'],
-  ['onLocked', 'locked'],
-  ['ink', 'surfaceHigh'],
-  ['accent', 'surface'],
-  ['brand', 'surface'],
+  ['onDanger', 'danger'],
+  ['ink', 'accentSoft'],
+  ['ink', 'sky'],
+  ['brandText', 'bg'],
+  ['brandText', 'surface'],
+  ['infoText', 'surface'],
+  ['infoText', 'infoSoft'],
+  ['dangerText', 'bg'],
+  ['dangerText', 'surface'],
+  ['lockedText', 'locked'],
+  ['disabledText', 'disabled'],
+  ['focus', 'bg'],
+  ['focus', 'surface'],
 ];
+
+/** Pairs of the night set, checked as tokens only (no screen uses them yet). */
+export const NIGHT_TEXT_PAIRS: readonly (readonly [text: keyof typeof tokens.colorNight, background: keyof typeof tokens.colorNight])[] = [
+  ['ink', 'bg'],
+  ['ink', 'surface'],
+  ['ink', 'surfaceSunken'],
+  ['inkMuted', 'bg'],
+  ['inkMuted', 'surface'],
+  ['inkMuted', 'surfaceSunken'],
+];
+
+/** Large text (display type from 24 points, or bold from 19) needs only this much. */
+export const MIN_CONTRAST_LARGE = 3;
 
 export const MIN_CONTRAST = 4.5;
 

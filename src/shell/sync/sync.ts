@@ -51,6 +51,11 @@ export function migrateOnRegister(_local: DogRecord, remoteDogs: readonly Remote
   return remoteDogs.length === 0 ? 'upload' : 'choose';
 }
 
+/** A device that has not been used yet: the welcome screen is still showing, so it holds nothing worth keeping. A device that was paired before is never one. */
+export function isFirstRun(record: DogRecord): boolean {
+  return record.onboarding.step === 'welcome';
+}
+
 const toRemote = (dogId: string, record: DogRecord): RemoteDog => ({ dogId, record, updatedAt: record.updatedAt });
 
 /**
@@ -76,7 +81,14 @@ export async function runSync(deps: SyncDeps): Promise<SyncResult> {
 
     if (!paired) {
       // an account that already has a Dog is never merged or overwritten without asking, even if this device was paired before
-      if (migrateOnRegister(local, remoteDogs) === 'choose') return { outcome: 'needs-choice', remoteDogs };
+      if (migrateOnRegister(local, remoteDogs) === 'choose') {
+        if (!isFirstRun(local) || state.dogId) return { outcome: 'needs-choice', remoteDogs };
+        // logging in from the welcome screen: the account's Dog replaces the empty one and its own step applies
+        const [theirs] = remoteDogs;
+        deps.replaceRecord(migrateRecord(theirs.record));
+        deps.setState({ ...next, dogId: theirs.dogId, lastSyncedAt: now.toISOString() });
+        return { outcome: 'synced' };
+      }
       const dogId = state.dogId ?? newDogId();
       await remote.upsertDog(toRemote(dogId, local));
       next = { ...next, dogId, lastSyncedAt: now.toISOString() };

@@ -123,7 +123,7 @@ The 15-second onboarding Minigame that measures the user's reaction latency. It 
 _Avoid_: Mini-playtest, test
 
 **Walk Plan**:
-The personalized sequence of Nodes suggested to a new user after the Diagnostic, shown with the diagnostic card before the soft paywall.
+The personalized sequence of Nodes suggested to a new user after the Diagnostic, shown with the diagnostic card before the guided first Stage.
 _Avoid_: Curriculum, schedule
 
 **Hint**:
@@ -188,3 +188,23 @@ _Avoid_: Floor prop, decal
 **Visual Shield**:
 A prop in a Stage (such as a parked car) that breaks the Dog's line of sight to a Distractor, stopping Arousal accumulation.
 _Avoid_: Cover, screen, barrier
+
+**Splash**:
+The branded screen shown on every cold start until the Dog is loaded, before the first-run funnel or the World Map.
+_Avoid_: Loading screen, intro
+
+**Reset Progress**:
+A deliberate, confirmed return of a local-only Dog to its first-run state, available only while signed out. It never touches an account or a cloud Dog.
+_Avoid_: Delete account, wipe, factory reset
+
+**Funnel**:
+The first-run sequence a new Dog goes through once: welcome, name and look, Taste Stage, payoff, Dog setup, Diagnostic, Walk Plan, the guided first Stage and the soft paywall. It ends at the World Map and runs again only after Reset Progress.
+_Avoid_: Onboarding flow, wizard, tutorial
+
+**Taste Stage**:
+The first Stage a new user plays, before any setup question: a strong Distractor meets a Dog with no Cue skill, built so the Dog ends up Reactive. It makes the user feel the problem the game solves. It never changes the Dog record.
+_Avoid_: Demo, intro level, failure stage
+
+**Payoff Screen**:
+The Funnel screen after the Taste Stage that names the Dog and says the game will be tuned to it, whatever the Taste Stage's result.
+_Avoid_: Result screen, fail screen

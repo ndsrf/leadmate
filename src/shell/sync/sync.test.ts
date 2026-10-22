@@ -49,6 +49,9 @@ function device(remote: Remote | null, record: DogRecord = newDogRecord(), state
 
 const played = (r: DogRecord, at: string, nodes: string[] = []) => touch({ ...applyStage(r, payloadWith({ followMarks: 3, markerHits: 1, markerAccuracyMs: 0, posteSuccesses: 1 }), new Date(at)), completedNodes: nodes }, new Date(at));
 
+/** A Dog that is past the welcome screen, so it holds something the user did. */
+const begun = (r: DogRecord): DogRecord => ({ ...r, onboarding: { ...r.onboarding, step: 'done' } });
+
 describe('runSync', () => {
   it('does nothing when no backend is configured', async () => {
     const { d, run } = device(null);
@@ -74,7 +77,7 @@ describe('runSync', () => {
   it('asks instead of merging when the account already has a Dog', async () => {
     const remote = new FakeRemote();
     remote.dogs = [{ dogId: 'cloud-dog', record: newDogRecord(), updatedAt: newDogRecord().updatedAt }];
-    const local = played(newDogRecord(), '2026-05-02T09:00:00Z');
+    const local = begun(played(newDogRecord(), '2026-05-02T09:00:00Z'));
     const { d, run } = device(remote, local);
     const result = await run();
     expect(result.outcome).toBe('needs-choice');
@@ -83,6 +86,51 @@ describe('runSync', () => {
     expect(remote.dogs[0].record).toEqual(newDogRecord());
     expect(migrateOnRegister(local, remote.dogs)).toBe('choose');
     expect(migrateOnRegister(local, [])).toBe('upload');
+  });
+
+  it('replaces a first-run Dog with the account Dog without asking, and the cloud Dog keeps its own step', async () => {
+    const remote = new FakeRemote();
+    const cloud = { ...played(newDogRecord(), '2026-05-01T09:00:00Z', ['poste-practice']), name: 'Luna', onboarding: { ...newDogRecord().onboarding, step: 'plan' as const } };
+    remote.dogs = [{ dogId: 'cloud-dog', record: cloud, updatedAt: cloud.updatedAt }];
+    const { d, run } = device(remote, newDogRecord());
+    expect((await run()).outcome).toBe('synced');
+    expect(d.record.name).toBe('Luna');
+    expect(d.record.onboarding.step).toBe('plan');
+    expect(d.record.completedNodes).toEqual(['poste-practice']);
+    expect(d.state.dogId).toBe('cloud-dog');
+    expect(remote.dogs).toHaveLength(1);
+  });
+
+  it('uploads a first-run Dog to an account with no Dog', async () => {
+    const remote = new FakeRemote();
+    const { d, run } = device(remote, newDogRecord());
+    expect((await run()).outcome).toBe('synced');
+    expect(remote.dogs).toHaveLength(1);
+    expect(d.state.dogId).toBe(remote.dogs[0].dogId);
+  });
+
+  it('carries a rename to the account and to a second device', async () => {
+    const remote = new FakeRemote();
+    const first = device(remote, begun({ ...played(newDogRecord(), '2026-05-02T09:00:00Z'), name: 'Luna' }));
+    await first.run();
+    const second = device(remote, newDogRecord(), { ...NEW_SYNC_STATE, dogId: first.d.state.dogId });
+    await second.run();
+    expect(second.d.record.name).toBe('Luna');
+    second.d.record = touch({ ...second.d.record, name: 'Nube' }, new Date('2026-05-03T09:00:00Z'));
+    await second.run();
+    expect(migrateRecord(remote.dogs[0].record).name).toBe('Nube');
+    first.d.now = new Date('2026-05-04T10:00:00Z');
+    await first.run();
+    expect(first.d.record.name).toBe('Nube');
+  });
+
+  it('accepts a Dog from before names, with an empty name', async () => {
+    const remote = new FakeRemote();
+    const { version: _v, name: _n, ...old } = begun(played(newDogRecord(), '2026-05-02T09:00:00Z'));
+    remote.dogs = [{ dogId: 'old', record: { ...old, version: 4 }, updatedAt: '2026-05-02T09:00:00.000Z' }];
+    const { d, run } = device(remote, newDogRecord(), { ...NEW_SYNC_STATE, dogId: 'old' });
+    expect((await run()).outcome).toBe('synced');
+    expect(d.record.name).toBe('');
   });
 
   it('asks again when this device was paired with a Dog the account no longer has', async () => {

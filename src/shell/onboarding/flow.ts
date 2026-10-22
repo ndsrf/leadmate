@@ -1,5 +1,5 @@
-/** The funnel's steps in order; `first-stage` and `done` come after the paywall screen has been passed. */
-export const ONBOARDING_STEPS = ['setup', 'diagnostic', 'plan', 'paywall', 'first-stage', 'done'] as const;
+/** The funnel's steps in order; `done` comes after the paywall screen has been passed. */
+export const ONBOARDING_STEPS = ['welcome', 'dog', 'taste', 'payoff', 'setup', 'diagnostic', 'plan', 'first-stage', 'paywall', 'done'] as const;
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
 
 export function isOnboardingStep(v: unknown): v is OnboardingStep {
@@ -12,14 +12,25 @@ export function nextStep(step: OnboardingStep): OnboardingStep {
   return ONBOARDING_STEPS[Math.min(i + 1, ONBOARDING_STEPS.length - 1)];
 }
 
-/** True while the funnel (up to and including the paywall screen) still has to be shown. */
+/** True while the funnel (every step before `done`, the paywall included) still has to be shown. */
 export function inFunnel(step: OnboardingStep): boolean {
-  return ONBOARDING_STEPS.indexOf(step) < ONBOARDING_STEPS.indexOf('first-stage');
+  return ONBOARDING_STEPS.indexOf(step) < ONBOARDING_STEPS.indexOf('done');
 }
 
-/** What the app shows for a persisted step: the funnel screens, the guided first Stage, or the World Map. */
-export type OnboardingPage = 'funnel' | 'first-stage' | 'home';
+/** What the app shows for a persisted step: the funnel screens, a Stage, the paywall, or the World Map. */
+export type OnboardingPage = 'funnel' | 'taste' | 'first-stage' | 'paywall' | 'home';
 
 export function pageForStep(step: OnboardingStep): OnboardingPage {
-  return inFunnel(step) ? 'funnel' : step === 'first-stage' ? 'first-stage' : 'home';
+  switch (step) {
+    case 'taste':
+      return 'taste';
+    case 'first-stage':
+      return 'first-stage';
+    case 'paywall':
+      return 'paywall';
+    case 'done':
+      return 'home';
+    default:
+      return 'funnel';
+  }
 }

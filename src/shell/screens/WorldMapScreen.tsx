@@ -9,7 +9,7 @@ import { streakStatus, type StreakStatus } from '../celebrations';
 import type { Stars } from '../stars';
 import type { StreakRecord } from '../streak';
 import { Button } from '../Overlays';
-import { Chip, Panel, ProgressBar, StarRow } from '../ui/components';
+import { Chip, Panel, ProgressBar, Raised, StarRow } from '../ui/components';
 import { connector, labelOnRight, labelWidth, NODE_SIZE, nodeCenterX, nodeVisual, ROW_HEIGHT } from '../ui/mapLayout';
 import { lockMessage } from '../mapText';
 import { handlePress } from '../ui/press';
@@ -54,8 +54,8 @@ export function Flame({ lit, label }: { lit: boolean; label: string }) {
   });
   return (
     <View accessibilityLabel={label} className="mr-2 h-8 w-6 items-center justify-end" style={{ opacity: lit ? 1 : 0.35 }}>
-      <View style={drop(20, color.flameOuter)} />
-      <View style={[drop(11, color.flameInner), { position: 'absolute', bottom: 4 }]} />
+      <View style={drop(20, color.flame)} />
+      <View style={[drop(11, color.accent), { position: 'absolute', bottom: 4 }]} />
     </View>
   );
 }
@@ -72,7 +72,7 @@ function LockIcon({ tint }: { tint: string }) {
 
 /** The Dog's marker on the map: a paw (no sprite frames exist for the shell), muted and ringed in amber while Rusty. */
 export function PawMarker({ rusty, label }: { rusty: boolean; label: string }) {
-  const fill = rusty ? color.accentEdge : color.brandEdge;
+  const fill = rusty ? color.flame : color.brandDeep;
   const toe = { width: 7, height: 8, borderRadius: 4, backgroundColor: color.ink };
   return (
     <View accessibilityLabel={label} className="h-8 w-8 items-center justify-center rounded-game-pill" style={{ backgroundColor: fill, borderWidth: rusty ? 3 : 0, borderColor: color.accent }}>
@@ -102,7 +102,7 @@ function NextUpRing({ pulse }: { pulse: boolean }) {
   return (
     <Animated.View
       pointerEvents="none"
-      style={[{ position: 'absolute', left: -7, top: -7, width: size, height: size, borderRadius: size / 2, borderWidth: 4, borderColor: color.accent }, style]}
+      style={[{ position: 'absolute', left: -7, top: -7, width: size, height: size, borderRadius: size / 2, borderWidth: 3, borderStyle: 'dashed', borderColor: color.ink }, style]}
     />
   );
 }
@@ -129,6 +129,8 @@ function NodeRow({
   onPress: (entry: MapNode) => void;
 }) {
   const c = nodeVisual(entry.state);
+  // a locked Node is flat with a dashed outline: no shadow, so it cannot look pressable
+  const shadow = c.glyph === 'lock' ? 0 : theme.depth.sm.x;
   const cx = nodeCenterX(index, width);
   const onRight = labelOnRight(index);
   const seg = connector(index, width);
@@ -138,10 +140,10 @@ function NodeRow({
   return (
     <View style={{ height: ROW_HEIGHT }}>
       {hasNext && (
-        <View
-          pointerEvents="none"
-          style={{ position: 'absolute', left: seg.left - 3, top: seg.top - seg.length / 2, width: 6, height: seg.length, borderRadius: 3, backgroundColor: state === 'done' ? color.brandEdge : color.surfaceHigh, transform: [{ rotate: `${seg.angle}deg` }] }}
-        />
+        <>
+          <View pointerEvents="none" style={{ position: 'absolute', left: seg.left - 7, top: seg.top - seg.length / 2, width: 14, height: seg.length, borderRadius: 7, backgroundColor: color.ink, opacity: state === 'locked' ? 0.5 : 1, transform: [{ rotate: `${seg.angle}deg` }] }} />
+          <View pointerEvents="none" style={{ position: 'absolute', left: seg.left - 3.5, top: seg.top - seg.length / 2, width: 7, height: seg.length, borderRadius: 3.5, backgroundColor: state === 'done' ? color.brand : color.surface, opacity: state === 'locked' ? 0.7 : 1, transform: [{ rotate: `${seg.angle}deg` }] }} />
+        </>
       )}
       <Pressable
         onPress={() => handlePress(() => onPress(entry))}
@@ -151,17 +153,15 @@ function NodeRow({
         style={{ position: 'absolute', left: cx - NODE_SIZE / 2, top: 0, width: NODE_SIZE, height: NODE_SIZE }}
       >
         {c.ring && <NextUpRing pulse={pulse} />}
-        <View style={{ width: NODE_SIZE, height: NODE_SIZE, borderRadius: NODE_SIZE / 2, backgroundColor: c.edge, paddingBottom: theme.depth.edge }}>
-          <View style={{ flex: 1, borderRadius: NODE_SIZE / 2, backgroundColor: c.fill, alignItems: 'center', justifyContent: 'center', opacity: worldUnlocked ? 1 : 0.7 }}>
-            {c.glyph === 'lock' ? (
-              <LockIcon tint={c.ink} />
-            ) : (
-              <Text className="font-display text-2xl" style={{ color: c.ink }}>
-                {c.glyph === 'check' ? '✓' : String(index + 1)}
-              </Text>
-            )}
-          </View>
-        </View>
+        <Raised fill={c.fill} edge={c.edge} radius={NODE_SIZE / 2} offset={shadow} faceStyle={{ width: NODE_SIZE - shadow, height: NODE_SIZE - shadow, alignItems: 'center', justifyContent: 'center', borderStyle: c.glyph === 'lock' ? 'dashed' : 'solid', opacity: worldUnlocked ? 1 : 0.7 }}>
+          {c.glyph === 'lock' ? (
+            <LockIcon tint={c.ink} />
+          ) : (
+            <Text className="font-display text-displayM" style={{ color: c.ink }}>
+              {c.glyph === 'check' ? '✓' : String(index + 1)}
+            </Text>
+          )}
+        </Raised>
         {state === 'next' && (
           <View pointerEvents="none" style={{ position: 'absolute', right: -14, top: -14 }}>
             <PawMarker rusty={rusty} label={rusty ? t('map.dogRusty') : t('map.dog')} />
@@ -174,11 +174,11 @@ function NodeRow({
         importantForAccessibility="no"
         style={{ position: 'absolute', top: 0, minHeight: NODE_SIZE, justifyContent: 'center', width: labelWidth(index, width), ...(onRight ? { left: cx + NODE_SIZE / 2 + 12 } : { left: cx - NODE_SIZE / 2 - 12 - labelWidth(index, width) }), alignItems: onRight ? 'flex-start' : 'flex-end' }}
       >
-        <Text className={`text-sm font-semibold ${state === 'locked' ? 'text-inkDim' : 'text-ink'}`} style={{ textAlign: onRight ? 'left' : 'right' }}>
+        <Text className={`font-display text-body ${state === 'locked' ? 'text-inkMuted' : 'text-ink'}`} style={{ textAlign: onRight ? 'left' : 'right' }}>
           {title}
         </Text>
         {state === 'done' && entry.stars !== undefined && <StarRow stars={entry.stars} size={16} label={`${entry.stars} ${t('map.starsOf3')}`} />}
-        {state === 'next' && <Text className="text-xs font-bold text-accent">{t('map.nodeNext')}</Text>}
+        {state === 'next' && <Text className="font-display text-caption text-ink">{t('map.nodeNext')}</Text>}
       </Pressable>
     </View>
   );
@@ -203,26 +203,37 @@ function WorldBlock({
   onLayout: (e: LayoutChangeEvent) => void;
   onPathLayout: (e: LayoutChangeEvent) => void;
 }) {
+  const palette = theme.world[`w${entry.world.worldNumber}` as keyof typeof theme.world];
   return (
-    <View className="mb-6" onLayout={onLayout} style={{ opacity: entry.unlocked ? 1 : 0.75 }}>
-      <Text className={`font-display text-lg ${entry.unlocked ? 'text-ink' : 'text-inkMuted'}`}>{t(entry.world.title)}</Text>
-      <Text className="mb-2 mt-0.5 text-xs text-inkMuted">{entry.unlocked ? `${t('world.progress')}: ${entry.done} / ${entry.total}` : t('world.locked')}</Text>
+    <View className="mb-6" onLayout={onLayout} style={{ opacity: entry.unlocked ? 1 : 0.85 }}>
+      <Raised fill={palette.sky} radius={theme.radius.lg} offset={theme.depth.rest.x} className="mb-3" faceStyle={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[3], paddingHorizontal: 14, paddingVertical: 10 }}>
+        <View className="items-center justify-center rounded-game-pill bg-surface" style={{ width: 40, height: 40, borderWidth: theme.border.ink, borderColor: color.ink }}>
+          <Text className="font-display text-title text-ink">{entry.world.worldNumber}</Text>
+        </View>
+        <View className="shrink flex-1">
+          <Text className="font-display text-title text-ink">{t(entry.world.title)}</Text>
+          <Text className="text-caption text-inkMuted">{entry.unlocked ? `${t('world.progress')}: ${entry.done} / ${entry.total}` : t('world.locked')}</Text>
+        </View>
+      </Raised>
       {entry.unlocked && <ProgressBar value={entry.done} max={entry.total} className="mb-3" />}
-      <View onLayout={onPathLayout} style={{ height: entry.nodes.length * ROW_HEIGHT }}>
-        {entry.nodes.map((node, i) => (
-          <NodeRow
-            key={node.node.id}
-            t={t}
-            entry={node}
-            index={i}
-            width={width}
-            hasNext={i < entry.nodes.length - 1}
-            rusty={rusty}
-            worldUnlocked={entry.unlocked}
-            pulse={pulse}
-            onPress={onPress}
-          />
-        ))}
+      <View className="overflow-hidden" style={{ borderWidth: theme.border.ink, borderColor: color.ink, borderRadius: theme.radius.lg, backgroundColor: palette.sky, paddingTop: 16 }}>
+        <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 56, backgroundColor: palette.ground, opacity: 0.55 }} />
+        <View onLayout={onPathLayout} style={{ height: entry.nodes.length * ROW_HEIGHT, paddingHorizontal: 0 }}>
+          {entry.nodes.map((node, i) => (
+            <NodeRow
+              key={node.node.id}
+              t={t}
+              entry={node}
+              index={i}
+              width={width - 2 * theme.border.ink}
+              hasNext={i < entry.nodes.length - 1}
+              rusty={rusty}
+              worldUnlocked={entry.unlocked}
+              pulse={pulse}
+              onPress={onPress}
+            />
+          ))}
+        </View>
       </View>
     </View>
   );
@@ -243,7 +254,7 @@ export function WorldMapScreen({ t, completed, stars, streak, today, dailyBest, 
   const model = mapModel(completed, stars);
   const motion = useMotion();
   const scroll = useRef<ScrollView>(null);
-  const [width, setWidth] = useState(theme.readableWidth);
+  const [width, setWidth] = useState(theme.size.readableWidth);
   const [lockNote, setLockNote] = useState<string | null>(null);
   const offsets = useRef<{ blocks: Record<string, number>; paths: Record<string, number> }>({ blocks: {}, paths: {} });
   const nextId = model.nextUp?.nodeId;
@@ -280,7 +291,7 @@ export function WorldMapScreen({ t, completed, stars, streak, today, dailyBest, 
 
   const header = (
     <View>
-      <View className="flex-row flex-wrap items-center" style={{ gap: theme.space.sm }}>
+      <View className="flex-row flex-wrap items-center" style={{ gap: theme.space[2] }}>
         <StreakChip t={t} status={streakStatus(streak, today)} />
         <Chip
           label={t('daily.title')}
@@ -293,7 +304,7 @@ export function WorldMapScreen({ t, completed, stars, streak, today, dailyBest, 
       </View>
       {lockNote && (
         <Panel className="mt-2">
-          <Text className="text-sm text-ink">{lockNote}</Text>
+          <Text className="text-body text-ink">{lockNote}</Text>
         </Panel>
       )}
     </View>
@@ -304,14 +315,14 @@ export function WorldMapScreen({ t, completed, stars, streak, today, dailyBest, 
       {banner}
       {rustyPrompt && (
         <Panel tone="warn" className="mb-4">
-          <Text className="font-display text-lg text-onWarn">{t('rusty.title')}</Text>
-          <Text className="mt-1 text-sm text-onWarn">{t('rusty.body')}</Text>
+          <Text className="font-display text-title text-ink">{t('rusty.title')}</Text>
+          <Text className="mt-1 text-body text-ink">{t('rusty.body')}</Text>
           <Button label={t('rusty.warmup')} onPress={onWarmup} />
           <Button label={t('rusty.skip')} tone="quiet" onPress={onSkipWarmup} />
         </Panel>
       )}
-      {skippedWarmup && <Text className="mb-4 text-sm text-accent">{t('rusty.skipped')}</Text>}
-      {model.allComplete && <Text className="mb-4 text-sm text-inkMuted">{t('map.allDone')}</Text>}
+      {skippedWarmup && <Text className="mb-4 text-body text-ink">{t('rusty.skipped')}</Text>}
+      {model.allComplete && <Text className="mb-4 text-body text-inkMuted">{t('map.allDone')}</Text>}
       <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
         {model.worlds.map((world) => (
           <WorldBlock

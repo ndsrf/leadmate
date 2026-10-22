@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import type { Translate } from '../../src/i18n';
-import { HUD_COLOR, HUD_COLOR_NUM, HUD_DEPTH, HUD_PRIMARY_BUTTON } from './tokens.generated';
+import { HUD_AROUSAL_NUM, HUD_BORDER, HUD_COLOR, HUD_COLOR_NUM, HUD_DEPTH, HUD_PRIMARY_BUTTON, HUD_TENSION_NUM } from './tokens.generated';
 import { CUE_LABEL_WIDTH, CUE_RADIUS, fitFontSize, hudLayout, MARKER_RADIUS, SNIFF_RADIUS, visibleCues } from '../../src/hud/layout';
 import { dogPose, gaitPeriod } from '../../src/hud/pose';
 import { applyDetents, keyboardInput, screenToWorldDirection, type Keys } from '../../src/hud/input';
@@ -33,7 +33,7 @@ export interface StageOptions {
   onReady?: () => void;
 }
 
-const COLORS: Record<TensionState, number> = { slack: 0x22c55e, taut: 0xfacc15, rigid: 0xef4444 };
+const COLORS: Record<TensionState, number> = { slack: HUD_TENSION_NUM.slack, taut: HUD_TENSION_NUM.taut, rigid: HUD_TENSION_NUM.rigid };
 const JOY_RADIUS = 70;
 const TILE_M = 2; // one ground tile is 2 m wide
 /** Half the width of the road drawn along the route, which Ground Cover leaves alone. */
@@ -136,23 +136,23 @@ export class StageScene extends Phaser.Scene {
     this.hudDirty.reset();
     this.cameraDirty.reset();
     this.markerLabel = this.add
-      .text(0, 0, this.options.t('hud.marker'), { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '16px' })
+      .text(0, 0, this.options.t('hud.marker'), { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '16px', fontStyle: 'bold', backgroundColor: HUD_COLOR.surface, padding: { x: 8, y: 2 } })
       .setOrigin(0.5, 0);
     this.cueLabel = this.add
-      .text(0, 0, this.options.t('hud.cue'), { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '14px' })
+      .text(0, 0, this.options.t('hud.cue'), { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '14px', fontStyle: 'bold', backgroundColor: HUD_COLOR.surface, padding: { x: 8, y: 2 } })
       .setOrigin(0.5, 1);
     this.leaveItLabel = this.add
-      .text(0, 0, this.options.t('hud.leaveIt'), { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '14px' })
+      .text(0, 0, this.options.t('hud.leaveIt'), { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '14px', fontStyle: 'bold', backgroundColor: HUD_COLOR.surface, padding: { x: 8, y: 2 } })
       .setOrigin(0.5, 1);
     this.sniffLabel = this.add
-      .text(0, 0, this.options.t('hud.sniff'), { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '14px' })
+      .text(0, 0, this.options.t('hud.sniff'), { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '14px', fontStyle: 'bold', backgroundColor: HUD_COLOR.surface, padding: { x: 8, y: 2 } })
       .setOrigin(0.5, 1)
       .setVisible(false);
     this.markerCount = this.add
-      .text(0, 0, '', { fontFamily: 'system-ui, sans-serif', color: HUD_PRIMARY_BUTTON.label, fontSize: '15px', fontStyle: 'bold' })
+      .text(0, 0, '', { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '15px', fontStyle: 'bold' })
       .setOrigin(0.5);
     this.hintText = this.add
-      .text(0, 0, '', { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '16px', backgroundColor: `${HUD_COLOR.bg}cc`, padding: { x: 10, y: 6 }, align: 'center' })
+      .text(0, 0, '', { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '16px', backgroundColor: `${HUD_COLOR.surface}f2`, padding: { x: 10, y: 6 }, align: 'center' })
       .setOrigin(0.5, 0)
       .setVisible(false);
     // the HUD has its own unzoomed camera so it stays in screen pixels
@@ -462,6 +462,7 @@ export class StageScene extends Phaser.Scene {
       this.cuePressed = null;
       this.sniffPressed = false;
     } else {
+      if (input.strength > 0 || input.marker || input.cue || input.sniff) this.signal('first-input', this.sim.time);
       this.accumulator += Math.min(delta, 100) / 1000;
       while (this.accumulator >= step && !this.sim.ended) {
         this.simSteps++;
@@ -758,6 +759,13 @@ export class StageScene extends Phaser.Scene {
     }
   }
 
+  /** A HUD disc in the shell's depth style: ink outline, solid ink shadow `shadow` points down-right, face shifted `press` points toward it. */
+  private hudDisc(h: Phaser.GameObjects.Graphics, x: number, y: number, r: number, fill: number, shadow: number, press: number, edge: number = HUD_COLOR_NUM.ink): void {
+    if (shadow > 0) h.fillStyle(HUD_COLOR_NUM.ink).fillCircle(x + shadow, y + shadow, r);
+    h.fillStyle(fill).fillCircle(x + press, y + press, r);
+    h.lineStyle(HUD_BORDER, edge).strokeCircle(x + press, y + press, r);
+  }
+
   private drawHud(): void {
     const h = this.hud;
     const cues = visibleCues(this.options.scenario.cues);
@@ -788,24 +796,22 @@ export class StageScene extends Phaser.Scene {
     let knob = this.joy?.knob ?? base;
     const delta = sub(knob, base);
     if (length(delta) > JOY_RADIUS) knob = add(base, scale(delta, JOY_RADIUS / length(delta)));
-    h.fillStyle(0xffffff, 0.12).fillCircle(base.x, base.y, JOY_RADIUS);
-    h.lineStyle(2, 0xffffff, 0.35).strokeCircle(base.x, base.y, JOY_RADIUS);
+    // joystick: a paper ring with an ink outline, the knob a raised ink-outlined disc
+    h.fillStyle(HUD_COLOR_NUM.surface, 0.35).fillCircle(base.x, base.y, JOY_RADIUS);
+    h.lineStyle(HUD_BORDER, HUD_COLOR_NUM.ink, 0.6).strokeCircle(base.x, base.y, JOY_RADIUS);
     const walkR = JOY_RADIUS * this.sim.config.walkStrength;
-    h.lineStyle(1, 0xffffff, 0.25).strokeCircle(base.x, base.y, walkR);
-    h.fillStyle(0xffffff, this.joy ? 0.7 : 0.4).fillCircle(knob.x, knob.y, 26);
+    h.lineStyle(1, HUD_COLOR_NUM.ink, 0.35).strokeCircle(base.x, base.y, walkR);
+    this.hudDisc(h, knob.x, knob.y, 26, HUD_COLOR_NUM.surface, 0, this.joy ? HUD_DEPTH - 1 : HUD_DEPTH);
 
     const m = this.markerHome;
     const enabled = left > 0;
     const down = enabled && (this.markerPointerDown || this.keys.marker.isDown || this.keys.marker2.isDown);
-    // raised like the shell's primary button: the face sinks onto its darker edge while pressed
-    const sink = down ? HUD_DEPTH : 0;
-    const my = m.y + sink;
-    h.fillStyle(enabled ? HUD_COLOR_NUM.brandEdge : HUD_COLOR_NUM.quietEdge, enabled ? 0.95 : 0.5).fillCircle(m.x, m.y + HUD_DEPTH, MARKER_RADIUS);
-    h.fillStyle(enabled ? HUD_COLOR_NUM.brand : HUD_COLOR_NUM.quiet, enabled ? 0.95 : 0.5).fillCircle(m.x, my, MARKER_RADIUS);
-    h.lineStyle(3, 0xffffff, enabled ? 0.8 : 0.35).strokeCircle(m.x, my, MARKER_RADIUS);
+    // raised like the shell's buttons: an ink-outlined disc on a solid offset shadow that it sinks into while pressed
+    const my = down ? m.y + 3 : m.y;
+    this.hudDisc(h, m.x, m.y, MARKER_RADIUS, enabled ? HUD_COLOR_NUM.accent : HUD_COLOR_NUM.disabled, enabled ? HUD_DEPTH : 0, down ? 3 : 0, enabled ? HUD_COLOR_NUM.ink : HUD_COLOR_NUM.disabledText);
     // remaining Marks, as a badge on the button
     const badge = { x: m.x + MARKER_RADIUS * 0.72, y: m.y - MARKER_RADIUS * 0.72 };
-    h.fillStyle(enabled ? HUD_COLOR_NUM.accent : 0xcbd5e1).fillCircle(badge.x, badge.y, 14);
+    h.fillStyle(enabled ? HUD_COLOR_NUM.surface : HUD_COLOR_NUM.disabled).fillCircle(badge.x, badge.y, 14).lineStyle(HUD_BORDER - 0.5, enabled ? HUD_COLOR_NUM.ink : HUD_COLOR_NUM.disabledText).strokeCircle(badge.x, badge.y, 14);
     this.markerCount.setText(String(Math.max(0, left)));
     this.markerLabel.setAlpha(enabled ? 1 : 0.5);
     // Cue buttons above the Marker: "Let's Go" is a speech bubble, "Leave It" a raised hand
@@ -813,40 +819,37 @@ export class StageScene extends Phaser.Scene {
     this.leaveItLabel.setVisible(cues.includes('leave-it'));
     if (cues.includes('lets-go')) {
       const c = this.cueHome;
-      h.fillStyle(0x8b5cf6, 0.85).fillCircle(c.x, c.y, CUE_RADIUS);
-      h.lineStyle(3, 0xffffff, 0.8).strokeCircle(c.x, c.y, CUE_RADIUS);
-      h.fillStyle(0xffffff).fillRoundedRect(c.x - 14, c.y - 12, 28, 18, 5).fillTriangle(c.x - 6, c.y + 5, c.x + 2, c.y + 5, c.x - 8, c.y + 14);
-      if (this.cuePointerDown || this.keys.cue.isDown) h.lineStyle(4, 0xfef08a).strokeCircle(c.x, c.y, CUE_RADIUS + 3);
+      const press = this.cuePointerDown || this.keys.cue.isDown ? 3 : 0;
+      this.hudDisc(h, c.x, c.y, CUE_RADIUS, HUD_COLOR_NUM.brand, HUD_DEPTH, press);
+      h.fillStyle(HUD_COLOR_NUM.ink).fillRoundedRect(c.x - 14 + press, c.y - 12 + press, 28, 18, 5).fillTriangle(c.x - 6 + press, c.y + 5 + press, c.x + 2 + press, c.y + 5 + press, c.x - 8 + press, c.y + 14 + press);
     }
     if (cues.includes('leave-it')) {
       const c = this.leaveItHome;
-      h.fillStyle(0xf97316, 0.9).fillCircle(c.x, c.y, CUE_RADIUS);
-      h.lineStyle(3, 0xffffff, 0.8).strokeCircle(c.x, c.y, CUE_RADIUS);
+      const press = this.leaveItPointerDown || this.keys.leaveIt.isDown ? 3 : 0;
+      this.hudDisc(h, c.x, c.y, CUE_RADIUS, HUD_COLOR_NUM.info, HUD_DEPTH, press);
       // an open hand: palm and four fingers
-      h.fillStyle(0xffffff).fillRoundedRect(c.x - 11, c.y - 4, 22, 16, 5);
-      for (let k = 0; k < 4; k++) h.fillRoundedRect(c.x - 11 + k * 6, c.y - 15 - (k === 1 || k === 2 ? 3 : 0), 4, 15, 2);
-      if (this.leaveItPointerDown || this.keys.leaveIt.isDown) h.lineStyle(4, 0xfef08a).strokeCircle(c.x, c.y, CUE_RADIUS + 3);
+      h.fillStyle(HUD_COLOR_NUM.onInfo).fillRoundedRect(c.x - 11 + press, c.y - 4 + press, 22, 16, 5);
+      for (let k = 0; k < 4; k++) h.fillRoundedRect(c.x - 11 + k * 6 + press, c.y - 15 - (k === 1 || k === 2 ? 3 : 0) + press, 4, 15, 2);
     }
     // Go Sniff: only while on offer, a nose over scent dots
     this.sniffLabel.setVisible(offer);
     if (offer) {
       const n = this.sniffHome;
       const timeLeft = sniffLeft;
-      h.fillStyle(0x0ea5e9, 0.9).fillCircle(n.x, n.y, SNIFF_RADIUS);
-      h.lineStyle(3, 0xffffff, 0.85).strokeCircle(n.x, n.y, SNIFF_RADIUS);
-      h.fillStyle(0xffffff).fillEllipse(n.x, n.y + 2, 20, 14);
-      h.fillStyle(0x0c4a6e).fillCircle(n.x - 4, n.y + 3, 2).fillCircle(n.x + 4, n.y + 3, 2);
+      const press = this.sniffPointerDown || this.keys.sniff.isDown ? 3 : 0;
+      this.hudDisc(h, n.x, n.y, SNIFF_RADIUS, HUD_COLOR_NUM.surface, HUD_DEPTH, press);
+      h.fillStyle(HUD_COLOR_NUM.ink).fillEllipse(n.x + press, n.y + 2 + press, 20, 14);
+      h.fillStyle(HUD_COLOR_NUM.surface).fillCircle(n.x - 4 + press, n.y + 3 + press, 2).fillCircle(n.x + 4 + press, n.y + 3 + press, 2);
       // the time left to use it, as a ring that runs down
-      h.lineStyle(4, 0xfef08a, 0.9).beginPath().arc(n.x, n.y, SNIFF_RADIUS + 5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * timeLeft).strokePath();
-      if (this.sniffPointerDown || this.keys.sniff.isDown) h.lineStyle(4, 0xfef08a).strokeCircle(n.x, n.y, SNIFF_RADIUS + 9);
+      h.lineStyle(4, HUD_COLOR_NUM.sintonia).beginPath().arc(n.x, n.y, SNIFF_RADIUS + 7, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * timeLeft).strokePath();
     }
 
     // Arousal: a thin bar at the top of the screen, no text
     const barX = (width - barW) / 2;
-    h.fillStyle(0xffffff, 0.15).fillRect(barX, height - 14, barW, 6);
-    h.fillStyle(level < 0.5 ? 0x22c55e : level < 0.75 ? 0xfacc15 : 0xef4444).fillRect(barX, height - 14, barW * level, 6);
+    h.fillStyle(HUD_COLOR_NUM.surfaceSunken).fillRoundedRect(barX, height - 16, barW, 10, 5).lineStyle(2, HUD_COLOR_NUM.ink).strokeRoundedRect(barX, height - 16, barW, 10, 5);
+    if (level > 0) h.fillStyle(level < 0.5 ? HUD_AROUSAL_NUM.calm : level < 0.75 ? HUD_AROUSAL_NUM.alert : HUD_AROUSAL_NUM.reactive).fillRoundedRect(barX + 1, height - 15, Math.max(8, (barW - 2) * level), 8, 4);
 
     // checkmark icon: the Marker says "right now, good"
-    h.lineStyle(8, 0xffffff, enabled ? 1 : 0.5).beginPath().moveTo(m.x - 18, my).lineTo(m.x - 5, my + 14).lineTo(m.x + 20, my - 14).strokePath();
+    h.lineStyle(8, enabled ? HUD_COLOR_NUM.ink : HUD_COLOR_NUM.disabledText).beginPath().moveTo(m.x - 18, my).lineTo(m.x - 5, my + 14).lineTo(m.x + 20, my - 14).strokePath();
   }
 }

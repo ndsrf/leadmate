@@ -31,6 +31,8 @@ export interface Account {
   countStage: () => void;
   /** Local data stays after deleting the account; the pairing with the deleted Dog does not. */
   forgetAccount: () => void;
+  /** Detaches sync pairing and clears reminder counters on reset. */
+  resetSync: () => void;
 }
 
 /**
@@ -170,5 +172,6 @@ export function useAccount(store: KeyValueStore, record: DogRecord | null, repla
     markReminded: () => persist(markReminded(syncRef.current, new Date())),
     countStage: () => persist(countStage(syncRef.current)),
     forgetAccount: () => persist({ ...syncRef.current, dogId: null, paused: null, lastSyncedAt: null }),
+    resetSync: () => persist({ ...NEW_SYNC_STATE }),
   };
 }

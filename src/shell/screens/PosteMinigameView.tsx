@@ -58,10 +58,10 @@ export function PosteMinigameView({ t, coat = 'golden', onFinish, variant = 'pos
   return (
     <Screen>
       <View className="mb-2 flex-row items-center justify-between">
-        <Text className="text-sm text-inkDim">{`${t('minigame.poste.round')} ${Math.min(outcomes.length + 1, config.rounds)} ${t('minigame.poste.of')} ${config.rounds}`}</Text>
+        <Text className="text-body text-inkMuted">{`${t('minigame.poste.round')} ${Math.min(outcomes.length + 1, config.rounds)} ${t('minigame.poste.of')} ${config.rounds}`}</Text>
         <RoundPips t={t} total={config.rounds} results={outcomes.map((o) => o === 'settled')} />
       </View>
-      <Text className="mb-4 text-base text-ink">{t(help)}</Text>
+      <Text className="mb-4 text-bodyL text-ink">{t(help)}</Text>
       <LeashScene t={t} posture={posture} tension={tension} coat={coat} />
       <CueCaption t={t} posture={posture} />
       <TensionGauge t={t} tension={tension} />
