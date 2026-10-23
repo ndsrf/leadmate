@@ -40,7 +40,41 @@ export function connector(index: number, width: number): Segment {
   return { left: (x1 + x2) / 2, top: NODE_SIZE / 2 + dy / 2, length, angle: (Math.atan2(-dx, dy) * 180) / Math.PI };
 }
 
-export type NodeGlyph = 'check' | 'number' | 'lock';
+export type ConnectorKind = 'solid' | 'dashed';
+
+export interface ConnectorVisual {
+  kind: ConnectorKind;
+  outerWidth: number;
+  innerWidth: number;
+  outerColor: string;
+  innerColor: string;
+}
+
+/** Path styles distinguishing completed solid trails from upcoming dashed trails (Board 11). */
+export function connectorVisual(
+  fromState: 'locked' | 'open' | 'next' | 'done',
+  toState?: 'locked' | 'open' | 'next' | 'done'
+): ConnectorVisual {
+  const isSolid = fromState === 'done' && toState === 'done';
+  if (isSolid) {
+    return {
+      kind: 'solid',
+      outerWidth: 14,
+      innerWidth: 7,
+      outerColor: color.ink,
+      innerColor: color.brand,
+    };
+  }
+  return {
+    kind: 'dashed',
+    outerWidth: 8,
+    innerWidth: 4,
+    outerColor: color.ink,
+    innerColor: color.surface,
+  };
+}
+
+export type NodeGlyph = 'check' | 'play' | 'lock';
 
 export interface NodeVisual {
   fill: string;
@@ -50,17 +84,18 @@ export interface NodeVisual {
   glyph: NodeGlyph;
   /** Only the next-up Node carries the attention ring (and the Dog). */
   ring: boolean;
+  scale: number;
 }
 
 export function nodeVisual(state: 'locked' | 'open' | 'next' | 'done'): NodeVisual {
   switch (state) {
     case 'done':
-      return { fill: color.brand, edge: color.ink, ink: color.onBrand, glyph: 'check', ring: false };
+      return { fill: color.brand, edge: color.ink, ink: color.onBrand, glyph: 'check', ring: false, scale: 1 };
     case 'next':
-      return { fill: color.accent, edge: color.ink, ink: color.onAccent, glyph: 'number', ring: true };
+      return { fill: color.accent, edge: color.ink, ink: color.ink, glyph: 'play', ring: true, scale: 1.08 };
     case 'open':
-      return { fill: color.info, edge: color.ink, ink: color.onInfo, glyph: 'number', ring: false };
+      return { fill: color.surface, edge: color.ink, ink: color.ink, glyph: 'play', ring: false, scale: 1 };
     default:
-      return { fill: color.locked, edge: color.lockedText, ink: color.lockedText, glyph: 'lock', ring: false };
+      return { fill: color.locked, edge: color.lockedText, ink: color.lockedText, glyph: 'lock', ring: false, scale: 1 };
   }
 }

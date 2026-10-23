@@ -18,14 +18,23 @@ const world = (id: string) => findWorld(id)!;
 const allOf = (...worlds: string[]) => worlds.flatMap((w) => world(w).nodes);
 
 describe('World unlocking', () => {
-  it('has four sequential Worlds, each unlocked by the one before', () => {
-    expect(WORLDS.map((w) => w.worldNumber)).toEqual([1, 2, 3, 4]);
-    expect(WORLDS.map((w) => w.unlockedBy)).toEqual([undefined, 'home', 'sidewalk', 'urban']);
+  it('has eight sequential Worlds, each unlocked by the one before', () => {
+    expect(WORLDS.map((w) => w.worldNumber)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(WORLDS.map((w) => w.unlockedBy)).toEqual([undefined, 'home', 'sidewalk', 'urban', 'park', 'recall', 'cafe', 'trails']);
+  });
+
+  it('designates Worlds 1-4 as playable free worlds and 5-8 as preview plus worlds', () => {
+    const playable = WORLDS.filter((w) => !w.preview);
+    const previews = WORLDS.filter((w) => w.preview);
+    expect(playable.map((w) => w.id)).toEqual(['home', 'sidewalk', 'urban', 'park']);
+    expect(playable.every((w) => (w.tier ?? 'free') === 'free')).toBe(true);
+    expect(previews.map((w) => w.id)).toEqual(['recall', 'cafe', 'trails', 'crowds']);
+    expect(previews.every((w) => w.tier === 'plus')).toBe(true);
   });
 
   it('keeps World 1 open and the rest locked for a new Dog', () => {
     expect(isWorldUnlocked(world('home'), [])).toBe(true);
-    for (const id of ['sidewalk', 'urban', 'park']) expect(isWorldUnlocked(world(id), [])).toBe(false);
+    for (const id of ['sidewalk', 'urban', 'park', 'recall', 'cafe', 'trails', 'crowds']) expect(isWorldUnlocked(world(id), [])).toBe(false);
   });
 
   it('keeps World 2 locked until every Node of World 1 is completed', () => {
@@ -67,8 +76,11 @@ describe('World unlocking', () => {
     expect(currentWorld(allOf('home', 'sidewalk', 'urban', 'park')).id).toBe('park');
   });
 
-  it('titles every World from the catalog', () => {
-    for (const w of WORLDS) expect(es[w.title]).toBeTruthy();
+  it('titles and topics every World from the catalog', () => {
+    for (const w of WORLDS) {
+      expect(es[w.title]).toBeTruthy();
+      expect(es[w.topics]).toBeTruthy();
+    }
   });
 });
 
