@@ -1,3 +1,4 @@
+import type { TextKey } from '../i18n';
 import { starsShown } from './celebrations';
 import { NODES } from './nodes/content';
 import { missingPrerequisites, type NodeDef } from './nodes/node';
@@ -21,6 +22,13 @@ export interface MapWorld {
   done: number;
   total: number;
   nodes: MapNode[];
+  topics: TextKey;
+  tier: 'free' | 'plus';
+  preview: boolean;
+  unlockRequirement?: {
+    worldTitle: TextKey;
+    lastNodeTitle?: TextKey;
+  };
 }
 
 export interface MapModel {
@@ -48,7 +56,37 @@ export function mapModel(completed: readonly string[], stars: Readonly<Record<st
       const missing = missingPrerequisites(node, completed);
       return { node, state: 'locked', lock: !unlocked ? { kind: 'world' } : { kind: 'nodes', ids: missing } };
     });
-    return { world, unlocked, done: mapNodes.filter((n) => n.state === 'done').length, total: world.nodes.length, nodes: mapNodes };
+
+    let unlockRequirement: MapWorld['unlockRequirement'] = undefined;
+    if (!unlocked && world.unlockedBy) {
+      const prevWorld = worlds.find((w) => w.id === world.unlockedBy);
+      if (prevWorld) {
+        const missing = prevWorld.nodes.filter((id) => !completed.includes(id));
+        const lastMissingId = missing[missing.length - 1];
+        const lastNode = nodes.find((n) => n.id === lastMissingId);
+        unlockRequirement = {
+          worldTitle: prevWorld.title,
+          lastNodeTitle: missing.length === 1 && lastNode ? lastNode.title : undefined,
+        };
+      }
+    }
+
+    const preview = world.preview ?? false;
+    const total = preview ? (world.nodeCount ?? 0) : world.nodes.length;
+    const tier = world.tier ?? 'free';
+
+    return {
+      world,
+      unlocked,
+      done: mapNodes.filter((n) => n.state === 'done').length,
+      total,
+      nodes: mapNodes,
+      topics: world.topics,
+      tier,
+      preview,
+      unlockRequirement,
+    };
   });
-  return { worlds: mapWorlds, nextUp, allComplete: nextUp === null && mapWorlds.every((w) => w.done === w.total) };
+  const playableWorlds = mapWorlds.filter((w) => !w.preview);
+  return { worlds: mapWorlds, nextUp, allComplete: nextUp === null && playableWorlds.every((w) => w.done === w.total) };
 }

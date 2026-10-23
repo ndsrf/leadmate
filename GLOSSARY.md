@@ -173,6 +173,14 @@ _Avoid_: Sniff button, treat break
 A themed grouping of Nodes with distinct environment rules and mechanics.
 _Avoid_: Chapter, zone, campaign level
 
+**Plus World**:
+A World designated as part of LeadMate Plus, requiring an active Plus subscription in addition to completing preceding Worlds.
+_Avoid_: Premium chapter, paid zone
+
+**Preview World**:
+An upcoming World shown on the World Map as a curriculum roadmap preview with topic summaries and node counts, but without playable simulation stages yet.
+_Avoid_: Teaser world, dummy chapter
+
 **World Map**:
 The main screen: all Worlds laid out as a path of Nodes showing which are locked, open, next up or completed, with each Node's Stars.
 _Avoid_: Home, level select, menu

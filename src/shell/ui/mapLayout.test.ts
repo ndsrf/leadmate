@@ -1,6 +1,6 @@
 import { es } from '../../i18n';
 import { NODES } from '../nodes/content';
-import { connector, labelOnRight, labelWidth, NODE_SIZE, nodeCenterX, ROW_HEIGHT } from './mapLayout';
+import { connector, connectorVisual, labelOnRight, labelWidth, NODE_SIZE, nodeCenterX, nodeVisual, ROW_HEIGHT } from './mapLayout';
 import { theme } from './theme';
 
 describe('World Map layout', () => {
@@ -28,6 +28,28 @@ describe('World Map layout', () => {
     const c = connector(3, 300); // 0.5 -> 0.2: leans left going down
     expect(c.length).toBeGreaterThan(ROW_HEIGHT);
     expect(c.angle).toBeGreaterThan(0);
+  });
+
+  it('distinguishes solid completed trail from dashed upcoming trail', () => {
+    expect(connectorVisual('done', 'done').kind).toBe('solid');
+    expect(connectorVisual('done', 'next').kind).toBe('dashed');
+    expect(connectorVisual('next', 'open').kind).toBe('dashed');
+    expect(connectorVisual('locked', 'locked').kind).toBe('dashed');
+  });
+
+  it('gives next-up node an attention ring and enlarged scale', () => {
+    const next = nodeVisual('next');
+    expect(next.ring).toBe(true);
+    expect(next.scale).toBeGreaterThan(1);
+    expect(next.glyph).toBe('play');
+
+    const open = nodeVisual('open');
+    expect(open.ring).toBe(false);
+    expect(open.scale).toBe(1);
+    expect(open.glyph).toBe('play');
+
+    const done = nodeVisual('done');
+    expect(done.glyph).toBe('check');
   });
 
   it('gives Nodes a touch target of at least 44 points', () => {

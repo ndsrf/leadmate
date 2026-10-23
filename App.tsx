@@ -72,7 +72,8 @@ type Flow =
   | { name: 'daily'; attempt: number; result: DailyRun | null }
   | { name: 'node'; run: NodeRun; attempt: number }
   | { name: 'library' }
-  | { name: 'lesson'; id: string };
+  | { name: 'lesson'; id: string }
+  | { name: 'paywall' };
 
 /** The shell owns the active language; Spanish is the only one shipped. */
 const CATALOG = es;
@@ -454,6 +455,9 @@ export default function App() {
           onSkipWarmup={() => setWarmup('skipped')}
           onStartNode={startNodeRun}
           onSettings={() => setSettingsOpen(true)}
+          breed={record.breed}
+          coat={record.coat}
+          onPaywall={() => setFlow({ name: 'paywall' })}
           banner={
             account.signedIn && account.sync.paused === 'verify' ? (
               <AccountBanner t={t} kind="verify" />
@@ -606,6 +610,17 @@ export default function App() {
           />
         );
       }
+    } else if (f.name === 'paywall') {
+      screen = (
+        <PaywallScreen
+          t={t}
+          onStartTrial={() => {
+            update((r) => passPaywall(r, true, new Date()));
+            goHome();
+          }}
+          onLater={goHome}
+        />
+      );
     } else if (f.name === 'register') {
       screen = <RegisterPrompt t={t} onCreate={() => setFlow({ name: 'auth', mode: 'signup', returnTo: 'map' })} onNotNow={goHome} />;
     } else if (f.name === 'auth') {

@@ -57,7 +57,26 @@ describe('mapModel', () => {
     const m = mapModel(all, {});
     expect(m.allComplete).toBe(true);
     expect(m.nextUp).toBeNull();
-    expect(m.worlds.every((w) => w.nodes.every((n) => n.state === 'done'))).toBe(true);
+    expect(m.worlds.filter((w) => !w.preview).every((w) => w.nodes.every((n) => n.state === 'done'))).toBe(true);
+  });
+
+  it('includes topic strings, tier, preview flags, and dynamic unlock requirement', () => {
+    const m = mapModel(['harness-ritual', 'doorbell-mat'], {});
+    const sidewalk = m.worlds.find((w) => w.world.id === 'sidewalk')!;
+    expect(sidewalk.unlocked).toBe(false);
+    expect(sidewalk.tier).toBe('free');
+    expect(sidewalk.preview).toBe(false);
+    expect(sidewalk.topics).toBe('world.2.topics');
+    expect(sidewalk.unlockRequirement).toEqual({
+      worldTitle: 'world.1.title',
+      lastNodeTitle: 'node.poste.title',
+    });
+
+    const recall = m.worlds.find((w) => w.world.id === 'recall')!;
+    expect(recall.tier).toBe('plus');
+    expect(recall.preview).toBe(true);
+    expect(recall.total).toBe(4);
+    expect(recall.nodes).toHaveLength(0);
   });
 
   it('gives every Node exactly one state', () => {
