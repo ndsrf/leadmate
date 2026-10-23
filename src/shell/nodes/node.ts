@@ -72,7 +72,8 @@ export function isAvailable(node: NodeDef, completed: readonly string[]): boolea
 
 export type NodeResult =
   | { kind: 'stage'; payload: SimulationDebriefPayload }
-  | { kind: 'minigame'; metrics: Partial<Record<Metric, number>> };
+  /** `handlingScore` (0-1000) is set by an action Minigame, which earns 1 to 3 stars from it; the Poste practice has none. */
+  | { kind: 'minigame'; metrics: Partial<Record<Metric, number>>; handlingScore?: number };
 
 /** How well the user did on each metric, 0 (worst) to 1; a metric the run gave no evidence for is absent. */
 export function metricScores(result: NodeResult): Partial<Record<Metric, number>> {
@@ -177,8 +178,8 @@ export function onDebrief(record: DogRecord, run: NodeRun, now: Date): DogRecord
   if (run.step !== 'debrief' || !run.result) return record;
   const graded = run.node.mode === 'stage' && run.result.kind === 'stage' ? applyStage(record, run.result.payload, now) : record;
   const completedNodes = graded.completedNodes.includes(run.node.id) ? graded.completedNodes : [...graded.completedNodes, run.node.id];
-  // stars come from handling quality alone (a Minigame has no score) and only ever go up
-  const earned = starsFor(run.result.kind === 'stage' ? run.result.payload.handlingScore : undefined);
+  // stars come from handling quality alone (the Poste practice has no score) and only ever go up
+  const earned = starsFor(run.result.kind === 'stage' ? run.result.payload.handlingScore : run.result.handlingScore);
   const stars = { ...graded.stars, [run.node.id]: bestStars(graded.stars[run.node.id], earned)! };
   // reaching a Debrief makes today an active day for the Streak
   return applyActivity({ ...graded, completedNodes, stars }, now);

@@ -1,6 +1,6 @@
 import { es } from '../../i18n';
-import { DOORBELL_MAT, newDoorbell, stepDoorbell } from '../nodes/doorbellMat';
-import { agitatesDog, CANINE_POSTURES, doorbellPosture, holdPosture, COAT_PALETTE, COLLAR_POINT, handlerHand, leashPath, postureSpec, quantizeTension, tensionTone } from './canine';
+import { CORRECT_ACTION, type DogState } from '../nodes/readDog';
+import { atDoor, CANINE_POSTURES, DOG_VIEW, emotePoint, holdPosture, COAT_PALETTE, COLLAR_POINT, handlerHand, leashPath, postureSpec, quantizeTension, READABLE_POSTURES, tensionTone, wrongReaction } from './canine';
 
 describe('canine postures', () => {
   it('describes every posture with a spoken label from the catalog', () => {
@@ -14,37 +14,72 @@ describe('canine postures', () => {
   });
 });
 
-describe('Doorbell Mat posture cycle', () => {
-  it('goes standing, barking, settling, calm over a round', () => {
-    let s = newDoorbell(7);
-    const seen: string[] = [];
-    for (let i = 0; i < 400 && s.round === 0 && !s.done; i++) {
-      s = stepDoorbell(s, 0.05, false);
-      if (s.round !== 0) break;
-      const p = doorbellPosture(s, false);
-      if (seen[seen.length - 1] !== p) seen.push(p);
+describe('readable Dog states', () => {
+  it('gives every posture a spoken label, an on-screen cue, a collar point and an emote point', () => {
+    for (const posture of CANINE_POSTURES) {
+      const spec = postureSpec(posture);
+      expect(es[spec.label]).toBeTruthy();
+      expect(es[spec.cue]).toBeTruthy();
+      expect(COLLAR_POINT[posture]).toBeDefined();
+      expect(emotePoint(posture).y).toBeGreaterThanOrEqual(0);
     }
-    expect(seen).toEqual(['standing_waiting', 'alert_barking', 'settling_towards_mat', 'calm_sphinx_on_mat']);
   });
 
-  it('keeps the Dog barking after an early Mark', () => {
-    const s = stepDoorbell(newDoorbell(7), 0.05, true);
-    expect(s.outcomes).toEqual(['early']);
-    expect(agitatesDog('early')).toBe(true);
-    expect(doorbellPosture(s, agitatesDog('early'))).toBe('alert_barking');
+  it('tells any two readable states apart by pose and by at least one other feature', () => {
+    for (const a of READABLE_POSTURES) {
+      for (const b of READABLE_POSTURES) {
+        if (a >= b) continue;
+        const x = postureSpec(a);
+        const y = postureSpec(b);
+        expect(x.leanDeg !== y.leanDeg || x.height !== y.height).toBe(true);
+        const other = x.tail !== y.tail || x.earsUp !== y.earsUp || x.mouthOpen !== y.mouthOpen || x.eyes !== y.eyes || x.emote !== y.emote;
+        expect(other).toBe(true);
+      }
+    }
   });
 
-  it('does not agitate the Dog for a hit or a late Mark', () => {
-    expect(agitatesDog('hit')).toBe(false);
-    expect(agitatesDog('late')).toBe(false);
+  it('draws the readable states that name an emotion with an emote', () => {
+    expect(postureSpec('jumping').emote).toBe('alert');
+    expect(postureSpec('sniffing').emote).toBe('distracted');
+    expect(postureSpec('sitting_attentive').emote).toBe('love');
+    expect(postureSpec('relaxed_lying').emote).toBe('sleepy');
   });
 
-  it('shows the calm posture when marking during the window', () => {
-    let s = newDoorbell(3);
-    while (s.phase !== 'calm') s = stepDoorbell(s, 0.05, false);
-    expect(doorbellPosture(s, false)).toBe('calm_sphinx_on_mat');
-    expect(stepDoorbell(s, 0.05, true).outcomes).toEqual(['hit']);
-    expect(DOORBELL_MAT.markWindow).toBeGreaterThan(0);
+  it('keeps the emote bubble inside the drawing', () => {
+    for (const posture of CANINE_POSTURES) {
+      const p = emotePoint(posture);
+      expect(p.x).toBeLessThanOrEqual(DOG_VIEW.w - 14);
+      expect(p.y).toBeGreaterThanOrEqual(14);
+    }
+  });
+
+  it('has a different correct action for the aroused, distracted, attentive and relaxed Dog', () => {
+    const right = (s: DogState) => CORRECT_ACTION[s];
+    expect(new Set([right('jumping'), right('sniffing'), right('sitting_attentive'), right('relaxed_lying')]).size).toBe(4);
+  });
+});
+
+describe('wrong action reactions', () => {
+  it('refuses a harness by backing away', () => {
+    expect(wrongReaction('sitting_attentive', 'harness')).toBe('standing_waiting');
+  });
+
+  it('leaves an aroused Dog aroused', () => {
+    expect(wrongReaction('jumping', 'marker')).toBe('jumping');
+    expect(wrongReaction('alert_barking', 'wait')).toBe('alert_barking');
+    expect(wrongReaction('staring_door', 'cue')).toBe('staring_door');
+  });
+
+  it('makes a calmer Dog jump up', () => {
+    expect(wrongReaction('relaxed_lying', 'cue')).toBe('jumping');
+    expect(wrongReaction('sniffing', 'marker')).toBe('jumping');
+  });
+
+  it('keeps the Dog at the door only for the door postures, so a reaction on the mat stays there', () => {
+    expect(atDoor('alert_barking')).toBe(true);
+    expect(atDoor('staring_door')).toBe(true);
+    expect(atDoor('relaxed_lying')).toBe(false);
+    expect(atDoor(wrongReaction('unsettled_on_mat', 'marker'))).toBe(false);
   });
 });
 

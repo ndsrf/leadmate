@@ -1,20 +1,56 @@
 import type { TextKey } from '../../i18n';
 import type { DogCoat } from '../../sim/config';
-import type { DoorbellOutcome, DoorbellState } from '../nodes/doorbellMat';
+import type { DogState, ReadDogAction } from '../nodes/readDog';
 
 /** What the Dog's body is doing in a static Minigame; the avatar draws one of these. */
-export type CaninePosture = 'standing_waiting' | 'alert_barking' | 'settling_towards_mat' | 'calm_sphinx_on_mat' | 'straining' | 'slack' | 'looking';
+export type CaninePosture =
+  | 'standing_waiting'
+  | 'alert_barking'
+  | 'settling_towards_mat'
+  | 'calm_sphinx_on_mat'
+  | 'straining'
+  | 'slack'
+  | 'looking'
+  | 'jumping'
+  | 'sniffing'
+  | 'sitting_attentive'
+  | 'staring_door'
+  | 'unsettled_on_mat'
+  | 'relaxed_lying';
 
-export const CANINE_POSTURES: readonly CaninePosture[] = ['standing_waiting', 'alert_barking', 'settling_towards_mat', 'calm_sphinx_on_mat', 'straining', 'slack', 'looking'];
+export const CANINE_POSTURES: readonly CaninePosture[] = [
+  'standing_waiting',
+  'alert_barking',
+  'settling_towards_mat',
+  'calm_sphinx_on_mat',
+  'straining',
+  'slack',
+  'looking',
+  'jumping',
+  'sniffing',
+  'sitting_attentive',
+  'staring_door',
+  'unsettled_on_mat',
+  'relaxed_lying',
+];
+
+/** The postures the user reads in the action Minigames; they must tell apart at a glance. */
+export const READABLE_POSTURES: readonly DogState[] = ['jumping', 'alert_barking', 'staring_door', 'sniffing', 'sitting_attentive', 'unsettled_on_mat', 'relaxed_lying'];
+
+export type Eyes = 'open' | 'wide' | 'closed';
+/** The bubble beside the head; the caption always names the same state in words. */
+export type Emote = 'alert' | 'distracted' | 'love' | 'sleepy' | 'none';
 
 export interface PostureSpec {
   /** Body tilt in degrees, positive leaning forward (towards the right-hand side). */
   leanDeg: number;
-  /** 1 is standing at full height, lower is lying down. */
+  /** 1 is standing at full height, lower is lying down, above 1 is in the air. */
   height: number;
   tail: 'up' | 'wag' | 'down';
   earsUp: boolean;
   mouthOpen: boolean;
+  eyes: Eyes;
+  emote: Emote;
   /** Read aloud by screen readers. */
   label: TextKey;
   /** A few words on screen naming what the Dog is doing, so the user learns to read it. */
@@ -22,13 +58,19 @@ export interface PostureSpec {
 }
 
 const SPECS: Record<CaninePosture, PostureSpec> = {
-  standing_waiting: { leanDeg: 0, height: 1, tail: 'wag', earsUp: true, mouthOpen: false, label: 'minigame.dog.standing_waiting', cue: 'minigame.cue.waiting' },
-  alert_barking: { leanDeg: 12, height: 1, tail: 'up', earsUp: true, mouthOpen: true, label: 'minigame.dog.alert_barking', cue: 'minigame.cue.barking' },
-  settling_towards_mat: { leanDeg: -4, height: 0.8, tail: 'down', earsUp: false, mouthOpen: false, label: 'minigame.dog.settling_towards_mat', cue: 'minigame.cue.settling' },
-  calm_sphinx_on_mat: { leanDeg: 0, height: 0.55, tail: 'down', earsUp: false, mouthOpen: false, label: 'minigame.dog.calm_sphinx_on_mat', cue: 'minigame.cue.calm' },
-  straining: { leanDeg: 24, height: 0.95, tail: 'up', earsUp: true, mouthOpen: false, label: 'minigame.dog.straining', cue: 'minigame.cue.straining' },
-  slack: { leanDeg: 0, height: 0.7, tail: 'down', earsUp: false, mouthOpen: false, label: 'minigame.dog.slack', cue: 'minigame.cue.slack' },
-  looking: { leanDeg: 0, height: 1, tail: 'up', earsUp: true, mouthOpen: false, label: 'minigame.dog.looking', cue: 'minigame.cue.looking' },
+  standing_waiting: { leanDeg: 0, height: 1, tail: 'wag', earsUp: true, mouthOpen: false, eyes: 'open', emote: 'none', label: 'minigame.dog.standing_waiting', cue: 'minigame.cue.waiting' },
+  alert_barking: { leanDeg: 12, height: 1, tail: 'up', earsUp: true, mouthOpen: true, eyes: 'wide', emote: 'alert', label: 'minigame.dog.alert_barking', cue: 'minigame.cue.barking' },
+  settling_towards_mat: { leanDeg: -4, height: 0.8, tail: 'down', earsUp: false, mouthOpen: false, eyes: 'open', emote: 'none', label: 'minigame.dog.settling_towards_mat', cue: 'minigame.cue.settling' },
+  calm_sphinx_on_mat: { leanDeg: 0, height: 0.55, tail: 'down', earsUp: false, mouthOpen: false, eyes: 'closed', emote: 'none', label: 'minigame.dog.calm_sphinx_on_mat', cue: 'minigame.cue.calm' },
+  straining: { leanDeg: 24, height: 0.95, tail: 'up', earsUp: true, mouthOpen: false, eyes: 'open', emote: 'none', label: 'minigame.dog.straining', cue: 'minigame.cue.straining' },
+  slack: { leanDeg: 0, height: 0.7, tail: 'down', earsUp: false, mouthOpen: false, eyes: 'open', emote: 'none', label: 'minigame.dog.slack', cue: 'minigame.cue.slack' },
+  looking: { leanDeg: 0, height: 1, tail: 'up', earsUp: true, mouthOpen: false, eyes: 'open', emote: 'none', label: 'minigame.dog.looking', cue: 'minigame.cue.looking' },
+  jumping: { leanDeg: -8, height: 1.15, tail: 'wag', earsUp: true, mouthOpen: true, eyes: 'wide', emote: 'alert', label: 'minigame.dog.jumping', cue: 'minigame.cue.jumping' },
+  sniffing: { leanDeg: 10, height: 0.8, tail: 'wag', earsUp: false, mouthOpen: false, eyes: 'open', emote: 'distracted', label: 'minigame.dog.sniffing', cue: 'minigame.cue.sniffing' },
+  sitting_attentive: { leanDeg: -10, height: 0.75, tail: 'down', earsUp: true, mouthOpen: false, eyes: 'open', emote: 'love', label: 'minigame.dog.sitting_attentive', cue: 'minigame.cue.sitting_attentive' },
+  staring_door: { leanDeg: 6, height: 1, tail: 'up', earsUp: true, mouthOpen: false, eyes: 'wide', emote: 'alert', label: 'minigame.dog.staring_door', cue: 'minigame.cue.staring_door' },
+  unsettled_on_mat: { leanDeg: 3, height: 0.9, tail: 'wag', earsUp: false, mouthOpen: false, eyes: 'wide', emote: 'alert', label: 'minigame.dog.unsettled_on_mat', cue: 'minigame.cue.unsettled_on_mat' },
+  relaxed_lying: { leanDeg: 0, height: 0.5, tail: 'down', earsUp: false, mouthOpen: false, eyes: 'closed', emote: 'sleepy', label: 'minigame.dog.relaxed_lying', cue: 'minigame.cue.relaxed_lying' },
 };
 
 export function postureSpec(posture: CaninePosture): PostureSpec {
@@ -38,23 +80,21 @@ export function postureSpec(posture: CaninePosture): PostureSpec {
 /** Seconds a mistake keeps the Dog agitated on screen, since a failed round resets the Dog straight away. */
 export const AGITATION_SECONDS = 1.2;
 
-/** Fraction of the excited phase after which the Dog starts to disengage from the door. */
-const SETTLING_FROM = 0.6;
+/** States in which the Dog is aroused: a wrong action leaves it so instead of changing its posture. */
+const AROUSED: readonly DogState[] = ['jumping', 'alert_barking', 'staring_door'];
 
 /**
- * The Doorbell Mat posture cycle: waiting, barking at the bell, settling towards the mat, calm on it.
- * A press that rewarded the wrong moment keeps the Dog barking for a while (`agitated`).
+ * How the Dog answers a wrong action for `AGITATION_SECONDS`: a harness is refused (the Dog backs away
+ * to stand), an aroused Dog stays aroused, and any other Dog jumps up.
  */
-export function doorbellPosture(state: Pick<DoorbellState, 'phase' | 't' | 'bellAt' | 'calmAt'>, agitated: boolean): CaninePosture {
-  if (agitated) return 'alert_barking';
-  if (state.phase === 'waiting') return 'standing_waiting';
-  if (state.phase === 'calm') return 'calm_sphinx_on_mat';
-  return state.t >= state.bellAt + SETTLING_FROM * (state.calmAt - state.bellAt) ? 'settling_towards_mat' : 'alert_barking';
+export function wrongReaction(state: DogState, action: ReadDogAction | null): CaninePosture {
+  if (action === 'harness') return 'standing_waiting';
+  return AROUSED.includes(state) ? state : 'jumping';
 }
 
-/** Whether a Doorbell round outcome rewarded an uncalm Dog. */
-export function agitatesDog(outcome: DoorbellOutcome): boolean {
-  return outcome === 'early';
+/** Whether the Dog stands at the door in the Doorbell scene; every other posture is on or near its mat. */
+export function atDoor(posture: CaninePosture): boolean {
+  return posture === 'standing_waiting' || posture === 'alert_barking' || posture === 'staring_door';
 }
 
 /**
@@ -82,7 +122,19 @@ export const COLLAR_POINT: Record<CaninePosture, { x: number; y: number }> = {
   straining: { x: 116, y: 58 },
   slack: { x: 92, y: 40 },
   looking: { x: 110, y: 50 },
+  jumping: { x: 110, y: 37 },
+  sniffing: { x: 112, y: 70 },
+  sitting_attentive: { x: 92, y: 38 },
+  staring_door: { x: 112, y: 48 },
+  unsettled_on_mat: { x: 108, y: 55 },
+  relaxed_lying: { x: 106, y: 80 },
 };
+
+/** Where an emote bubble sits, in `DOG_VIEW` units: the top-right corner, clear of the head, and higher for a Dog that stands taller. */
+export function emotePoint(posture: CaninePosture): { x: number; y: number } {
+  const c = COLLAR_POINT[posture];
+  return { x: DOG_VIEW.w - 14, y: Math.max(14, c.y - 30) };
+}
 
 /** Tension is shown in steps so the leash only redraws when it visibly changes. */
 export const TENSION_STEPS = 10;

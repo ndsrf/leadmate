@@ -106,7 +106,11 @@ An optional external URL declared on a Theory Primer card pointing to web-hosted
 _Avoid_: Webview modal, external resource
 
 **Minigame**:
-The static Interactive Simulation of a Node, such as a Tap & Hold or timing exercise. It is not a Stage and does not change the Dog's Learning Attributes.
+The static Interactive Simulation of a Node: a Tap & Hold exercise, or a scene of Action beats in which the user reads the Dog and picks an action. It is not a Stage and does not change the Dog's Learning Attributes.
+
+**Action beat**:
+One step of an action Minigame: the Dog shows one Canine Posture and exactly one of the offered actions is right for it.
+_Avoid_: Round, turn, question
 
 **Checkpoint**:
 The 5-second timed quiz between the Theory Primer and the Interactive Simulation.
