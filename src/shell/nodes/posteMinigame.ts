@@ -12,16 +12,6 @@ export const POSTE_MINIGAME = {
   roundSeconds: 6,
 } as const;
 
-export interface HoldMinigameConfig {
-  rounds: number;
-  strainSeconds: number;
-  holdToSettle: number;
-  roundSeconds: number;
-}
-
-/** The Harness Ritual: the same hold-to-settle exercise, slower, with the Dog excited at the door. */
-export const HARNESS_RITUAL: HoldMinigameConfig = { rounds: 3, strainSeconds: 2.5, holdToSettle: 2.5, roundSeconds: 7 };
-
 export type RoundOutcome = 'settled' | 'released' | 'too-late';
 
 export interface PosteMinigameState {
@@ -41,21 +31,21 @@ export function newPosteMinigame(): PosteMinigameState {
 }
 
 /** Leash tension, 0 to 1, as shown to the user. Holding relaxes it. */
-export function tensionOf(state: PosteMinigameState, cfg: HoldMinigameConfig = POSTE_MINIGAME): number {
-  const strain = Math.min(1, state.t / cfg.strainSeconds);
-  return Math.max(0, strain * (1 - Math.min(1, state.held / cfg.holdToSettle)));
+export function tensionOf(state: PosteMinigameState): number {
+  const strain = Math.min(1, state.t / POSTE_MINIGAME.strainSeconds);
+  return Math.max(0, strain * (1 - Math.min(1, state.held / POSTE_MINIGAME.holdToSettle)));
 }
 
-function endRound(state: PosteMinigameState, outcome: RoundOutcome, cfg: HoldMinigameConfig): PosteMinigameState {
+function endRound(state: PosteMinigameState, outcome: RoundOutcome): PosteMinigameState {
   const outcomes = [...state.outcomes, outcome];
-  const done = outcomes.length >= cfg.rounds;
+  const done = outcomes.length >= POSTE_MINIGAME.rounds;
   return { ...state, outcomes, round: state.round + 1, t: 0, held: 0, done };
 }
 
 /** Advances by `dt` seconds with the Stop button `holding` or not. Pure. */
-export function stepPosteMinigame(state: PosteMinigameState, dt: number, holding: boolean, cfg: HoldMinigameConfig = POSTE_MINIGAME): PosteMinigameState {
+export function stepPosteMinigame(state: PosteMinigameState, dt: number, holding: boolean): PosteMinigameState {
   if (state.done) return state;
-  const strain = Math.min(1, (state.t + dt) / cfg.strainSeconds);
+  const strain = Math.min(1, (state.t + dt) / POSTE_MINIGAME.strainSeconds);
   let next: PosteMinigameState = {
     ...state,
     t: state.t + dt,
@@ -64,11 +54,11 @@ export function stepPosteMinigame(state: PosteMinigameState, dt: number, holding
   };
   if (holding) {
     next = { ...next, held: next.held + dt };
-    if (next.held >= cfg.holdToSettle) return endRound(next, 'settled', cfg);
+    if (next.held >= POSTE_MINIGAME.holdToSettle) return endRound(next, 'settled');
   } else if (state.held > 0) {
-    return endRound(next, 'released', cfg);
-  } else if (next.t >= cfg.roundSeconds) {
-    return endRound(next, 'too-late', cfg);
+    return endRound(next, 'released');
+  } else if (next.t >= POSTE_MINIGAME.roundSeconds) {
+    return endRound(next, 'too-late');
   }
   return next;
 }

@@ -3,7 +3,7 @@ import { applyActivity, applyDiary, applyStage, failedPoste, touch, loadDogRecor
 import { payloadWith } from './testPayload';
 import { lookOf } from './onboarding/look';
 import { advance, onDebrief, startNode, type NodeRun } from './nodes/node';
-import { DOORBELL_MAT_NODE, WALK_DISTRACTION } from './nodes/content';
+import { DOORBELL_MAT_NODE, POSTE_PRACTICE, WALK_DISTRACTION } from './nodes/content';
 
 function memoryStore(): KeyValueStore & { data: Map<string, string> } {
   const data = new Map<string, string>();
@@ -250,10 +250,21 @@ describe('stars on the record', () => {
     expect(debrief(one, 900).stars[WALK_DISTRACTION.id]).toBe(3);
   });
 
-  it('gives a Minigame completion 1 star', () => {
+  it('gives a Minigame without a handling score, the Poste practice, 1 star', () => {
+    const run: NodeRun = { ...startNode(POSTE_PRACTICE), step: 'simulation' };
+    const done = advance(run, { type: 'finish', result: { kind: 'minigame', metrics: { poste: 1, tension: 1 } } });
+    expect(onDebrief(newDogRecord(), done, new Date()).stars[POSTE_PRACTICE.id]).toBe(1);
+  });
+
+  it.each([
+    [1000, 3],
+    [800, 2],
+    [750, 2],
+    [600, 1],
+  ])('gives an action Minigame with a handling score of %i %i stars', (handlingScore, stars) => {
     const run: NodeRun = { ...startNode(DOORBELL_MAT_NODE), step: 'simulation' };
-    const done = advance(run, { type: 'finish', result: { kind: 'minigame', metrics: { timing: 1 } } });
-    expect(onDebrief(newDogRecord(), done, new Date()).stars[DOORBELL_MAT_NODE.id]).toBe(1);
+    const done = advance(run, { type: 'finish', result: { kind: 'minigame', metrics: { timing: 1, tension: 1 }, handlingScore } });
+    expect(onDebrief(newDogRecord(), done, new Date()).stars[DOORBELL_MAT_NODE.id]).toBe(stars);
   });
 
   it('does not touch Learning Attributes or the Trigger Profile for a Minigame', () => {

@@ -190,7 +190,9 @@ function DebriefBody({
   celebrations: readonly Celebration[];
 }) {
   const exercise = pickExercise(run.node, result);
-  const score = result.kind === 'stage' ? result.payload.handlingScore : undefined;
+  const score = result.kind === 'stage' ? result.payload.handlingScore : result.handlingScore;
+  // the Harness Ritual and the Doorbell Mat report the share of right actions, not Postes or timed marks
+  const actionMinigame = run.node.simulation.minigame === 'harness-ritual' || run.node.simulation.minigame === 'doorbell-mat';
   const earned = starsFor(score);
   const reveal = useReveal({ score, stars: earned });
   const { phase, scoreShown, starsShown } = reveal.state;
@@ -235,9 +237,9 @@ function DebriefBody({
             </>
           ) : (
             <>
-              {result.metrics.poste !== undefined && <Row label={t('results.minigame.poste')} value={`${Math.round(result.metrics.poste * 100)}%`} />}
-              {result.metrics.timing !== undefined && <Row label={t('results.minigame.timing')} value={`${Math.round(result.metrics.timing * 100)}%`} />}
-              {result.metrics.tension !== undefined && <Row label={t('results.minigame.tension')} value={`${Math.round(result.metrics.tension * 100)}%`} />}
+              {result.metrics.poste !== undefined && <Row label={t(actionMinigame ? 'results.minigame.beats' : 'results.minigame.poste')} value={`${Math.round(result.metrics.poste * 100)}%`} />}
+              {result.metrics.timing !== undefined && <Row label={t(actionMinigame ? 'results.minigame.beats' : 'results.minigame.timing')} value={`${Math.round(result.metrics.timing * 100)}%`} />}
+              {result.metrics.tension !== undefined && <Row label={t(actionMinigame ? 'results.minigame.calmChoices' : 'results.minigame.tension')} value={`${Math.round(result.metrics.tension * 100)}%`} />}
             </>
           )}
           <Panel tone="warn" className="mt-4">

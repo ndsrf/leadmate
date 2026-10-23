@@ -7,7 +7,8 @@ import type { DogCoat } from '../../sim/config';
 import type { BreedId } from '../onboarding/breeds';
 import { BreedArt } from './BreedArt';
 import { CanineMinigameAvatar } from './CanineMinigameAvatar';
-import { COLLAR_POINT, DOG_VIEW, HANDLER_LEAN_DEG, HANDLER_PALETTE, HANDLER_PIVOT, handlerHand, leashPath, postureSpec, tensionTone, type CaninePosture } from './canine';
+import { atDoor, COLLAR_POINT, DOG_VIEW, HANDLER_LEAN_DEG, HANDLER_PALETTE, HANDLER_PIVOT, handlerHand, leashPath, postureSpec, tensionTone, type CaninePosture } from './canine';
+import type { ReadDogAction } from '../nodes/readDog';
 import { Raised } from './components';
 import { buttonStyle } from './styles';
 import { color, theme } from './theme';
@@ -51,43 +52,50 @@ function BellRipple({ ringing, x, y }: { ringing: boolean; x: number; y: number 
   return <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: pctX(x), top: pctY(y), width: 30, height: 30, marginLeft: -15, marginTop: -15, borderRadius: 15, borderWidth: 3, borderColor: color.accent }, style]} />;
 }
 
-/** The posture a Dog takes decides where it stands in the Doorbell scene. */
-const AT_DOOR: readonly CaninePosture[] = ['standing_waiting', 'alert_barking'];
 const DOOR_DOG_X = 44;
 const MAT_DOG_X = 170;
 
+/** The hallway behind the Doorbell Mat and the Harness Ritual: door with its bell on the left, a window, the floor. */
+function RoomBackdrop({ ringing }: { ringing: boolean }) {
+  return (
+    <G>
+      <Rect x={0} y={0} width={SCENE.w} height={140} fill={color.surfaceSunken} />
+      <Rect x={0} y={96} width={SCENE.w} height={44} fill={color.edge} opacity={0.55} />
+      <Rect x={0} y={94} width={SCENE.w} height={3} fill={color.lockedText} />
+      <Rect x={0} y={140} width={SCENE.w} height={50} fill={color.lockedText} />
+      <Rect x={0} y={136} width={SCENE.w} height={6} fill={color.surface} />
+      <Rect x={150} y={24} width={72} height={54} rx={4} fill={color.info} opacity={0.55} />
+      <Line x1={186} y1={24} x2={186} y2={78} stroke={color.surfaceSunken} strokeWidth={3} />
+      <Line x1={150} y1={51} x2={222} y2={51} stroke={color.surfaceSunken} strokeWidth={3} />
+      <Rect x={150} y={24} width={72} height={54} rx={4} fill="none" stroke={color.edge} strokeWidth={4} />
+      <Rect x={8} y={14} width={78} height={128} rx={4} fill={color.lockedText} />
+      <Rect x={14} y={20} width={66} height={122} rx={3} fill={color.edge} />
+      <Rect x={24} y={30} width={46} height={42} rx={3} fill="none" stroke={color.lockedText} strokeWidth={3} />
+      <Rect x={24} y={82} width={46} height={50} rx={3} fill="none" stroke={color.lockedText} strokeWidth={3} />
+      <Circle cx={72} cy={84} r={4.5} fill={color.accent} />
+      <Rect x={92} y={62} width={18} height={30} rx={5} fill={color.surface} />
+      <Circle cx={101} cy={77} r={6} fill={ringing ? color.accent : color.flame} />
+    </G>
+  );
+}
+
 /**
  * The Doorbell Mat scene: door and bell on the left, the mat on the right. The Dog stands and barks at
- * the door, then walks to the mat and lies down; the mat lights up while it settles.
+ * the door, then walks to the mat once it is sent there; the mat lights up while the Dog is on it.
  */
 export function DoorbellScene({ t, posture, ringing, coat }: { t: Translate; posture: CaninePosture; ringing: boolean; coat: DogCoat }) {
   const [width, setWidth] = useState(0);
-  const atDoor = AT_DOOR.includes(posture);
+  const atTheDoor = atDoor(posture);
   const x = useSharedValue(DOOR_DOG_X);
   useEffect(() => {
-    x.value = withTiming(atDoor ? DOOR_DOG_X : MAT_DOG_X, { duration: atDoor ? 250 : 1100 });
-  }, [atDoor, x]);
+    x.value = withTiming(atTheDoor ? DOOR_DOG_X : MAT_DOG_X, { duration: atTheDoor ? 250 : 1100 });
+  }, [atTheDoor, x]);
   const move = useAnimatedStyle(() => ({ transform: [{ translateX: (x.value / SCENE.w) * width }] }));
-  const matActive = posture === 'settling_towards_mat' || posture === 'calm_sphinx_on_mat';
+  const matActive = !atTheDoor;
   return (
     <Stage onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
       <Svg style={fill} viewBox={`0 0 ${SCENE.w} ${SCENE.h}`} accessibilityLabel={t(ringing ? 'minigame.doorRinging' : 'minigame.door')}>
-        <Rect x={0} y={0} width={SCENE.w} height={140} fill={color.surfaceSunken} />
-        <Rect x={0} y={96} width={SCENE.w} height={44} fill={color.edge} opacity={0.55} />
-        <Rect x={0} y={94} width={SCENE.w} height={3} fill={color.lockedText} />
-        <Rect x={0} y={140} width={SCENE.w} height={50} fill={color.lockedText} />
-        <Rect x={0} y={136} width={SCENE.w} height={6} fill={color.surface} />
-        <Rect x={150} y={24} width={72} height={54} rx={4} fill={color.info} opacity={0.55} />
-        <Line x1={186} y1={24} x2={186} y2={78} stroke={color.surfaceSunken} strokeWidth={3} />
-        <Line x1={150} y1={51} x2={222} y2={51} stroke={color.surfaceSunken} strokeWidth={3} />
-        <Rect x={150} y={24} width={72} height={54} rx={4} fill="none" stroke={color.edge} strokeWidth={4} />
-        <Rect x={8} y={14} width={78} height={128} rx={4} fill={color.lockedText} />
-        <Rect x={14} y={20} width={66} height={122} rx={3} fill={color.edge} />
-        <Rect x={24} y={30} width={46} height={42} rx={3} fill="none" stroke={color.lockedText} strokeWidth={3} />
-        <Rect x={24} y={82} width={46} height={50} rx={3} fill="none" stroke={color.lockedText} strokeWidth={3} />
-        <Circle cx={72} cy={84} r={4.5} fill={color.accent} />
-        <Rect x={92} y={62} width={18} height={30} rx={5} fill={color.surface} />
-        <Circle cx={101} cy={77} r={6} fill={ringing ? color.accent : color.flame} />
+        <RoomBackdrop ringing={ringing} />
         <G>
           <Rect x={186} y={146} width={104} height={20} rx={8} fill={matActive ? color.brandDeep : color.lockedText} />
           <Rect x={188} y={144} width={100} height={20} rx={8} fill={matActive ? color.brand : color.info} />
@@ -99,8 +107,33 @@ export function DoorbellScene({ t, posture, ringing, coat }: { t: Translate; pos
       <BellRipple ringing={ringing} x={101} y={77} />
       <View accessible={false} style={{ position: 'absolute', left: pctX(0), top: pctY(158 - GROUND_Y), width: pctX(DOG_W) }}>
         <Animated.View style={move}>
-          <CanineMinigameAvatar t={t} posture={posture} coat={coat} width={(width * DOG_W) / SCENE.w} facing={atDoor ? 'left' : 'right'} />
+          <CanineMinigameAvatar t={t} posture={posture} coat={coat} width={(width * DOG_W) / SCENE.w} facing={atTheDoor ? 'left' : 'right'} />
         </Animated.View>
+      </View>
+    </Stage>
+  );
+}
+
+const HARNESS_DOG_X = 100;
+
+/** The Harness Ritual scene: the hallway with the harness on a hook; it moves onto the Dog once Put on harness works. */
+export function HarnessScene({ t, posture, harness, coat }: { t: Translate; posture: CaninePosture; harness: boolean; coat: DogCoat }) {
+  const [width, setWidth] = useState(0);
+  return (
+    <Stage onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+      <Svg style={fill} viewBox={`0 0 ${SCENE.w} ${SCENE.h}`} accessibilityLabel={t(harness ? 'minigame.harnessOn' : 'minigame.harnessScene')}>
+        <RoomBackdrop ringing={false} />
+        <Rect x={248} y={34} width={30} height={6} rx={3} fill={color.lockedText} />
+        {!harness && (
+          <G>
+            <Path d="M254 40 L254 78 M272 40 L272 78" stroke={color.danger} strokeWidth={5} strokeLinecap="round" />
+            <Path d="M254 78 Q263 92 272 78" stroke={color.danger} strokeWidth={5} strokeLinecap="round" fill="none" />
+            <Circle cx={263} cy={40} r={4} fill={color.accent} stroke={color.ink} strokeWidth={1} />
+          </G>
+        )}
+      </Svg>
+      <View accessible={false} style={{ position: 'absolute', left: pctX(HARNESS_DOG_X), top: pctY(158 - GROUND_Y), width: pctX(DOG_W) }}>
+        <CanineMinigameAvatar t={t} posture={posture} coat={coat} width={(width * DOG_W) / SCENE.w} harness={harness} />
       </View>
     </Stage>
   );
@@ -216,8 +249,10 @@ export function TensionGauge({ t, tension }: { t: Translate; tension: number }) 
   );
 }
 
-/** The one big control of a Minigame: raised like every game button, with an icon, and it sinks while held. */
-export function MinigameButton({ label, icon, onPressIn, onPressOut }: { label: string; icon: 'bell' | 'hand' | 'marker'; onPressIn?: () => void; onPressOut?: () => void }) {
+export type ActionIcon = ReadDogAction | 'hand';
+
+/** The one big control of the Poste practice: raised like every game button, with an icon, and it sinks while held. */
+export function MinigameButton({ label, icon, onPressIn, onPressOut }: { label: string; icon: ActionIcon; onPressIn?: () => void; onPressOut?: () => void }) {
   return (
     <Pressable onPressIn={onPressIn} onPressOut={onPressOut} accessibilityRole="button" accessibilityLabel={label}>
       {({ pressed }) => {
@@ -236,19 +271,70 @@ export function MinigameButton({ label, icon, onPressIn, onPressOut }: { label: 
   );
 }
 
-function ButtonIcon({ icon, tint }: { icon: 'bell' | 'hand' | 'marker'; tint: string }) {
+export interface ActionButton {
+  action: ReadDogAction;
+  label: string;
+  /** What the action does, read with the label by screen readers. */
+  effect: string;
+}
+
+/** The actions of an action Minigame in a 2x2 grid of large targets, each with an icon, a label and an accessible name and effect. */
+export function ActionButtonRow({ actions, onPress, disabled = false }: { actions: readonly ActionButton[]; onPress: (action: ReadDogAction) => void; disabled?: boolean }) {
   return (
-    <Svg width={36} height={36} viewBox="0 0 36 36">
+    <View className="flex-row flex-wrap" style={{ gap: theme.space[3] }}>
+      {actions.map(({ action, label, effect }) => (
+        <View key={action} style={{ flexBasis: '47%', flexGrow: 1 }}>
+          <Pressable onPress={() => onPress(action)} disabled={disabled} accessibilityRole="button" accessibilityLabel={`${label}. ${effect}`} accessibilityState={{ disabled }}>
+            {({ pressed }) => {
+              const s = buttonStyle('primary', { pressed });
+              return (
+                <Raised fill={s.fill} edge={s.edge} radius={theme.radius.lg} offset={theme.depth.md.x} shift={pressed ? theme.depth.md.x - theme.depth.pressed.x : 0} pressable
+                  faceStyle={{ minHeight: 76, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: theme.space[1], paddingHorizontal: theme.space[2], opacity: disabled ? 0.6 : 1 }}>
+                  <ButtonIcon icon={action} tint={s.label} />
+                  <Text className="font-display text-body" style={{ color: s.label, textAlign: 'center' }}>
+                    {label}
+                  </Text>
+                </Raised>
+              );
+            }}
+          </Pressable>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function ButtonIcon({ icon, tint }: { icon: ActionIcon; tint: string }) {
+  return (
+    <Svg width={32} height={32} viewBox="0 0 36 36" aria-hidden>
       {icon === 'marker' ? (
         <G>
           <Rect x={7} y={8} width={22} height={20} rx={6} fill={tint} />
           <Circle cx={18} cy={18} r={5} fill="none" stroke={color.brand} strokeWidth={3} />
           <Path d="M3 12 L6 14 M33 12 L30 14 M18 2 L18 6" stroke={tint} strokeWidth={2.5} strokeLinecap="round" />
         </G>
-      ) : icon === 'bell' ? (
+      ) : icon === 'cue' ? (
         <G fill={tint}>
-          <Path d="M18 4 C11 4 8 10 8 16 L8 22 L5 26 L31 26 L28 22 L28 16 C28 10 25 4 18 4 Z" />
-          <Circle cx={18} cy={30} r={3.5} />
+          <Path d="M6 14 L14 14 L22 7 L22 29 L14 22 L6 22 Z" />
+          <Path d="M26 12 Q31 18 26 24" stroke={tint} strokeWidth={2.5} strokeLinecap="round" fill="none" />
+          <Path d="M29 8 Q37 18 29 28" stroke={tint} strokeWidth={2.5} strokeLinecap="round" fill="none" />
+        </G>
+      ) : icon === 'wait' ? (
+        <G>
+          <Rect x={8} y={5} width={20} height={4} rx={2} fill={tint} />
+          <Rect x={8} y={27} width={20} height={4} rx={2} fill={tint} />
+          <Path d="M10 9 L26 9 L19 18 L26 27 L10 27 L17 18 Z" fill="none" stroke={tint} strokeWidth={2.5} strokeLinejoin="round" />
+        </G>
+      ) : icon === 'harness' ? (
+        <G fill="none" stroke={tint} strokeWidth={3.5} strokeLinecap="round">
+          <Path d="M10 6 L10 22 M26 6 L26 22" />
+          <Path d="M10 22 Q18 32 26 22" />
+          <Path d="M10 12 L26 12" />
+        </G>
+      ) : icon === 'mat' ? (
+        <G>
+          <Rect x={3} y={14} width={30} height={13} rx={5} fill={tint} />
+          <Path d="M12 20 L24 20 M20 16 L24 20 L20 24" stroke={color.brand} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
         </G>
       ) : (
         <G fill={tint}>

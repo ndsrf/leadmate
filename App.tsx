@@ -34,6 +34,7 @@ import { LessonScreen, LibraryScreen } from './src/shell/screens/LessonScreens';
 import { WorldMapScreen } from './src/shell/screens/WorldMapScreen';
 import { CheckpointScreen, DebriefScreen, PrimerScreen } from './src/shell/screens/NodeScreens';
 import { PosteMinigameView } from './src/shell/screens/PosteMinigameView';
+import { ReadDogView } from './src/shell/screens/ReadDogView';
 import { DiagnosticView } from './src/shell/screens/DiagnosticView';
 import { PaywallScreen } from './src/shell/screens/PaywallScreen';
 import { PlanScreen } from './src/shell/screens/PlanScreen';
@@ -669,12 +670,17 @@ export default function App() {
       else if (run.step === 'checkpoint')
         screen = <CheckpointScreen t={t} run={run} setting={record.checkpointSeconds} onAnswer={(option) => act({ type: 'answer', option })} onTimeout={() => act({ type: 'timeout' })} />;
       else if (run.step === 'simulation' && run.node.mode === 'minigame') {
-        const finish = (metrics: Partial<Record<Metric, number>>) => act({ type: 'finish', result: { kind: 'minigame', metrics } });
+        const finish = (metrics: Partial<Record<Metric, number>>, handlingScore?: number) => act({ type: 'finish', result: { kind: 'minigame', metrics, handlingScore } });
+        const minigame = run.node.simulation.minigame;
+        const seed = f.attempt + 1 + (dateSeed(todayString()) % 1000);
+        const playCue = () => playResolvedCue(resolveCue(record, LANGUAGE));
         screen =
-          run.node.simulation.minigame === 'doorbell-mat' ? (
-            <DoorbellMatView key={`minigame-${f.attempt}`} t={t} coat={record.coat} seed={f.attempt + 1 + (dateSeed(todayString()) % 1000)} onFinish={finish} />
+          minigame === 'doorbell-mat' ? (
+            <DoorbellMatView key={`minigame-${f.attempt}`} t={t} coat={record.coat} seed={seed} onCue={playCue} onFinish={(r) => finish(r.metrics, r.handlingScore)} />
+          ) : minigame === 'harness-ritual' ? (
+            <ReadDogView key={`minigame-${f.attempt}`} t={t} scene="harness" coat={record.coat} seed={seed} onCue={playCue} onFinish={(r) => finish(r.metrics, r.handlingScore)} />
           ) : (
-            <PosteMinigameView key={`minigame-${f.attempt}`} t={t} coat={record.coat} variant={run.node.simulation.minigame === 'harness-ritual' ? 'harness' : 'poste'} onFinish={finish} />
+            <PosteMinigameView key={`minigame-${f.attempt}`} t={t} coat={record.coat} onFinish={(metrics) => finish(metrics)} />
           );
       } else if (run.step === 'debrief') {
         screen = (
