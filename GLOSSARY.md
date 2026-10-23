@@ -78,12 +78,20 @@ _Avoid_: Command, call, order
 ### Training
 
 **Node**:
-One lesson unit: Theory Primer, Checkpoint, Interactive Simulation, Debrief. A Node's Interactive Simulation is one Stage (walking) or one Minigame (static).
-_Avoid_: Lesson, level
+One training unit: Theory Primer, Checkpoint, Interactive Simulation, Debrief. A Node's Interactive Simulation is one Stage (walking) or one Minigame (static).
+_Avoid_: Level
 
 **Theory Primer**:
-The first step of a Node: a concise 30-60 second sequence of tappable cards establishing lesson concepts.
+The first step of a Node: a concise 30-60 second sequence of tappable cards establishing the concepts of that Node. It belongs to its Node and shares no content with a Lesson.
 _Avoid_: Intro, slideshow
+
+**Lesson**:
+A standalone piece of theory reading, a vertical sequence of text, image, video and tip blocks, opened from the Theory Library at any time. It is never part of a Node, has no Stage or Minigame, and never unlocks anything. It has a suggested Day and is either read or unread.
+_Avoid_: Article, guide, Node
+
+**Theory Library**:
+The list of all Lessons in a fixed order, reached from the World Map, kept as a reference shelf. The oldest unread Lesson whose suggested Day has arrived is marked "for today".
+_Avoid_: Course, curriculum
 
 **Dual-Aspect Primer**:
 A Theory Primer structured into foundational real-world canine training theory followed by virtual dog simulation guidance.

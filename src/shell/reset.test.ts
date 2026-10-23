@@ -66,7 +66,7 @@ describe('resetProgress', () => {
   const now = new Date('2026-06-16T12:00:00.000Z');
 
   const populatedRecord: DogRecord = {
-    version: 5,
+    version: 6,
     attributes: { reconnectionLatency: 0.8, reactivityThreshold: 0.7, followChance: 0.9, checkInFrequency: 0.8 },
     triggerProfile: { dog: 2, child: 1, bicycle: 0, skateboard: 3, food: 1, other: 0 },
     calmCounts: { dog: 4 },
@@ -94,6 +94,7 @@ describe('resetProgress', () => {
       plan: ['heel-turns'],
     },
     seenHints: ['taut', 'rigid'],
+    readLessons: ['lesson-1'],
   };
 
   it('createResetRecord produces first-run state with strictly later updatedAt', () => {
@@ -112,6 +113,7 @@ describe('resetProgress', () => {
     expect(reset.dailyBest).toEqual({});
     expect(reset.customCues).toEqual({});
     expect(reset.seenHints).toEqual([]);
+    expect(reset.readLessons).toEqual([]);
 
     expect(Date.parse(reset.updatedAt)).toBeGreaterThan(Date.parse(populatedRecord.updatedAt));
   });

@@ -19,7 +19,7 @@ import { nextPosture, updateLearning, updateTriggerProfile } from './learning';
 import { isOnboardingStep, type OnboardingStep } from './onboarding/flow';
 import { addDiaryEntry, DIARY_OUTCOMES, isDateString, localDateString, markActive, NO_STREAK, type DiaryOutcome, type StreakRecord, type WalkDiaryEntry } from './streak';
 
-export const RECORD_VERSION = 5;
+export const RECORD_VERSION = 6;
 export const RECORD_KEY = 'leadmate.dog';
 
 /** Seconds of the Checkpoint timer; 0 turns it off. */
@@ -65,6 +65,8 @@ export interface DogRecord {
   onboarding: OnboardingState;
   /** Ids of the one-shot hints already shown. */
   seenHints: string[];
+  /** Ids of the Theory Library Lessons the user reached the end of; only ever grows. */
+  readLessons: string[];
 }
 
 /** Dog and Handler weights in kilograms; null until entered (setup lets the user skip). */
@@ -110,6 +112,7 @@ export function newDogRecord(): DogRecord {
     weights: { dogKg: null, handlerKg: null },
     onboarding: { ...NEW_ONBOARDING },
     seenHints: [],
+    readLessons: [],
   };
 }
 
@@ -214,6 +217,7 @@ export function migrateRecord(raw: unknown): DogRecord {
     weights: readWeights(r.weights),
     onboarding: readOnboarding(r.onboarding, r.version),
     seenHints: strings(r.seenHints),
+    readLessons: strings(r.readLessons),
   };
 }
 
