@@ -25,10 +25,16 @@ function mergeDailyBest(a: Record<string, number>, b: Record<string, number>): R
   return best;
 }
 
+/** The earlier of two optional ISO date-times; a missing one never wins. */
+function earliest(a: string | null, b: string | null): string | null {
+  if (a === null || b === null) return a ?? b;
+  return Date.parse(b) < Date.parse(a) ? b : a;
+}
+
 /**
  * Resolves two copies of the same Dog (ADR 0006). The copy with the later `updatedAt` wins whole, Learning
  * Attributes included, which are never blended field by field. Records that only grow are then combined:
- * the Walk Diary and completed Nodes by union, the best Daily Stage score per date, the best stars per Node (so a stale device can never lower them), and the longer Streak.
+ * the Walk Diary and completed Nodes and read Lessons by union, the best Daily Stage score per date, the best stars per Node (so a stale device can never lower them), and the longer Streak. The earliest first-Stage time is kept so a second device never restarts the first week.
  * A tie goes to `local`.
  */
 export function resolve(local: DogRecord, remote: DogRecord): DogRecord {
@@ -38,6 +44,8 @@ export function resolve(local: DogRecord, remote: DogRecord): DogRecord {
   const entryKey = (e: WalkDiaryEntry) => `${e.date}|${e.nodeId}`;
   return {
     ...base,
+    readLessons: union(base.readLessons, other.readLessons, (id) => id),
+    onboarding: { ...base.onboarding, firstStageCompletedAt: earliest(base.onboarding.firstStageCompletedAt, other.onboarding.firstStageCompletedAt) },
     walkDiary: union(base.walkDiary, other.walkDiary, entryKey),
     completedNodes: union(base.completedNodes, other.completedNodes, (id) => id),
     dailyBest: mergeDailyBest(base.dailyBest, other.dailyBest),

@@ -28,6 +28,9 @@ import { withPull } from './src/shell/nodes/scenarios';
 import { advance, onDebrief, shouldShowPosteLink, startNode, type Metric, type NodeAction, type NodeDef, type NodeRun } from './src/shell/nodes/node';
 import { DailyResultScreen } from './src/shell/screens/DailyResultScreen';
 import { DoorbellMatView } from './src/shell/screens/DoorbellMatView';
+import { LESSONS } from './src/shell/lessons/content';
+import { lessonDay, markLessonRead, todaysLesson } from './src/shell/lessons/lesson';
+import { LessonScreen, LibraryScreen } from './src/shell/screens/LessonScreens';
 import { WorldMapScreen } from './src/shell/screens/WorldMapScreen';
 import { CheckpointScreen, DebriefScreen, PrimerScreen } from './src/shell/screens/NodeScreens';
 import { PosteMinigameView } from './src/shell/screens/PosteMinigameView';
@@ -67,7 +70,9 @@ type Flow =
   | { name: 'register' }
   | { name: 'auth'; mode: 'signup' | 'login'; returnTo?: 'settings' | 'map' }
   | { name: 'daily'; attempt: number; result: DailyRun | null }
-  | { name: 'node'; run: NodeRun; attempt: number };
+  | { name: 'node'; run: NodeRun; attempt: number }
+  | { name: 'library' }
+  | { name: 'lesson'; id: string };
 
 /** The shell owns the active language; Spanish is the only one shipped. */
 const CATALOG = es;
@@ -427,6 +432,63 @@ export default function App() {
     }
   };
 
+  // the map with an optional overlay over it; Settings, the Library and Lessons keep the map mounted underneath, so it is where it was on return
+  const mapWith = (overlay: 'settings' | React.ReactNode) => {
+    if (!record) return null;
+    return (
+      <View className="absolute inset-0">
+        <WorldMapScreen
+          t={t}
+          completed={record.completedNodes}
+          stars={record.stars}
+          rusty={rusty.current === true && warmup !== 'completed'}
+          streak={record.streak}
+          today={todayString()}
+          libraryToday={todaysLesson(LESSONS, record.readLessons, lessonDay(record, new Date())) !== null}
+          onLibrary={() => setFlow({ name: 'library' })}
+          dailyBest={record.dailyBest[todayString()]}
+          onDaily={() => setFlow({ name: 'daily', attempt: 0, result: null })}
+          rustyPrompt={rusty.current === true && warmup === 'none'}
+          skippedWarmup={warmup === 'skipped'}
+          onWarmup={() => setFlow({ name: 'warmup' })}
+          onSkipWarmup={() => setWarmup('skipped')}
+          onStartNode={startNodeRun}
+          onSettings={() => setSettingsOpen(true)}
+          banner={
+            account.signedIn && account.sync.paused === 'verify' ? (
+              <AccountBanner t={t} kind="verify" />
+            ) : reminder && !account.signedIn ? (
+              <AccountBanner
+                t={t}
+                kind="remind"
+                onAction={() => {
+                  setReminder(false);
+                  setFlow({ name: 'auth', mode: 'signup', returnTo: 'map' });
+                }}
+                onDismiss={() => setReminder(false)}
+              />
+            ) : null
+          }
+        />
+        {overlay === 'settings' ? (
+          <SettingsScreen
+            t={t}
+            language={LANGUAGE}
+            record={record}
+            update={update}
+            onClose={() => setSettingsOpen(false)}
+            account={account}
+            onLogIn={() => setFlow({ name: 'auth', mode: 'login', returnTo: 'settings' })}
+            ui={ui}
+            onReset={handleReset}
+          />
+        ) : (
+          overlay
+        )}
+      </View>
+    );
+  };
+
   let screen: React.ReactNode = null;
   if (route.name === 'splash') {
     screen = <SplashScreen t={t} onShown={hideNativeSplash} />;
@@ -508,58 +570,30 @@ export default function App() {
     if (account.choice && account.signedIn && record) {
       screen = <ChooseDogScreen t={t} local={record} cloud={migrateRecord(account.choice[0].record)} onChoose={account.chooseDog} />;
     } else if (record) {
-      screen = (
-        <View className="absolute inset-0">
-          <WorldMapScreen
-            t={t}
-            completed={record.completedNodes}
-            stars={record.stars}
-            rusty={rusty.current === true && warmup !== 'completed'}
-            streak={record.streak}
-            today={todayString()}
-            dailyBest={record.dailyBest[todayString()]}
-            onDaily={() => setFlow({ name: 'daily', attempt: 0, result: null })}
-            rustyPrompt={rusty.current === true && warmup === 'none'}
-            skippedWarmup={warmup === 'skipped'}
-            onWarmup={() => setFlow({ name: 'warmup' })}
-            onSkipWarmup={() => setWarmup('skipped')}
-            onStartNode={startNodeRun}
-            onSettings={() => setSettingsOpen(true)}
-            banner={
-              account.signedIn && account.sync.paused === 'verify' ? (
-                <AccountBanner t={t} kind="verify" />
-              ) : reminder && !account.signedIn ? (
-                <AccountBanner
-                  t={t}
-                  kind="remind"
-                  onAction={() => {
-                    setReminder(false);
-                    setFlow({ name: 'auth', mode: 'signup', returnTo: 'map' });
-                  }}
-                  onDismiss={() => setReminder(false)}
-                />
-              ) : null
-            }
-          />
-          {route.name === 'settings' && (
-            <SettingsScreen
-              t={t}
-              language={LANGUAGE}
-              record={record}
-              update={update}
-              onClose={() => setSettingsOpen(false)}
-              account={account}
-              onLogIn={() => setFlow({ name: 'auth', mode: 'login', returnTo: 'settings' })}
-              ui={ui}
-              onReset={handleReset}
-            />
-          )}
-        </View>
-      );
+      screen = mapWith(route.name === 'settings' ? 'settings' : null);
     }
   } else if (route.name === 'flow') {
     const f = route.flow;
-    if (f.name === 'daily') {
+    if (f.name === 'library' && record) {
+      screen = mapWith(
+        <LibraryScreen t={t} lessons={LESSONS} readIds={record.readLessons} day={lessonDay(record, new Date())} onOpen={(lesson) => setFlow({ name: 'lesson', id: lesson.id })} onBack={goHome} />,
+      );
+    } else if (f.name === 'lesson' && record) {
+      const lesson = LESSONS.find((l) => l.id === f.id);
+      screen = mapWith(
+        lesson ? (
+          <LessonScreen
+            t={t}
+            lesson={lesson}
+            onDone={() => {
+              update((r) => markLessonRead(r, lesson.id));
+              setFlow({ name: 'library' });
+            }}
+            onBack={() => setFlow({ name: 'library' })}
+          />
+        ) : null,
+      );
+    } else if (f.name === 'daily') {
       if (f.result) {
         screen = (
           <DailyResultScreen

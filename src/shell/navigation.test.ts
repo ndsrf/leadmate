@@ -216,3 +216,15 @@ describe('isReadyToLeaveSplash', () => {
     ).toBe(true);
   });
 });
+
+describe('Library and Lesson flows', () => {
+  it('show over the map once onboarding is done', () => {
+    for (const flow of [{ name: 'library' }, { name: 'lesson', id: 'calm-leash' }]) {
+      expect(routeFor({ ready: true, onboardingStep: 'done', flow })).toEqual({ name: 'flow', flow });
+    }
+  });
+
+  it('never override the funnel', () => {
+    expect(routeFor({ ready: true, onboardingStep: 'welcome', flow: { name: 'library' } })).toEqual({ name: 'funnel', step: 'welcome' });
+  });
+});

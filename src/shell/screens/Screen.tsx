@@ -1,4 +1,4 @@
-import { ScrollView, View } from 'react-native';
+import { ScrollView, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMotion } from '../ui/useMotion';
@@ -9,7 +9,7 @@ import { theme } from '../ui/theme';
  * safe-area insets respected and a short entrance (a fade alone under reduced motion). The entrance
  * never disables touches, so the new screen takes input at once.
  */
-export function Screen({ children, header, scrollRef }: { children: React.ReactNode; /** A fixed bar above the scrolling content. */ header?: React.ReactNode; scrollRef?: React.Ref<ScrollView> }) {
+export function Screen({ children, header, scrollRef, onScroll }: { children: React.ReactNode; /** A fixed bar above the scrolling content. */ header?: React.ReactNode; scrollRef?: React.Ref<ScrollView>; onScroll?: (e: NativeSyntheticEvent<NativeScrollEvent>) => void }) {
   const insets = useSafeAreaInsets();
   const { transition } = useMotion();
   const entering = transition.kind === 'fade' ? FadeIn.duration(transition.durationMs) : FadeInDown.duration(transition.durationMs);
@@ -23,6 +23,8 @@ export function Screen({ children, header, scrollRef }: { children: React.ReactN
         )}
         <ScrollView
           ref={scrollRef}
+          onScroll={onScroll}
+          scrollEventThrottle={onScroll ? 32 : undefined}
           contentContainerStyle={{
             alignItems: 'center',
             paddingTop: header ? theme.space[2] : insets.top + theme.space[4],

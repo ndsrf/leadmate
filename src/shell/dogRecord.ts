@@ -68,6 +68,8 @@ export interface DogRecord {
   onboarding: OnboardingState;
   /** Ids of the one-shot hints already shown. */
   seenHints: string[];
+  /** Ids of the Theory Library Lessons the user reached the end of; only ever grows. */
+  readLessons: string[];
 }
 
 /** Dog and Handler weights in kilograms; null until entered (setup lets the user skip). */
@@ -114,6 +116,7 @@ export function newDogRecord(): DogRecord {
     weights: { dogKg: null, handlerKg: null },
     onboarding: { ...NEW_ONBOARDING },
     seenHints: [],
+    readLessons: [],
   };
 }
 
@@ -219,6 +222,7 @@ export function migrateRecord(raw: unknown): DogRecord {
     weights: readWeights(r.weights),
     onboarding: readOnboarding(r.onboarding, r.version),
     seenHints: strings(r.seenHints),
+    readLessons: strings(r.readLessons),
   };
 }
 

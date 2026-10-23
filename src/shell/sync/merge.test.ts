@@ -33,6 +33,20 @@ describe('resolve', () => {
     expect(merged.completedNodes.sort()).toEqual(['a', 'b', 'c']);
   });
 
+  it('unions read Lessons', () => {
+    const merged = resolve(rec({ readLessons: ['1', '2'], ...at('2026-05-02T00:00:00.000Z') }), rec({ readLessons: ['2', '3'], ...at('2026-05-01T00:00:00.000Z') }));
+    expect(merged.readLessons.sort()).toEqual(['1', '2', '3']);
+  });
+
+  it('keeps the earliest first-Stage time whichever copy wins', () => {
+    const early = rec({ ...at('2026-05-01T00:00:00.000Z'), onboarding: { ...newDogRecord().onboarding, firstStageCompletedAt: '2026-04-01T10:00:00.000Z' } });
+    const late = rec({ ...at('2026-05-02T00:00:00.000Z'), onboarding: { ...newDogRecord().onboarding, firstStageCompletedAt: '2026-04-20T10:00:00.000Z' } });
+    const none = rec({ ...at('2026-05-03T00:00:00.000Z') });
+    expect(resolve(early, late).onboarding.firstStageCompletedAt).toBe('2026-04-01T10:00:00.000Z');
+    expect(resolve(late, early).onboarding.firstStageCompletedAt).toBe('2026-04-01T10:00:00.000Z');
+    expect(resolve(none, late).onboarding.firstStageCompletedAt).toBe('2026-04-20T10:00:00.000Z');
+  });
+
   it('keeps the best Daily Stage score per date', () => {
     const merged = resolve(rec({ dailyBest: { '2026-05-01': 400, '2026-05-02': 900 }, ...at('2026-05-02T00:00:00.000Z') }), rec({ dailyBest: { '2026-05-01': 700, '2026-05-03': 100 }, ...at('2026-05-01T00:00:00.000Z') }));
     expect(merged.dailyBest).toEqual({ '2026-05-01': 700, '2026-05-02': 900, '2026-05-03': 100 });

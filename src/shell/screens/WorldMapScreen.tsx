@@ -36,6 +36,9 @@ export interface WorldMapProps {
   onDaily: () => void;
   onStartNode: (node: NodeDef) => void;
   onSettings: () => void;
+  /** A Lesson is "for today": the Library chip shows a dot and a label. */
+  libraryToday: boolean;
+  onLibrary: () => void;
   /** A non-blocking account card to show above the map, if any. */
   banner?: React.ReactNode;
 }
@@ -250,7 +253,7 @@ function StreakChip({ t, status }: { t: Translate; status: StreakStatus }) {
   );
 }
 
-export function WorldMapScreen({ t, completed, stars, streak, today, dailyBest, rustyPrompt, rusty, skippedWarmup, onWarmup, onSkipWarmup, onDaily, onStartNode, onSettings, banner }: WorldMapProps) {
+export function WorldMapScreen({ t, completed, stars, streak, today, dailyBest, rustyPrompt, rusty, skippedWarmup, onWarmup, onSkipWarmup, onDaily, onStartNode, onSettings, libraryToday, onLibrary, banner }: WorldMapProps) {
   const model = mapModel(completed, stars);
   const motion = useMotion();
   const scroll = useRef<ScrollView>(null);
@@ -299,6 +302,13 @@ export function WorldMapScreen({ t, completed, stars, streak, today, dailyBest, 
           highlight={dailyBest === undefined}
           onPress={onDaily}
           accessibilityLabel={t('daily.title')}
+        />
+        <Chip
+          label={libraryToday ? t('library.chipToday') : undefined}
+          value={t('library.chip')}
+          icon={libraryToday ? <View className="mr-2 h-3 w-3 rounded-game-pill bg-accent" style={{ borderWidth: 2, borderColor: color.ink }} /> : undefined}
+          onPress={onLibrary}
+          accessibilityLabel={libraryToday ? `${t('library.chip')}. ${t('library.chipToday')}` : t('library.chip')}
         />
         <Chip value={t('map.settings')} onPress={onSettings} accessibilityLabel={t('map.settings')} />
       </View>

@@ -44,6 +44,20 @@ On a phone the shell loads the simulation embedded in the app (built by `npm run
 changing code under `bundle/` or `src/sim/`, run `npm run sim:embed` and reload the app. To load a live
 dev server instead, set `EXPO_PUBLIC_SIM_URL` (for example `http://<LAN IP>:5173`).
 
+### Skipping onboarding in development (web)
+
+In a development web build, add `?seed=lessons` to the shell address to open a Dog that has finished
+onboarding, so you can test the Theory Library without going through the funnel:
+
+| Address | Result |
+| --- | --- |
+| `http://localhost:8081/?seed=lessons` | Finished Dog on Day 3 (Lesson 1 is "for today", the Biblioteca chip shows its dot) |
+| `http://localhost:8081/?seed=lessons&day=N` | Same, on Day N (1 to 60), for example `day=1` or `day=5` to check the catch-up queue |
+
+The seed answers only the first read of the Dog record on page load; later changes (such as reading a
+Lesson) are saved to the browser's local storage as usual. Reload the seeded address to start again from
+the seed. It is ignored in production builds and on a phone (`src/shell/devSeed.ts`).
+
 ```bash
 npm test             # Jest: simulation, HUD logic, catalog
 npm run typecheck    # shell and bundle

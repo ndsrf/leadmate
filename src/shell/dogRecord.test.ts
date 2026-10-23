@@ -342,3 +342,13 @@ describe('Dog record: version 6 (breed)', () => {
     expect(lookOf(a)).toEqual(lookOf(b));
   });
 });
+
+describe('Dog record: version 6 (read Lessons)', () => {
+  it('defaults read Lessons to none on an older record', () => {
+    expect(migrateRecord({ version: 5 }).readLessons).toEqual([]);
+  });
+
+  it('keeps stored ids and drops non-strings', () => {
+    expect(migrateRecord({ version: 6, readLessons: ['a', 3, 'b'] }).readLessons).toEqual(['a', 'b']);
+  });
+});

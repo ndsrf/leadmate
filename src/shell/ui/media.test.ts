@@ -1,5 +1,5 @@
 import type { NodeMedia } from '../nodes/node';
-import { browserNext, isWebUrl, mediaDisplay, placeholderReason } from './media';
+import { browserNext, isAllowedVideoHost, isWebUrl, mediaDisplay, lessonImageKind, placeholderReason, videoEmbedUrl, videoWatchUrl } from './media';
 
 const image: NodeMedia = { type: 'image', url: 'https://example.com/a.png', caption: 'media.caption.poste' };
 
@@ -35,5 +35,38 @@ describe('in-app browser state', () => {
     expect(isWebUrl('https://example.com/x')).toBe(true);
     expect(isWebUrl('javascript:alert(1)')).toBe(false);
     expect(isWebUrl('')).toBe(false);
+  });
+});
+
+describe('video embedding', () => {
+  it('builds a nocookie embed from a valid id', () => {
+    const url = videoEmbedUrl('dQw4w9WgXcQ');
+    expect(url).toMatch(/^https:\/\/www\.youtube-nocookie\.com\/embed\/dQw4w9WgXcQ\?/);
+    expect(isAllowedVideoHost(url!)).toBe(true);
+    expect(videoWatchUrl('dQw4w9WgXcQ')).toBe('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+  });
+
+  it('rejects bad ids and injection characters', () => {
+    for (const bad of ['', 'short', 'dQw4w9WgXcQx', 'dQw4w9WgX/Q', 'dQw4w9WgX?Q', 'dQw4w9WgX&Q', 'dQw4w9Wg Xc', '../../etc/x', 'javascript:1;']) {
+      expect(videoEmbedUrl(bad)).toBeNull();
+      expect(videoWatchUrl(bad)).toBeNull();
+    }
+  });
+
+  it('allows only the nocookie host over https', () => {
+    expect(isAllowedVideoHost('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ')).toBe(true);
+    for (const bad of ['https://www.youtube.com/embed/dQw4w9WgXcQ', 'http://www.youtube-nocookie.com/embed/x', 'https://evil.com/?www.youtube-nocookie.com', 'https://www.youtube-nocookie.com.evil.com/x', 'javascript:alert(1)', '']) {
+      expect(isAllowedVideoHost(bad)).toBe(false);
+    }
+  });
+});
+
+describe('lesson image display', () => {
+  it('prefers bundled art, then a loading remote address, else the placeholder', () => {
+    expect(lessonImageKind('leash', true, false)).toBe('art');
+    expect(lessonImageKind('https://example.com/a.png', false, false)).toBe('remote');
+    expect(lessonImageKind('https://example.com/a.png', false, true)).toBe('placeholder');
+    expect(lessonImageKind('unknown-art', false, false)).toBe('placeholder');
+    expect(lessonImageKind('javascript:1', false, false)).toBe('placeholder');
   });
 });

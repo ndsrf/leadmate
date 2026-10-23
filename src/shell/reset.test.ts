@@ -95,6 +95,7 @@ describe('resetProgress', () => {
       plan: ['heel-turns'],
     },
     seenHints: ['taut', 'rigid'],
+    readLessons: ['lesson-1'],
   };
 
   it('createResetRecord produces first-run state with strictly later updatedAt', () => {
@@ -114,6 +115,7 @@ describe('resetProgress', () => {
     expect(reset.dailyBest).toEqual({});
     expect(reset.customCues).toEqual({});
     expect(reset.seenHints).toEqual([]);
+    expect(reset.readLessons).toEqual([]);
 
     expect(Date.parse(reset.updatedAt)).toBeGreaterThan(Date.parse(populatedRecord.updatedAt));
   });
