@@ -138,6 +138,10 @@ _Avoid_: Curriculum, schedule
 A one-shot, non-blocking message shown over a Stage the first time a simulation event happens (the leash first Taut, the Dog first Fixated, the leash first at its limit). A seen Hint is not shown again.
 _Avoid_: Tutorial, tooltip
 
+**Coach mark**:
+A drawn, non-blocking pointer with a short label over a Stage control (the movement control, the Marker), shown to a new user from the start of a Stage rather than after an event, and dismissed by using that control. Not a Hint.
+_Avoid_: Tutorial, tooltip, overlay
+
 **Level config**:
 A remote scenario override published for a Node's Stage, validated like a bundled scenario and recorded as `configVersion` in the Stage payload. The name follows the Supabase table; it is not a Stage. Daily Stages never use one.
 

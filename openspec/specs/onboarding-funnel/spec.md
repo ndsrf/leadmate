@@ -169,7 +169,7 @@ The Dog setup SHALL ask for the Dog's weight and the Handler's weight in kilogra
 - **THEN** the slider thumb sits at 12 kg and the bubble reads 12 kg
 
 ### Requirement: Guided first Stage
-The system SHALL present the first Stage as an introductory learning loop comprising Theory Primer cards, a Checkpoint question, a guided walk simulation with event-triggered hints, and a Debrief. The Primer SHALL teach leash slack ("the smile"), movement controls, tension levels (green/yellow/red), the Poste anchor, and marking check-ins. The Checkpoint SHALL test the core stopping technique. The simulation SHALL show one-shot, non-blocking event hints (leash color, marker, poste) and persist seen hints. The Debrief SHALL report handling feedback and conclude the first Stage before registration.
+The system SHALL present the first Stage as an introductory learning loop comprising Theory Primer cards, a Checkpoint question, a guided walk simulation with event-triggered hints, and a Debrief. The Primer SHALL teach leash slack ("the smile"), movement controls, tension levels (green/yellow/red), the Poste anchor, and marking check-ins. The Checkpoint SHALL test the core stopping technique. The simulation SHALL show Coach marks for controls not yet used and one-shot, non-blocking event hints (leash color, marker, poste, approaching dog) and persist seen hints. The Debrief SHALL report handling feedback and conclude the first Stage before registration.
 
 #### Scenario: Primer and Checkpoint precede the simulation
 - **WHEN** the user continues from the Walk Plan
@@ -186,6 +186,14 @@ The system SHALL present the first Stage as an introductory learning loop compri
 #### Scenario: Poste shown
 - **WHEN** the leash first reaches its limit in the first Stage
 - **THEN** the Poste is shown
+
+#### Scenario: Coach marks
+- **WHEN** a first guided Stage starts and the user did not use a control in the taste Stage
+- **THEN** that control's Coach mark is shown and recorded as seen
+
+#### Scenario: Approaching dog
+- **WHEN** a dog first approaches in the first guided Stage and the warning has not been seen
+- **THEN** the approaching-dog warning is shown and recorded as seen
 
 #### Scenario: Replay
 - **WHEN** the user replays the first Stage
@@ -245,7 +253,7 @@ The system SHALL ask for the Dog's breed, coat and name after the welcome screen
 - **THEN** the breed is Mestizo and the funnel continues
 
 ### Requirement: Taste Stage
-The system SHALL run an unrecorded taste Stage on the simulation after the Dog's name and look, using a scenario tuned to end in a Reactive tier. On reaction or time limit, the system SHALL zoom in on the Handler and Dog, show the payoff over the Stage, and proceed to Dog setup without modifying the Dog record.
+The system SHALL run an unrecorded taste Stage on the simulation after the Dog's name and look, using a scenario tuned to end in a Reactive tier. On reaction or time limit, the system SHALL zoom in on the Handler and Dog, show the payoff over the Stage, and proceed to Dog setup without modifying the Dog record. The taste Stage SHALL show the Coach marks and the approaching-dog warning of `first-run-coaching`.
 
 #### Scenario: The Dog reacts
 - **WHEN** a new user plays the taste Stage
@@ -253,8 +261,13 @@ The system SHALL run an unrecorded taste Stage on the simulation after the Dog's
 
 #### Scenario: Control line, not a Hint
 - **WHEN** the taste Stage starts
-- **THEN** one fixed control line is shown and it disappears at the first input
-- **AND** no `seenHints` entry is recorded
+- **THEN** the drawn Coach marks are shown and each disappears when its control is first used
+- **AND** no `seenHints` entry for a Hint is recorded; the only record is which controls the user has used
+
+#### Scenario: Warning in the taste
+- **WHEN** the taste Stage's trigger dog approaches
+- **THEN** the approaching-dog warning is shown with the Dog's name
+- **AND** it is not recorded as seen
 
 #### Scenario: Nothing is learned
 - **WHEN** the taste Stage ends

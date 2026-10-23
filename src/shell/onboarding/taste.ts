@@ -1,4 +1,3 @@
-import type { TextKey } from '../../i18n';
 import { defaultScenario, type ScenarioConfig } from '../../sim/config';
 import { DEFAULT_ATTRIBUTES, DEFAULT_TRIGGER_PROFILE, type LearningSnapshot } from '../../sim/learning';
 
@@ -29,6 +28,3 @@ export const tasteScenario: ScenarioConfig = {
   markBudget: 0,
   endCondition: { kind: 'time-limit', seconds: TASTE_SECONDS },
 };
-
-/** The control line shown over the Stage: not a Hint, never stored. */
-export const TASTE_LINE_KEY: TextKey = 'onboarding.taste.control';

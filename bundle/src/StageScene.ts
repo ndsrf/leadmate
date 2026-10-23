@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import type { Translate } from '../../src/i18n';
 import { HUD_AROUSAL_NUM, HUD_BORDER, HUD_COLOR, HUD_COLOR_NUM, HUD_DEPTH, HUD_PRIMARY_BUTTON, HUD_TENSION_NUM } from './tokens.generated';
-import { CUE_LABEL_WIDTH, CUE_RADIUS, fitFontSize, hudLayout, MARKER_RADIUS, SNIFF_RADIUS, visibleCues } from '../../src/hud/layout';
+import { CUE_LABEL_WIDTH, CUE_RADIUS, fitFontSize, hudLayout, JOY_RADIUS, MARKER_RADIUS, SNIFF_RADIUS, visibleCues } from '../../src/hud/layout';
 import { dogPose, gaitPeriod } from '../../src/hud/pose';
 import { applyDetents, keyboardInput, screenToWorldDirection, type Keys } from '../../src/hud/input';
 import { project } from '../../src/hud/iso';
@@ -12,7 +12,7 @@ import type { CueType, ScenarioConfig } from '../../src/sim/config';
 import { leashCurve, leashPoint, type TensionState } from '../../src/sim/leash';
 import { buildPayload, type SimulationDebriefPayload } from '../../src/sim/payload';
 import { activeDistractor, createState, isDogLooking, isGoSniffAvailable, routeOf, setPaused, tick, noInput, wrappedLeash, type ReactionTier, type SimEvent, type SimInput, type SimState } from '../../src/sim/sim';
-import type { StageSignal } from '../../src/sim/messages';
+import { createSignalGate, type StageControl, type StageSignal } from '../../src/sim/messages';
 import { add, length, scale, sub, type Vec2 } from '../../src/sim/vec';
 import { TEXTURES, TILE_ORIGIN_Y } from './assets';
 import { drawDecor, drawGroundPatch, drawProp, groundBounds, wallQuad, WALL_COLORS, WALL_HEIGHT } from './props';
@@ -28,13 +28,12 @@ export interface StageOptions {
   onCue?: (cue: CueType) => void;
   /** The Dog crossed a Reaction Tier threshold; the shell plays a vocalization. */
   onTier?: (tier: ReactionTier, time: number) => void;
-  onSignal?: (signal: StageSignal, time: number) => void;
+  onSignal?: (signal: StageSignal, time: number, detail?: { control?: StageControl; bearing?: number }) => void;
   /** The scene finished creating; the render loop may now sleep when the Stage is paused or ended. */
   onReady?: () => void;
 }
 
 const COLORS: Record<TensionState, number> = { slack: HUD_TENSION_NUM.slack, taut: HUD_TENSION_NUM.taut, rigid: HUD_TENSION_NUM.rigid };
-const JOY_RADIUS = 70;
 const FOCUS_ZOOM_FACTOR = 1.6; // how much closer than the close zoom the camera goes on the Handler and the Dog
 const TILE_M = 2; // one ground tile is 2 m wide
 /** Half the width of the road drawn along the route, which Ground Cover leaves alone. */
@@ -93,7 +92,7 @@ export class StageScene extends Phaser.Scene {
   private flash: { color: number; until: number } | null = null;
   private camPos: Vec2 = { x: 0, y: 0 };
   private ended = false;
-  private signalsSent = new Set<StageSignal>();
+  private signalGate = createSignalGate();
 
   constructor() {
     super('stage');
@@ -102,7 +101,7 @@ export class StageScene extends Phaser.Scene {
   init(options: StageOptions): void {
     this.options = options;
     this.ended = false;
-    this.signalsSent = new Set();
+    this.signalGate = createSignalGate();
     this.accumulator = 0;
     this.flash = null;
     this.hints = new HintTracker();
@@ -471,6 +470,9 @@ export class StageScene extends Phaser.Scene {
       this.sniffPressed = false;
     } else {
       if (input.strength > 0 || input.marker || input.cue || input.sniff) this.signal('first-input', this.sim.time);
+      if (input.strength > 0) this.signal('control-used', this.sim.time, { control: 'move' });
+      // a press counts even with no marks left: the Coach mark is about learning the button
+      if (this.markerPressed) this.signal('control-used', this.sim.time, { control: 'mark' });
       this.accumulator += Math.min(delta, 100) / 1000;
       while (this.accumulator >= step && !this.sim.ended) {
         this.simSteps++;
@@ -489,10 +491,16 @@ export class StageScene extends Phaser.Scene {
   }
 
   /** Each signal goes to the shell once per Stage. */
-  private signal(signal: StageSignal, time: number): void {
-    if (this.signalsSent.has(signal)) return;
-    this.signalsSent.add(signal);
-    this.options.onSignal?.(signal, time);
+  private signal(signal: StageSignal, time: number, detail?: { control?: StageControl; bearing?: number }): void {
+    if (!this.signalGate(signal, detail?.control)) return;
+    this.options.onSignal?.(signal, time, detail);
+  }
+
+  /** Screen angle, in radians (0 = right, clockwise positive as y points down), from the Dog toward a world point. */
+  private bearingOf(position: Vec2): number {
+    const from = project(this.sim.dog);
+    const to = project(position);
+    return Math.atan2(to.y - from.y, to.x - from.x);
   }
 
   private handleEvents(events: SimEvent[]): void {
@@ -512,6 +520,7 @@ export class StageScene extends Phaser.Scene {
       else if (e.type === 'tension-change' && e.tension === 'taut') this.signal('first-taut', e.time);
       else if (e.type === 'tension-change' && e.tension === 'rigid') this.signal('leash-limit', e.time);
       else if (e.type === 'fixation-start') this.signal('first-fixation', e.time);
+      else if (e.type === 'dog-approaching') this.signal('dog-approaching', e.time, { bearing: this.bearingOf(e.position) });
       else if (e.type === 'stage-end' && !this.ended) {
         this.ended = true;
         this.options.onEnd(buildPayload(this.sim));

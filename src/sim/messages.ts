@@ -34,13 +34,28 @@ export type BundleMessage =
   /**
    * A moment the shell may explain to a new user, sent at most once per Stage and signal: the leash first gets
    * Taut, the Dog first fixates (a Reward Window follows its calming), the leash first reaches its limit.
-   * `first-input` is not a hint: the Handler first moves or presses a button.
+   * `first-input` is not a hint: the Handler first moves or presses a button. `control-used` says which
+   * control (`control`), and `dog-approaching` where the dog comes from on screen (`bearing`, radians).
    */
-  | { type: 'stage-signal'; signal: StageSignal; time: number }
+  | { type: 'stage-signal'; signal: StageSignal; time: number; control?: StageControl; bearing?: number }
   | { type: 'error'; message: string };
 
-export const STAGE_SIGNALS = ['first-taut', 'first-fixation', 'leash-limit', 'first-input'] as const;
+export const STAGE_SIGNALS = ['first-taut', 'first-fixation', 'leash-limit', 'first-input', 'dog-approaching', 'control-used'] as const;
 export type StageSignal = (typeof STAGE_SIGNALS)[number];
+
+/** The controls a Coach mark can point at: the joystick (`move`) and the Marker button (`mark`). */
+export type StageControl = 'move' | 'mark';
+
+/** Lets each signal through once per Stage; `control-used` once per control. */
+export function createSignalGate(): (signal: StageSignal, control?: StageControl) => boolean {
+  const sent = new Set<string>();
+  return (signal, control) => {
+    const key = control ? `${signal}:${control}` : signal;
+    if (sent.has(key)) return false;
+    sent.add(key);
+    return true;
+  };
+}
 
 export function encode(message: ShellMessage | BundleMessage): string {
   return JSON.stringify(message);
