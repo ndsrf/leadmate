@@ -77,3 +77,21 @@ describe('closing during the taste', () => {
     expect((await loadDogRecord(store)).onboarding.step).toBe('taste');
   });
 });
+
+describe('the breed on the name-and-look screen', () => {
+  it('stores the breed with the name and coat', () => {
+    const r = saveNameAndLook(at('dog'), 'Luna', 'black', 'collie');
+    expect(r).toMatchObject({ name: 'Luna', coat: 'black', breed: 'collie' });
+    expect(r.onboarding.step).toBe('taste');
+  });
+
+  it('keeps the Mestizo when the breed is never touched', () => {
+    expect(saveNameAndLook(at('dog'), 'Luna', 'black').breed).toBe('mestizo');
+  });
+
+  it('still needs a name, and a blank one leaves the breed alone', () => {
+    const start = at('dog');
+    expect(saveNameAndLook(start, ' ', 'black', 'teckel')).toBe(start);
+    expect(start.breed).toBe('mestizo');
+  });
+});

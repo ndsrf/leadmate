@@ -1,6 +1,7 @@
 import { DEFAULT_ATTRIBUTES } from '../sim/learning';
 import { applyActivity, applyDiary, applyStage, failedPoste, touch, loadDogRecord, migrateRecord, newDogRecord, RECORD_KEY, recordDailyScore, saveDogRecord, setTriggerLevel, toSnapshot, type KeyValueStore } from './dogRecord';
 import { payloadWith } from './testPayload';
+import { lookOf } from './onboarding/look';
 import { advance, onDebrief, startNode, type NodeRun } from './nodes/node';
 import { DOORBELL_MAT_NODE, WALK_DISTRACTION } from './nodes/content';
 
@@ -32,7 +33,7 @@ describe('Dog record', () => {
 
   it('is versioned and repairs unreadable fields', () => {
     const fixed = migrateRecord({ attributes: { followChance: 7, reactivityThreshold: 'x' }, triggerProfile: { child: 9, dog: 1 }, equipment: 'rope' });
-    expect(fixed.version).toBe(5);
+    expect(fixed.version).toBe(6);
     expect(fixed.attributes.followChance).toBe(1);
     expect(fixed.attributes.reactivityThreshold).toBe(DEFAULT_ATTRIBUTES.reactivityThreshold);
     expect(fixed.triggerProfile.child).toBe(2);
@@ -91,7 +92,7 @@ describe('Dog record: Walk Diary, Streak and Daily best', () => {
   it('migrates a version 1 record: keeps what it had and adds the new fields', () => {
     const v1 = { version: 1, attributes: { followChance: 0.9 }, completedNodes: ['poste-practice'], equipment: 'harness', posture: 1 };
     const r = migrateRecord(v1);
-    expect(r.version).toBe(5);
+    expect(r.version).toBe(6);
     expect(r.attributes.followChance).toBeCloseTo(0.9);
     expect(r.completedNodes).toEqual(['poste-practice']);
     expect(r.equipment).toBe('harness');
@@ -172,7 +173,7 @@ describe('Dog record: version 3', () => {
   it('migrates a version 2 record as an existing user who has finished onboarding', () => {
     const v2 = { version: 2, attributes: { followChance: 0.9 }, completedNodes: ['poste-practice'], streak: { current: 2, best: 3, lastActiveDate: '2026-05-01' } };
     const r = migrateRecord(v2);
-    expect(r.version).toBe(5);
+    expect(r.version).toBe(6);
     expect(r.onboarding.step).toBe('done');
     expect(r.weights).toEqual({ dogKg: null, handlerKg: null });
     expect(r.seenHints).toEqual([]);
@@ -224,7 +225,7 @@ describe('stars on the record', () => {
   it('migrates an old record to an empty stars map', () => {
     const old = { version: 3, completedNodes: ['poste-practice'] };
     const r = migrateRecord(old);
-    expect(r.version).toBe(5);
+    expect(r.version).toBe(6);
     expect(r.stars).toEqual({});
     expect(r.completedNodes).toEqual(['poste-practice']);
   });
@@ -274,7 +275,7 @@ describe('Dog record: version 5 (names and the new funnel)', () => {
   it('loads an old record with an empty name', () => {
     const r = migrateRecord({ ...base, onboarding: { step: 'done' } });
     expect(r.name).toBe('');
-    expect(r.version).toBe(5);
+    expect(r.version).toBe(6);
   });
 
   it('keeps a stored name and repairs an unreadable one', () => {
@@ -306,5 +307,38 @@ describe('Dog record: version 5 (names and the new funnel)', () => {
 
   it('keeps a version 5 record at the paywall', () => {
     expect(migrateRecord({ version: 5, onboarding: { step: 'paywall' } }).onboarding.step).toBe('paywall');
+  });
+});
+
+describe('Dog record: version 6 (breed)', () => {
+  it('starts as a Mestizo', () => {
+    expect(newDogRecord().breed).toBe('mestizo');
+  });
+
+  it('gives a record from before breeds a Mestizo and changes nothing else', () => {
+    const old = { version: 5, name: 'Luna', coat: 'black', onboarding: { step: 'done' } };
+    const r = migrateRecord(old);
+    expect(r.breed).toBe('mestizo');
+    expect(r.name).toBe('Luna');
+    expect(r.coat).toBe('black');
+  });
+
+  it('keeps a stored breed and repairs an unknown one', () => {
+    expect(migrateRecord({ breed: 'teckel' }).breed).toBe('teckel');
+    expect(migrateRecord({ breed: 'unicorn' }).breed).toBe('mestizo');
+    expect(migrateRecord({ breed: 7 }).breed).toBe('mestizo');
+  });
+
+  it('survives a restart', async () => {
+    const store = memoryStore();
+    await saveDogRecord(store, { ...newDogRecord(), breed: 'collie' });
+    expect((await loadDogRecord(store)).breed).toBe('collie');
+  });
+
+  it('gives the Stage the same snapshot whatever the breed', () => {
+    const a = { ...newDogRecord(), breed: 'teckel' as const };
+    const b = { ...newDogRecord(), breed: 'husky' as const };
+    expect(toSnapshot(a)).toEqual(toSnapshot(b));
+    expect(lookOf(a)).toEqual(lookOf(b));
   });
 });

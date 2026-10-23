@@ -14,12 +14,13 @@ import type { SimulationDebriefPayload } from '../sim/payload';
 import { DEFAULT_VOICE_PACK } from './voice';
 import { bestStars, isStars, starsFor, type Stars } from './stars';
 import { isCoat, type DogCoat } from './onboarding/look';
+import { DEFAULT_BREED, isBreed, type BreedId } from './onboarding/breeds';
 import { cleanDogName } from './onboarding/name';
 import { nextPosture, updateLearning, updateTriggerProfile } from './learning';
 import { isOnboardingStep, type OnboardingStep } from './onboarding/flow';
 import { addDiaryEntry, DIARY_OUTCOMES, isDateString, localDateString, markActive, NO_STREAK, type DiaryOutcome, type StreakRecord, type WalkDiaryEntry } from './streak';
 
-export const RECORD_VERSION = 5;
+export const RECORD_VERSION = 6;
 export const RECORD_KEY = 'leadmate.dog';
 
 /** Seconds of the Checkpoint timer; 0 turns it off. */
@@ -40,6 +41,8 @@ export interface DogRecord {
   name: string;
   /** The Dog's coat colour, drawn in the Stage; purely cosmetic. */
   coat: DogCoat;
+  /** The Dog's breed, drawn in the shell and used as a weight hint; cosmetic, the simulation never reads it. */
+  breed: BreedId;
   voicePack: string;
   checkpointSeconds: CheckpointSeconds;
   completedNodes: string[];
@@ -95,6 +98,7 @@ export function newDogRecord(): DogRecord {
     equipment: 'collar',
     name: '',
     coat: 'golden',
+    breed: DEFAULT_BREED,
     voicePack: DEFAULT_VOICE_PACK,
     checkpointSeconds: 5,
     completedNodes: [],
@@ -199,6 +203,7 @@ export function migrateRecord(raw: unknown): DogRecord {
     equipment: r.equipment === 'harness' ? 'harness' : 'collar',
     name: cleanDogName(r.name) ?? '',
     coat: isCoat(r.coat) ? r.coat : 'golden',
+    breed: isBreed(r.breed) ? r.breed : DEFAULT_BREED,
     voicePack: typeof r.voicePack === 'string' ? r.voicePack : base.voicePack,
     checkpointSeconds: checkpoint === 0 || checkpoint === 10 ? checkpoint : 5,
     completedNodes: Array.isArray(r.completedNodes) ? r.completedNodes.filter((n): n is string => typeof n === 'string') : [],

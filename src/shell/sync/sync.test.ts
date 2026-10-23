@@ -195,6 +195,15 @@ describe('runSync', () => {
     expect(migrateRecord(remote.dogs[0].record)).toEqual(a.d.record);
   });
 
+  it('carries the breed with the record, as it does the coat', async () => {
+    const remote = new FakeRemote();
+    const a = device(remote, { ...played(newDogRecord(), '2026-05-02T09:00:00Z'), breed: 'collie', coat: 'black' });
+    await a.run();
+    const stored = migrateRecord(remote.dogs[0].record);
+    expect(stored.breed).toBe('collie');
+    expect(stored.coat).toBe('black');
+  });
+
   it('does not stamp a new updatedAt on a record it only copies', async () => {
     const remote = new FakeRemote();
     const a = device(remote, played(newDogRecord(), '2026-05-02T09:00:00Z'));

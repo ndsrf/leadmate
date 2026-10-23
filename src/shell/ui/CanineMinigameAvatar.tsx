@@ -57,9 +57,10 @@ function Pose({ posture, pal }: { posture: CaninePosture; pal: CoatPalette }) {
   const neck = (x1: number, y1: number, x2: number, y2: number) => <Line x1={x1} y1={y1} x2={x2} y2={y2} stroke={pal.fill} strokeWidth={21} strokeLinecap="round" />;
   switch (posture) {
     case 'standing_waiting':
+    case 'looking':
       return (
         <G>
-          {tail('M33 54 Q18 52 14 38')}
+          {tail(posture === 'looking' ? 'M33 54 Q16 50 16 30' : 'M33 54 Q18 52 14 38')}
           {leg(50, 74, 50, 97, pal.shade)}
           {leg(98, 74, 98, 97, pal.shade)}
           <Ellipse cx={72} cy={62} rx={40} ry={21} fill={pal.fill} />

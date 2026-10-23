@@ -72,7 +72,7 @@ function TravelFace({ shift, style, children }: { shift: number; style: ViewStyl
 }
 
 /** Track keyboard or switch focus so a control can show its ring. */
-function useFocus() {
+export function useFocus() {
   const [focused, setFocused] = useState(false);
   return { focused, onFocus: () => setFocused(true), onBlur: () => setFocused(false) };
 }

@@ -3,9 +3,9 @@ import type { DogCoat } from '../../sim/config';
 import type { DoorbellOutcome, DoorbellState } from '../nodes/doorbellMat';
 
 /** What the Dog's body is doing in a static Minigame; the avatar draws one of these. */
-export type CaninePosture = 'standing_waiting' | 'alert_barking' | 'settling_towards_mat' | 'calm_sphinx_on_mat' | 'straining' | 'slack';
+export type CaninePosture = 'standing_waiting' | 'alert_barking' | 'settling_towards_mat' | 'calm_sphinx_on_mat' | 'straining' | 'slack' | 'looking';
 
-export const CANINE_POSTURES: readonly CaninePosture[] = ['standing_waiting', 'alert_barking', 'settling_towards_mat', 'calm_sphinx_on_mat', 'straining', 'slack'];
+export const CANINE_POSTURES: readonly CaninePosture[] = ['standing_waiting', 'alert_barking', 'settling_towards_mat', 'calm_sphinx_on_mat', 'straining', 'slack', 'looking'];
 
 export interface PostureSpec {
   /** Body tilt in degrees, positive leaning forward (towards the right-hand side). */
@@ -28,6 +28,7 @@ const SPECS: Record<CaninePosture, PostureSpec> = {
   calm_sphinx_on_mat: { leanDeg: 0, height: 0.55, tail: 'down', earsUp: false, mouthOpen: false, label: 'minigame.dog.calm_sphinx_on_mat', cue: 'minigame.cue.calm' },
   straining: { leanDeg: 24, height: 0.95, tail: 'up', earsUp: true, mouthOpen: false, label: 'minigame.dog.straining', cue: 'minigame.cue.straining' },
   slack: { leanDeg: 0, height: 0.7, tail: 'down', earsUp: false, mouthOpen: false, label: 'minigame.dog.slack', cue: 'minigame.cue.slack' },
+  looking: { leanDeg: 0, height: 1, tail: 'up', earsUp: true, mouthOpen: false, label: 'minigame.dog.looking', cue: 'minigame.cue.looking' },
 };
 
 export function postureSpec(posture: CaninePosture): PostureSpec {
@@ -64,6 +65,11 @@ export function holdPosture(tension: number, lunged: boolean): CaninePosture {
   return lunged || tension >= 0.5 ? 'straining' : 'slack';
 }
 
+/** The Diagnostic Dog: calm until the signal, then looking at the user with ears up and a fixed gaze while it is on. */
+export function diagnosticPosture(signalOn: boolean): CaninePosture {
+  return signalOn ? 'looking' : 'standing_waiting';
+}
+
 /** The Dog drawing's own coordinate space; the scene scales it. */
 export const DOG_VIEW = { w: 160, h: 110 } as const;
 
@@ -75,6 +81,7 @@ export const COLLAR_POINT: Record<CaninePosture, { x: number; y: number }> = {
   calm_sphinx_on_mat: { x: 108, y: 74 },
   straining: { x: 116, y: 58 },
   slack: { x: 92, y: 40 },
+  looking: { x: 110, y: 50 },
 };
 
 /** Tension is shown in steps so the leash only redraws when it visibly changes. */

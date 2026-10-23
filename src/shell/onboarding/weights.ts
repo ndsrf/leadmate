@@ -21,3 +21,45 @@ export function parseKg(text: string): number | null {
   const n = Number(text.trim().replace(',', '.'));
   return text.trim() !== '' && Number.isFinite(n) ? n : null;
 }
+
+export interface KgRange {
+  min: number;
+  max: number;
+}
+
+/** The slider's whole-kilogram step for a range: finer for a Dog, coarser for a Handler. */
+export const KG_STEP = 1;
+
+export const clampKg = (kg: number, range: KgRange): number => Math.max(range.min, Math.min(range.max, kg));
+
+/** Where a weight sits along a slider track, 0 to 1; a weight outside the range pins to an end. */
+export function kgToFraction(kg: number, range: KgRange): number {
+  return (clampKg(kg, range) - range.min) / (range.max - range.min);
+}
+
+/** The weight a point along the track stands for, snapped to `step` kilograms. */
+export function fractionToKg(fraction: number, range: KgRange, step = KG_STEP): number {
+  const f = Math.max(0, Math.min(1, Number.isFinite(fraction) ? fraction : 0));
+  const snapped = Math.round((range.min + f * (range.max - range.min)) / step) * step;
+  return clampKg(snapped, range);
+}
+
+/** One step up or down from `kg`; an empty or out-of-range start counts from `start`. */
+export function stepKg(kg: number | null, direction: 1 | -1, range: KgRange, start: number, step = KG_STEP): number {
+  const from = kg !== null && Number.isFinite(kg) ? kg : start;
+  return clampKg(Math.round((from + direction * step) / step) * step, range);
+}
+
+/** A weight as the short text the slider bubble and the field show: whole numbers without decimals. */
+export function kgText(kg: number): string {
+  return Number.isInteger(kg) ? String(kg) : String(Math.round(kg * 10) / 10);
+}
+
+/**
+ * The slider's value for the typed text: the number when it is inside the range, otherwise null so the thumb stays where it was.
+ * Typing and dragging write the same text.
+ */
+export function kgFromText(text: string, range: KgRange): number | null {
+  const kg = parseKg(text);
+  return kg !== null && kg >= range.min && kg <= range.max ? kg : null;
+}

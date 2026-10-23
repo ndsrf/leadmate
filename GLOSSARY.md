@@ -136,6 +136,14 @@ A remote scenario override published for a Node's Stage, validated like a bundle
 **Equipment**:
 The collar or Y-harness the Dog wears. Each has benefits and costs: the collar carries leash signals more clearly but raises Arousal faster, while the Y-harness is gentler but the Dog responds less to leash signals.
 
+**Breed**:
+The Dog's kind, chosen from a closed catalog that includes "Mestizo" and "Otra raza". It sets the Dog's silhouette, a typical weight range and a default Coat, and it never changes simulation behavior.
+_Avoid_: Race, type
+
+**Coat**:
+The Dog's colour, chosen from a fixed palette of named colours. It changes how the Dog looks, never how it behaves.
+_Avoid_: Fur, skin
+
 **Voice Pack**:
 A set of Cues, with one version per supported language, that the Handler can choose from.
 

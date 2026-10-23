@@ -440,12 +440,12 @@ export default function App() {
             actions={{ onStart: () => update(leaveWelcome), onLogIn: account.configured ? () => setFlow({ name: 'auth', mode: 'login', returnTo: 'map' }) : undefined }}
           />
         );
-      else if (route.step === 'dog') screen = <DogLookScreen t={t} record={record} onDone={(name, coat) => update((r) => saveNameAndLook(r, name, coat))} />;
+      else if (route.step === 'dog') screen = <DogLookScreen t={t} record={record} onDone={(name, coat, breed) => update((r) => saveNameAndLook(r, name, coat, breed))} />;
       else if (route.step === 'setup') screen = <SetupScreen t={t} record={record} update={update} />;
       else if (route.step === 'diagnostic')
-        screen = <DiagnosticView key="diagnostic" t={t} seed={newSeed()} onFinish={(latency) => update((r) => recordDiagnostic(r, latency))} />;
+        screen = <DiagnosticView key="diagnostic" t={t} record={record} seed={newSeed()} onFinish={(latency) => update((r) => recordDiagnostic(r, latency))} />;
       else if (route.step === 'plan')
-        screen = <PlanScreen t={t} latency={record.onboarding.diagnosticLatency ?? 0.5} plan={record.onboarding.plan} onContinue={() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: nextStep('plan') } }))} />;
+        screen = <PlanScreen t={t} dog={record} latency={record.onboarding.diagnosticLatency ?? 0.5} plan={record.onboarding.plan} onContinue={() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: nextStep('plan') } }))} />;
     }
   } else if (route.name === 'taste') {
     screen = null;

@@ -66,13 +66,14 @@ describe('resetProgress', () => {
   const now = new Date('2026-06-16T12:00:00.000Z');
 
   const populatedRecord: DogRecord = {
-    version: 5,
+    version: 6,
     attributes: { reconnectionLatency: 0.8, reactivityThreshold: 0.7, followChance: 0.9, checkInFrequency: 0.8 },
     triggerProfile: { dog: 2, child: 1, bicycle: 0, skateboard: 3, food: 1, other: 0 },
     calmCounts: { dog: 4 },
     equipment: 'harness',
     name: 'Luna',
     coat: 'black',
+    breed: 'collie',
     voicePack: 'spark',
     checkpointSeconds: 10,
     completedNodes: ['doorbell-mat', 'heel-turns'],
@@ -102,6 +103,7 @@ describe('resetProgress', () => {
     expect(reset.onboarding.step).toBe('welcome');
     expect(reset.name).toBe('');
     expect(reset.coat).toBe('golden');
+    expect(reset.breed).toBe('mestizo');
     expect(reset.onboarding.firstStageCompletedAt).toBeNull();
     expect(reset.onboarding.trialStartedAt).toBeNull();
     expect(reset.onboarding.plan).toEqual([]);

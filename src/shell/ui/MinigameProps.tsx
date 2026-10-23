@@ -4,6 +4,8 @@ import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withRepeat
 import Svg, { Circle, Ellipse, G, Line, Path, Rect } from 'react-native-svg';
 import type { Translate } from '../../i18n';
 import type { DogCoat } from '../../sim/config';
+import type { BreedId } from '../onboarding/breeds';
+import { BreedArt } from './BreedArt';
 import { CanineMinigameAvatar } from './CanineMinigameAvatar';
 import { COLLAR_POINT, DOG_VIEW, HANDLER_LEAN_DEG, HANDLER_PALETTE, HANDLER_PIVOT, handlerHand, leashPath, postureSpec, tensionTone, type CaninePosture } from './canine';
 import { Raised } from './components';
@@ -215,7 +217,7 @@ export function TensionGauge({ t, tension }: { t: Translate; tension: number }) 
 }
 
 /** The one big control of a Minigame: raised like every game button, with an icon, and it sinks while held. */
-export function MinigameButton({ label, icon, onPressIn, onPressOut }: { label: string; icon: 'bell' | 'hand'; onPressIn?: () => void; onPressOut?: () => void }) {
+export function MinigameButton({ label, icon, onPressIn, onPressOut }: { label: string; icon: 'bell' | 'hand' | 'marker'; onPressIn?: () => void; onPressOut?: () => void }) {
   return (
     <Pressable onPressIn={onPressIn} onPressOut={onPressOut} accessibilityRole="button" accessibilityLabel={label}>
       {({ pressed }) => {
@@ -234,10 +236,16 @@ export function MinigameButton({ label, icon, onPressIn, onPressOut }: { label: 
   );
 }
 
-function ButtonIcon({ icon, tint }: { icon: 'bell' | 'hand'; tint: string }) {
+function ButtonIcon({ icon, tint }: { icon: 'bell' | 'hand' | 'marker'; tint: string }) {
   return (
     <Svg width={36} height={36} viewBox="0 0 36 36">
-      {icon === 'bell' ? (
+      {icon === 'marker' ? (
+        <G>
+          <Rect x={7} y={8} width={22} height={20} rx={6} fill={tint} />
+          <Circle cx={18} cy={18} r={5} fill="none" stroke={color.brand} strokeWidth={3} />
+          <Path d="M3 12 L6 14 M33 12 L30 14 M18 2 L18 6" stroke={tint} strokeWidth={2.5} strokeLinecap="round" />
+        </G>
+      ) : icon === 'bell' ? (
         <G fill={tint}>
           <Path d="M18 4 C11 4 8 10 8 16 L8 22 L5 26 L31 26 L28 22 L28 16 C28 10 25 4 18 4 Z" />
           <Circle cx={18} cy={30} r={3.5} />
@@ -252,5 +260,60 @@ function ButtonIcon({ icon, tint }: { icon: 'bell' | 'hand'; tint: string }) {
         </G>
       )}
     </Svg>
+  );
+}
+
+const MEADOW_DOG_W = 190;
+
+/**
+ * The Diagnostic scene: the Dog in its breed and coat on a meadow, looking at the user while the signal is on. The posture
+ * change is immediate under reduced motion; otherwise the Dog gives a short pop as it turns.
+ */
+export function DiagnosticScene({ t, breed, coat, looking }: { t: Translate; breed: BreedId; coat: DogCoat; looking: boolean }) {
+  const [width, setWidth] = useState(0);
+  const { reduced } = useMotion();
+  const pop = useSharedValue(0);
+  useEffect(() => {
+    if (reduced) {
+      pop.value = 0;
+      return;
+    }
+    pop.value = withTiming(looking ? 1 : 0, { duration: theme.motion.duration.quick });
+  }, [looking, reduced, pop]);
+  const popStyle = useAnimatedStyle(() => ({ transform: [{ scale: 1 + pop.value * 0.05 }] }));
+  const dogH = (MEADOW_DOG_W * 110) / 160;
+  return (
+    <Stage onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+      <Svg style={fill} viewBox={`0 0 ${SCENE.w} ${SCENE.h}`} aria-hidden>
+        <Rect x={0} y={0} width={SCENE.w} height={SCENE.h} fill={color.sky} />
+        <Circle cx={270} cy={40} r={20} fill={color.accent} stroke={color.ink} strokeWidth={2.5} />
+        <Path d="M0 122C50 100 110 118 170 106S280 96 320 112V190H0Z" fill={theme.world.w2.ground} stroke={color.ink} strokeWidth={2.5} />
+        <Path d="M0 150C70 132 150 156 230 142S300 134 320 142V190H0Z" fill={color.brand} stroke={color.ink} strokeWidth={2.5} />
+        <Path d="M0 174C80 162 170 182 250 170S300 166 320 170V190H0Z" fill={color.brandDeep} stroke={color.ink} strokeWidth={2.5} />
+      </Svg>
+      <View accessible={false} style={{ position: 'absolute', left: pctX(66), top: pctY(150 - (dogH * 100) / 110), width: pctX(MEADOW_DOG_W) }}>
+        <Animated.View style={popStyle}>
+          <BreedArt breed={breed} coat={coat} width={(width * MEADOW_DOG_W) / SCENE.w} looking={looking} label={t(looking ? 'minigame.dog.looking' : 'minigame.dog.standing_waiting')} />
+        </Animated.View>
+      </View>
+    </Stage>
+  );
+}
+
+const PAW_PATHS = ['M9 14a2.4 3 0 1 0 0.1 0z', 'M15 8a2.4 3 0 1 0 0.1 0z', 'M23 8a2.4 3 0 1 0 0.1 0z', 'M29 14a2.4 3 0 1 0 0.1 0z', 'M19 17c-6 0-10 5-10 9 0 3.5 3 4.5 6 4 2-.4 2.6-.6 4-.6s2 .2 4 .6c3 .5 6-.5 6-4 0-4-4-9-10-9z'];
+
+/** The Diagnostic progress: one paw per response, filled brand green; empty paws stay outlined, so the count reads without colour. */
+export function PawRow({ t, filled, total }: { t: Translate; filled: number; total: number }) {
+  const label = t('diagnostic.paws').split('{n}').join(String(filled)).split('{total}').join(String(total));
+  return (
+    <View accessible accessibilityRole="progressbar" accessibilityLabel={label} accessibilityValue={{ min: 0, max: total, now: filled }} className="flex-row items-center" style={{ gap: theme.space[1] }}>
+      {Array.from({ length: total }, (_, i) => (
+        <Svg key={i} width={32} height={32} viewBox="0 0 38 38" aria-hidden>
+          {PAW_PATHS.map((d) => (
+            <Path key={d} d={d} fill={i < filled ? color.brand : color.surfaceSunken} stroke={color.ink} strokeWidth={2.2} strokeLinejoin="round" />
+          ))}
+        </Svg>
+      ))}
+    </View>
   );
 }

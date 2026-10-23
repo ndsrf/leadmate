@@ -89,3 +89,11 @@ export function recordDiagnostic(record: DogRecord, latency: number): DogRecord 
     onboarding: { ...record.onboarding, diagnosticLatency: latency, plan: buildWalkPlan(latency, record.triggerProfile), step: record.onboarding.step === 'diagnostic' ? nextStep('diagnostic') : record.onboarding.step },
   };
 }
+
+/** Paws in the progress row: the signals a 15-second run is expected to hold. The run still ends on time, never on the paw count. */
+export const DIAGNOSTIC_PAWS = 5;
+
+/** Paws to show filled: one per reaction that answered a signal in time (a signal left to time out is not a response). */
+export function pawsFilled(state: Pick<DiagnosticState, 'reactions'>, total = DIAGNOSTIC_PAWS): number {
+  return Math.min(total, state.reactions.filter((r) => r < DIAGNOSTIC.timeout).length);
+}

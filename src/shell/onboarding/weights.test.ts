@@ -1,6 +1,6 @@
 import { migrateRecord } from '../dogRecord';
 import { withPull } from '../nodes/scenarios';
-import { isDogKg, isHandlerKg, parseKg, pullFromWeights, PULL_TUNING } from './weights';
+import { DOG_KG_RANGE, fractionToKg, isDogKg, isHandlerKg, kgFromText, kgText, kgToFraction, parseKg, pullFromWeights, PULL_TUNING, stepKg } from './weights';
 
 describe('pullFromWeights', () => {
   it('reproduces 0.8 for a 70 kg Handler and a 20 kg Dog', () => {
@@ -54,5 +54,46 @@ describe('withPull', () => {
 
   it('keeps 0.8 for a record without weights, such as a migrated version 2 record', () => {
     expect(withPull({}, migrateRecord({ version: 2 }).weights).pullStrength).toBe(0.8);
+  });
+});
+
+describe('weight slider math', () => {
+  const dog = DOG_KG_RANGE;
+
+  it('maps a weight to a fraction of the track and back', () => {
+    expect(kgToFraction(1, dog)).toBe(0);
+    expect(kgToFraction(80, dog)).toBe(1);
+    expect(fractionToKg(kgToFraction(12, dog), dog)).toBe(12);
+    expect(fractionToKg(0.5, dog)).toBe(41);
+  });
+
+  it('pins to the ends and ignores nonsense', () => {
+    expect(kgToFraction(500, dog)).toBe(1);
+    expect(kgToFraction(-4, dog)).toBe(0);
+    expect(fractionToKg(2, dog)).toBe(80);
+    expect(fractionToKg(-1, dog)).toBe(1);
+    expect(fractionToKg(Number.NaN, dog)).toBe(1);
+  });
+
+  it('steps from the value, or from the start when empty, and stops at the ends', () => {
+    expect(stepKg(12, 1, dog, 20)).toBe(13);
+    expect(stepKg(12, -1, dog, 20)).toBe(11);
+    expect(stepKg(null, 1, dog, 20)).toBe(21);
+    expect(stepKg(80, 1, dog, 20)).toBe(80);
+    expect(stepKg(1, -1, dog, 20)).toBe(1);
+  });
+
+  it('shows whole numbers without decimals', () => {
+    expect(kgText(12)).toBe('12');
+    expect(kgText(30.5)).toBe('30.5');
+    expect(kgText(2.25)).toBe('2.3');
+  });
+
+  it('reads typed text only inside the range, so slider and field agree', () => {
+    expect(kgFromText('12', dog)).toBe(12);
+    expect(kgFromText('12,5', dog)).toBe(12.5);
+    expect(kgFromText('200', dog)).toBeNull();
+    expect(kgFromText('', dog)).toBeNull();
+    expect(kgFromText('abc', dog)).toBeNull();
   });
 });
