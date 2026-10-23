@@ -60,6 +60,8 @@ export type SimEvent =
   | { type: 'reaction-tier-change'; time: number; tier: ReactionTier }
   /** The leash changed between slack, taut and rigid. */
   | { type: 'tension-change'; time: number; tension: TensionState }
+  /** A dog Distractor first came within `APPROACH_FACTOR` times its trigger radius of the Dog; once per Stage. */
+  | { type: 'dog-approaching'; time: number; position: Vec2 }
   | { type: 'sintonia-start'; time: number }
   | { type: 'sintonia-end'; time: number }
   | { type: 'go-sniff-start'; time: number }
@@ -125,6 +127,8 @@ export interface SimState {
   distractor: { pos: Vec2; from: Vec2; to: Vec2; active: boolean; finished: boolean; consumed: boolean; seen: boolean };
   /** Which Distractor of the schedule is in play: 0 is `config.distractor`. */
   distractorIndex: number;
+  /** The `dog-approaching` event was already sent in this Stage. */
+  dogApproachSent: boolean;
   /** Index of the route point the Dog is heading for (the last one is `config.waypoint`). */
   routeIndex: number;
   /** Where the Dog's Arousal puts it between Calm, Alert and Reactive. */
@@ -206,6 +210,7 @@ export function createState(seed: number, config: ScenarioConfig = defaultScenar
       seen: false,
     },
     distractorIndex: 0,
+    dogApproachSent: false,
     routeIndex: 0,
     tier: 'calm',
     lungeSpeed: 0,
@@ -543,6 +548,21 @@ function nextDistractor(state: SimState): void {
   const cfg = activeDistractor(state);
   const from = { ...(cfg.path?.from ?? state.config.dogStart) };
   state.distractor = { pos: { ...from }, from, to: { ...(cfg.path?.to ?? state.config.dogStart) }, active: false, finished: false, consumed: false, seen: false };
+}
+
+/** A dog Distractor is "approaching" once it is this many trigger radii from the Dog. */
+export const APPROACH_FACTOR = 2;
+
+/** Tells the shell, once per Stage, that a dog is coming before it can affect the Dog's Arousal. */
+function detectApproach(state: SimState, events: SimEvent[]): void {
+  const d = state.distractor;
+  const cfg = activeDistractor(state);
+  if (state.dogApproachSent || cfg.kind !== 'dog' || !d.active || d.finished) return;
+  const gap = distance(state.dog, d.pos);
+  // a dog that stands still, or is already on top of the Dog, is not "approaching"
+  if (cfg.speed === 0 || gap <= cfg.triggerRadius || gap > cfg.triggerRadius * APPROACH_FACTOR) return;
+  state.dogApproachSent = true;
+  events.push({ type: 'dog-approaching', time: state.time, position: { ...d.pos } });
 }
 
 function moveDistractor(state: SimState, dt: number): void {
@@ -904,6 +924,7 @@ export function tick(state: SimState, input: SimInput, dt: number = state.config
   state.prevHandler = state.handler;
   moveHandler(state, input, dt, events);
   moveDistractor(state, dt);
+  detectApproach(state, events);
   updateSteering(state, events);
   moveDog(state, dt);
   dragDog(state, input, dt);

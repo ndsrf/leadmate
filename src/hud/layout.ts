@@ -19,6 +19,8 @@ export interface Point {
 }
 
 export const MARKER_RADIUS = 52;
+/** Radius of the joystick ring. */
+export const JOY_RADIUS = 70;
 export const CUE_RADIUS = 34;
 export const SNIFF_RADIUS = 34;
 /** Widest label under or over a Cue or Go Sniff button: the room up to the neighboring button. */

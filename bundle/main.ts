@@ -101,7 +101,7 @@ function startStage(message: Extract<ShellMessage, { type: 'start' }> | null): v
     t,
     onCue: (cueType) => send({ type: 'playCue', cueType }),
     onTier: (tier, time) => send({ type: 'reaction-tier-change', tier, time }),
-    onSignal: (signal, time) => send({ type: 'stage-signal', signal, time }),
+    onSignal: (signal, time, detail) => send({ type: 'stage-signal', signal, time, ...detail }),
     onReady: () => {
       starting = false;
       setRunning();

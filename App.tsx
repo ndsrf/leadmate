@@ -22,7 +22,7 @@ import { lookOf } from './src/shell/onboarding/look';
 import { INTRO_NODE } from './src/shell/onboarding/introNode';
 import { celebrationsFor, starsShown, type Celebration } from './src/shell/celebrations';
 import { completeDaily, dateSeed, generateDailyStage, todayString, warmupAfterDaily, type DailyCompletion } from './src/shell/daily';
-import { ErrorOverlay, HintOverlay, LoadingOverlay, ResumeOverlay } from './src/shell/Overlays';
+import { CoachMarksOverlay, DogWarningOverlay, ErrorOverlay, HintOverlay, LoadingOverlay, ResumeOverlay } from './src/shell/Overlays';
 import { POSTE_PRACTICE } from './src/shell/nodes/content';
 import { withPull } from './src/shell/nodes/scenarios';
 import { advance, onDebrief, shouldShowPosteLink, startNode, type Metric, type NodeAction, type NodeDef, type NodeRun } from './src/shell/nodes/node';
@@ -48,10 +48,10 @@ import { dogStore } from './src/shell/storage';
 import { completeFirstStage } from './src/shell/onboarding/firstStage';
 import { nextStep } from './src/shell/onboarding/flow';
 import { recordDiagnostic } from './src/shell/onboarding/diagnostic';
-import { HINT_TEXT, hintFor, markHintSeen, type HintId } from './src/shell/onboarding/hints';
-import { completeTaste, leaveWelcome, saveNameAndLook } from './src/shell/onboarding/intro';
+import { COACH_ID, HINT_TEXT, hintFor, markHintSeen, type HintId } from './src/shell/onboarding/hints';
+import { completeTaste, leaveWelcome, saveNameAndLook, withDogName } from './src/shell/onboarding/intro';
 import { passPaywall } from './src/shell/onboarding/paywall';
-import { TASTE_LINE_KEY, TASTE_LINGER_MS, TASTE_SNAPSHOT, tasteScenario } from './src/shell/onboarding/taste';
+import { TASTE_LINGER_MS, TASTE_SNAPSHOT, tasteScenario } from './src/shell/onboarding/taste';
 import { useDog } from './src/shell/useDog';
 import { migrateRecord } from './src/shell/dogRecord';
 import { resolveScenario } from './src/shell/sync/configs';
@@ -80,6 +80,8 @@ const CATALOG = es;
 const LANGUAGE: Language = 'es';
 const LOAD_TIMEOUT_MS = 20000;
 const HINT_MS = 7000;
+/** The Marker Coach mark gives up after this long without a press. */
+const COACH_MARK_MS = 20000;
 const MIN_SPLASH_MS = 2200;
 const FONT_TIMEOUT_MS = 2000;
 
@@ -117,6 +119,12 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [flow, setFlow] = useState<Flow | null>(null);
   const [hint, setHint] = useState<HintId | null>(null);
+  // the approaching-dog warning: where the dog comes from on screen, while it is shown
+  const [dogWarning, setDogWarning] = useState<{ bearing: number | null } | null>(null);
+  // Coach marks: which controls were used in this Stage, and the Stage's run number (restarts the Marker timeout)
+  const [controlsUsed, setControlsUsed] = useState({ move: false, mark: false });
+  const [markExpired, setMarkExpired] = useState(false);
+  const [stageRun, setStageRun] = useState(0);
   const [warmup, setWarmup] = useState<WarmupOutcome>('none');
   // celebrations are diffed once when a result opens and then only displayed, so each shows once
   const [celebrations, setCelebrations] = useState<{ id: string; list: Celebration[] } | null>(null);
@@ -171,6 +179,19 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [hint]);
 
+  useEffect(() => {
+    if (!dogWarning) return;
+    const timer = setTimeout(() => setDogWarning(null), HINT_MS);
+    return () => clearTimeout(timer);
+  }, [dogWarning]);
+
+  // the Marker mark stays until the first press or this timeout, whichever comes first
+  useEffect(() => {
+    setMarkExpired(false);
+    const timer = setTimeout(() => setMarkExpired(true), COACH_MARK_MS);
+    return () => clearTimeout(timer);
+  }, [stageRun]);
+
   const send = useCallback((message: ShellMessage) => sim.current?.post(message), []);
 
   /** Starts a Stage with the Dog's snapshot; waits for the bundle if it is still loading. */
@@ -186,6 +207,9 @@ export default function App() {
       };
       setPaused(false);
       setHint(null);
+      setDogWarning(null);
+      setControlsUsed({ move: false, mark: false });
+      setStageRun((n) => n + 1);
       if (bundleReady.current) send(message);
       else pendingStart.current = message;
     },
@@ -220,8 +244,7 @@ export default function App() {
     if (route.name === 'funnel' || route.name === 'taste' || route.name === 'first-stage' || route.name === 'paywall') setFlow(null);
   }, [route.name, onboardingStep]);
 
-  // the taste Stage: an untrained Dog on a scenario built to fail; the control line stays until the first input
-  const [tasteLine, setTasteLine] = useState(false);
+  // the taste Stage: an untrained Dog on a scenario built to fail; the Coach marks show as in any Stage
   const [tastePayoff, setTastePayoff] = useState(false);
   const tastePayoffTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showTastePayoff = useCallback(() => {
@@ -231,7 +254,6 @@ export default function App() {
   }, [send]);
   useEffect(() => {
     if (route.name !== 'taste') return;
-    setTasteLine(true);
     setTastePayoff(false);
     if (tastePayoffTimer.current) clearTimeout(tastePayoffTimer.current);
     tastePayoffTimer.current = null;
@@ -309,12 +331,27 @@ export default function App() {
         }
       } else if (message.type === 'paused') setPaused(true);
       else if (message.type === 'stage-signal') {
-        if (message.signal === 'first-input') setTasteLine(false);
-        // the taste shows no Hints and records none
-        const shown = recordRef.current && routeRef.current.name !== 'taste' ? hintFor(message.signal, recordRef.current.seenHints) : null;
-        if (shown) {
-          setHint(shown);
-          update((r) => markHintSeen(r, shown));
+        const inTaste = routeRef.current.name === 'taste';
+        if (message.signal === 'control-used' && message.control) {
+          // a Coach mark is gone once its control is used; the taste records this too, so the first guided Stage skips it
+          const control = message.control;
+          setControlsUsed((used) => ({ ...used, [control]: true }));
+          update((r) => markHintSeen(r, COACH_ID[control]));
+        } else if (message.signal === 'dog-approaching') {
+          // the warning shows in the taste but is recorded only in recorded Stages
+          const seen = recordRef.current?.seenHints ?? [];
+          if (inTaste || hintFor('dog-approaching', seen)) {
+            setHint(null); // one panel at a time
+            setDogWarning({ bearing: message.bearing ?? null });
+            if (!inTaste) update((r) => markHintSeen(r, 'dog-approaching'));
+          }
+        } else {
+          // the taste shows no Hints and records none
+          const shown = recordRef.current && !inTaste ? hintFor(message.signal, recordRef.current.seenHints) : null;
+          if (shown) {
+            setHint(shown);
+            update((r) => markHintSeen(r, shown));
+          }
         }
       } else if (message.type === 'reaction-tier-change') {
         vocalizer.current.onTier(message.tier);
@@ -422,6 +459,7 @@ export default function App() {
       setCelebrations(null);
       setReminder(false);
       setHint(null);
+      setDogWarning(null);
       setPaused(false);
       setFlow(null);
       setSettingsOpen(false);
@@ -662,8 +700,18 @@ export default function App() {
       <View className="flex-1 bg-bg">
         <SimView key={attempt} ref={sim} onMessage={onMessage} onLoadError={() => setBundle('error')} />
         {screen}
-        {playingStage && hint && !paused && <HintOverlay text={t(HINT_TEXT[hint])} />}
-        {route.name === 'taste' && tasteLine && !tastePayoff && !paused && bundle === 'ready' && <HintOverlay text={t(TASTE_LINE_KEY)} />}
+        {playingStage && hint && !dogWarning && !paused && <HintOverlay text={t(HINT_TEXT[hint])} />}
+        {playingStage && record && !tastePayoff && !paused && bundle === 'ready' && (
+          <CoachMarksOverlay
+            moveText={t('coach.controls.move')}
+            markText={t('coach.controls.mark')}
+            showMove={!controlsUsed.move && !record.seenHints.includes(COACH_ID.move)}
+            showMark={!controlsUsed.mark && !markExpired && !record.seenHints.includes(COACH_ID.mark)}
+          />
+        )}
+        {playingStage && record && dogWarning && !paused && (
+          <DogWarningOverlay text={withDogName(t('coach.dog.warning'), record.name, t('dog.neutral'))} bearing={dogWarning.bearing} />
+        )}
         {route.name === 'taste' && tastePayoff && record && <PayoffOverlay t={t} name={record.name} onContinue={() => update(completeTaste)} />}
         {playingStage && bundle === 'loading' && <LoadingOverlay t={t} />}
         {playingStage && paused && (

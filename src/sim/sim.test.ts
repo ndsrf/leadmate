@@ -1,5 +1,5 @@
 import { defaultScenario, type ScenarioConfig } from './config';
-import { createState, isGoSniffAvailable, noInput, setPaused, tick, type SimEvent, type SimInput, type SimState } from './sim';
+import { APPROACH_FACTOR, createState, isGoSniffAvailable, noInput, setPaused, tick, type SimEvent, type SimInput, type SimState } from './sim';
 import { distance } from './vec';
 
 const STEP = defaultScenario.fixedStep;
@@ -592,5 +592,44 @@ describe('tension-change events (shell hints)', () => {
   it('reports a Fixation as an existing event so the Marker hint can come before the Reward Window', () => {
     const s = createState(5, scenario({ distractor: nearbyDistractor }));
     expect(runUntil(s, 'fixation-start')).toBeDefined();
+  });
+});
+
+describe('dog-approaching event (first-run warning)', () => {
+  const count = (events: SimEvent[]) => events.filter((e) => e.type === 'dog-approaching').length;
+  const crossing = (kind: 'dog' | 'food' | 'child' | 'bicycle') => scenario({ distractor: { ...nearbyDistractor, kind, triggerRadius: 4 } });
+
+  it('fires once for a dog, with the dog position', () => {
+    const s = createState(1, crossing('dog'));
+    const events = run(s, 30);
+    expect(count(events)).toBe(1);
+    const e = events.find((x) => x.type === 'dog-approaching');
+    expect(e && e.type === 'dog-approaching' && e.position).toBeDefined();
+  });
+
+  it('never fires for another kind of Distractor', () => {
+    for (const kind of ['food', 'child', 'bicycle'] as const) expect(count(run(createState(1, crossing(kind)), 30))).toBe(0);
+  });
+
+  it('does not fire before the dog is within the approach range', () => {
+    const s = createState(1, crossing('dog'));
+    const range = s.config.distractor.triggerRadius * APPROACH_FACTOR;
+    let firedAt: number | null = null;
+    for (let i = 0; i < 30 / STEP && firedAt === null; i++) {
+      const fired = count(tick(s, noInput)) > 0;
+      // the Distractor moved one step in that tick
+      const far = distance(s.dog, s.distractor.pos) > range + s.config.distractor.speed * STEP;
+      if (fired) firedAt = far ? -1 : i;
+    }
+    expect(firedAt).not.toBeNull();
+    expect(firedAt).not.toBe(-1);
+  });
+});
+
+describe('dog-approaching edge cases', () => {
+  it('stays silent for a dog that stands still or is already within its trigger radius', () => {
+    const still = { ...nearbyDistractor, kind: 'dog' as const, speed: 0, path: { from: { x: 4, y: 0 }, to: { x: 4, y: 0 } } };
+    const events = run(createState(1, scenario({ distractor: still })), 5);
+    expect(events.some((e) => e.type === 'dog-approaching')).toBe(false);
   });
 });
