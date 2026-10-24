@@ -4,8 +4,8 @@ import { hudLayout, JOY_RADIUS, MARKER_RADIUS, type HudCue, type Point } from '.
 export const ARROW_LENGTH = 30;
 /** Gap between an arrow tip and the control it points at. */
 export const TIP_GAP = 10;
-export const LABEL_HEIGHT = 44;
-export const LABEL_MAX_WIDTH = 150;
+export const LABEL_HEIGHT = 56;
+export const LABEL_MAX_WIDTH = 200;
 export const LABEL_MIN_WIDTH = 70;
 const SCREEN_PAD = 8;
 
@@ -44,7 +44,7 @@ export function coachMarks(width: number, height: number, cues: readonly HudCue[
   const { joyHome, markerHome } = hudLayout(width, height, cues);
 
   const moveTip = { x: joyHome.x, y: joyHome.y - JOY_RADIUS - TIP_GAP };
-  const moveWidth = Math.min(LABEL_MAX_WIDTH, width * 0.4);
+  const moveWidth = Math.min(LABEL_MAX_WIDTH, Math.max(160, width * 0.5));
   const move: CoachMark = {
     tip: moveTip,
     angle: Math.PI / 2,

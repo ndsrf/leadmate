@@ -193,8 +193,8 @@ export function LeashScene({ t, posture, tension, coat }: { t: Translate; postur
 export function CueCaption({ t, posture }: { t: Translate; posture: CaninePosture }) {
   return (
     <View accessible={false} className="mt-3 flex-row items-center justify-center">
-      <View className="rounded-game-md bg-surface px-4 py-2" style={{ borderWidth: theme.border.ink, borderColor: color.ink }}>
-        <Text className="font-display text-body text-ink">{t(postureSpec(posture).cue)}</Text>
+      <View className="rounded-game-lg bg-surface px-5 py-2.5 max-w-full" style={{ borderWidth: theme.border.ink, borderColor: color.ink }}>
+        <Text className="text-center font-display text-title text-ink">{t(postureSpec(posture).cue)}</Text>
       </View>
     </View>
   );
@@ -223,10 +223,10 @@ export function RoundPips({ t, total, results }: { t: Translate; total: number; 
 /** The result of the round that just ended, coloured so it reads at a glance. */
 export function ResultChip({ label, good }: { label: string | null; good: boolean }) {
   return (
-    <View className="my-3 h-10 items-center justify-center">
+    <View className="my-3 min-h-[52px] items-center justify-center">
       {label ? (
-        <View className="rounded-game-md px-4 py-2" style={{ backgroundColor: good ? color.brand : color.danger, borderWidth: theme.border.ink, borderColor: color.ink }}>
-          <Text className="font-display text-title" style={{ color: good ? color.onBrand : color.onDanger }}>
+        <View className="rounded-game-lg px-5 py-2.5 max-w-full" style={{ backgroundColor: good ? color.brand : color.danger, borderWidth: theme.border.ink, borderColor: color.ink }}>
+          <Text className="text-center font-display text-title" style={{ color: good ? color.onBrand : color.onDanger }}>
             {label}
           </Text>
         </View>

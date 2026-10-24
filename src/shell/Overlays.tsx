@@ -85,13 +85,14 @@ function Arrow({ tip, angle, fill }: { tip: { x: number; y: number }; angle: num
 }
 
 function CoachLabel({ mark, text }: { mark: CoachMark; text: string }) {
+  const isNarrow = mark.label.width < 120;
   return (
     <View
       pointerEvents="none"
-      className="absolute items-center justify-center rounded-lg bg-surface px-2"
+      className="absolute items-center justify-center rounded-lg bg-surface px-3"
       style={{ left: mark.label.x, top: mark.label.y, width: mark.label.width, height: mark.label.height, borderWidth: 2, borderColor: color.ink }}
     >
-      <Text className="text-center font-display text-body text-ink">{text}</Text>
+      <Text className={`text-center font-display ${isNarrow ? 'text-body' : 'text-bodyL'} text-ink`}>{text}</Text>
     </View>
   );
 }
