@@ -5,6 +5,7 @@ import type { SimulationDebriefPayload } from '../sim/payload';
 import { createRng, type Rng } from '../sim/rng';
 import { routePoints, scatterScenery, scatterSetPieces } from '../sim/scenery';
 import { distance, type Vec2 } from '../sim/vec';
+import { activityAt, addActivity, stageSummary } from './activity';
 import { recordDailyScore, type DailyResult, type DogRecord } from './dogRecord';
 import type { WarmupOutcome } from './rusty';
 import { localDateString, markActive } from './streak';
@@ -178,7 +179,9 @@ export function completeDaily(record: DogRecord, payload: SimulationDebriefPaylo
   const scored = recordDailyScore(record, date, payload.handlingScore);
   const streak = scored.firstOfDay ? markActive(scored.record.streak, date) : scored.record.streak;
   const streakCredited = streak !== scored.record.streak;
-  return { ...scored, record: streak === scored.record.streak ? scored.record : { ...scored.record, streak }, date, streakCredited };
+  // every play is logged for the Diary, not only the day's best
+  const activityLog = addActivity(scored.record.activityLog, activityAt(now, { kind: 'daily', id: '', stage: stageSummary(payload) }));
+  return { ...scored, record: { ...scored.record, streak, activityLog }, date, streakCredited };
 }
 
 /** A finished Daily Stage warms the Dog up for the session, as a warm-up walk would. */

@@ -18,6 +18,7 @@ import { DEFAULT_BREED, isBreed, type BreedId } from './onboarding/breeds';
 import { cleanDogName } from './onboarding/name';
 import { nextPosture, updateLearning, updateTriggerProfile } from './learning';
 import { isOnboardingStep, type OnboardingStep } from './onboarding/flow';
+import { readActivityLog, type ActivityEvent } from './activity';
 import { addDiaryEntry, DIARY_OUTCOMES, isDateString, localDateString, markActive, NO_STREAK, type DiaryOutcome, type StreakRecord, type WalkDiaryEntry } from './streak';
 
 export const RECORD_VERSION = 6;
@@ -70,6 +71,8 @@ export interface DogRecord {
   seenHints: string[];
   /** Ids of the Theory Library Lessons the user reached the end of; only ever grows. */
   readLessons: string[];
+  /** Dated log of what the user did, oldest first, for the Diary; nothing reads progress from it. */
+  activityLog: ActivityEvent[];
 }
 
 /** Dog and Handler weights in kilograms; null until entered (setup lets the user skip). */
@@ -117,6 +120,7 @@ export function newDogRecord(): DogRecord {
     onboarding: { ...NEW_ONBOARDING },
     seenHints: [],
     readLessons: [],
+    activityLog: [],
   };
 }
 
@@ -223,6 +227,7 @@ export function migrateRecord(raw: unknown): DogRecord {
     onboarding: readOnboarding(r.onboarding, r.version),
     seenHints: strings(r.seenHints),
     readLessons: strings(r.readLessons),
+    activityLog: readActivityLog(r.activityLog),
   };
 }
 

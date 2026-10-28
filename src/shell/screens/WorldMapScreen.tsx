@@ -43,6 +43,8 @@ export interface WorldMapProps {
   /** A Lesson is "for today": the Library chip shows a dot and a label. */
   libraryToday?: boolean;
   onLibrary?: () => void;
+  /** Opens the Diary. */
+  onDiary?: () => void;
   /** A non-blocking account card to show above the map, if any. */
   banner?: React.ReactNode;
   /** The Dog's breed, for drawing the avatar on the map. */
@@ -669,6 +671,7 @@ export function WorldMapScreen({
   onSettings,
   libraryToday = false,
   onLibrary = () => {},
+  onDiary = () => {},
   banner,
   breed,
   coat,
@@ -738,6 +741,7 @@ export function WorldMapScreen({
           onPress={onLibrary}
           accessibilityLabel={libraryToday ? `${t('library.chip')}. ${t('library.chipToday')}` : t('library.chip')}
         />
+        <Chip value={t('diary.chip')} onPress={onDiary} accessibilityLabel={t('diary.chip')} />
         <Chip value={t('map.settings')} onPress={onSettings} accessibilityLabel={t('map.settings')} />
       </View>
       {lockNote && (

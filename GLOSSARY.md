@@ -201,6 +201,18 @@ _Avoid_: Habit counter, day streak
 A one-tap log of the real-world homework assigned in a Node's Debrief, which credits the Streak.
 _Avoid_: Homework log, walk notes
 
+**Activity Log**:
+The dated record of what the user did: one entry per Node Debrief, Daily Stage play, first read of a Lesson and the guided first Stage, with that run's results. It records progress but never drives it.
+_Avoid_: History, event log, timeline
+
+**Diary**:
+The day-by-day view of the Activity Log, the Walk Diary and the Daily Stage bests, shown as a calendar or as the list of days with activity. It contains Walk Diary entries but is not the Walk Diary.
+_Avoid_: Journal, calendar, history
+
+**Active Day**:
+A calendar day that credited the Streak. A day with only a Lesson read has activity but is not an Active Day.
+_Avoid_: Played day, day with activity
+
 **Scenery Set**:
 The props a scenario declares to match its environment theme (indoor apartment, quiet suburb, urban street, open park), dense enough to feel lived in and varied in type. A prop may be an Obstacle, a Visual Shield, both, or neither; the Scenery Set also includes the Ground Cover that gives each zone its look.
 _Avoid_: Decoration, background

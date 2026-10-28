@@ -27,6 +27,7 @@ import { POSTE_PRACTICE } from './src/shell/nodes/content';
 import { withPull } from './src/shell/nodes/scenarios';
 import { advance, onDebrief, shouldShowPosteLink, startNode, type Metric, type NodeAction, type NodeDef, type NodeRun } from './src/shell/nodes/node';
 import { DailyResultScreen } from './src/shell/screens/DailyResultScreen';
+import { DiaryScreen } from './src/shell/screens/DiaryScreen';
 import { DoorbellMatView } from './src/shell/screens/DoorbellMatView';
 import { LESSONS } from './src/shell/lessons/content';
 import { lessonDay, markLessonRead, todaysLesson } from './src/shell/lessons/lesson';
@@ -72,6 +73,7 @@ type Flow =
   | { name: 'daily'; attempt: number; result: DailyRun | null }
   | { name: 'node'; run: NodeRun; attempt: number }
   | { name: 'library' }
+  | { name: 'diary' }
   | { name: 'lesson'; id: string }
   | { name: 'paywall' };
 
@@ -447,6 +449,7 @@ export default function App() {
           today={todayString()}
           libraryToday={todaysLesson(LESSONS, record.readLessons, lessonDay(record, new Date())) !== null}
           onLibrary={() => setFlow({ name: 'library' })}
+          onDiary={() => setFlow({ name: 'diary' })}
           dailyBest={record.dailyBest[todayString()]}
           onDaily={() => setFlow({ name: 'daily', attempt: 0, result: null })}
           rustyPrompt={rusty.current === true && warmup === 'none'}
@@ -582,6 +585,8 @@ export default function App() {
       screen = mapWith(
         <LibraryScreen t={t} lessons={LESSONS} readIds={record.readLessons} day={lessonDay(record, new Date())} onOpen={(lesson) => setFlow({ name: 'lesson', id: lesson.id })} onBack={goHome} />,
       );
+    } else if (f.name === 'diary' && record) {
+      screen = mapWith(<DiaryScreen t={t} record={record} today={todayString()} onBack={goHome} />);
     } else if (f.name === 'lesson' && record) {
       const lesson = LESSONS.find((l) => l.id === f.id);
       screen = mapWith(
@@ -590,7 +595,7 @@ export default function App() {
             t={t}
             lesson={lesson}
             onDone={() => {
-              update((r) => markLessonRead(r, lesson.id));
+              update((r) => markLessonRead(r, lesson.id, new Date()));
               setFlow({ name: 'library' });
             }}
             onBack={() => setFlow({ name: 'library' })}

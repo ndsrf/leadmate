@@ -96,6 +96,7 @@ describe('resetProgress', () => {
     },
     seenHints: ['taut', 'rigid'],
     readLessons: ['lesson-1'],
+    activityLog: [{ at: '2026-05-01T10:00:00.000Z', date: '2026-05-01', kind: 'lesson', id: 'lesson-1' }],
   };
 
   it('createResetRecord produces first-run state with strictly later updatedAt', () => {
@@ -116,6 +117,7 @@ describe('resetProgress', () => {
     expect(reset.customCues).toEqual({});
     expect(reset.seenHints).toEqual([]);
     expect(reset.readLessons).toEqual([]);
+    expect(reset.activityLog).toEqual([]);
 
     expect(Date.parse(reset.updatedAt)).toBeGreaterThan(Date.parse(populatedRecord.updatedAt));
   });

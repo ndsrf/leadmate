@@ -1,6 +1,7 @@
 import type { ScenarioConfig } from '../../sim/config';
 import type { SimulationDebriefPayload } from '../../sim/payload';
 import type { TextKey } from '../../i18n';
+import { activityAt, addActivity, stageSummary } from '../activity';
 import { bestStars, starsFor } from '../stars';
 import { applyActivity, applyStage, type CheckpointSeconds, type DogRecord } from '../dogRecord';
 
@@ -180,8 +181,16 @@ export function onDebrief(record: DogRecord, run: NodeRun, now: Date): DogRecord
   // stars come from handling quality alone (a Minigame has no score) and only ever go up
   const earned = starsFor(run.result.kind === 'stage' ? run.result.payload.handlingScore : undefined);
   const stars = { ...graded.stars, [run.node.id]: bestStars(graded.stars[run.node.id], earned)! };
+  const result = run.result;
+  const entry = activityAt(now, {
+    kind: 'node',
+    id: run.node.id,
+    stars: earned,
+    ...(result.kind === 'stage' ? { stage: stageSummary(result.payload) } : { metrics: { ...result.metrics } }),
+    ...(run.node.exercises.length > 0 ? { exercise: pickExercise(run.node, result).key } : {}),
+  });
   // reaching a Debrief makes today an active day for the Streak
-  return applyActivity({ ...graded, completedNodes, stars }, now);
+  return applyActivity({ ...graded, completedNodes, stars, activityLog: addActivity(graded.activityLog, entry) }, now);
 }
 
 /**
