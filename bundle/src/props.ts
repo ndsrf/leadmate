@@ -54,8 +54,22 @@ function onProp(item: SceneryItem, along: number, across = 0): Vec2 {
   return { x: item.pos.x + Math.cos(a) * along - Math.sin(a) * across, y: item.pos.y + Math.sin(a) * along + Math.cos(a) * across };
 }
 
-/** Draws a prop with its base at the screen point `(x, y)`: simple isometric-ish shapes, decorative only. */
-export function drawProp(g: Phaser.GameObjects.Graphics, item: SceneryItem, x: number, y: number): void {
+/** A parked car's body color, picked from where it stands (`seed`). */
+function carBody(seed: Vec2): number {
+  return [0xdc2626, 0x2563eb, 0xf59e0b, 0x16a34a][Math.abs(Math.round(seed.x * 7 + seed.y * 3)) % 4];
+}
+
+/** Everything a prop's drawing depends on besides where it stands: props with the same look draw the same shape. */
+export function propLook(item: SceneryItem): string {
+  return `${item.type}:${item.angle ?? 0}:${item.type === 'parked_car' ? carBody(item.pos) : ''}`;
+}
+
+/**
+ * Draws a prop with its base at the screen point `(x, y)`: simple isometric-ish shapes, decorative only. `seed` is
+ * where it stands, for the details picked from that (a car's color). Every shape stays within 80 px to each side,
+ * 112 px above and 40 px below the base, the box the Stage bakes it into; keep new props inside it.
+ */
+export function drawProp(g: Phaser.GameObjects.Graphics, item: SceneryItem, x: number, y: number, seed: Vec2 = item.pos): void {
   const angle = item.angle ?? 0;
   const long = shapeOf(item.type).length;
   g.fillStyle(0x000000, 0.2).fillEllipse(x, y, long ? Math.min(70, 16 + long * 14) : 30, 14);
@@ -100,7 +114,7 @@ export function drawProp(g: Phaser.GameObjects.Graphics, item: SceneryItem, x: n
       for (let i = -3; i <= 3; i++) box(g, onProp(item, i * 0.45), angle, 0.08, 0.06, 0.65, 0xe7e5e4);
       break;
     case 'parked_car': {
-      const body = [0xdc2626, 0x2563eb, 0xf59e0b, 0x16a34a][Math.abs(Math.round(item.pos.x * 7 + item.pos.y * 3)) % 4];
+      const body = carBody(seed);
       box(g, item.pos, angle, 3.4, 1.5, 0.55, body, 0.2);
       box(g, onProp(item, -0.2), angle, 1.8, 1.3, 0.45, 0xbfdbfe, 0.75);
       for (const [a, b] of [[-1.1, -0.7], [-1.1, 0.7], [1.1, -0.7], [1.1, 0.7]]) box(g, onProp(item, a, b), angle, 0.5, 0.2, 0.4, 0x1e293b);

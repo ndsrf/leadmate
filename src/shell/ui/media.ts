@@ -55,3 +55,9 @@ export function lessonImageKind(source: string, isArt: boolean, failed: boolean)
   if (isArt) return 'art';
   return !failed && isWebUrl(source) ? 'remote' : 'placeholder';
 }
+
+/**
+ * Injected into a WebView when the app leaves the foreground: pauses every video and audio element of the page (main
+ * frame only), in place, so it keeps its position and waits for the user to play it again.
+ */
+export const PAUSE_MEDIA_JS = "document.querySelectorAll('video,audio').forEach(function (m) { m.pause(); }); true;";

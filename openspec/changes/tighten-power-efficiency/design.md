@@ -1,0 +1,68 @@
+# Design
+
+## Context
+
+See proposal.md (Why) for the findings. The current state these decisions build on:
+
+- **Stage bundle (`bundle/main.ts`)**: there is already one `setRunning()` owner that sleeps and wakes `game.loop` from pause, end, `document.hidden` and the shell's `suspend`/`wake`. The game config has `fps: { target: 30, limit: 32 }` and `render: { antialias: false, powerPreference: 'low-power' }`, with no `audio` key, so Phaser builds a `WebAudioSoundManager`. Phaser's `RequestAnimationFrame` only uses `setTimeout(1000/target)` when `fps.forceSetTimeOut` is true.
+- **Stage scene (`bundle/src/StageScene.ts`)**: the ground is already baked into `RenderTexture` chunks. Walls are `ceil(len/2)` separate `Graphics` per wall, each with its own depth so actors sort in front of or behind it, and alpha-faded each frame by `fadeWalls`. Shape-drawn props are one `Graphics` each, and prop shadows are one shared `Graphics`. Phaser 3 WebGL replays a `Graphics` command buffer (path tessellation, triangulation) on every render, even when it was never cleared. `draw()` clears `gfx` and redraws the route markers and the flag each frame. The HUD dirty key includes `sniffLeft` as a raw float.
+- **Shell**: `useAppActive()` and `useTicker()` exist. `createTicker` caps each `dt` at 0.2 s. The minigame views set a ref in `onPressIn` and apply it on the next 50 ms tick, so a tap is judged up to 50 ms late (Diagnostic latencies read about 25 ms high on average, and `BAND_LIMITS`/`LATENCY_MAP` are tuned to that). `stepPosteMinigame` adds the whole `dt` to `rigidSeconds` when strain is at 1 at the end of the step, so it is not exact for large steps. The in-app browser opens only from Theory Primer cards, which have no looping animation. `LessonVideo` (native) is a WebView on the `youtube-nocookie` embed page, so its `<video>` is in the main frame. `NextUpRing` (World Map) gates on `useAppActive`, while `LoaderLead` (Splash), `BellRipple` and `useWobble` gate only on reduced motion. `App.tsx` keeps the World Map mounted under the Settings, Library and Lesson overlays (`mapWith`). The minigame views tick at 50 ms, Checkpoint at 100 ms with `setLeft(float)`.
+- **Platforms**: on iOS, WKWebView and React Native timers are suspended soon after backgrounding. On Android, the Chromium WebView's JS timers and media keep running in the background unless the page stops them, and RN JS timers can still fire briefly. Android phones commonly have 90/120 Hz displays, and the Android WebView runs `requestAnimationFrame` at the display rate. iOS WKWebView runs `requestAnimationFrame` at 60 Hz, or 30 Hz in Low Power Mode.
+
+## Goals / Non-Goals
+
+**Goals:**
+- In play: about 30 loop wakeups/s on any display, and lower ms per frame than today, mainly from static geometry.
+- In menus and minigames: no looping animation runs while its screen is covered or the app is not active, and no React re-render per countdown tick.
+- In the background: no JS timers, network refresh, audio engine or media on either platform.
+- Numbers from a real iPhone and a real 90/120 Hz Android phone recorded in the PR, with a fixed protocol. Merging waits on them.
+
+**Non-Goals:**
+- Changing simulation rules, fixed step, outcomes, or the Stage's look.
+- Lowering the frame rate below 30 during play, or adaptive frame rates based on scene activity (revisit only if the device numbers call for it).
+- A user-facing battery-saver setting, or reading OS Low Power Mode / Battery Saver (WebKit already halves `requestAnimationFrame` in iOS Low Power Mode, and timer pacing makes us immune to the refresh rate).
+- Unmounting the simulation WebView between Stages (rejected in the earlier change: each Stage would pay the bundle load again).
+- Event-scheduled minigame timers. The 50 ms tickers wake JS 20 times a second, but only for a 15 to 60 s minigame with the screen on, and they already stop in the background. Removing them needs `nextEventIn` for three step functions, a strain-threshold event and exact `rigidSeconds` integration for Poste, no `dt` cap, and UI-thread gauges: too much risk for a small saving.
+- Judging taps at their own timestamp. It would be more accurate, but it lowers measured Diagnostic latency by about 25 ms and moves users across `BAND_LIMITS`. That needs a separate change that retunes the bands on purpose.
+- A per-second scheduler for the Checkpoint. Its 100 ms ticker stays; only the React re-renders go.
+- Pre-creating expo-audio players. Players are created per sound only while sound plays. Revisit if a profile shows it.
+
+## Decisions
+
+1. **Turn off Phaser audio: `audio: { noAudio: true }`.** The bundle plays nothing; Cues and Dog sounds go through `playCue`/`reaction-tier-change` messages to the shell. A running `AudioContext` keeps the audio HAL and its real-time thread alive (Android) and is a known WebView battery drain. Alternative: keep it and `suspend()` the context on sleep. Rejected: more code for a feature we do not use.
+
+2. **Timer-paced loop: `fps: { target: 30, limit: 32, forceSetTimeOut: true }` behind one constant.** With `forceSetTimeOut`, Phaser schedules `setTimeout(33 ms)` instead of `requestAnimationFrame`, so a 120 Hz Android WebView wakes about 30 times a second instead of 120. Drawing still goes through the compositor at vsync, so no tearing. The cost is less even frame pacing, which is small at 30 fps (33.3 ms equals 2 vsyncs at 60 Hz and 4 at 120 Hz). The existing `limit` filter stays as a guard. It applies on both platforms: an iOS 60 Hz WebView also drops from 60 wakeups to 30. A `PACE_WITH_TIMER` constant in `bundle/main.ts` is the shipped default and switches back if a device judders (spec: Pacing fallback). A `?pace=raf` URL query overrides it at load time, so the device check can compare both pacings against `sim:dev` without rebuilding and re-embedding the bundle. Alternative: keep `requestAnimationFrame` and only skip frames. Rejected: that wakeup rate is the cost we are removing. Alternative: pick the pacing at runtime from a measured `requestAnimationFrame` rate. Rejected: more moving parts for no gain at 60 Hz.
+
+3. **Bake static scenery into textures once per Stage.**
+   - Shape props: draw each prop's look once at the origin into a generated texture keyed by its look (type, angle and, for a parked car, its color), at 2x resolution, and place an `Image` per prop at its position and depth. Props with the same look share the texture.
+   - Prop shadows: draw them into the ground `RenderTexture` chunks, which are already under everything. They are flat, like the ground, so no depth sorting is lost.
+   - Wall pieces: each piece becomes an `Image` from a texture generated for its quad (pieces of the same wall share one size, so cache by quantized quad geometry). Each keeps its own depth and alpha, so `fadeWalls` and sorting work unchanged. `fadeWalls` skips `setAlpha` once alpha has converged (|Δ| < 0.01).
+   - Route markers and flag: move them to their own `Graphics`, redrawn only when `routeIndex` changes. The dynamic `gfx` keeps only the things that move.
+   - Alternative: one big `RenderTexture` for all walls. Rejected: it breaks per-piece depth sorting with the actors. Alternative: leave `Graphics` and rely on the 30 fps cap. Rejected: tessellation is CPU work on the WebView's main thread every frame, and it grows with scenery density from the scenery change.
+   - Textures are made in `create()` and freed on scene shutdown (`textures.remove` for generated keys), so restarting Stages does not leak GPU memory.
+
+4. **Quantize the HUD key.** Round `sniffLeft` to 1/48 of the ring (`Math.round(sniffLeft * 48)`). That is under one visible pixel step on a 37-px-radius ring, so the HUD redraws about 16 times a second while Go Sniff is on offer (48 steps over the 3 s offer), instead of 30. Fewer steps (about 15, for 5 redraws a second) were rejected: the ring would visibly jump 24° at a time, and the offer lasts only 3 s, so the saving is small. Apply the same rule to any future continuous HUD value.
+
+5. **One hook for "animations may run": `useLive(covered?: boolean)`.** It returns `appActive && !covered`. `useAppActive` stays as is and the new hook builds on it. Every `withRepeat` owner (NextUpRing, LoaderLead, BellRipple, useWobble) calls `cancelAnimation` and resets to a static frame when the hook returns false, and restarts when it returns true. `WorldMapScreen` takes a `covered` prop, and `App.tsx` passes `covered={overlay !== null}` from `mapWith`. Alternative: rely on the OS stopping vsync callbacks in the background. Rejected: that does not cover the "covered by overlay" case, and on Android reanimated's frame callback can keep firing while the activity is merely paused.
+
+6. **Checkpoint countdown: whole seconds in React, bar on the UI thread.** The 100 ms ticker stays and remains the only thing that fires the timeout (it is also what pauses on background). The bar is purely visual: if it reaches 0 a few frames before or after the timeout, nothing depends on it. But `setLeft` is called only when `Math.ceil(remaining)` changes. `ProgressBar` gets an optional `animateTo` mode: a `withTiming` linear animation to 0 over the remaining time, cancelled and restarted from the current value when the app goes inactive and comes back. Alternative: keep 10 Hz re-renders. Rejected: it goes against the existing spec scenario "React state is only updated for discrete changes". Alternative: finish the Checkpoint from the `withTiming` completion callback and drop the ticker. Rejected: it would put the 5-second rule on the animation system.
+
+7. **Supabase auto-refresh follows AppState on native.** Create the client with `autoRefreshToken: Platform.OS === 'web'`, and on native only, in `useAccount`, call `auth.startAutoRefresh()` on `active` and `auth.stopAutoRefresh()` otherwise. This is the pattern supabase-js documents for React Native. `startAutoRefresh` refreshes at once if the token is due. On web, supabase-js already ties refresh to page visibility, so the web build keeps that and does not depend on our AppState hook.
+
+8. **Background media: pause in place.** `LessonVideo` (native) and `InAppBrowserModal` watch AppState. When the app goes to the background (not on a brief iOS `inactive`, such as Control Center or a system dialog), each injects `document.querySelectorAll('video,audio').forEach(m=>m.pause())` via `injectJavaScript`. The media keeps its position and stays paused when the app returns; the user taps play to continue (auto-resume would surprise). `injectJavaScript` reaches only the main frame, which is where the lesson embed's `<video>` is. Media in a cross-origin iframe on an in-app browser page is not reached on Android. That is accepted, because the Tutorial Link pages are ours (ADR 0008) and do not embed media that way. Alternative: unmount the lesson player back to its card. Rejected: it loses the playback position for no gain. There is no unmount fallback if injection stops working (for example, YouTube changes its embed); device check (task 4.2) catches that. Alternative: rely on the OS. iOS pauses WKWebView media on background, but Android does not.
+
+9. **Measure loop wakeups.** The perf readout and `__leadmate.perf` gain `wakes`, read from `game.loop.frame`, next to `frames`. `loop.frame` counts every timer or `requestAnimationFrame` callback, also the ones the fps limit skips; a PRE_STEP listener would only see the frames that pass the limit, so it could never show display-rate wakeups. `scripts/power.mjs` asserts wakes/s ≤ 33 while playing, and 0 while paused, suspended or hidden. On devices, the same readout is enabled with `EXPO_PUBLIC_SIM_URL=...?perf=1` against `npm run sim:dev`.
+
+## Risks / Trade-offs
+
+- [`forceSetTimeOut` frame pacing judders on some device] → it is one constant, and the device check (task 5.2) looks at pan smoothness on both platforms before merging.
+- [Generated wall/prop textures look softer or shifted against the old vector drawing] → generate at the scene's resolution with the LINEAR filter already used for the atlas. Compare screenshots of each theme before and after with `?footprints` (same seed). Exact equality is not possible because the textures resample the vector shapes, so the check passes when at most 0.5% of pixels differ by more than a small per-channel delta, plus one manual side-by-side look at the densest theme. Accepted exception: the HALLWAY close-up differs on about 0.64% of pixels, all along anti-aliased edges (sharper texture filtering and a higher generation resolution did not reduce it); the other seven shots are within 0.5%.
+- [Texture memory for many wall pieces] → cache by quantized piece geometry (most pieces of a wall are identical), and free on shutdown. Check the texture count on the densest scenario.
+- [A looping animation never restarts after the cover is removed] → each owner restarts from the effect that depends on `live`. A hook test toggles AppState and `covered`.
+- [Supabase session expires during a long background] → `startAutoRefresh` on return refreshes before the next sync, and `syncNow` already runs on `active` after it.
+- [YouTube changes its embed so the injected pause no longer finds the `<video>`] → device check (task 4.2) on both platforms; if it breaks, revisit the unmount option then.
+- [Device numbers are noisy] → the fixed measurement protocol in tasks 1.2 (same device, fixed brightness, fixed-seed Stage, 15 min play plus 15 min World Map idle).
+
+## Migration Plan
+
+No data or protocol changes. Ship as one release. To roll back, revert `PACE_WITH_TIMER` or the commit. The shell–bundle protocol and the embedded bundle stay compatible both ways.

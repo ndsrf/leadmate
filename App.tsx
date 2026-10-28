@@ -458,6 +458,7 @@ export default function App() {
           breed={record.breed}
           coat={record.coat}
           onPaywall={() => setFlow({ name: 'paywall' })}
+          covered={overlay !== null}
           banner={
             account.signedIn && account.sync.paused === 'verify' ? (
               <AccountBanner t={t} kind="verify" />

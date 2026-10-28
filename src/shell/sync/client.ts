@@ -16,6 +16,9 @@ export function getClient(): SupabaseClient | null {
   if (!isConfigured()) return (client = null);
   // loaded here so that a build without a backend never touches native storage at start
   const storage = require('@react-native-async-storage/async-storage').default;
-  client = createClient(URL!, ANON_KEY!, { auth: { storage, autoRefreshToken: true, persistSession: true, detectSessionInUrl: false } });
+  const { Platform } = require('react-native');
+  // on iOS and Android the refresh timer follows the app's foreground state (`followAppState`); the web build keeps
+  // supabase-js's own handling, tied to page visibility
+  client = createClient(URL!, ANON_KEY!, { auth: { storage, autoRefreshToken: Platform.OS === 'web', persistSession: true, detectSessionInUrl: false } });
   return client;
 }

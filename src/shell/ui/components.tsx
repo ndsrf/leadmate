@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Pressable, Text, TextInput, View, type TextInputProps, type ViewStyle } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { handlePress } from './press';
 import { useMotion } from './useMotion';
 import { badgeColors, buttonStyle, choiceStyle, padStyle, progressWidth, starSlots, touchTarget, type BadgeTone, type ButtonVariant } from './styles';
@@ -128,7 +128,25 @@ export function Panel({ children, tone = 'surface', className = '' }: { children
   );
 }
 
-export function ProgressBar({ value, max, tone = 'brand', className = '' }: { value: number; max: number; tone?: 'brand' | 'accent'; className?: string }) {
+export function ProgressBar({
+  value,
+  max,
+  tone = 'brand',
+  className = '',
+  runDown,
+}: {
+  value: number;
+  max: number;
+  tone?: 'brand' | 'accent';
+  className?: string;
+  /**
+   * A countdown bar: from its first `value`, it runs down to 0 over that many seconds on the UI thread, standing
+   * still while not `live`. Purely visual; later `value`s only feed accessibility. Under reduced motion it steps
+   * with `value` instead.
+   */
+  runDown?: { live: boolean };
+}) {
+  const { reduced } = useMotion();
   const pct = progressWidth(value, max);
   const capped = pct >= 1 && pct <= 99;
   return (
@@ -138,9 +156,25 @@ export function ProgressBar({ value, max, tone = 'brand', className = '' }: { va
       accessibilityRole="progressbar"
       accessibilityValue={{ min: 0, max, now: Math.max(0, Math.min(max, value)) }}
     >
-      <View style={{ width: `${pct}%`, height: '100%', backgroundColor: color[tone], borderRightWidth: capped ? theme.border.ink : 0, borderRightColor: color.ink }} />
+      {runDown && !reduced ? (
+        <RunDownFill start={pct} max={max} live={runDown.live} tone={tone} />
+      ) : (
+        <View style={{ width: `${pct}%`, height: '100%', backgroundColor: color[tone], borderRightWidth: capped ? theme.border.ink : 0, borderRightColor: color.ink }} />
+      )}
     </View>
   );
+}
+
+/** The fill of a running-down ProgressBar: from `start` percent to 0, at `max` seconds for the full bar. */
+function RunDownFill({ start, max, live, tone }: { start: number; max: number; live: boolean; tone: 'brand' | 'accent' }) {
+  const pct = useSharedValue(start);
+  useEffect(() => {
+    if (!live) return void cancelAnimation(pct); // keeps where it is, and goes on from there
+    pct.value = withTiming(0, { duration: (pct.value / 100) * max * 1000, easing: Easing.linear });
+    return () => cancelAnimation(pct);
+  }, [live, max, pct]);
+  const style = useAnimatedStyle(() => ({ width: `${pct.value}%`, borderRightWidth: pct.value >= 1 && pct.value <= 99 ? theme.border.ink : 0 }));
+  return <Animated.View style={[{ height: '100%', backgroundColor: color[tone], borderRightColor: color.ink }, style]} />;
 }
 
 /** A small pill label. */

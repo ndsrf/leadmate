@@ -5,6 +5,7 @@ import type { Translate } from '../../i18n';
 import type { DogCoat } from '../../sim/config';
 import { COAT_PALETTE, DOG_VIEW, postureSpec, type CaninePosture, type CoatPalette } from './canine';
 import { color } from './theme';
+import { useLive } from './useAppActive';
 import { useMotion } from './useMotion';
 
 type Ears = 'up' | 'down' | 'back';
@@ -144,9 +145,10 @@ function Pose({ posture, pal }: { posture: CaninePosture; pal: CoatPalette }) {
   }
 }
 
-/** How a posture moves while it is held: the bark bounces, the strain shakes, nothing else moves. */
+/** How a posture moves while it is held: the bark bounces, the strain shakes, nothing else moves (nor anything in the background). */
 function useWobble(posture: CaninePosture) {
   const { reduced } = useMotion();
+  const live = useLive();
   const x = useSharedValue(0);
   const y = useSharedValue(0);
   useEffect(() => {
@@ -154,14 +156,14 @@ function useWobble(posture: CaninePosture) {
     cancelAnimation(y);
     x.value = 0;
     y.value = 0;
-    if (reduced) return;
+    if (reduced || !live) return;
     if (posture === 'alert_barking') y.value = withRepeat(withSequence(withTiming(-5, { duration: 140 }), withTiming(0, { duration: 140 })), -1, false);
     if (posture === 'straining') x.value = withRepeat(withSequence(withTiming(-2, { duration: 70 }), withTiming(2, { duration: 70 })), -1, true);
     return () => {
       cancelAnimation(x);
       cancelAnimation(y);
     };
-  }, [posture, reduced, x, y]);
+  }, [posture, reduced, live, x, y]);
   return useAnimatedStyle(() => ({ transform: [{ translateX: x.value }, { translateY: y.value }] }));
 }
 

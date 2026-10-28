@@ -1,5 +1,6 @@
-// Power regression check: frames/s stay at or under 30 while playing, and no frame is drawn while the Stage is
-// paused, ended, suspended by the shell or hidden. Also prints a baseline (the old behaviour: unlimited loop, never
+// Power regression check: loop wakeups/s and frames/s stay at about 30 while playing (timer pacing, whatever the
+// display rate), and the loop neither wakes nor draws while the Stage is paused, ended, suspended by the shell or
+// hidden. Also prints a baseline (the old behaviour: unlimited loop, never
 // asleep). Needs `npm run sim:dev`.
 // Usage: node scripts/power.mjs [url]
 import { chromium } from 'playwright-core';
@@ -14,12 +15,12 @@ const ok = (name, value) => {
   console.log(value ? 'PASS' : 'FAIL', name);
 };
 const wait = (ms) => page.waitForTimeout(ms);
-const counts = () => page.evaluate(() => ({ frames: window.__leadmate.perf.frames, steps: window.__leadmate.perf.steps() }));
+const counts = () => page.evaluate(() => ({ wakes: window.__leadmate.perf.wakes, frames: window.__leadmate.perf.frames, steps: window.__leadmate.perf.steps() }));
 const rate = async (ms = 2000) => {
   const a = await counts();
   await wait(ms);
   const b = await counts();
-  return { fps: ((b.frames - a.frames) * 1000) / ms, sps: ((b.steps - a.steps) * 1000) / ms, frames: b.frames - a.frames };
+  return { wps: ((b.wakes - a.wakes) * 1000) / ms, fps: ((b.frames - a.frames) * 1000) / ms, sps: ((b.steps - a.steps) * 1000) / ms, wakes: b.wakes - a.wakes, frames: b.frames - a.frames };
 };
 const post = (message) => page.evaluate((m) => window.postMessage(JSON.stringify(m), '*'), message);
 
@@ -28,16 +29,34 @@ await page.waitForFunction(() => window.__leadmate?.scene()?.sim);
 await wait(500);
 
 const play = await rate();
-console.log(`playing: ${play.fps.toFixed(1)} frames/s, ${play.sps.toFixed(1)} steps/s`);
+console.log(`playing: ${play.wps.toFixed(1)} wakes/s, ${play.fps.toFixed(1)} frames/s, ${play.sps.toFixed(1)} steps/s`);
+ok('playing wakes the loop at most 33 times/s', play.wps <= 33);
 ok('playing draws at most 30 frames/s', play.fps <= 31);
 ok('playing still draws (>= 20 frames/s)', play.fps >= 20);
 ok('simulation steps at ~60/s', play.sps > 50 && play.sps < 70);
+ok('no audio engine in the bundle', (await page.evaluate(() => window.__leadmate.game.sound.constructor.name)) === 'NoAudioSoundManager');
 
-// baseline: the old loop, unlimited and never asleep
+// display-paced (`?pace=raf`, the fallback): the simulation steps at the same rate, only the wakeups differ
+const rafPage = await page.context().newPage();
+await rafPage.goto(url + (url.includes('?') ? '&' : '?') + 'pace=raf');
+await rafPage.waitForFunction(() => window.__leadmate?.scene()?.sim);
+await rafPage.waitForTimeout(500);
+const rafRate = await rafPage.evaluate(async () => {
+  const p = window.__leadmate.perf;
+  const a = { wakes: p.wakes, steps: p.steps() };
+  await new Promise((r) => setTimeout(r, 2000));
+  return { wps: (p.wakes - a.wakes) / 2, sps: (p.steps() - a.steps) / 2 };
+});
+await rafPage.close();
+console.log(`display-paced: ${rafRate.wps.toFixed(1)} wakes/s, ${rafRate.sps.toFixed(1)} steps/s`);
+ok('timer pacing leaves steps/s unchanged', Math.abs(rafRate.sps - play.sps) <= 5);
+
+// baseline: the old loop, display-paced, unlimited and never asleep
 await page.evaluate(() => {
   const loop = window.__leadmate.game.loop;
   loop.sleep();
   loop.hasFpsLimit = false;
+  loop.forceSetTimeOut = false;
   loop.wake();
 });
 const base = await rate();
@@ -56,8 +75,9 @@ await wait(500);
 await post({ type: 'pause' });
 await wait(300);
 const paused = await rate();
-console.log(`paused: ${paused.frames} frames in 2 s`);
+console.log(`paused: ${paused.wakes} wakes, ${paused.frames} frames in 2 s`);
 ok('paused draws no frames', paused.frames === 0);
+ok('paused does not wake the loop', paused.wakes === 0);
 
 // resize while asleep re-lays out with a single frame
 const before = await counts();
@@ -67,7 +87,7 @@ const afterResize = await counts();
 
 ok('resize while paused draws a frame', afterResize.frames > before.frames);
 ok('resize while paused draws only a few frames', afterResize.frames - before.frames <= 3);
-ok('asleep again after resize', (await rate(1000)).frames === 0);
+ok('asleep again after resize', (await rate(1000)).wakes === 0);
 
 // resume: running again, no time passed meanwhile, no jump
 const timeBefore = await page.evaluate(() => window.__leadmate.scene().sim.time);
@@ -85,7 +105,9 @@ ok('resume does not make the Dog jump', moved < 20);
 // shell suspend / wake
 await post({ type: 'suspend' });
 await wait(300);
-ok('suspended draws no frames', (await rate(1500)).frames === 0);
+const suspendedRate = await rate(1500);
+ok('suspended draws no frames', suspendedRate.frames === 0);
+ok('suspended does not wake the loop', suspendedRate.wakes === 0);
 await post({ type: 'wake' });
 await wait(300);
 ok('wake draws again', (await rate(1000)).fps > 20);
@@ -96,7 +118,9 @@ await page.evaluate(() => {
   document.dispatchEvent(new Event('visibilitychange'));
 });
 await wait(300);
-ok('hidden draws no frames', (await rate(1500)).frames === 0);
+const hiddenRate = await rate(1500);
+ok('hidden draws no frames', hiddenRate.frames === 0);
+ok('hidden does not wake the loop', hiddenRate.wakes === 0);
 await page.evaluate(() => {
   Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
   document.dispatchEvent(new Event('visibilitychange'));
@@ -115,7 +139,9 @@ await page.evaluate(() => {
 await page.waitForFunction(() => window.__leadmate.scene().isEnded, null, { timeout: 15000 }).catch(() => {});
 if (await page.evaluate(() => window.__leadmate.scene().isEnded)) {
   await wait(500);
-  ok('ended draws no frames', (await rate(1500)).frames === 0);
+  const endedRate = await rate(1500);
+  ok('ended draws no frames', endedRate.frames === 0);
+  ok('ended does not wake the loop', endedRate.wakes === 0);
 } else console.log('SKIP ended (could not end the Stage quickly)');
 
 await browser.close();

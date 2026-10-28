@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View, type LayoutChangeEvent, type ScrollView } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
-import { useAppActive } from '../ui/useAppActive';
+import { useLive } from '../ui/useAppActive';
 import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import type { Translate } from '../../i18n';
 import type { NodeDef } from '../nodes/node';
@@ -51,6 +51,8 @@ export interface WorldMapProps {
   coat?: DogCoat;
   /** Callback to navigate to PaywallScreen when a Plus element is tapped. */
   onPaywall?: () => void;
+  /** Another screen (Settings, the Library, a Lesson) is shown over the map: its looping animation stands still. */
+  covered?: boolean;
 }
 
 /** A flame drawn from two rotated drops, so it needs no emoji font; grey when there is no Streak to show. */
@@ -203,15 +205,21 @@ function SceneryBushes({ palette }: { palette: { ground: string; sky: string } }
   );
 }
 
-/** The one looping animation on the map. Under reduced motion it is a static ring instead. */
-function NextUpRing({ pulse }: { pulse: boolean }) {
+/**
+ * The one looping animation on the map. Under reduced motion it is a static ring instead; it also stands still
+ * while it is not `live` (the app is in the background or the map is covered by another screen).
+ */
+function NextUpRing({ pulse, live }: { pulse: boolean; live: boolean }) {
   const phase = useSharedValue(0);
-  const active = useAppActive();
   useEffect(() => {
-    if (!pulse || !active) return;
+    if (!pulse || !live) {
+      cancelAnimation(phase);
+      phase.value = 0;
+      return;
+    }
     phase.value = withRepeat(withTiming(1, { duration: 1100 }), -1, false);
     return () => cancelAnimation(phase);
-  }, [pulse, active, phase]);
+  }, [pulse, live, phase]);
   const style = useAnimatedStyle(() => ({ opacity: pulse ? 0.7 * (1 - phase.value) : 1, transform: [{ scale: pulse ? 1 + 0.35 * phase.value : 1 }] }));
   const size = NODE_SIZE + 14;
   return (
@@ -232,6 +240,7 @@ function NodeRow({
   rusty,
   worldUnlocked,
   pulse,
+  live,
   breed,
   coat,
   onPress,
@@ -245,6 +254,7 @@ function NodeRow({
   rusty: boolean;
   worldUnlocked: boolean;
   pulse: boolean;
+  live: boolean;
   breed?: BreedId;
   coat?: DogCoat;
   onPress: (entry: MapNode) => void;
@@ -305,7 +315,7 @@ function NodeRow({
         accessibilityState={{ disabled: state === 'locked' }}
         style={{ position: 'absolute', left: cx - nodeSize / 2, top: -offsetDiff, width: nodeSize, height: nodeSize }}
       >
-        {c.ring && <NextUpRing pulse={pulse} />}
+        {c.ring && <NextUpRing pulse={pulse} live={live} />}
         <Raised
           fill={c.fill}
           edge={c.edge}
@@ -468,6 +478,7 @@ function WorldBlock({
   width,
   rusty,
   pulse,
+  live,
   isFirstLocked,
   isExpanded,
   onToggleExpand,
@@ -483,6 +494,7 @@ function WorldBlock({
   width: number;
   rusty: boolean;
   pulse: boolean;
+  live: boolean;
   isFirstLocked: boolean;
   isExpanded: boolean;
   onToggleExpand: () => void;
@@ -629,6 +641,7 @@ function WorldBlock({
                 rusty={rusty}
                 worldUnlocked={entry.unlocked}
                 pulse={pulse}
+                live={live}
                 breed={breed}
                 coat={coat}
                 onPress={onPressNode}
@@ -673,9 +686,11 @@ export function WorldMapScreen({
   breed,
   coat,
   onPaywall = () => {},
+  covered = false,
 }: WorldMapProps) {
   const model = mapModel(completed, stars);
   const motion = useMotion();
+  const live = useLive(covered);
   const scroll = useRef<ScrollView>(null);
   const [width, setWidth] = useState(theme.size.readableWidth);
   const [lockNote, setLockNote] = useState<string | null>(null);
@@ -770,6 +785,7 @@ export function WorldMapScreen({
             width={width}
             rusty={rusty}
             pulse={motion.pulse}
+            live={live}
             isFirstLocked={world.world.id === firstLockedWorldId}
             isExpanded={!!expandedWorlds[world.world.id]}
             onToggleExpand={() => toggleExpand(world.world.id)}
