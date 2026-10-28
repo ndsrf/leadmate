@@ -18,6 +18,7 @@ import { DEFAULT_BREED, isBreed, type BreedId } from './onboarding/breeds';
 import { cleanDogName } from './onboarding/name';
 import { nextPosture, updateLearning, updateTriggerProfile } from './learning';
 import { isOnboardingStep, type OnboardingStep } from './onboarding/flow';
+import { readActivityLog, type ActivityEvent } from './activity';
 import { addDiaryEntry, DIARY_OUTCOMES, isDateString, localDateString, markActive, NO_STREAK, type DiaryOutcome, type StreakRecord, type WalkDiaryEntry } from './streak';
 import { checkIn, fixFor, readMissions, readSeenFixes, NEW_MISSION, type MissionDef, type MissionState, type SeenFix } from './missions/mission';
 
@@ -80,6 +81,8 @@ export interface DogRecord {
    * used to grandfather each World's last Mission; empty for a Dog that started with Missions.
    */
   legacyNodes: string[];
+  /** Dated log of what the user did, oldest first, for the Diary; nothing reads progress from it. */
+  activityLog: ActivityEvent[];
 }
 
 /** Dog and Handler weights in kilograms; null until entered (setup lets the user skip). */
@@ -130,6 +133,7 @@ export function newDogRecord(): DogRecord {
     missions: {},
     seenFixes: [],
     legacyNodes: [],
+    activityLog: [],
   };
 }
 
@@ -249,6 +253,7 @@ export function migrateRecord(raw: unknown): DogRecord {
     missions: readMissions(r.missions),
     seenFixes: readSeenFixes(r.seenFixes),
     legacyNodes: beforeMissions ? [...completedNodes] : strings(r.legacyNodes),
+    activityLog: readActivityLog(r.activityLog),
   };
 }
 

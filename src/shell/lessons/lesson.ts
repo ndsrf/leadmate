@@ -1,4 +1,5 @@
 import type { TextKey } from '../../i18n';
+import { activityAt, addActivity } from '../activity';
 import type { DogRecord } from '../dogRecord';
 import { dayDiff, localDateString } from '../streak';
 
@@ -48,8 +49,9 @@ export function todaysLesson(lessons: readonly LessonDef[], readIds: readonly st
 }
 
 /** The record with the Lesson marked read; one-way, and a repeat changes nothing. */
-export function markLessonRead(record: DogRecord, id: string): DogRecord {
-  return record.readLessons.includes(id) ? record : { ...record, readLessons: [...record.readLessons, id] };
+export function markLessonRead(record: DogRecord, id: string, now: Date = new Date()): DogRecord {
+  if (record.readLessons.includes(id)) return record;
+  return { ...record, readLessons: [...record.readLessons, id], activityLog: addActivity(record.activityLog, activityAt(now, { kind: 'lesson', id })) };
 }
 
 export interface LibraryEntry {

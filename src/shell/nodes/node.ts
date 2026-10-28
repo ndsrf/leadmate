@@ -1,6 +1,7 @@
 import type { ScenarioConfig } from '../../sim/config';
 import type { SimulationDebriefPayload } from '../../sim/payload';
 import type { TextKey } from '../../i18n';
+import { activityAt, addActivity, stageSummary } from '../activity';
 import { bestStars, starsFor } from '../stars';
 import { applyActivity, applyStage, updateMission, type CheckpointSeconds, type DogRecord } from '../dogRecord';
 import { missionOfStop } from '../world';
@@ -183,9 +184,18 @@ export function onDebrief(record: DogRecord, run: NodeRun, now: Date): DogRecord
   // stars come from handling quality alone (the Poste practice has no score) and only ever go up
   const earned = starsFor(run.result.kind === 'stage' ? run.result.payload.handlingScore : run.result.handlingScore);
   const stars = { ...graded.stars, [run.node.id]: bestStars(graded.stars[run.node.id], earned)! };
+  const result = run.result;
+  const entry = activityAt(now, {
+    kind: 'node',
+    id: run.node.id,
+    stars: earned,
+    ...(result.kind === 'stage' ? { stage: stageSummary(result.payload) } : { metrics: { ...result.metrics } }),
+    ...(run.node.exercises.length > 0 ? { exercise: pickExercise(run.node, result).key } : {}),
+  });
+  const logged = { ...graded, completedNodes, stars, activityLog: addActivity(graded.activityLog, entry) };
   const missionId = missionOfStop({ kind: 'node', id: run.node.id });
-  const focus = pickExercise(run.node, run.result).key;
-  const focused = missionId ? updateMission({ ...graded, completedNodes, stars }, missionId, (m) => (m.focus === focus ? m : { ...m, focus })) : { ...graded, completedNodes, stars };
+  const focus = pickExercise(run.node, result).key;
+  const focused = missionId ? updateMission(logged, missionId, (m) => (m.focus === focus ? m : { ...m, focus })) : logged;
   // reaching a Debrief makes today an active day for the Streak
   return applyActivity(focused, now);
 }

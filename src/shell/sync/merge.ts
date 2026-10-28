@@ -1,3 +1,4 @@
+import { activityKey, trimLog } from '../activity';
 import { mergeLegacyNodes, type DogRecord } from '../dogRecord';
 import { bestStars, type Stars } from '../stars';
 import type { MissionAttempt, MissionState, SeenFix } from '../missions/mission';
@@ -86,7 +87,7 @@ function earliest(a: string | null, b: string | null): string | null {
 /**
  * Resolves two copies of the same Dog (ADR 0006). The copy with the later `updatedAt` wins whole, Learning
  * Attributes included, which are never blended field by field. Records that only grow are then combined:
- * the Walk Diary (by date and Mission or Node), completed Nodes, read Lessons and seen Fixes by union, legacy Nodes by union less any Node a copy completed under Missions,
+ * the Walk Diary (by date and Mission or Node), the Activity Log, completed Nodes, read Lessons and seen Fixes by union, legacy Nodes by union less any Node a copy completed under Missions,
  * Mission state per Mission with a passed Mission winning, the best Daily Stage score per date, the best stars per Node (so a stale device can never lower them), and the longer Streak. The earliest first-Stage time is kept so a second device never restarts the first week.
  * A tie goes to `local`.
  */
@@ -103,6 +104,7 @@ export function resolve(local: DogRecord, remote: DogRecord): DogRecord {
     seenFixes: mergeSeenFixes(base.seenFixes, other.seenFixes),
     onboarding: { ...base.onboarding, firstStageCompletedAt: earliest(base.onboarding.firstStageCompletedAt, other.onboarding.firstStageCompletedAt) },
     walkDiary: union(base.walkDiary, other.walkDiary, entryKey),
+    activityLog: trimLog(union(base.activityLog, other.activityLog, activityKey)),
     completedNodes: union(base.completedNodes, other.completedNodes, (id) => id),
     dailyBest: mergeDailyBest(base.dailyBest, other.dailyBest),
     stars: mergeStars(base.stars, other.stars),

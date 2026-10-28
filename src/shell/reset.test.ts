@@ -102,6 +102,7 @@ describe('resetProgress', () => {
     },
     seenFixes: [{ fixId: 'fix-harness-excited', missionId: 'mission-harness', at: '2026-06-02T10:00:00.000Z' }],
     legacyNodes: ['heel-turns'],
+    activityLog: [{ at: '2026-05-01T10:00:00.000Z', date: '2026-05-01', kind: 'lesson', id: 'lesson-1' }],
   };
 
   it('createResetRecord produces first-run state with strictly later updatedAt', () => {
@@ -125,6 +126,7 @@ describe('resetProgress', () => {
     expect(reset.missions).toEqual({});
     expect(reset.seenFixes).toEqual([]);
     expect(reset.legacyNodes).toEqual([]);
+    expect(reset.activityLog).toEqual([]);
 
     expect(Date.parse(reset.updatedAt)).toBeGreaterThan(Date.parse(populatedRecord.updatedAt));
   });
