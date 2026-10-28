@@ -8,6 +8,8 @@ export function celebrationText(c: Celebration, t: Translate): string {
   switch (c.type) {
     case 'first-completion':
       return t('celebrate.firstCompletion');
+    case 'mission-passed':
+      return t('celebrate.missionPassed');
     case 'new-best-stars':
       return t('reveal.newBest');
     case 'unlock-world': {

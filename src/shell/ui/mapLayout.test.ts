@@ -1,6 +1,8 @@
 import { es } from '../../i18n';
 import { NODES } from '../nodes/content';
-import { connector, connectorVisual, labelOnRight, labelWidth, NODE_SIZE, nodeCenterX, nodeVisual, ROW_HEIGHT } from './mapLayout';
+import { connector, connectorVisual, KIND_GLYPH, labelOnRight, labelWidth, NODE_SIZE, nodeCenterX, nodeVisual, ROW_HEIGHT, rowExtent, stretchFlag } from './mapLayout';
+import { mapModel } from '../mapModel';
+import { progressOf } from '../world';
 import { theme } from './theme';
 
 describe('World Map layout', () => {
@@ -41,12 +43,12 @@ describe('World Map layout', () => {
     const next = nodeVisual('next');
     expect(next.ring).toBe(true);
     expect(next.scale).toBeGreaterThan(1);
-    expect(next.glyph).toBe('play');
+    expect(next.glyph).toBe('paw');
 
     const open = nodeVisual('open');
     expect(open.ring).toBe(false);
     expect(open.scale).toBe(1);
-    expect(open.glyph).toBe('play');
+    expect(open.glyph).toBe('paw');
 
     const done = nodeVisual('done');
     expect(done.glyph).toBe('check');
@@ -67,5 +69,36 @@ describe('World Map layout', () => {
         expect({ node: node.id, fits: lines * LINE <= ROW_HEIGHT }).toEqual({ node: node.id, fits: true });
       }
     }
+  });
+
+  it('draws each Stop kind with its own glyph when open or next-up', () => {
+    expect(KIND_GLYPH).toEqual({ theory: 'book', 'how-to-play': 'controller', node: 'paw', mission: 'flag' });
+    for (const kind of ['theory', 'how-to-play', 'node', 'mission'] as const) {
+      expect(nodeVisual('open', kind).glyph).toBe(KIND_GLYPH[kind]);
+      expect(nodeVisual('next', kind).glyph).toBe(KIND_GLYPH[kind]);
+    }
+    expect(new Set(Object.values(KIND_GLYPH)).size).toBe(4);
+  });
+
+  it('draws a waiting Mission with a moon, and an optional Lesson with a dashed edge', () => {
+    expect(nodeVisual('waiting', 'mission')).toMatchObject({ glyph: 'moon', ring: false });
+    expect(nodeVisual('open', 'theory', true).dashed).toBe(true);
+    expect(nodeVisual('open', 'theory').dashed).toBe(false);
+  });
+
+  it('flags the end of each Stretch at its Mission with "Tramo N"', () => {
+    const stops = mapModel(progressOf([]), {}, new Date(2026, 4, 2)).worlds[0].stops;
+    expect(stops.map((s) => stretchFlag(s.kind, s.stretch)?.label ?? null)).toEqual([null, null, null, 1, null, null, 2, null, null, 3]);
+  });
+
+  it('lays out a World of 12 Stops without overlap, within a 320-point screen', () => {
+    const width = 320 - 32;
+    for (let i = 0; i < 12; i++) {
+      const cx = nodeCenterX(i, width);
+      expect(cx - (NODE_SIZE * 1.08) / 2).toBeGreaterThanOrEqual(0);
+      expect(cx + (NODE_SIZE * 1.08) / 2).toBeLessThanOrEqual(width);
+      if (i > 0) expect(rowExtent(i).top).toBeGreaterThanOrEqual(rowExtent(i - 1).bottom);
+    }
+    expect(12 * ROW_HEIGHT).toBe(rowExtent(11).top + ROW_HEIGHT);
   });
 });

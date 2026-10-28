@@ -1,4 +1,7 @@
 import { ONBOARDING_STEPS } from './onboarding/flow';
+import { missionAfterDebrief, missionEntryOf, missionEntryView, missionForDebrief } from './missions/missionView';
+import type { MissionState } from './missions/mission';
+import { progressOf } from './world';
 import { isReadyToLeaveSplash, routeFor } from './navigation';
 
 describe('routeFor', () => {
@@ -219,12 +222,57 @@ describe('isReadyToLeaveSplash', () => {
 
 describe('Library and Lesson flows', () => {
   it('show over the map once onboarding is done', () => {
-    for (const flow of [{ name: 'library' }, { name: 'lesson', id: 'calm-leash' }]) {
+    for (const flow of [{ name: 'library' }, { name: 'lesson', id: 'calm-leash', returnTo: 'library' }, { name: 'lesson', id: 'theory-harness', returnTo: 'map' }, { name: 'mission', id: 'mission-harness', view: 'brief' }]) {
       expect(routeFor({ ready: true, onboardingStep: 'done', flow })).toEqual({ name: 'flow', flow });
     }
   });
 
   it('never override the funnel', () => {
     expect(routeFor({ ready: true, onboardingStep: 'welcome', flow: { name: 'library' } })).toEqual({ name: 'funnel', step: 'welcome' });
+  });
+});
+
+describe('Mission flows', () => {
+  const at = (h: number, day = 2) => new Date(2026, 4, day, h);
+  const stretch1 = progressOf(['harness-ritual'], { readLessons: ['theory-harness', 'howto-tap-hold'] });
+  const started: MissionState = { target: 'full', skipRun: 0, attempts: [], startedAt: at(9, 1).toISOString() };
+
+  it('opens the Mission brief when the Debrief of a Stretch\'s last Node is closed', () => {
+    expect(missionAfterDebrief('harness-ritual', stretch1, at(9))).toBe('mission-harness');
+  });
+
+  it('returns to the map after a Node that is not last, or when the Mission is started or passed', () => {
+    expect(missionAfterDebrief('harness-ritual', { ...stretch1, missions: { 'mission-harness': started } }, at(9))).toBeNull();
+    expect(missionAfterDebrief('harness-ritual', { ...stretch1, missions: { 'mission-harness': { ...started, passedOn: '2026-05-02' } } }, at(9))).toBeNull();
+    expect(missionAfterDebrief('intro-node', stretch1, at(9))).toBeNull();
+  });
+
+  it('opens a Mission Stop on its brief, its wait or its check-in', () => {
+    expect(missionEntryView(undefined, at(9))).toBe('brief');
+    expect(missionEntryView({ target: 'full', skipRun: 0, attempts: [], focus: 'node.harness.exercise1' }, at(9))).toBe('brief');
+    expect(missionEntryView(started, at(20, 1))).toBe('waiting');
+    expect(missionEntryView(started, at(9, 2))).toBe('checkin');
+  });
+
+  it('opens a passed Mission on its passed screen, never on the wait', () => {
+    expect(missionEntryView({ ...started, passedOn: '2026-05-02' }, at(9, 3))).toBe('passed');
+  });
+
+  it('opens a grandfathered Mission on its passed screen, so "Start mission" cannot un-grandfather it', () => {
+    // a Node of World 1's second Stretch is completed: the first Stretch's Mission was gone past before Missions
+    const legacy = progressOf(['harness-ritual', 'doorbell-mat'], { readLessons: ['theory-harness', 'howto-tap-hold', 'theory-doorbell'] });
+    expect(missionEntryOf('mission-harness', legacy, at(9))).toBe('passed');
+    expect(missionEntryOf('mission-doorbell', legacy, at(9))).toBe('brief');
+  });
+
+  it('names the Mission a Debrief is practice for', () => {
+    expect(missionForDebrief('doorbell-mat')).toBe('mission-doorbell');
+    expect(missionForDebrief('intro-node')).toBeUndefined();
+  });
+
+  it('shows the Mission flow over the map once onboarding is done, never over the funnel', () => {
+    const flow = { name: 'mission', id: 'mission-harness', view: 'checkin' };
+    expect(routeFor({ ready: true, onboardingStep: 'done', flow })).toEqual({ name: 'flow', flow });
+    expect(routeFor({ ready: true, onboardingStep: 'welcome', flow })).toEqual({ name: 'funnel', step: 'welcome' });
   });
 });

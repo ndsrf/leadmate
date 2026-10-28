@@ -5,6 +5,7 @@ import type { Translate } from '../../i18n';
 import type { DogCoat } from '../../sim/config';
 import { COAT_PALETTE, COLLAR_POINT, DOG_VIEW, emotePoint, postureSpec, type CaninePosture, type CoatPalette, type Emote, type Eyes } from './canine';
 import { color } from './theme';
+import { useLive } from './useAppActive';
 import { useMotion } from './useMotion';
 
 type Ears = 'up' | 'down' | 'back';
@@ -250,9 +251,10 @@ function Harness({ posture }: { posture: CaninePosture }) {
   );
 }
 
-/** How a posture moves while it is held: the bark and the jump bounce, the strain and the unrest shake, nothing else moves. Reduced motion holds still. */
+/** How a posture moves while it is held: the bark and the jump bounce, the strain and the unrest shake, nothing else moves (nor anything in the background). Reduced motion holds still. */
 function useWobble(posture: CaninePosture) {
   const { reduced } = useMotion();
+  const live = useLive();
   const x = useSharedValue(0);
   const y = useSharedValue(0);
   useEffect(() => {
@@ -260,7 +262,7 @@ function useWobble(posture: CaninePosture) {
     cancelAnimation(y);
     x.value = 0;
     y.value = 0;
-    if (reduced) return;
+    if (reduced || !live) return;
     if (posture === 'alert_barking') y.value = withRepeat(withSequence(withTiming(-5, { duration: 140 }), withTiming(0, { duration: 140 })), -1, false);
     if (posture === 'jumping') y.value = withRepeat(withSequence(withTiming(-9, { duration: 200 }), withTiming(0, { duration: 200 })), -1, false);
     if (posture === 'unsettled_on_mat') x.value = withRepeat(withSequence(withTiming(-3, { duration: 160 }), withTiming(3, { duration: 160 })), -1, true);
@@ -270,7 +272,7 @@ function useWobble(posture: CaninePosture) {
       cancelAnimation(x);
       cancelAnimation(y);
     };
-  }, [posture, reduced, x, y]);
+  }, [posture, reduced, live, x, y]);
   return useAnimatedStyle(() => ({ transform: [{ translateX: x.value }, { translateY: y.value }] }));
 }
 

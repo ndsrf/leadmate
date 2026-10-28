@@ -30,7 +30,8 @@ describe('readingProgress', () => {
 describe('libraryEntries', () => {
   it('keeps the fixed order and puts the Lesson for today first', () => {
     const entries = libraryEntries(LESSONS, ['calm-leash'], 3);
-    expect(entries.map((e) => e.lesson.id)).toEqual(['body-language', 'calm-leash', 'smile-leash', 'marking-rewarding', 'sniffing-decompression']);
+    expect(entries.map((e) => e.lesson.id).slice(0, 5)).toEqual(['body-language', 'calm-leash', 'smile-leash', 'marking-rewarding', 'sniffing-decompression']);
+    expect(entries).toHaveLength(LESSONS.length);
     expect(entries.filter((e) => e.today)).toHaveLength(1);
     expect(entries.find((e) => e.lesson.id === 'calm-leash')?.read).toBe(true);
   });

@@ -1,7 +1,10 @@
 import { createRng } from '../../sim/rng';
 import type { DogRecord } from '../dogRecord';
 import { nextStep } from './flow';
+import { BAND_LIMITS, type LatencyBand, latencyBand } from './latency';
 import { buildWalkPlan } from './plan';
+
+export { BAND_LIMITS, type LatencyBand, latencyBand };
 
 /**
  * The Diagnostic Minigame: a 15-second reaction test. A signal lights up at random moments and the user taps
@@ -17,9 +20,6 @@ export const DIAGNOSTIC = {
 
 /** Reaction latency (seconds) at the quick and slow ends of the map to the Dog's `reconnectionLatency`. */
 export const LATENCY_MAP = { quick: 0.25, slow: 0.8, seedBest: 0.4, seedWorst: 0.1 } as const;
-export const BAND_LIMITS = { quick: 0.35, slow: 0.55 } as const;
-
-export type LatencyBand = 'quick' | 'steady' | 'slow';
 
 export interface DiagnosticState {
   seed: number;
@@ -65,10 +65,6 @@ export function median(values: readonly number[]): number {
 }
 
 export const diagnosticLatency = (state: DiagnosticState) => median(state.reactions);
-
-export function latencyBand(latency: number): LatencyBand {
-  return latency < BAND_LIMITS.quick ? 'quick' : latency < BAND_LIMITS.slow ? 'steady' : 'slow';
-}
 
 /** A quicker user starts with a Dog that answers sooner; clamped to the 0.1 to 0.4 band. */
 export function seedFromLatency(latency: number): number {

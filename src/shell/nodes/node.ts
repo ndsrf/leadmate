@@ -2,7 +2,8 @@ import type { ScenarioConfig } from '../../sim/config';
 import type { SimulationDebriefPayload } from '../../sim/payload';
 import type { TextKey } from '../../i18n';
 import { bestStars, starsFor } from '../stars';
-import { applyActivity, applyStage, type CheckpointSeconds, type DogRecord } from '../dogRecord';
+import { applyActivity, applyStage, updateMission, type CheckpointSeconds, type DogRecord } from '../dogRecord';
+import { missionOfStop } from '../world';
 
 /** What a Debrief can say the user is weakest at; every exercise targets one of these. */
 export type Metric = 'tension' | 'timing' | 'poste' | 'attention';
@@ -43,7 +44,7 @@ export function primerCardOf(card: PrimerCard): PrimerCardDef {
   return typeof card === 'string' ? { kind: 'real-world', text: card } : card;
 }
 
-export type MinigameKind = 'poste-hold' | 'harness-ritual' | 'doorbell-mat';
+export type MinigameKind = 'poste-hold' | 'harness-ritual' | 'doorbell-mat' | 'barkdoku';
 
 /** A Node as plain data (design decision 11); all text comes from the catalog. */
 export interface NodeDef {
@@ -172,7 +173,8 @@ export function checkpointLimit(setting: CheckpointSeconds): number | null {
 
 /**
  * The Dog record when a Node's Debrief is reached: the Node counts as completed even if the
- * technique failed, and only a Stage updates the Dog (a Minigame leaves it untouched).
+ * technique failed, and only a Stage updates the Dog (a Minigame leaves it untouched). The Debrief's
+ * exercise becomes "Tu foco" of the Mission that ends the Node's Stretch.
  */
 export function onDebrief(record: DogRecord, run: NodeRun, now: Date): DogRecord {
   if (run.step !== 'debrief' || !run.result) return record;
@@ -181,8 +183,11 @@ export function onDebrief(record: DogRecord, run: NodeRun, now: Date): DogRecord
   // stars come from handling quality alone (the Poste practice has no score) and only ever go up
   const earned = starsFor(run.result.kind === 'stage' ? run.result.payload.handlingScore : run.result.handlingScore);
   const stars = { ...graded.stars, [run.node.id]: bestStars(graded.stars[run.node.id], earned)! };
+  const missionId = missionOfStop({ kind: 'node', id: run.node.id });
+  const focus = pickExercise(run.node, run.result).key;
+  const focused = missionId ? updateMission({ ...graded, completedNodes, stars }, missionId, (m) => (m.focus === focus ? m : { ...m, focus })) : { ...graded, completedNodes, stars };
   // reaching a Debrief makes today an active day for the Streak
-  return applyActivity({ ...graded, completedNodes, stars }, now);
+  return applyActivity(focused, now);
 }
 
 /**

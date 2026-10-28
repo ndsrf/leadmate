@@ -1,5 +1,5 @@
 import type { NodeMedia } from '../nodes/node';
-import { browserNext, isAllowedVideoHost, isWebUrl, mediaDisplay, lessonImageKind, placeholderReason, videoEmbedUrl, videoWatchUrl } from './media';
+import { browserNext, PAUSE_MEDIA_JS, isAllowedVideoHost, isWebUrl, mediaDisplay, lessonImageKind, placeholderReason, videoEmbedUrl, videoWatchUrl } from './media';
 
 const image: NodeMedia = { type: 'image', url: 'https://example.com/a.png', caption: 'media.caption.poste' };
 
@@ -68,5 +68,16 @@ describe('lesson image display', () => {
     expect(lessonImageKind('https://example.com/a.png', false, true)).toBe('placeholder');
     expect(lessonImageKind('unknown-art', false, false)).toBe('placeholder');
     expect(lessonImageKind('javascript:1', false, false)).toBe('placeholder');
+  });
+});
+
+describe('PAUSE_MEDIA_JS', () => {
+  it('pauses every video and audio element in place', () => {
+    const media = [{ paused: false, currentTime: 42, pause() { this.paused = true; } }, { paused: false, currentTime: 7, pause() { this.paused = true; } }];
+    const document = { querySelectorAll: (selector: string) => (selector === 'video,audio' ? media : []) };
+    const result = new Function('document', `return ${PAUSE_MEDIA_JS.replace(/; true;$/, '')}, true;`)(document);
+    expect(result).toBe(true);
+    expect(media.every((m) => m.paused)).toBe(true);
+    expect(media.map((m) => m.currentTime)).toEqual([42, 7]);
   });
 });

@@ -1,0 +1,171 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Barkdoku UI & Canine Visuals ZoneTracker (Task 2.2) matches snapshot for unfulfilled and fulfilled ZoneTracker: fulfilled-tracker 1`] = `
+<View
+  className="mb-2 flex-row items-center justify-center gap-1.5"
+  testID="zone-tracker"
+>
+  <View
+    accessibilityLabel="Zona 1: completada"
+    className="items-center justify-center rounded-full"
+    style={
+      {
+        "backgroundColor": "#82B57B33",
+        "borderColor": "#82B57B",
+        "borderWidth": 2,
+        "height": 36,
+        "width": 36,
+      }
+    }
+    testID="zone-tracker-item-0"
+  >
+    <BreedArt
+      breed="mestizo"
+      coat="golden"
+      looking={false}
+      width={26}
+    />
+  </View>
+  <View
+    accessibilityLabel="Zona 2: pendiente"
+    className="items-center justify-center rounded-full"
+    style={
+      {
+        "backgroundColor": "#DE866818",
+        "borderColor": "#DE866855",
+        "borderWidth": 2,
+        "height": 36,
+        "width": 36,
+      }
+    }
+    testID="zone-tracker-item-1"
+  >
+    <DogHeadSilhouette
+      color="#DE8668"
+      size={22}
+    />
+  </View>
+  <View
+    accessibilityLabel="Zona 3: pendiente"
+    className="items-center justify-center rounded-full"
+    style={
+      {
+        "backgroundColor": "#8FA8B818",
+        "borderColor": "#8FA8B855",
+        "borderWidth": 2,
+        "height": 36,
+        "width": 36,
+      }
+    }
+    testID="zone-tracker-item-2"
+  >
+    <DogHeadSilhouette
+      color="#8FA8B8"
+      size={22}
+    />
+  </View>
+  <View
+    accessibilityLabel="Zona 4: pendiente"
+    className="items-center justify-center rounded-full"
+    style={
+      {
+        "backgroundColor": "#EAD5A018",
+        "borderColor": "#EAD5A055",
+        "borderWidth": 2,
+        "height": 36,
+        "width": 36,
+      }
+    }
+    testID="zone-tracker-item-3"
+  >
+    <DogHeadSilhouette
+      color="#EAD5A0"
+      size={22}
+    />
+  </View>
+</View>
+`;
+
+exports[`Barkdoku UI & Canine Visuals ZoneTracker (Task 2.2) matches snapshot for unfulfilled and fulfilled ZoneTracker: unfulfilled-tracker 1`] = `
+<View
+  className="mb-2 flex-row items-center justify-center gap-1.5"
+  testID="zone-tracker"
+>
+  <View
+    accessibilityLabel="Zona 1: pendiente"
+    className="items-center justify-center rounded-full"
+    style={
+      {
+        "backgroundColor": "#82B57B18",
+        "borderColor": "#82B57B55",
+        "borderWidth": 2,
+        "height": 36,
+        "width": 36,
+      }
+    }
+    testID="zone-tracker-item-0"
+  >
+    <DogHeadSilhouette
+      color="#82B57B"
+      size={22}
+    />
+  </View>
+  <View
+    accessibilityLabel="Zona 2: pendiente"
+    className="items-center justify-center rounded-full"
+    style={
+      {
+        "backgroundColor": "#DE866818",
+        "borderColor": "#DE866855",
+        "borderWidth": 2,
+        "height": 36,
+        "width": 36,
+      }
+    }
+    testID="zone-tracker-item-1"
+  >
+    <DogHeadSilhouette
+      color="#DE8668"
+      size={22}
+    />
+  </View>
+  <View
+    accessibilityLabel="Zona 3: pendiente"
+    className="items-center justify-center rounded-full"
+    style={
+      {
+        "backgroundColor": "#8FA8B818",
+        "borderColor": "#8FA8B855",
+        "borderWidth": 2,
+        "height": 36,
+        "width": 36,
+      }
+    }
+    testID="zone-tracker-item-2"
+  >
+    <DogHeadSilhouette
+      color="#8FA8B8"
+      size={22}
+    />
+  </View>
+  <View
+    accessibilityLabel="Zona 4: pendiente"
+    className="items-center justify-center rounded-full"
+    style={
+      {
+        "backgroundColor": "#EAD5A018",
+        "borderColor": "#EAD5A055",
+        "borderWidth": 2,
+        "height": 36,
+        "width": 36,
+      }
+    }
+    testID="zone-tracker-item-3"
+  >
+    <DogHeadSilhouette
+      color="#EAD5A0"
+      size={22}
+    />
+  </View>
+</View>
+`;

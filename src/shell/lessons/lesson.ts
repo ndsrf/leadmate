@@ -10,12 +10,16 @@ export type LessonBlock =
   | { type: 'image'; art: string; alt: TextKey; caption: TextKey; placeholder?: boolean }
   | { type: 'video'; videoId: string; poster: string; alt: TextKey; caption: TextKey; placeholder?: boolean };
 
+/** `theory` teaches the real dog; `how-to-play` teaches the simulator's controls and how to read the virtual Dog. */
+export type LessonKind = 'theory' | 'how-to-play';
+
 /** A standalone piece of theory in the Theory Library; all text is catalog keys so content is plain data. */
 export interface LessonDef {
   id: string;
   title: TextKey;
-  /** Suggested day after the first Stage (Day 1 is the day it was completed). */
-  day: number;
+  kind: LessonKind;
+  /** Suggested day after the first Stage (Day 1 is the day it was completed); absent for a Lesson on a World's trail. */
+  day?: number;
   minutes: number;
   /** Provisional text; shows the placeholder badge on the card and at the top of the Lesson. */
   placeholder?: boolean;
@@ -35,12 +39,12 @@ export function lessonDay(record: Pick<DogRecord, 'onboarding'>, now: Date): num
   return day >= 1 ? day : null;
 }
 
-/** The Lesson "for today": the oldest unread one whose suggested day has arrived (a catch-up queue). */
+/** The Lesson "for today": the oldest unread one whose suggested day has arrived (a catch-up queue). Trail Lessons have no day and never are. */
 export function todaysLesson(lessons: readonly LessonDef[], readIds: readonly string[], day: number | null): LessonDef | null {
   if (day === null) return null;
   const read = new Set(readIds);
-  const due = lessons.filter((l) => l.day <= day && !read.has(l.id));
-  return due.reduce<LessonDef | null>((oldest, l) => (oldest === null || l.day < oldest.day ? l : oldest), null);
+  const due = lessons.filter((l): l is LessonDef & { day: number } => l.day !== undefined && l.day <= day && !read.has(l.id));
+  return due.reduce<(LessonDef & { day: number }) | null>((oldest, l) => (oldest === null || l.day < oldest.day ? l : oldest), null);
 }
 
 /** The record with the Lesson marked read; one-way, and a repeat changes nothing. */

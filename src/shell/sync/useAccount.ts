@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import type { DogRecord, KeyValueStore } from '../dogRecord';
 import { supabaseAuth, type AuthApi } from './auth';
+import { followAppState } from './autoRefresh';
 import { getClient } from './client';
 import { supabaseConfigs, fetchLevelConfigs, loadConfigCache, type ConfigCache } from './configs';
 import { supabaseRemote, type RemoteDog } from './remote';
@@ -84,6 +85,9 @@ export function useAccount(store: KeyValueStore, record: DogRecord | null, repla
   }, [store, client]);
 
   useEffect(() => (auth ? auth.watch(setSignedIn) : undefined), [auth]);
+
+  // no token refresh timer in the background (iOS and Android)
+  useEffect(() => (client ? followAppState(client.auth, Platform.OS, AppState) : undefined), [client]);
 
   const syncNow = useCallback(async () => {
     if (!remote || !recordRef.current || running.current) return;

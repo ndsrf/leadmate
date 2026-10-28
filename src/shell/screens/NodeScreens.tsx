@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import type { Translate } from '../../i18n';
+import type { TextKey, Translate } from '../../i18n';
 import type { SimulationDebriefPayload } from '../../sim/payload';
 import { Button, Row } from '../Overlays';
 import { Badge, Choice, OptionCard, Panel, ProgressBar, StarRow } from '../ui/components';
@@ -9,6 +9,8 @@ import { MediaPlaceholder } from '../ui/MediaPlaceholder';
 import { CelebrationList } from '../ui/CelebrationList';
 import { useReveal } from '../ui/useReveal';
 import { useTicker } from '../ui/useTicker';
+import { useLive } from '../ui/useAppActive';
+import { createCountdown } from '../ui/countdown';
 import type { Celebration } from '../celebrations';
 import { starsFor, type Stars } from '../stars';
 import { checkpointLimit, pickExercise, primerCardOf, type NodeRun } from '../nodes/node';
@@ -38,7 +40,10 @@ export function PrimerScreen({ t, run, onNext, onExit }: { t: Translate; run: No
   );
 }
 
-/** Counts down in whole tenths; the answer only feeds the Debrief, so a timeout never blocks anything. */
+/**
+ * Counts down on a 100 ms ticker, which alone decides the timeout; the number and the screen change once a second
+ * and the bar runs down smoothly on the UI thread. The answer only feeds the Debrief, so a timeout never blocks anything.
+ */
 export function CheckpointScreen({
   t,
   run,
@@ -53,29 +58,22 @@ export function CheckpointScreen({
   onTimeout: () => void;
 }) {
   const limit = checkpointLimit(setting);
-  const [left, setLeft] = useState<number | null>(limit);
-  const elapsed = useRef(0);
-  const timedOut = useRef(false);
+  const [left, setLeft] = useState<number | null>(limit === null ? null : Math.ceil(limit));
   const timeout = useRef(onTimeout);
   timeout.current = onTimeout;
+  const countdown = useMemo(() => (limit === null ? null : createCountdown(limit, setLeft, () => timeout.current())), [limit]);
+  const live = useLive();
 
   // counts only while the app is in the foreground, so backgrounding does not eat the time
-  useTicker(limit !== null && !timedOut.current, 100, (dt) => {
-    elapsed.current += dt;
-    const remaining = limit! - elapsed.current;
-    if (remaining <= 0) {
-      timedOut.current = true;
-      timeout.current();
-    } else setLeft(remaining);
-  });
+  useTicker(countdown !== null && !countdown.timedOut, 100, (dt) => countdown?.tick(dt));
 
   return (
     <Screen>
       <View className="flex-row items-center justify-between">
         <Badge label={t('node.checkpoint.title')} tone="warn" />
-        {left !== null && <Text className="font-display text-label text-ink">{`${Math.ceil(left)} ${t('node.checkpoint.seconds')}`}</Text>}
+        {left !== null && <Text className="font-display text-label text-ink">{`${left} ${t('node.checkpoint.seconds')}`}</Text>}
       </View>
-      {left !== null && limit !== null && <ProgressBar className="my-2" tone="accent" value={Math.max(0, left)} max={limit} />}
+      {left !== null && limit !== null && <ProgressBar className="my-2" tone="accent" value={left} max={limit} runDown={{ live }} />}
       <Text className="my-4 font-display text-displayM text-ink">{t(run.node.checkpoint.question)}</Text>
       {run.node.checkpoint.options.map((option, i) => (
         <OptionCard key={option.text} label={t(option.text)} onPress={() => onAnswer(i)} />
@@ -114,7 +112,7 @@ function StageRows({ t, p }: { t: Translate; p: SimulationDebriefPayload }) {
   );
 }
 
-const DIARY_KEYS = { completed: 'diary.completed', struggled: 'diary.struggled', skipped: 'diary.skipped' } as const;
+export const DIARY_KEYS = { completed: 'diary.completed', struggled: 'diary.struggled', skipped: 'diary.skipped' } as const;
 
 /** The one-tap check-in on the real-world exercise: three answers, each a single press. */
 export function WalkDiaryBar({ t, chosen, onChoose }: { t: Translate; chosen: DiaryOutcome | null; onChoose: (outcome: DiaryOutcome) => void }) {
@@ -132,13 +130,15 @@ export function WalkDiaryBar({ t, chosen, onChoose }: { t: Translate; chosen: Di
   );
 }
 
-/** Results, one real-world exercise for the weakest metric, and the Poste link after two failures. */
+/**
+ * Results, one real-world exercise for the weakest metric, the Mission it is practice for, and the Poste link
+ * after two failures. The Debrief asks nothing about the real walk: that is the Mission's check-in.
+ */
 export function DebriefScreen({
   t,
   run,
   showPosteLink,
-  diary,
-  onDiary,
+  mission,
   onPosteLink,
   onDone,
   onPlayAgain,
@@ -148,9 +148,8 @@ export function DebriefScreen({
   t: Translate;
   run: NodeRun;
   showPosteLink: boolean;
-  /** Today's Walk Diary answer for this Node, if any. */
-  diary: DiaryOutcome | null;
-  onDiary: (outcome: DiaryOutcome) => void;
+  /** The title of the Mission that ends the Node's Stretch, if it has one. */
+  mission?: TextKey;
   onPosteLink: () => void;
   onDone: () => void;
   onPlayAgain: () => void;
@@ -161,7 +160,7 @@ export function DebriefScreen({
 }) {
   const result = run.result;
   if (!result) return null;
-  return <DebriefBody t={t} run={run} result={result} showPosteLink={showPosteLink} diary={diary} onDiary={onDiary} onPosteLink={onPosteLink} onDone={onDone} onPlayAgain={onPlayAgain} best={best} celebrations={celebrations} />;
+  return <DebriefBody t={t} run={run} result={result} showPosteLink={showPosteLink} mission={mission} onPosteLink={onPosteLink} onDone={onDone} onPlayAgain={onPlayAgain} best={best} celebrations={celebrations} />;
 }
 
 function DebriefBody({
@@ -169,8 +168,7 @@ function DebriefBody({
   run,
   result,
   showPosteLink,
-  diary,
-  onDiary,
+  mission,
   onPosteLink,
   onDone,
   onPlayAgain,
@@ -181,8 +179,7 @@ function DebriefBody({
   run: NodeRun;
   result: NonNullable<NodeRun['result']>;
   showPosteLink: boolean;
-  diary: DiaryOutcome | null;
-  onDiary: (outcome: DiaryOutcome) => void;
+  mission?: TextKey;
   onPosteLink: () => void;
   onDone: () => void;
   onPlayAgain: () => void;
@@ -245,8 +242,8 @@ function DebriefBody({
           <Panel tone="warn" className="mt-4">
             <Text className="font-display text-label text-ink">{t('results.exercise')}</Text>
             <Text className="mt-1 text-bodyL text-ink">{t(exercise.key)}</Text>
+            {mission && <Text className="mt-2 font-display text-body text-ink">{t('debrief.practiseFor').replace('{mission}', t(mission))}</Text>}
           </Panel>
-          <WalkDiaryBar t={t} chosen={diary} onChoose={onDiary} />
           {showPosteLink && (
             <Panel tone="info" className="mt-4">
               <Text className="text-body text-ink">{t('results.posteHint')}</Text>

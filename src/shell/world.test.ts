@@ -9,13 +9,28 @@ import {
   BLIND_CORNER_NODE, DOORBELL_MAT_NODE, HARNESS_RITUAL_NODE, LEAVE_IT_NODE, NODES, PARK_JOGGER_NODE, PARK_MIX_NODE, POSTE_PRACTICE, SCOOTER_NODE, SLACK_U_NODE, URBAN_MIX_NODE, WALK_DISTRACTION,
 } from './nodes/content';
 import { isAvailable, primerCardOf, type NodeDef } from './nodes/node';
-import { currentWorld, findWorld, isNodeOpen, isWorldComplete, isWorldUnlocked, nodesOfWorld, WORLDS, worldOfNode } from './world';
+import { currentWorld, findWorld, isLastNodeOfStretch, isNodeOpen, isWorldComplete, isWorldUnlocked, missionOfStop, nodeIdsOf, nodesOfWorld, placeOfLesson, progressOf, sameStop, stopLock, stopsOf, stopStatus, WORLDS, worldOfNode, type Progress, type Stop, type WorldDef } from './world';
+import { findNode } from './nodes/content';
+import { findLesson } from './lessons/content';
+import { MISSIONS } from './missions/content';
+import type { MissionDef, MissionState } from './missions/mission';
+import { migrateRecord } from './dogRecord';
 import type { ScenarioConfig } from '../sim/config';
 import { defaultScenario } from '../sim/config';
 
 const ids = (n: readonly NodeDef[]) => n.map((x) => x.id);
 const world = (id: string) => findWorld(id)!;
-const allOf = (...worlds: string[]) => worlds.flatMap((w) => world(w).nodes);
+const nodesIn = (...worlds: string[]) => worlds.flatMap((w) => nodeIdsOf(world(w)));
+const passed = (id: string): [string, MissionState] => [id, { target: 'full', skipRun: 0, attempts: [], startedAt: '2026-05-01T08:00:00.000Z', passedOn: '2026-05-02' }];
+/** Progress with every Stop of these Worlds done: Nodes completed, Lessons read and Missions passed. */
+const finished = (...worlds: string[]): Progress => {
+  const stops = worlds.flatMap((w) => stopsOf(world(w)));
+  return progressOf(nodesIn(...worlds), {
+    readLessons: stops.filter((s) => s.kind === 'lesson').map((s) => s.id),
+    missions: Object.fromEntries(stops.filter((s) => s.kind === 'mission').map((s) => passed(s.id))),
+  });
+};
+const at = (h: number, day = 2) => new Date(2026, 4, day, h);
 
 describe('World unlocking', () => {
   it('has eight sequential Worlds, each unlocked by the one before', () => {
@@ -32,48 +47,58 @@ describe('World unlocking', () => {
     expect(previews.every((w) => w.tier === 'plus')).toBe(true);
   });
 
-  it('keeps World 1 open and the rest locked for a new Dog', () => {
-    expect(isWorldUnlocked(world('home'), [])).toBe(true);
-    for (const id of ['sidewalk', 'urban', 'park', 'recall', 'cafe', 'trails', 'crowds']) expect(isWorldUnlocked(world(id), [])).toBe(false);
+  it('keeps Preview Worlds 5-8 unplayable with their planned Stop count', () => {
+    for (const w of WORLDS.filter((x) => x.preview)) {
+      expect(w.stretches).toEqual([]);
+      expect(w.nodeCount).toBeGreaterThan(0);
+    }
   });
 
-  it('keeps World 2 locked until every Node of World 1 is completed', () => {
-    const partial = world('home').nodes.slice(0, -1);
-    expect(isWorldUnlocked(world('sidewalk'), partial)).toBe(false);
-    expect(isWorldUnlocked(world('sidewalk'), world('home').nodes)).toBe(true);
-    expect(isWorldComplete(world('home'), partial)).toBe(false);
+  it('keeps World 1 open and the rest locked for a new Dog', () => {
+    expect(isWorldUnlocked(world('home'), progressOf([]))).toBe(true);
+    for (const id of ['sidewalk', 'urban', 'park', 'recall', 'cafe', 'trails', 'crowds']) expect(isWorldUnlocked(world(id), progressOf([]))).toBe(false);
+  });
+
+  it('keeps World 2 locked until every Stop of World 1 is done, its last Mission included', () => {
+    const all = finished('home');
+    const lastMission = world('home').stretches[2][2].id;
+    const waiting = { ...all, missions: { ...all.missions, [lastMission]: { target: 'full' as const, skipRun: 0, attempts: [], startedAt: '2026-05-01T08:00:00.000Z' } } };
+    expect(isWorldUnlocked(world('sidewalk'), waiting)).toBe(false);
+    expect(isWorldComplete(world('home'), waiting)).toBe(false);
+    expect(isWorldUnlocked(world('sidewalk'), all)).toBe(true);
   });
 
   it('opens one World at a time, never skipping ahead', () => {
-    const home = allOf('home');
-    expect(isWorldUnlocked(world('urban'), home)).toBe(false);
-    expect(isWorldUnlocked(world('urban'), allOf('home', 'sidewalk'))).toBe(true);
-    // finishing World 2's Nodes without World 1 does not open World 3
-    expect(isWorldUnlocked(world('urban'), allOf('sidewalk'))).toBe(false);
-    expect(isWorldUnlocked(world('park'), allOf('home', 'sidewalk', 'urban'))).toBe(true);
+    expect(isWorldUnlocked(world('urban'), finished('home'))).toBe(false);
+    expect(isWorldUnlocked(world('urban'), finished('home', 'sidewalk'))).toBe(true);
+    // finishing World 2 without World 1 does not open World 3
+    expect(isWorldUnlocked(world('urban'), finished('sidewalk'))).toBe(false);
+    expect(isWorldUnlocked(world('park'), finished('home', 'sidewalk', 'urban'))).toBe(true);
   });
 
   it('puts every Node in exactly one World', () => {
-    const all = WORLDS.flatMap((w) => w.nodes);
+    const all = WORLDS.flatMap((w) => nodeIdsOf(w));
     expect(new Set(all).size).toBe(all.length);
-    expect(all.sort()).toEqual(ids(NODES).sort());
+    expect([...all].sort()).toEqual(ids(NODES).sort());
     for (const node of NODES) expect(worldOfNode(node.id)).toBeDefined();
-    for (const w of WORLDS) expect(nodesOfWorld(w)).toHaveLength(w.nodes.length);
+    for (const w of WORLDS) expect(nodesOfWorld(w)).toHaveLength(nodeIdsOf(w).length);
   });
 
-  it('opens a Node only when its World is open and its own prerequisites are done', () => {
-    expect(isNodeOpen(HARNESS_RITUAL_NODE, [])).toBe(true);
-    expect(isNodeOpen(DOORBELL_MAT_NODE, [])).toBe(false); // needs the harness first
-    expect(isNodeOpen(WALK_DISTRACTION, [POSTE_PRACTICE.id])).toBe(false); // World 2 is locked
-    expect(isNodeOpen(WALK_DISTRACTION, [...allOf('home')])).toBe(true);
-    expect(isNodeOpen(LEAVE_IT_NODE, allOf('home'))).toBe(false);
-    expect(isNodeOpen(LEAVE_IT_NODE, allOf('home', 'sidewalk'))).toBe(true);
+  it('opens a Node only when its World is open, its Stretch is done up to it and its own prerequisites are done', () => {
+    const harnessReady = progressOf([], { readLessons: ['theory-harness', 'howto-tap-hold'] });
+    expect(isNodeOpen(HARNESS_RITUAL_NODE, harnessReady)).toBe(true);
+    expect(isNodeOpen(HARNESS_RITUAL_NODE, progressOf([]))).toBe(false); // its theory Lesson comes first
+    expect(isNodeOpen(DOORBELL_MAT_NODE, harnessReady)).toBe(false);
+    expect(isNodeOpen(WALK_DISTRACTION, progressOf([POSTE_PRACTICE.id]))).toBe(false); // World 2 is locked
+    const world2 = { ...finished('home'), readLessons: [...finished('home').readLessons, 'theory-loose-leash', 'howto-walking'] };
+    expect(isNodeOpen(WALK_DISTRACTION, world2)).toBe(true);
+    expect(isNodeOpen(LEAVE_IT_NODE, finished('home'))).toBe(false);
   });
 
   it('opens the map on the first World that is not complete', () => {
-    expect(currentWorld([]).id).toBe('home');
-    expect(currentWorld(allOf('home')).id).toBe('sidewalk');
-    expect(currentWorld(allOf('home', 'sidewalk', 'urban', 'park')).id).toBe('park');
+    expect(currentWorld(progressOf([])).id).toBe('home');
+    expect(currentWorld(finished('home')).id).toBe('sidewalk');
+    expect(currentWorld(finished('home', 'sidewalk', 'urban', 'park')).id).toBe('park');
   });
 
   it('titles and topics every World from the catalog', () => {
@@ -84,26 +109,205 @@ describe('World unlocking', () => {
   });
 });
 
+describe('Stop availability and the Mission gate', () => {
+  const lesson = (id: string): Stop => ({ kind: 'lesson', id });
+  const node = (id: string): Stop => ({ kind: 'node', id });
+  const mission = (id: string): Stop => ({ kind: 'mission', id });
+  const stretch1 = progressOf(['harness-ritual'], { readLessons: ['theory-harness', 'howto-tap-hold'] });
+  const started = (p: Progress, id: string, startedAt = at(9, 1)): Progress => ({ ...p, missions: { ...p.missions, [id]: { target: 'full', skipRun: 0, attempts: [], startedAt: startedAt.toISOString() } } });
+
+  it('opens the Stops of a Stretch in order, naming the missing ones', () => {
+    expect(stopStatus(lesson('theory-harness'), progressOf([]), at(9)).state).toBe('open');
+    expect(stopStatus(node('harness-ritual'), progressOf([]), at(9))).toEqual({ state: 'locked', lock: { kind: 'stops', stops: [lesson('theory-harness'), lesson('howto-tap-hold')] } });
+    expect(stopStatus(mission('mission-harness'), stretch1, at(9)).state).toBe('open');
+  });
+
+  it('locks the next Stretch behind its Mission', () => {
+    expect(stopStatus(lesson('theory-doorbell'), stretch1, at(9))).toEqual({ state: 'locked', lock: { kind: 'mission', id: 'mission-harness' } });
+    expect(stopStatus(node('doorbell-mat'), started(stretch1, 'mission-harness'), at(9)).lock).toEqual({ kind: 'mission', id: 'mission-harness' });
+  });
+
+  it('shows a started Mission as waiting until its check-in opens, then open', () => {
+    const p = started(stretch1, 'mission-harness', at(9, 1));
+    expect(stopStatus(mission('mission-harness'), p, at(20, 1))).toMatchObject({ state: 'waiting', opensAt: new Date(2026, 4, 2) });
+    expect(stopStatus(mission('mission-harness'), p, at(9, 2))).toEqual({ state: 'open', checkInDue: true });
+  });
+
+  it('lets the user practise while a Mission waits, and replaying changes nothing', () => {
+    const p = started(stretch1, 'mission-harness');
+    for (const s of [lesson('theory-harness'), lesson('howto-tap-hold'), node('harness-ritual')]) expect(stopStatus(s, p, at(20, 1)).state).toBe('done');
+    expect(stopLock(node('harness-ritual'), p)).toBeNull();
+  });
+
+  it('allows every Stop of an open Stretch on the same day, up to the Mission', () => {
+    let p = progressOf([]);
+    const stops = world('home').stretches[0];
+    for (const s of stops.slice(0, -1)) {
+      expect(stopStatus(s, p, at(9)).state).toBe('open');
+      p = s.kind === 'lesson' ? { ...p, readLessons: [...p.readLessons, s.id] } : { ...p, completedNodes: [...p.completedNodes, s.id] };
+    }
+    expect(stopStatus(stops[stops.length - 1], p, at(9)).state).toBe('open');
+  });
+
+  it('passes the gate once the Mission is passed', () => {
+    const p = { ...stretch1, missions: Object.fromEntries([passed('mission-harness')]) };
+    expect(stopStatus(lesson('theory-doorbell'), p, at(9)).state).toBe('open');
+  });
+
+  it('completes a Lesson Stop read from the Library, without passing a Mission before it', () => {
+    const p = { ...started(stretch1, 'mission-harness'), readLessons: [...stretch1.readLessons, 'theory-doorbell'] };
+    expect(stopStatus(lesson('theory-doorbell'), p, at(9)).state).toBe('done');
+    expect(stopStatus(node('doorbell-mat'), p, at(9)).lock).toEqual({ kind: 'mission', id: 'mission-harness' });
+    const passedP = { ...p, missions: Object.fromEntries([passed('mission-harness')]) };
+    expect(stopStatus(node('doorbell-mat'), passedP, at(9)).state).toBe('open');
+  });
+
+  it('grandfathers a returning user who finished World 1: every Mission passed and World 2 open', () => {
+    const legacy = migrateRecord({ version: 6, completedNodes: nodeIdsOf(world('home')) });
+    for (const s of stopsOf(world('home')).filter((x) => x.kind === 'mission')) expect(stopStatus(s, legacy, at(9))).toEqual({ state: 'done', grandfathered: true });
+    expect(isWorldUnlocked(world('sidewalk'), legacy)).toBe(true);
+    expect(stopStatus(lesson('theory-loose-leash'), legacy, at(9)).state).toBe('open');
+  });
+
+  it('gates a user partly through a World at the first unpassed Mission', () => {
+    const legacy = migrateRecord({ version: 6, completedNodes: ['harness-ritual'] });
+    expect(stopStatus(mission('mission-harness'), legacy, at(9)).state).toBe('open');
+    expect(stopStatus(lesson('theory-doorbell'), legacy, at(9)).lock).toEqual({ kind: 'mission', id: 'mission-harness' });
+  });
+
+  it('never grandfathers the last Mission of a World for a Dog that started with Missions', () => {
+    const p = { ...finished('home'), missions: { ...finished('home').missions, 'mission-poste': undefined as never } };
+    delete p.missions['mission-poste'];
+    expect(stopStatus(mission('mission-poste'), p, at(9)).state).toBe('open');
+    expect(isWorldUnlocked(world('sidewalk'), p)).toBe(false);
+  });
+
+  it('does not let an unread theory Lesson before a completed doorbell-mat block the trail', () => {
+    const legacy = migrateRecord({ version: 6, completedNodes: ['harness-ritual', 'doorbell-mat'] });
+    expect(stopStatus(lesson('theory-doorbell'), legacy, at(9))).toEqual({ state: 'open', satisfied: true });
+    expect(stopStatus(mission('mission-doorbell'), legacy, at(9)).state).toBe('open');
+    expect(stopStatus(lesson('theory-poste'), legacy, at(9)).lock).toEqual({ kind: 'mission', id: 'mission-doorbell' });
+  });
+
+  it('does not let a Node added ahead of completed Nodes re-lock a World the user had finished', () => {
+    // calm-zone-intro joined World 3 after these users had finished it
+    const done = ['home', 'sidewalk', 'urban'].flatMap((id) => nodeIdsOf(world(id))).filter((id) => id !== 'calm-zone-intro');
+    const legacy = migrateRecord({ version: 6, completedNodes: done });
+    expect(isWorldComplete(world('urban'), legacy)).toBe(true);
+    expect(isWorldUnlocked(world('park'), legacy)).toBe(true);
+    expect(stopStatus(node('calm-zone-intro'), legacy, at(9))).toEqual({ state: 'open', satisfied: true });
+    expect(stopStatus(node('scooter-crossing'), legacy, at(9)).state).toBe('done');
+  });
+
+  it('still asks for a new Node when nothing after it is completed', () => {
+    const legacy = migrateRecord({ version: 6, completedNodes: [...nodeIdsOf(world('home')), ...nodeIdsOf(world('sidewalk')), 'leave-it-intro'] });
+    const p = { ...legacy, readLessons: ['theory-visual-shields'], missions: Object.fromEntries([passed('mission-leave-it')]) };
+    expect(stopStatus(node('scooter-crossing'), p, at(9)).lock).toEqual({ kind: 'stops', stops: [node('calm-zone-intro')] });
+    expect(stopStatus(node('calm-zone-intro'), p, at(9)).state).toBe('open');
+    expect(stopStatus(node('scooter-crossing'), { ...p, readLessons: [] }, at(9)).lock).toEqual({ kind: 'stops', stops: [lesson('theory-visual-shields'), node('calm-zone-intro')] });
+  });
+
+  it('finds the Mission and the Stretch place of a Stop', () => {
+    expect(missionOfStop(node('doorbell-mat'))).toBe('mission-doorbell');
+    expect(placeOfLesson('howto-walking')).toEqual({ world: 2, stretch: 1 });
+    expect(placeOfLesson('calm-leash')).toBeUndefined();
+    expect(isLastNodeOfStretch('harness-ritual')).toBe(true);
+  });
+});
+
+/** Every rule a trail must keep (design decision 1 and the world-progression spec); an empty list means valid. */
+function trailProblems(worlds: readonly WorldDef[], missions: readonly MissionDef[] = MISSIONS): string[] {
+  const problems: string[] = [];
+  const seen = new Set<string>();
+  const exists = (s: Stop) => (s.kind === 'node' ? !!findNode(s.id) : s.kind === 'lesson' ? !!findLesson(s.id) : missions.some((m) => m.id === s.id));
+  const controlsTaught = new Set<string>();
+  for (const w of worlds) {
+    w.stretches.forEach((stops, i) => {
+      const where = `${w.id} stretch ${i + 1}`;
+      const missionsHere = stops.filter((s) => s.kind === 'mission');
+      if (missionsHere.length !== 1 || stops[stops.length - 1].kind !== 'mission') problems.push(`${where}: must end in exactly one Mission`);
+      const def = missions.find((m) => m.id === stops[stops.length - 1]?.id);
+      for (const s of stops) {
+        const key = `${s.kind}:${s.id}`;
+        if (seen.has(key)) problems.push(`${where}: ${key} placed twice`);
+        seen.add(key);
+        if (!exists(s)) problems.push(`${where}: ${key} does not resolve`);
+        if (s.kind === 'node' && def && !def.trains.some((t) => sameStop(t, s))) problems.push(`${where}: ${s.id} does not train the Mission's technique`);
+      }
+      const firstNode = stops.findIndex((s) => s.kind === 'node');
+      if (firstNode >= 0) {
+        const before = stops.slice(0, firstNode).map((s) => (s.kind === 'lesson' ? findLesson(s.id) : undefined));
+        if (!before.some((l) => l?.kind === 'theory')) problems.push(`${where}: no theory Lesson before its Node`);
+        const node = findNode(stops[firstNode].id);
+        const control = node?.mode === 'stage' ? (node.simulation.scenario?.cues?.length ?? 0) > 1 || node.id === 'leave-it-intro' ? 'cues' : 'walk' : 'tap';
+        if (!controlsTaught.has(control) && !before.some((l) => l?.kind === 'how-to-play')) problems.push(`${where}: no How-to-play Lesson before the first use of ${control}`);
+        controlsTaught.add(control);
+      }
+      // a Fix may only send the user back, never ahead of the Stretch
+      const allowed = new Set(w.stretches.slice(0, i + 1).flat().map((s) => `${s.kind}:${s.id}`));
+      for (const fix of def ? [...def.problems.map((p) => p.fix), def.generalFix] : []) {
+        if (!allowed.has(`${fix.practise.kind}:${fix.practise.id}`)) problems.push(`${where}: ${fix.id} practises a Stop ahead of it`);
+      }
+    });
+  }
+  return problems;
+}
+
+describe('trail validation', () => {
+  it('accepts the shipped trails', () => {
+    expect(trailProblems(WORLDS)).toEqual([]);
+  });
+
+  it('gives World 1 three Stretches, harness, doorbell and Poste, and World 2 one per technique', () => {
+    expect(world('home').stretches.map((s) => s.filter((x) => x.kind === 'node').map((x) => x.id))).toEqual([['harness-ritual'], ['doorbell-mat'], ['poste-practice']]);
+    expect(world('sidewalk').stretches.map((s) => s.filter((x) => x.kind === 'node').map((x) => x.id))).toEqual([['walk-distraction'], ['blind-corner'], ['slack-u']]);
+    for (const w of WORLDS.filter((x) => !x.preview)) expect(w.stretches.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('precedes the first walking Stage with a theory and a How-to-play Lesson', () => {
+    const stops = world('sidewalk').stretches[0];
+    expect(stops.slice(0, 3)).toEqual([{ kind: 'lesson', id: 'theory-loose-leash' }, { kind: 'lesson', id: 'howto-walking' }, { kind: 'node', id: 'walk-distraction' }]);
+    expect(findLesson('theory-loose-leash')!.kind).toBe('theory');
+    expect(findLesson('howto-walking')!.kind).toBe('how-to-play');
+  });
+
+  it('fails on a deliberately broken trail', () => {
+    const home = world('home');
+    const broken: WorldDef[] = [
+      { ...home, stretches: [[...home.stretches[0].slice(0, -1)], [{ kind: 'node', id: 'harness-ritual' }, { kind: 'mission', id: 'nope' }], [{ kind: 'node', id: 'doorbell-mat' }, { kind: 'mission', id: 'mission-harness' }]] },
+    ];
+    const problems = trailProblems(broken);
+    expect(problems.some((p) => p.includes('exactly one Mission'))).toBe(true);
+    expect(problems.some((p) => p.includes('placed twice'))).toBe(true);
+    expect(problems.some((p) => p.includes('does not resolve'))).toBe(true);
+    expect(problems.some((p) => p.includes('no theory Lesson'))).toBe(true);
+    expect(problems.some((p) => p.includes("does not train the Mission's technique"))).toBe(true);
+    const ahead: MissionDef = { ...MISSIONS[0], generalFix: { ...MISSIONS[0].generalFix, practise: { kind: 'node', id: 'doorbell-mat' } } };
+    expect(trailProblems([home], [ahead, ...MISSIONS.slice(1)]).some((p) => p.includes('ahead of it'))).toBe(true);
+  });
+});
+
 describe('Node content of every World', () => {
   it.each(NODES.map((n) => [n.id, n] as const))('%s has all its text in the catalog and one right answer', (_id, node) => {
     const keys = [node.title, ...node.primerCards.map((c) => primerCardOf(c).text), node.checkpoint.question, ...node.checkpoint.options.map((o) => o.text), ...node.exercises.map((e) => e.key)];
     for (const key of keys) expect(es[key]).toBeTruthy();
-    expect(node.primerCards.length).toBeGreaterThanOrEqual(3);
-    expect(node.primerCards.length).toBeLessThanOrEqual(5);
+    expect(node.primerCards.length).toBeGreaterThanOrEqual(1);
+    expect(node.primerCards.length).toBeLessThanOrEqual(2);
     expect(node.checkpoint.options.filter((o) => o.correct)).toHaveLength(1);
     expect(node.exercises.length).toBeGreaterThan(0);
   });
 
   it('only lists prerequisites that exist and never loops', () => {
     for (const node of NODES) for (const id of node.prerequisites) expect(ids(NODES)).toContain(id);
-    // everything becomes reachable by completing Nodes in order
-    const done: string[] = [];
-    for (let guard = 0; guard < 50 && done.length < NODES.length; guard++) {
-      const next = NODES.find((n) => !done.includes(n.id) && isNodeOpen(n, done));
-      if (!next) break;
-      done.push(next.id);
+    // every Stop becomes reachable by doing the trail in order
+    let p = progressOf([]);
+    for (const stop of WORLDS.flatMap(stopsOf)) {
+      expect({ stop: stop.id, lock: stopLock(stop, p) }).toEqual({ stop: stop.id, lock: null });
+      if (stop.kind === 'node') p = { ...p, completedNodes: [...p.completedNodes, stop.id] };
+      else if (stop.kind === 'lesson') p = { ...p, readLessons: [...p.readLessons, stop.id] };
+      else p = { ...p, missions: { ...p.missions, [stop.id]: passed(stop.id)[1] } };
     }
-    expect(done).toHaveLength(NODES.length);
+    expect(p.completedNodes).toHaveLength(NODES.length);
   });
 });
 

@@ -1,10 +1,12 @@
 import { es } from '../../i18n';
 import { DEFAULT_ATTRIBUTES } from '../../sim/learning';
-import { applyDiary, newDogRecord } from '../dogRecord';
+import { newDogRecord } from '../dogRecord';
 import { DIARY_OUTCOMES } from '../streak';
 import { payloadWith } from '../testPayload';
 import { DOORBELL_MAT_NODE, HARNESS_RITUAL_NODE, LEAVE_IT_NODE, NODES, POSTE_PRACTICE, SCOOTER_NODE, URBAN_MIX_NODE, WALK_DISTRACTION } from './content';
-import { worldOfNode } from '../world';
+import { placeOf, worldOfNode } from '../world';
+import { findLesson } from '../lessons/content';
+import { INTRO_NODE } from '../onboarding/introNode';
 import { advance, checkpointLimit, isAvailable, metricScores, missingPrerequisites, onDebrief, pickExercise, primerCardOf, shouldShowPosteLink, startNode, type NodeRun } from './node';
 import { newPosteMinigame, posteMinigameMetrics, POSTE_MINIGAME, stepPosteMinigame, tensionOf } from './posteMinigame';
 
@@ -52,11 +54,13 @@ describe('Node state machine', () => {
     expect(advance(atCheckpoint, { type: 'finish', result: stageResult() }).step).toBe('checkpoint');
   });
 
-  it('shows 3 to 5 Primer cards', () => {
+  it('shows 1 or 2 recap cards on a trail Node, and 3 to 5 on the introductory Node', () => {
     for (const node of NODES) {
-      expect(node.primerCards.length).toBeGreaterThanOrEqual(3);
-      expect(node.primerCards.length).toBeLessThanOrEqual(5);
+      expect(node.primerCards.length).toBeGreaterThanOrEqual(1);
+      expect(node.primerCards.length).toBeLessThanOrEqual(2);
     }
+    expect(INTRO_NODE.primerCards.length).toBeGreaterThanOrEqual(3);
+    expect(INTRO_NODE.primerCards.length).toBeLessThanOrEqual(5);
   });
 
   it('records a missed answer on timeout and still starts the simulation', () => {
@@ -167,6 +171,50 @@ describe('Debrief exercise', () => {
   });
 });
 
+describe('Barkdoku minigame node integration', () => {
+  it('supports barkdoku in minigame node simulation and calculates metric scores', () => {
+    const barkdokuNode: any = {
+      id: 'test-barkdoku',
+      title: 'node.barkdoku.title',
+      mode: 'minigame',
+      primerCards: ['primer.1', 'primer.2', 'primer.3'],
+      checkpoint: {
+        question: 'q',
+        options: [{ text: 'opt1', correct: true }, { text: 'opt2', correct: false }],
+      },
+      simulation: { minigame: 'barkdoku' },
+      exercises: [{ metric: 'tension', key: 'ex.tension' }],
+      prerequisites: [],
+    };
+
+    let run = startNode(barkdokuNode);
+    expect(run.node.simulation.minigame).toBe('barkdoku');
+    expect(run.step).toBe('primer');
+    run = advance(run, { type: 'next' });
+    run = advance(run, { type: 'next' });
+    run = advance(run, { type: 'next' });
+    expect(run.step).toBe('checkpoint');
+    run = advance(run, { type: 'answer', option: 0 });
+    expect(run.step).toBe('simulation');
+
+    const result = {
+      kind: 'minigame' as const,
+      metrics: {
+        timing: 1,
+        attention: 0.8,
+        tension: 1,
+      },
+    };
+    run = advance(run, { type: 'finish', result });
+    expect(run.step).toBe('debrief');
+    expect(metricScores(run.result!)).toEqual({
+      timing: 1,
+      attention: 0.8,
+      tension: 1,
+    });
+  });
+});
+
 describe('initial content', () => {
   it('comes from the catalog', () => {
     for (const node of NODES) {
@@ -236,10 +284,19 @@ describe('Debrief Walk Diary and Streak', () => {
     expect(es['diary.skipped']).toBe('Hoy no pudimos');
   });
 
-  it('logs the chosen answer with its date and Node in the Dog record', () => {
-    const run = debriefed();
-    const record = applyDiary(onDebrief(newDogRecord(), run, day(1)), run.node.id, 'struggled', day(1));
-    expect(record.walkDiary).toEqual([{ date: '2026-05-01', nodeId: 'walk-distraction', outcome: 'struggled' }]);
+  it('logs nothing in the Walk Diary: check-ins happen on the Mission', () => {
+    expect(onDebrief(newDogRecord(), debriefed(), day(1)).walkDiary).toEqual([]);
+  });
+
+  it('writes the Debrief exercise as "Tu foco" of the Mission that ends the Stretch', () => {
+    const run = debriefed(WALK_DISTRACTION, stageResult({ pullPercentage: 90, checkInHits: 2 }));
+    const after = onDebrief(newDogRecord(), run, day(1));
+    expect(after.missions['mission-walk']).toEqual({ target: 'full', skipRun: 0, attempts: [], focus: pickExercise(WALK_DISTRACTION, run.result!).key });
+    expect(after.missions['mission-walk'].focus).toBe('node.walk.exerciseTension');
+    // a replay with another weakest metric updates it, and nothing starts the Mission
+    const replay = onDebrief(after, debriefed(WALK_DISTRACTION, stageResult({ pullPercentage: 0, checkInHits: 0 })), day(2));
+    expect(replay.missions['mission-walk'].focus).toBe('node.walk.exerciseAttention');
+    expect(replay.missions['mission-walk'].startedAt).toBeUndefined();
   });
 
   it('makes the day of a Debrief active for the Streak, Stage or Minigame, and again on a replay without adding', () => {
@@ -333,17 +390,29 @@ describe('structured Primer cards', () => {
     expect(advance(run, { type: 'next' }).step).toBe('checkpoint');
   });
 
-  it('gives the dual-aspect Nodes both kinds of card, real-world first, with texts in the catalog', () => {
-    for (const node of [HARNESS_RITUAL_NODE, DOORBELL_MAT_NODE, POSTE_PRACTICE]) {
+  it('recaps the theory Lesson first, and the controls only after a How-to-play Lesson', () => {
+    for (const node of NODES) {
+      const place = placeOf({ kind: 'node', id: node.id })!;
+      const before = place.world.stretches[place.stretch].slice(0, place.index);
+      const afterHowTo = before.some((s) => s.kind === 'lesson' && findLesson(s.id)?.kind === 'how-to-play');
       const cards = node.primerCards.map(primerCardOf);
       expect(cards[0].kind).toBe('real-world');
-      expect(cards.some((c) => c.kind === 'virtual-dog')).toBe(true);
-      const firstVirtual = cards.findIndex((c) => c.kind === 'virtual-dog');
-      expect(cards.slice(firstVirtual).every((c) => c.kind === 'virtual-dog')).toBe(true);
+      expect({ node: node.id, cards: cards.length }).toEqual({ node: node.id, cards: afterHowTo ? 2 : 1 });
+      if (afterHowTo) expect(cards[1].kind).toBe('virtual-dog');
       for (const c of cards) {
         expect(es[c.text]).toBeTruthy();
         if (c.media) expect(es[c.media.caption]).toBeTruthy();
       }
     }
+  });
+
+  it('keeps the dual-aspect Primer on the introductory Node, real-world first', () => {
+    const cards = INTRO_NODE.primerCards.map(primerCardOf);
+    expect(cards[0].kind).toBe('real-world');
+    expect(cards.some((c) => c.kind === 'virtual-dog')).toBe(true);
+  });
+
+  it('tests the theory Lesson in the Checkpoint of every trail Node', () => {
+    for (const node of NODES) expect(node.checkpoint.question).toMatch(/\.tq\.question$/);
   });
 });

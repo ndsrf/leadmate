@@ -1,4 +1,5 @@
 import { newDogRecord, type DogRecord } from '../dogRecord';
+import type { MissionState } from '../missions/mission';
 import { resolve } from './merge';
 
 const rec = (over: Partial<DogRecord>): DogRecord => ({ ...newDogRecord(), ...over });
@@ -83,5 +84,61 @@ describe('resolve stars', () => {
     const a = rec({ ...at('2026-05-01T00:00:00.000Z'), stars: { 'poste-practice': 1, 'walk-distraction': 2 } });
     const b = rec({ ...at('2026-05-02T00:00:00.000Z'), stars: { 'poste-practice': 3 } });
     expect(resolve(a, b).stars).toEqual({ 'poste-practice': 3, 'walk-distraction': 2 });
+  });
+});
+
+describe('resolve Missions and Fixes', () => {
+  const waiting: MissionState = { startedAt: '2026-05-04T08:00:00.000Z', target: 'easier', skipRun: 0, attempts: [{ date: '2026-05-04', at: '2026-05-04T08:00:00.000Z', outcome: 'struggled', problemId: 'p' }] };
+  const passed: MissionState = { startedAt: '2026-05-01T08:00:00.000Z', target: 'full', skipRun: 0, passedOn: '2026-05-02', attempts: [{ date: '2026-05-02', at: '2026-05-02T09:00:00.000Z', outcome: 'completed' }] };
+
+  it('lets a passed Mission beat a waiting one, even from the older copy', () => {
+    const newer = rec({ ...at('2026-05-05T00:00:00.000Z'), missions: { m: waiting } });
+    const older = rec({ ...at('2026-05-03T00:00:00.000Z'), missions: { m: passed } });
+    for (const merged of [resolve(newer, older), resolve(older, newer)]) expect(merged.missions.m.passedOn).toBe('2026-05-02');
+  });
+
+  it('unions the check-in history by time, and the later start supplies the wait and target', () => {
+    const monday: MissionState = { startedAt: '2026-05-04T09:00:00.000Z', target: 'easier', skipRun: 0, attempts: [{ date: '2026-05-04', at: '2026-05-04T09:00:00.000Z', outcome: 'struggled', problemId: 'p' }] };
+    const tuesday: MissionState = { startedAt: '2026-05-05T09:00:00.000Z', target: 'full', skipRun: 1, attempts: [{ date: '2026-05-05', at: '2026-05-05T09:00:00.000Z', outcome: 'skipped' }] };
+    const merged = resolve(rec({ ...at('2026-05-06T00:00:00.000Z'), missions: { m: monday } }), rec({ ...at('2026-05-01T00:00:00.000Z'), missions: { m: tuesday } })).missions.m;
+    expect(merged.attempts.map((a) => a.outcome)).toEqual(['struggled', 'skipped']);
+    expect(merged.startedAt).toBe(tuesday.startedAt);
+    expect(merged.skipRun).toBe(1);
+  });
+
+  it('keeps one check-in answer per day: a pass wins, otherwise the earlier answer', () => {
+    const day = (outcome: 'completed' | 'struggled' | 'skipped', time: string): MissionState => ({ startedAt: '2026-05-03T09:00:00.000Z', target: 'full', skipRun: 0, attempts: [{ date: '2026-05-04', at: `2026-05-04T${time}:00.000Z`, outcome }] });
+    const answers = (a: MissionState, b: MissionState) => resolve(rec({ missions: { m: a } }), rec({ ...at('2026-05-09T00:00:00.000Z'), missions: { m: b } })).missions.m.attempts.map((x) => x.outcome);
+    expect(answers(day('struggled', '09:00'), day('skipped', '10:00'))).toEqual(['struggled']);
+    expect(answers(day('skipped', '10:00'), day('struggled', '09:00'))).toEqual(['struggled']);
+    expect(answers(day('struggled', '09:00'), day('completed', '18:00'))).toEqual(['completed']);
+  });
+
+  it('keeps "keep practising" from either side and Missions known to only one', () => {
+    const a = rec({ missions: { m: { ...passed, keepPractising: true } } });
+    const b = rec({ ...at('2026-05-09T00:00:00.000Z'), missions: { m: passed, n: waiting } });
+    const merged = resolve(a, b);
+    expect(merged.missions.m.keepPractising).toBe(true);
+    expect(merged.missions.n).toEqual(waiting);
+  });
+
+  it('unions seen Fixes by Fix, keeping the first time each was shown', () => {
+    const a = rec({ ...at('2026-05-06T00:00:00.000Z'), seenFixes: [{ fixId: 'f1', missionId: 'm', at: '2026-05-04T09:00:00.000Z' }] });
+    const b = rec({ seenFixes: [{ fixId: 'f1', missionId: 'm', at: '2026-05-02T09:00:00.000Z' }, { fixId: 'f2', missionId: 'm', at: '2026-05-03T09:00:00.000Z' }] });
+    expect(resolve(a, b).seenFixes).toEqual([
+      { fixId: 'f1', missionId: 'm', at: '2026-05-02T09:00:00.000Z' },
+      { fixId: 'f2', missionId: 'm', at: '2026-05-03T09:00:00.000Z' },
+    ]);
+  });
+
+  it('unions legacy Nodes', () => {
+    expect(resolve(rec({ legacyNodes: ['a'] }), rec({ legacyNodes: ['b'] })).legacyNodes.sort()).toEqual(['a', 'b']);
+  });
+
+  it('keeps old Node diary entries next to Mission entries of the same day', () => {
+    const old = { date: '2026-05-01', nodeId: 'poste-practice', outcome: 'completed' } as const;
+    const mission = { date: '2026-05-01', missionId: 'm', outcome: 'struggled', problemId: 'p' } as const;
+    const merged = resolve(rec({ ...at('2026-05-03T00:00:00.000Z'), walkDiary: [old] }), rec({ walkDiary: [mission, { ...old, outcome: 'skipped' }] }));
+    expect(merged.walkDiary).toEqual([old, mission]);
   });
 });

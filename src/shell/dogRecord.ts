@@ -19,8 +19,9 @@ import { cleanDogName } from './onboarding/name';
 import { nextPosture, updateLearning, updateTriggerProfile } from './learning';
 import { isOnboardingStep, type OnboardingStep } from './onboarding/flow';
 import { addDiaryEntry, DIARY_OUTCOMES, isDateString, localDateString, markActive, NO_STREAK, type DiaryOutcome, type StreakRecord, type WalkDiaryEntry } from './streak';
+import { checkIn, fixFor, readMissions, readSeenFixes, NEW_MISSION, type MissionDef, type MissionState, type SeenFix } from './missions/mission';
 
-export const RECORD_VERSION = 6;
+export const RECORD_VERSION = 7;
 export const RECORD_KEY = 'leadmate.dog';
 
 /** Seconds of the Checkpoint timer; 0 turns it off. */
@@ -56,7 +57,7 @@ export interface DogRecord {
   posture: 0 | 1 | 2;
   /** Device-only recordings of the user's own Cue, by language code. */
   customCues: Record<string, string>;
-  /** Check-ins on the real-world exercise of each Node. */
+  /** Check-ins on real walks: on Missions, and on Node Debriefs before Missions existed. */
   walkDiary: WalkDiaryEntry[];
   /** The daily Streak; it never affects the attributes above. */
   streak: StreakRecord;
@@ -70,6 +71,15 @@ export interface DogRecord {
   seenHints: string[];
   /** Ids of the Theory Library Lessons the user reached the end of; only ever grows. */
   readLessons: string[];
+  /** Mission state by Mission id; a Mission is absent until its brief is first used. */
+  missions: Record<string, MissionState>;
+  /** Every Fix the user has been shown, for the Library's "Tus ajustes". */
+  seenFixes: SeenFix[];
+  /**
+   * The Nodes completed before Missions existed (records older than version 7), copied once on migration. Only
+   * used to grandfather each World's last Mission; empty for a Dog that started with Missions.
+   */
+  legacyNodes: string[];
 }
 
 /** Dog and Handler weights in kilograms; null until entered (setup lets the user skip). */
@@ -117,6 +127,9 @@ export function newDogRecord(): DogRecord {
     onboarding: { ...NEW_ONBOARDING },
     seenHints: [],
     readLessons: [],
+    missions: {},
+    seenFixes: [],
+    legacyNodes: [],
   };
 }
 
@@ -124,10 +137,18 @@ const num = (v: unknown, fallback: number) => (typeof v === 'number' && Number.i
 
 function readDiary(raw: unknown): WalkDiaryEntry[] {
   if (!Array.isArray(raw)) return [];
-  return raw.filter(
-    (e): e is WalkDiaryEntry =>
-      !!e && typeof e === 'object' && isDateString((e as WalkDiaryEntry).date) && typeof (e as WalkDiaryEntry).nodeId === 'string' && DIARY_OUTCOMES.includes((e as WalkDiaryEntry).outcome),
-  );
+  return raw.flatMap((e): WalkDiaryEntry[] => {
+    if (!e || typeof e !== 'object') return [];
+    const r = e as Partial<Record<keyof WalkDiaryEntry, unknown>>;
+    const nodeId = typeof r.nodeId === 'string' ? r.nodeId : undefined;
+    const missionId = typeof r.missionId === 'string' ? r.missionId : undefined;
+    if (!isDateString(r.date) || !DIARY_OUTCOMES.includes(r.outcome as DiaryOutcome) || (nodeId === undefined && missionId === undefined)) return [];
+    const entry: WalkDiaryEntry = { date: r.date, outcome: r.outcome as DiaryOutcome };
+    if (nodeId !== undefined) entry.nodeId = nodeId;
+    if (missionId !== undefined) entry.missionId = missionId;
+    if (typeof r.problemId === 'string') entry.problemId = r.problemId;
+    return [entry];
+  });
 }
 
 function readStreak(raw: unknown): StreakRecord {
@@ -198,6 +219,8 @@ export function migrateRecord(raw: unknown): DogRecord {
     if (level === 0 || level === 1 || level === 2 || level === 3) profile[kind] = level;
   }
   const checkpoint = r.checkpointSeconds;
+  const completedNodes = strings(r.completedNodes);
+  const beforeMissions = typeof r.version !== 'number' || r.version < 7;
   return {
     version: RECORD_VERSION,
     attributes,
@@ -209,7 +232,7 @@ export function migrateRecord(raw: unknown): DogRecord {
     breed: isBreed(r.breed) ? r.breed : DEFAULT_BREED,
     voicePack: typeof r.voicePack === 'string' ? r.voicePack : base.voicePack,
     checkpointSeconds: checkpoint === 0 || checkpoint === 10 ? checkpoint : 5,
-    completedNodes: Array.isArray(r.completedNodes) ? r.completedNodes.filter((n): n is string => typeof n === 'string') : [],
+    completedNodes,
     stars: readStars(r.stars),
     lastStageDate: typeof r.lastStageDate === 'string' ? r.lastStageDate : null,
     posteFailures: Math.max(0, Math.floor(num(r.posteFailures, 0))),
@@ -223,7 +246,20 @@ export function migrateRecord(raw: unknown): DogRecord {
     onboarding: readOnboarding(r.onboarding, r.version),
     seenHints: strings(r.seenHints),
     readLessons: strings(r.readLessons),
+    missions: readMissions(r.missions),
+    seenFixes: readSeenFixes(r.seenFixes),
+    legacyNodes: beforeMissions ? [...completedNodes] : strings(r.legacyNodes),
   };
+}
+
+/**
+ * The legacy Nodes of two copies of the same Dog. A copy read from a record older than version 7 (a device still on
+ * the old app keeps uploading those) counts every Node it holds as legacy, including ones it pulled down after another
+ * copy completed them under Missions; a Node that either copy completed but does not hold as legacy is not legacy.
+ */
+export function mergeLegacyNodes(a: Pick<DogRecord, 'completedNodes' | 'legacyNodes'>, b: Pick<DogRecord, 'completedNodes' | 'legacyNodes'>): string[] {
+  const underMissions = new Set([...a.completedNodes.filter((id) => !a.legacyNodes.includes(id)), ...b.completedNodes.filter((id) => !b.legacyNodes.includes(id))]);
+  return [...new Set([...a.legacyNodes, ...b.legacyNodes])].filter((id) => !underMissions.has(id));
 }
 
 /** Where the record lives; AsyncStorage satisfies it on a phone and in the browser. */
@@ -290,10 +326,38 @@ export function setTriggerLevel(record: DogRecord, kind: DistractorKind, level: 
   return { ...record, triggerProfile: { ...record.triggerProfile, [kind]: level }, calmCounts: { ...record.calmCounts, [kind]: 0 } };
 }
 
-/** A check-in on a Node's real-world exercise: logged in the Walk Diary, and the day counts for the Streak. */
-export function applyDiary(record: DogRecord, nodeId: string, outcome: DiaryOutcome, now: Date): DogRecord {
+/** The record with one Mission's state changed (e.g. by `startMission`); an unchanged state returns the same record. */
+export function updateMission(record: DogRecord, missionId: string, change: (state: MissionState) => MissionState): DogRecord {
+  const before = record.missions[missionId] ?? NEW_MISSION;
+  const after = change(before);
+  return after === before ? record : { ...record, missions: { ...record.missions, [missionId]: after } };
+}
+
+/**
+ * A Mission check-in: the Mission state moves on, the answer is logged in the Walk Diary with its Mission and
+ * problem, the day counts for the Streak, and a struggle's Fix joins the seen Fixes. A closed check-in changes
+ * nothing. The Learning Attributes are never touched.
+ */
+export function applyMissionCheckIn(record: DogRecord, mission: MissionDef, outcome: DiaryOutcome, problemId: string | undefined, now: Date): DogRecord {
+  const before = record.missions[mission.id] ?? NEW_MISSION;
+  const after = checkIn(before, outcome, problemId, now);
+  if (after === before) return record;
+  const attempt = after.attempts[after.attempts.length - 1];
   const date = localDateString(now);
-  return { ...record, walkDiary: addDiaryEntry(record.walkDiary, { date, nodeId, outcome }), streak: markActive(record.streak, date) };
+  const entry: WalkDiaryEntry = { date, missionId: mission.id, outcome };
+  if (attempt.problemId) entry.problemId = attempt.problemId;
+  let seenFixes = record.seenFixes;
+  if (outcome === 'struggled') {
+    const fix = fixFor(mission, attempt.problemId);
+    if (!seenFixes.some((f) => f.fixId === fix.id)) seenFixes = [...seenFixes, { fixId: fix.id, missionId: mission.id, at: now.toISOString() }];
+  }
+  return {
+    ...record,
+    missions: { ...record.missions, [mission.id]: after },
+    walkDiary: addDiaryEntry(record.walkDiary, entry),
+    streak: markActive(record.streak, date),
+    seenFixes,
+  };
 }
 
 /** Marks today as active (a Node Debrief or a Daily Stage) without touching anything else. */

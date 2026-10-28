@@ -20,3 +20,14 @@ export function createChangeDetector(): ChangeDetector {
     },
   };
 }
+
+/** How many steps a HUD countdown ring runs down in. */
+export const RING_STEPS = 48;
+
+/**
+ * A continuous value in [0, 1] as a whole number of `steps`, for a change key: the HUD redraws only when the value
+ * moves by a visible step, not on every frame.
+ */
+export function quantize(value: number, steps = RING_STEPS): number {
+  return Math.round(value * steps);
+}

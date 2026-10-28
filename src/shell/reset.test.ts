@@ -66,7 +66,7 @@ describe('resetProgress', () => {
   const now = new Date('2026-06-16T12:00:00.000Z');
 
   const populatedRecord: DogRecord = {
-    version: 6,
+    version: 7,
     attributes: { reconnectionLatency: 0.8, reactivityThreshold: 0.7, followChance: 0.9, checkInFrequency: 0.8 },
     triggerProfile: { dog: 2, child: 1, bicycle: 0, skateboard: 3, food: 1, other: 0 },
     calmCounts: { dog: 4 },
@@ -96,6 +96,12 @@ describe('resetProgress', () => {
     },
     seenHints: ['taut', 'rigid'],
     readLessons: ['lesson-1'],
+    missions: {
+      'mission-harness': { startedAt: '2026-06-01T10:00:00.000Z', target: 'full', skipRun: 0, passedOn: '2026-06-02', attempts: [{ date: '2026-06-02', at: '2026-06-02T10:00:00.000Z', outcome: 'completed' }] },
+      'mission-doorbell': { startedAt: '2026-06-02T11:00:00.000Z', target: 'easier', skipRun: 0, attempts: [] },
+    },
+    seenFixes: [{ fixId: 'fix-harness-excited', missionId: 'mission-harness', at: '2026-06-02T10:00:00.000Z' }],
+    legacyNodes: ['heel-turns'],
   };
 
   it('createResetRecord produces first-run state with strictly later updatedAt', () => {
@@ -116,6 +122,9 @@ describe('resetProgress', () => {
     expect(reset.customCues).toEqual({});
     expect(reset.seenHints).toEqual([]);
     expect(reset.readLessons).toEqual([]);
+    expect(reset.missions).toEqual({});
+    expect(reset.seenFixes).toEqual([]);
+    expect(reset.legacyNodes).toEqual([]);
 
     expect(Date.parse(reset.updatedAt)).toBeGreaterThan(Date.parse(populatedRecord.updatedAt));
   });

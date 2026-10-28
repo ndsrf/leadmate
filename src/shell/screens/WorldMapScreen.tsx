@@ -1,18 +1,18 @@
-import { useEffect, useRef, useState } from 'react';
-import { Pressable, Text, View, type LayoutChangeEvent, type ScrollView } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, Text, View, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
-import { useAppActive } from '../ui/useAppActive';
+import { useLive } from '../ui/useAppActive';
 import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import type { Translate } from '../../i18n';
-import type { NodeDef } from '../nodes/node';
-import { mapModel, type MapNode, type MapWorld } from '../mapModel';
+import { mapModel, nextMapChange, type MapStop, type MapWorld, type NodeState } from '../mapModel';
 import { streakStatus, type StreakStatus } from '../celebrations';
 import type { Stars } from '../stars';
 import type { StreakRecord } from '../streak';
+import type { Progress, Stop } from '../world';
 import { Button } from '../Overlays';
 import { Badge, Chip, Panel, ProgressBar, Raised, StarRow } from '../ui/components';
-import { connector, connectorVisual, labelOnRight, labelWidth, NODE_SIZE, nodeCenterX, nodeVisual, ROW_HEIGHT } from '../ui/mapLayout';
-import { lockMessage, worldUnlockBanner, worldWalkSubtitle } from '../mapText';
+import { connector, connectorVisual, labelOnRight, labelWidth, NODE_SIZE, nodeCenterX, nodeVisual, ROW_HEIGHT, stretchFlag, type NodeGlyph } from '../ui/mapLayout';
+import { lockMessage, stopAccessibilityLabel, stopBadge, stopMarks, worldUnlockBanner, worldWalkSubtitle } from '../mapText';
 import { BreedArt } from '../ui/BreedArt';
 import type { BreedId } from '../onboarding/breeds';
 import type { DogCoat } from '../onboarding/look';
@@ -23,8 +23,11 @@ import { Screen } from './Screen';
 
 export interface WorldMapProps {
   t: Translate;
-  completed: readonly string[];
+  /** What of the Dog record the trail reads. */
+  progress: Progress;
   stars: Readonly<Record<string, Stars>>;
+  /** A fixed clock for the waiting Missions (tests); without it the map keeps its own, see `useMapClock`. */
+  now?: Date;
   streak: StreakRecord;
   /** Local date of today, `YYYY-MM-DD`. */
   today: string;
@@ -38,7 +41,12 @@ export interface WorldMapProps {
   onWarmup: () => void;
   onSkipWarmup: () => void;
   onDaily: () => void;
-  onStartNode: (node: NodeDef) => void;
+  onBarkdoku?: () => void;
+  /** Opens an available Stop by kind: a Lesson, a Node or a Mission. */
+  onOpenStop: (stop: Stop) => void;
+  /** Where the map was scrolled when a Stop was opened, so returning keeps the place. */
+  initialScrollY?: number;
+  onScroll?: (y: number) => void;
   onSettings: () => void;
   /** A Lesson is "for today": the Library chip shows a dot and a label. */
   libraryToday?: boolean;
@@ -51,6 +59,8 @@ export interface WorldMapProps {
   coat?: DogCoat;
   /** Callback to navigate to PaywallScreen when a Plus element is tapped. */
   onPaywall?: () => void;
+  /** Another screen (Settings, the Library, a Lesson) is shown over the map: its looping animation stands still. */
+  covered?: boolean;
 }
 
 /** A flame drawn from two rotated drops, so it needs no emoji font; grey when there is no Streak to show. */
@@ -83,12 +93,56 @@ function LockIcon({ tint }: { tint: string }) {
   );
 }
 
-/** Play triangle glyph for open and next-up nodes. */
-function PlayGlyph({ tint }: { tint: string }) {
+/** The glyph on a Stop's disc: its kind when open (book, controller, paw, flag), a moon while waiting. */
+function KindGlyph({ glyph, tint }: { glyph: Exclude<NodeGlyph, 'check' | 'lock'>; tint: string }) {
+  const ink = color.ink;
   return (
-    <Svg width={16} height={16} viewBox="0 0 20 20" aria-hidden>
-      <Path d="M6 4l11 6-11 6z" fill={tint} stroke={color.ink} strokeWidth={2} strokeLinejoin="round" />
+    <Svg width={26} height={26} viewBox="0 0 24 24" aria-hidden>
+      {glyph === 'book' && (
+        <>
+          <Path d="M3 5c3-1.5 6-1.5 9 0v14c-3-1.5-6-1.5-9 0z" fill={tint === ink ? color.surface : tint} stroke={ink} strokeWidth={1.8} strokeLinejoin="round" />
+          <Path d="M21 5c-3-1.5-6-1.5-9 0v14c3-1.5 6-1.5 9 0z" fill={tint === ink ? color.surface : tint} stroke={ink} strokeWidth={1.8} strokeLinejoin="round" />
+        </>
+      )}
+      {glyph === 'controller' && (
+        <>
+          <Path d="M5 8h14a3 3 0 013 3v3a3 3 0 01-5 2l-1-1H8l-1 1a3 3 0 01-5-2v-3a3 3 0 013-3z" fill={color.surface} stroke={ink} strokeWidth={1.8} strokeLinejoin="round" />
+          <Path d="M7 10v4M5 12h4" stroke={ink} strokeWidth={1.8} strokeLinecap="round" />
+          <Circle cx={16} cy={11} r={1.3} fill={ink} />
+          <Circle cx={18} cy={13.5} r={1.3} fill={ink} />
+        </>
+      )}
+      {glyph === 'paw' && (
+        <>
+          <Circle cx={7} cy={9} r={2.2} fill={ink} />
+          <Circle cx={10.5} cy={6} r={2.2} fill={ink} />
+          <Circle cx={14.5} cy={6} r={2.2} fill={ink} />
+          <Circle cx={18} cy={9} r={2.2} fill={ink} />
+          <Path d="M12.5 11c3 0 5 3.5 5 5.5 0 2-2 2.5-5 2.5s-5-.5-5-2.5c0-2 2-5.5 5-5.5z" fill={ink} />
+        </>
+      )}
+      {glyph === 'flag' && (
+        <>
+          <Path d="M6 3v18" stroke={ink} strokeWidth={2.2} strokeLinecap="round" />
+          <Path d="M6 4h12l-3 4 3 4H6z" fill={color.coral} stroke={ink} strokeWidth={1.8} strokeLinejoin="round" />
+        </>
+      )}
+      {glyph === 'moon' && <Path d="M15 3a9 9 0 100 18 7 7 0 010-18z" fill={color.accent} stroke={ink} strokeWidth={1.8} strokeLinejoin="round" />}
     </Svg>
+  );
+}
+
+/** The "Tramo N" flag drawn at each Mission, marking the end of a Stretch. */
+function StretchFlag({ t, n }: { t: Translate; n: number }) {
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      className="flex-row items-center"
+      style={{ backgroundColor: color.surface, borderWidth: 2, borderColor: color.ink, borderRadius: theme.radius.pill, paddingHorizontal: 6, paddingVertical: 1, gap: 2 }}
+    >
+      <Text className="font-display text-[10px] font-bold uppercase text-ink">{t('map.stretch').replace('{n}', String(n))}</Text>
+    </View>
   );
 }
 
@@ -114,11 +168,14 @@ export function MapDogAvatar({
   breed = 'mestizo',
   coat = 'golden',
   rusty = false,
+  resting = false,
   label,
 }: {
   breed?: BreedId;
   coat?: DogCoat;
   rusty?: boolean;
+  /** Waiting at a Mission: drawn lying low and smaller, with a moon. */
+  resting?: boolean;
   label: string;
 }) {
   return (
@@ -143,19 +200,26 @@ export function MapDogAvatar({
           }}
         />
       )}
-      <BreedArt breed={breed} coat={coat} width={52} />
+      <View style={resting ? { transform: [{ scaleY: 0.8 }, { translateY: 5 }] } : undefined}>
+        <BreedArt breed={breed} coat={coat} width={resting ? 46 : 52} />
+      </View>
+      {resting && (
+        <View pointerEvents="none" style={{ position: 'absolute', top: -6, right: 0 }}>
+          <KindGlyph glyph="moon" tint={color.ink} />
+        </View>
+      )}
     </View>
   );
 }
 
-/** The [Siguiente] badge pill below the Next-Up Node. */
-export function NextUpBadge({ label }: { label: string }) {
+/** The badge pill below a Stop: [Siguiente], [¿Cómo fue?], or when a waiting Mission opens. */
+export function NextUpBadge({ label, quiet = false }: { label: string; quiet?: boolean }) {
   return (
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       style={{
-        backgroundColor: color.accent,
+        backgroundColor: quiet ? color.surface : color.accent,
         borderWidth: 2,
         borderColor: color.ink,
         borderRadius: theme.radius.pill,
@@ -203,15 +267,45 @@ function SceneryBushes({ palette }: { palette: { ground: string; sky: string } }
   );
 }
 
-/** The one looping animation on the map. Under reduced motion it is a static ring instead. */
-function NextUpRing({ pulse }: { pulse: boolean }) {
-  const phase = useSharedValue(0);
-  const active = useAppActive();
+/** The longest delay setTimeout keeps; a later check-in is rescheduled when the timer fires. */
+const MAX_TIMER_MS = 2 ** 31 - 1;
+
+/**
+ * The map's clock, for waiting Missions. It moves only when it matters: on return to the foreground or uncovering,
+ * when the Missions change, and once at the next check-in opening. No timer runs while the map is not `live`.
+ */
+function useMapClock(live: boolean, missions: Progress['missions']): Date {
+  const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    if (!pulse || !active) return;
+    if (!live) return;
+    const current = new Date();
+    if (current.getTime() - now.getTime() >= 1000) {
+      setNow(current);
+      return;
+    }
+    const next = nextMapChange(missions, current);
+    if (!next) return;
+    const timer = setTimeout(() => setNow(new Date()), Math.min(next.getTime() - current.getTime() + 250, MAX_TIMER_MS));
+    return () => clearTimeout(timer);
+  }, [live, missions, now]);
+  return now;
+}
+
+/**
+ * The one looping animation on the map. Under reduced motion it is a static ring instead; it also stands still
+ * while it is not `live` (the app is in the background or the map is covered by another screen).
+ */
+function NextUpRing({ pulse, live }: { pulse: boolean; live: boolean }) {
+  const phase = useSharedValue(0);
+  useEffect(() => {
+    if (!pulse || !live) {
+      cancelAnimation(phase);
+      phase.value = 0;
+      return;
+    }
     phase.value = withRepeat(withTiming(1, { duration: 1100 }), -1, false);
     return () => cancelAnimation(phase);
-  }, [pulse, active, phase]);
+  }, [pulse, live, phase]);
   const style = useAnimatedStyle(() => ({ opacity: pulse ? 0.7 * (1 - phase.value) : 1, transform: [{ scale: pulse ? 1 + 0.35 * phase.value : 1 }] }));
   const size = NODE_SIZE + 14;
   return (
@@ -232,32 +326,39 @@ function NodeRow({
   rusty,
   worldUnlocked,
   pulse,
+  live,
   breed,
   coat,
+  dogResting,
   onPress,
 }: {
   t: Translate;
-  entry: MapNode;
+  entry: MapStop;
   index: number;
   width: number;
   hasNext: boolean;
-  nextState?: 'locked' | 'open' | 'next' | 'done';
+  nextState?: NodeState;
   rusty: boolean;
   worldUnlocked: boolean;
   pulse: boolean;
+  live: boolean;
   breed?: BreedId;
   coat?: DogCoat;
-  onPress: (entry: MapNode) => void;
+  /** The Dog rests beside this waiting Mission, because nothing is next-up. */
+  dogResting: boolean;
+  onPress: (entry: MapStop) => void;
 }) {
-  const c = nodeVisual(entry.state);
+  const c = nodeVisual(entry.state, entry.kind, entry.optional);
   const shadow = c.glyph === 'lock' ? 0 : theme.depth.sm.x;
   const cx = nodeCenterX(index, width);
   const onRight = labelOnRight(index);
   const seg = connector(index, width);
   const cSeg = connectorVisual(entry.state, nextState);
-  const title = t(entry.node.title);
+  const title = t(entry.title);
   const state = entry.state;
-  const stateText = state === 'done' ? t('map.nodeDone') : state === 'next' ? t('map.nodeNext') : state === 'locked' ? t('map.nodeLocked') : '';
+  const badge = stopBadge(entry, t);
+  const flag = stretchFlag(entry.kind, entry.stretch);
+  const marks = stopMarks(entry, t);
   const nodeSize = NODE_SIZE * c.scale;
   const offsetDiff = (nodeSize - NODE_SIZE) / 2;
 
@@ -301,11 +402,11 @@ function NodeRow({
       <Pressable
         onPress={() => handlePress(() => onPress(entry))}
         accessibilityRole="button"
-        accessibilityLabel={`${title}. ${stateText}`.trim()}
+        accessibilityLabel={stopAccessibilityLabel(entry, t)}
         accessibilityState={{ disabled: state === 'locked' }}
         style={{ position: 'absolute', left: cx - nodeSize / 2, top: -offsetDiff, width: nodeSize, height: nodeSize }}
       >
-        {c.ring && <NextUpRing pulse={pulse} />}
+        {c.ring && <NextUpRing pulse={pulse} live={live} />}
         <Raised
           fill={c.fill}
           edge={c.edge}
@@ -316,7 +417,7 @@ function NodeRow({
             height: nodeSize - shadow,
             alignItems: 'center',
             justifyContent: 'center',
-            borderStyle: c.glyph === 'lock' ? 'dashed' : 'solid',
+            borderStyle: c.dashed ? 'dashed' : 'solid',
             opacity: worldUnlocked ? 1 : 0.7,
           }}
         >
@@ -327,23 +428,21 @@ function NodeRow({
               ✓
             </Text>
           ) : (
-            <PlayGlyph tint={c.ink} />
+            <KindGlyph glyph={c.glyph} tint={c.ink} />
           )}
         </Raised>
-        {state === 'next' && (
+        {(badge || flag) && (
+          <View
+            pointerEvents="none"
+            className="flex-row items-center justify-center"
+            style={{ position: 'absolute', top: nodeSize + 2, left: -24, right: -24, gap: 2 }}
+          >
+            {badge && <NextUpBadge label={badge} quiet={state === 'waiting'} />}
+            {flag && <StretchFlag t={t} n={flag.label} />}
+          </View>
+        )}
+        {(state === 'next' || dogResting) && (
           <>
-            <View
-              pointerEvents="none"
-              style={{
-                position: 'absolute',
-                top: nodeSize + 2,
-                left: -10,
-                right: -10,
-                alignItems: 'center',
-              }}
-            >
-              <NextUpBadge label={t('map.badgeNext')} />
-            </View>
             <View
               pointerEvents="none"
               style={{
@@ -356,7 +455,8 @@ function NodeRow({
                 breed={breed}
                 coat={coat}
                 rusty={rusty}
-                label={rusty ? t('map.dogRusty') : t('map.dog')}
+                resting={dogResting}
+                label={rusty ? t('map.dogRusty') : t(dogResting ? 'map.dogWaiting' : 'map.dog')}
               />
             </View>
           </>
@@ -379,8 +479,10 @@ function NodeRow({
         <Text className={`font-display text-body ${state === 'locked' ? 'text-inkMuted' : 'text-ink'}`} style={{ textAlign: onRight ? 'left' : 'right' }}>
           {title}
         </Text>
+        <Text className="text-caption text-inkMuted" style={{ textAlign: onRight ? 'left' : 'right' }}>
+          {[t(`map.stop.${entry.kind}`), ...marks].join(' · ')}
+        </Text>
         {state === 'done' && entry.stars !== undefined && <StarRow stars={entry.stars} size={16} label={`${entry.stars} ${t('map.starsOf3')}`} />}
-        {state === 'next' && <Text className="font-display text-caption text-ink">{t('map.nodeNext')}</Text>}
       </Pressable>
     </View>
   );
@@ -392,13 +494,11 @@ function CollapsedWorldHeader({
   entry,
   isExpanded,
   onToggle,
-  onPaywall,
 }: {
   t: Translate;
   entry: MapWorld;
   isExpanded: boolean;
   onToggle: () => void;
-  onPaywall: () => void;
 }) {
   const palette =
     theme.world[`w${entry.world.worldNumber}` as keyof typeof theme.world] ??
@@ -439,15 +539,7 @@ function CollapsedWorldHeader({
           <View className="shrink flex-1">
             <View className="flex-row items-center gap-2">
               <Text className="font-display text-title text-ink">{t(entry.world.title)}</Text>
-              {entry.tier === 'plus' && (
-                <Pressable
-                  onPress={() => handlePress(onPaywall)}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('world.plusBadge')}
-                >
-                  <Badge label={t('world.plusBadge')} tone="accent" />
-                </Pressable>
-              )}
+              {entry.tier === 'plus' && <Badge label={t('world.plusBadge')} tone="accent" />}
             </View>
             <Text className="text-caption text-inkMuted">
               {t(entry.topics)}
@@ -468,6 +560,7 @@ function WorldBlock({
   width,
   rusty,
   pulse,
+  live,
   isFirstLocked,
   isExpanded,
   onToggleExpand,
@@ -477,16 +570,20 @@ function WorldBlock({
   onPathLayout,
   breed,
   coat,
+  restingAt,
 }: {
   t: Translate;
   entry: MapWorld;
   width: number;
   rusty: boolean;
   pulse: boolean;
+  live: boolean;
   isFirstLocked: boolean;
   isExpanded: boolean;
   onToggleExpand: () => void;
-  onPressNode: (n: MapNode) => void;
+  onPressNode: (n: MapStop) => void;
+  /** The waiting Mission the Dog rests at, when nothing is next-up. */
+  restingAt?: Stop;
   onPressPaywall: () => void;
   onLayout: (e: LayoutChangeEvent) => void;
   onPathLayout: (e: LayoutChangeEvent) => void;
@@ -512,7 +609,6 @@ function WorldBlock({
           entry={entry}
           isExpanded={isExpanded}
           onToggle={onToggleExpand}
-          onPaywall={onPressPaywall}
         />
       </View>
     );
@@ -601,7 +697,7 @@ function WorldBlock({
 
         {entry.world.worldNumber === 1 && <HouseLandmark />}
 
-        {entry.preview && entry.nodes.length === 0 ? (
+        {entry.preview && entry.stops.length === 0 ? (
           <View className="p-6 items-center justify-center">
             <Badge label={t('world.previewBadge')} tone="accent" />
             <Text className="mt-3 font-display text-title text-ink text-center">
@@ -616,19 +712,21 @@ function WorldBlock({
             />
           </View>
         ) : (
-          <View onLayout={onPathLayout} style={{ height: entry.nodes.length * ROW_HEIGHT, paddingHorizontal: 0 }}>
-            {entry.nodes.map((node, i) => (
+          <View onLayout={onPathLayout} style={{ height: entry.stops.length * ROW_HEIGHT, paddingHorizontal: 0 }}>
+            {entry.stops.map((stop, i) => (
               <NodeRow
-                key={node.node.id}
+                key={`${stop.stop.kind}:${stop.stop.id}`}
                 t={t}
-                entry={node}
+                entry={stop}
                 index={i}
                 width={width - 2 * theme.border.ink}
-                hasNext={i < entry.nodes.length - 1}
-                nextState={entry.nodes[i + 1]?.state}
+                hasNext={i < entry.stops.length - 1}
+                nextState={entry.stops[i + 1]?.state}
+                dogResting={!!restingAt && restingAt.kind === stop.stop.kind && restingAt.id === stop.stop.id}
                 rusty={rusty}
                 worldUnlocked={entry.unlocked}
                 pulse={pulse}
+                live={live}
                 breed={breed}
                 coat={coat}
                 onPress={onPressNode}
@@ -654,8 +752,9 @@ function StreakChip({ t, status }: { t: Translate; status: StreakStatus }) {
 
 export function WorldMapScreen({
   t,
-  completed,
+  progress,
   stars,
+  now,
   streak,
   today,
   dailyBest,
@@ -665,7 +764,10 @@ export function WorldMapScreen({
   onWarmup,
   onSkipWarmup,
   onDaily,
-  onStartNode,
+  onBarkdoku,
+  onOpenStop,
+  initialScrollY,
+  onScroll,
   onSettings,
   libraryToday = false,
   onLibrary = () => {},
@@ -673,33 +775,42 @@ export function WorldMapScreen({
   breed,
   coat,
   onPaywall = () => {},
+  covered = false,
 }: WorldMapProps) {
-  const model = mapModel(completed, stars);
   const motion = useMotion();
-  const scroll = useRef<ScrollView>(null);
+  const live = useLive(covered);
+  const clock = useMapClock(live, progress.missions);
+  const at = now ?? clock;
+  const model = useMemo(() => mapModel(progress, stars, at), [progress, stars, at]);
+  const scroll = useRef<ScrollViewInstance>(null);
   const [width, setWidth] = useState(theme.size.readableWidth);
   const [lockNote, setLockNote] = useState<string | null>(null);
   const [expandedWorlds, setExpandedWorlds] = useState<Record<string, boolean>>({});
   const offsets = useRef<{ blocks: Record<string, number>; paths: Record<string, number> }>({ blocks: {}, paths: {} });
-  const nextId = model.nextUp?.nodeId;
+  const focus = model.nextUp ?? model.waitingAt ?? null;
+  const focusKey = focus ? `${focus.worldId}:${focus.stop.kind}:${focus.stop.id}` : undefined;
 
   const firstLockedWorldId = model.worlds.find((w) => !w.unlocked)?.world.id;
 
-  // open the map scrolled to the next-up Node
+  // open the map where the user left it, or else scrolled to the next-up Stop (or the waiting Mission)
   useEffect(() => {
-    if (!model.nextUp) return;
-    const world = model.worlds.find((w) => w.world.id === model.nextUp!.worldId);
+    if (initialScrollY !== undefined) {
+      const timer = setTimeout(() => scroll.current?.scrollTo({ y: initialScrollY, animated: false }), 60);
+      return () => clearTimeout(timer);
+    }
+    if (!focus) return;
+    const world = model.worlds.find((w) => w.world.id === focus.worldId);
     if (!world) return;
-    const index = world.nodes.findIndex((n) => n.node.id === model.nextUp!.nodeId);
+    const index = world.stops.findIndex((s) => s.stop.kind === focus.stop.kind && s.stop.id === focus.stop.id);
     if (index === -1) return;
     const timer = setTimeout(() => {
       const y = (offsets.current.blocks[world.world.id] ?? 0) + (offsets.current.paths[world.world.id] ?? 0) + index * ROW_HEIGHT;
       scroll.current?.scrollTo({ y: Math.max(0, y - 140), animated: false });
     }, 60);
     return () => clearTimeout(timer);
-    // only when the next-up Node changes, not on every render
+    // only when the next-up Stop changes, not on every render
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nextId]);
+  }, [focusKey]);
 
   useEffect(() => {
     if (!lockNote) return;
@@ -707,10 +818,10 @@ export function WorldMapScreen({
     return () => clearTimeout(timer);
   }, [lockNote]);
 
-  const press = (entry: MapNode) => {
+  const press = (entry: MapStop) => {
     if (entry.state !== 'locked') {
       setLockNote(null);
-      onStartNode(entry.node);
+      onOpenStop(entry.stop);
       return;
     }
     setLockNote(lockMessage(entry, t));
@@ -732,6 +843,11 @@ export function WorldMapScreen({
           accessibilityLabel={t('daily.title')}
         />
         <Chip
+          value={t('map.barkdoku.daily')}
+          onPress={onBarkdoku}
+          accessibilityLabel={t('map.barkdoku.dailyHelp')}
+        />
+        <Chip
           label={libraryToday ? t('library.chipToday') : undefined}
           value={t('library.chip')}
           icon={libraryToday ? <View className="mr-2 h-3 w-3 rounded-game-pill bg-accent" style={{ borderWidth: 2, borderColor: color.ink }} /> : undefined}
@@ -749,7 +865,7 @@ export function WorldMapScreen({
   );
 
   return (
-    <Screen header={header} scrollRef={scroll}>
+    <Screen header={header} scrollRef={scroll} onScroll={onScroll ? (e) => onScroll(e.nativeEvent.contentOffset.y) : undefined}>
       {banner}
       {rustyPrompt && (
         <Panel tone="warn" className="mb-4">
@@ -770,6 +886,7 @@ export function WorldMapScreen({
             width={width}
             rusty={rusty}
             pulse={motion.pulse}
+            live={live}
             isFirstLocked={world.world.id === firstLockedWorldId}
             isExpanded={!!expandedWorlds[world.world.id]}
             onToggleExpand={() => toggleExpand(world.world.id)}
@@ -779,6 +896,7 @@ export function WorldMapScreen({
             onPathLayout={(e) => (offsets.current.paths[world.world.id] = e.nativeEvent.layout.y)}
             breed={breed}
             coat={coat}
+            restingAt={model.waitingAt?.worldId === world.world.id ? model.waitingAt.stop : undefined}
           />
         ))}
       </View>

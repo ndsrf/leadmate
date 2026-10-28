@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Pressable, Text, useWindowDimensions, View } from 'react-native';
-import Animated, { Easing, FadeIn, FadeOut, useAnimatedProps, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, Easing, FadeIn, FadeOut, useAnimatedProps, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import type { Translate } from '../../i18n';
 import { Button } from '../Overlays';
@@ -8,20 +8,28 @@ import { LeadLine, MeadowBackdrop, Migas } from '../ui/art';
 import { Raised } from '../ui/components';
 import { color, theme } from '../ui/theme';
 import { useMotion } from '../ui/useMotion';
+import { useLive } from '../ui/useAppActive';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const LOADER_PATH = 'M8 14H50C64 14 70 38 80 38S96 14 110 14H152';
 
-/** The Lead drawing itself while the app loads; under reduced motion it is a static, fully drawn line. */
+/**
+ * The Lead drawing itself while the app loads; under reduced motion, or while the app is in the background, it is a
+ * static, fully drawn line.
+ */
 function LoaderLead({ animate }: { animate: boolean }) {
+  const live = useLive();
   const offset = useSharedValue(animate ? 200 : 0);
   useEffect(() => {
-    if (!animate) {
+    if (!animate || !live) {
+      cancelAnimation(offset);
       offset.value = 0;
       return;
     }
+    offset.value = 200;
     offset.value = withRepeat(withTiming(0, { duration: theme.motion.duration.loop + 800, easing: Easing.inOut(Easing.ease) }), -1, false);
-  }, [animate, offset]);
+    return () => cancelAnimation(offset);
+  }, [animate, live, offset]);
   const props = useAnimatedProps(() => ({ strokeDashoffset: offset.value }));
   return (
     <Svg width={72} height={24} viewBox="0 0 160 50" aria-hidden>

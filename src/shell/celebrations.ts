@@ -4,13 +4,15 @@ import { shownStreak, type StreakRecord } from './streak';
 import { isNodeOpen, isWorldUnlocked, WORLDS } from './world';
 import { NODES } from './nodes/content';
 
-/** What just finished: a Node's Debrief or a Daily Stage. */
+/** What just finished: a Node's Debrief, a Mission check-in or a Daily Stage. */
 export type Completion =
   | { kind: 'node'; nodeId: string }
+  | { kind: 'mission'; missionId: string }
   | { kind: 'daily'; improved: boolean; firstOfDay: boolean; best: number };
 
 export type Celebration =
   | { type: 'first-completion'; nodeId: string }
+  | { type: 'mission-passed'; missionId: string }
   | { type: 'new-best-stars'; nodeId: string; stars: Stars }
   | { type: 'unlock-world'; worldId: string }
   | { type: 'unlock-node'; nodeId: string }
@@ -38,16 +40,20 @@ export function celebrationsFor(before: DogRecord, after: DogRecord, completion:
     const was = starsShown(before, id);
     const now = starsShown(after, id);
     if (wasDone && was !== undefined && now !== undefined && now > was) out.push({ type: 'new-best-stars', nodeId: id, stars: now });
-    for (const world of WORLDS) {
-      if (!isWorldUnlocked(world, before.completedNodes) && isWorldUnlocked(world, after.completedNodes)) out.push({ type: 'unlock-world', worldId: world.id });
-    }
-    for (const node of NODES) {
-      const world = WORLDS.find((w) => w.nodes.includes(node.id));
-      const worldWasOpen = !world || isWorldUnlocked(world, before.completedNodes);
-      if (worldWasOpen && !isNodeOpen(node, before.completedNodes) && isNodeOpen(node, after.completedNodes)) out.push({ type: 'unlock-node', nodeId: node.id });
-    }
+  } else if (completion.kind === 'mission') {
+    const id = completion.missionId;
+    if (!before.missions[id]?.passedOn && after.missions[id]?.passedOn) out.push({ type: 'mission-passed', missionId: id });
   } else if (completion.improved && !completion.firstOfDay) {
     out.push({ type: 'daily-new-best', score: completion.best });
+  }
+  if (completion.kind !== 'daily') {
+    const worldsOpened = WORLDS.filter((w) => !isWorldUnlocked(w, before) && isWorldUnlocked(w, after));
+    for (const world of worldsOpened) out.push({ type: 'unlock-world', worldId: world.id });
+    // a Node in a World that just opened is covered by that World's celebration
+    for (const node of NODES) {
+      if (worldsOpened.some((w) => w.stretches.flat().some((s) => s.kind === 'node' && s.id === node.id))) continue;
+      if (!isNodeOpen(node, before) && isNodeOpen(node, after)) out.push({ type: 'unlock-node', nodeId: node.id });
+    }
   }
   if (after.streak.lastActiveDate !== before.streak.lastActiveDate && after.streak.lastActiveDate !== '' && after.streak.current > 0) {
     out.push({ type: 'streak-day', days: after.streak.current });

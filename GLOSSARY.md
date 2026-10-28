@@ -82,12 +82,16 @@ One training unit: Theory Primer, Checkpoint, Interactive Simulation, Debrief. A
 _Avoid_: Level
 
 **Theory Primer**:
-The first step of a Node: a concise 30-60 second sequence of tappable cards establishing the concepts of that Node. It belongs to its Node and shares no content with a Lesson.
+The first step of a Node: one or two short cards recapping the Lessons that precede the Node on the trail.
 _Avoid_: Intro, slideshow
 
 **Lesson**:
-A standalone piece of theory reading, a vertical sequence of text, image, video and tip blocks, opened from the Theory Library at any time. It is never part of a Node, has no Stage or Minigame, and never unlocks anything. It has a suggested Day and is either read or unread.
+A standalone piece of theory reading, a vertical sequence of text, image, video and tip blocks, either a theory Lesson (training the real dog) or a How-to-play Lesson. It is never part of a Node, can always be opened from the Theory Library, and may also sit on the trail as a Stop.
 _Avoid_: Article, guide, Node
+
+**How-to-play Lesson**:
+A Lesson that teaches the simulator's controls and how to read the virtual Dog, placed on the trail before the first Node that needs them.
+_Avoid_: Tutorial, controls screen
 
 **Theory Library**:
 The list of all Lessons in a fixed order, reached from the World Map, kept as a reference shelf. The oldest unread Lesson whose suggested Day has arrived is marked "for today".
@@ -106,11 +110,15 @@ An optional external URL declared on a Theory Primer card pointing to web-hosted
 _Avoid_: Webview modal, external resource
 
 **Minigame**:
-The static Interactive Simulation of a Node: a Tap & Hold exercise, or a scene of Action beats in which the user reads the Dog and picks an action. It is not a Stage and does not change the Dog's Learning Attributes.
+The static Interactive Simulation of a Node: a Tap & Hold exercise, a scene of Action beats in which the user reads the Dog and picks an action, or a spatial deduction puzzle. It is not a Stage and does not change the Dog's Learning Attributes.
 
 **Action beat**:
 One step of an action Minigame: the Dog shows one Canine Posture and exactly one of the offered actions is right for it.
 _Avoid_: Round, turn, question
+
+**Barkdoku**:
+A spatial deduction Minigame on an N x N partitioned grid where the Handler distributes Dogs across color zones to respect Reactivity Thresholds and break direct line-of-sight Fixation.
+_Avoid_: Meowdoku, Queens, dog puzzle, Star Battle
 
 **Checkpoint**:
 The 5-second timed quiz between the Theory Primer and the Interactive Simulation.
@@ -178,8 +186,24 @@ A decompression Cue offered after resolving a high-Arousal encounter, directing 
 _Avoid_: Sniff button, treat break
 
 **World**:
-A themed grouping of Nodes with distinct environment rules and mechanics.
+A themed trail of Stops, grouped into Stretches, with distinct environment rules and mechanics.
 _Avoid_: Chapter, zone, campaign level
+
+**Stop**:
+One point on a World's trail: a Lesson, a Node or a Mission.
+_Avoid_: Step, item, level
+
+**Stretch**:
+The run of Stops on a trail up to and including one Mission; the most a user can advance in a day.
+_Avoid_: Session, leg, chapter
+
+**Mission**:
+A real-world task that ends a Stretch, with one concrete target, checked in on a later day; the Stops after it stay closed until it is passed.
+_Avoid_: Homework, challenge, quest
+
+**Fix**:
+The corrective material shown when a Mission check-in did not go well: reassurance, what likely went wrong, what to change, an easier target and what to practise again.
+_Avoid_: Troubleshooting, tip, remedy
 
 **Plus World**:
 A World designated as part of LeadMate Plus, requiring an active Plus subscription in addition to completing preceding Worlds.
@@ -190,7 +214,7 @@ An upcoming World shown on the World Map as a curriculum roadmap preview with to
 _Avoid_: Teaser world, dummy chapter
 
 **World Map**:
-The main screen: all Worlds laid out as a path of Nodes showing which are locked, open, next up or completed, with each Node's Stars.
+The main screen: all Worlds laid out as a trail of Stops showing which are locked, open, next up, waiting or completed, with each Node's Stars.
 _Avoid_: Home, level select, menu
 
 **Star**:
@@ -202,11 +226,11 @@ A procedurally generated Stage that changes every 24 hours and is shared by all 
 _Avoid_: Daily level, daily run
 
 **Streak**:
-The number of consecutive calendar days on which the user completed a qualifying activity: a Node, Daily Stage, or Walk Diary entry.
+The number of consecutive calendar days on which the user completed a qualifying activity: a Node, Daily Stage, Daily Barkdoku, or Walk Diary entry.
 _Avoid_: Habit counter, day streak
 
 **Walk Diary**:
-A one-tap log of the real-world homework assigned in a Node's Debrief, which credits the Streak.
+The log of Mission check-ins: what the user reported about each real walk, which credits the Streak. Entries logged on Node Debriefs before Missions existed are kept.
 _Avoid_: Homework log, walk notes
 
 **Scenery Set**:
@@ -218,8 +242,8 @@ Flat decoration painted on the ground of a Stage (such as paving, carpet, a rug,
 _Avoid_: Floor prop, decal
 
 **Visual Shield**:
-A prop in a Stage (such as a parked car) that breaks the Dog's line of sight to a Distractor, stopping Arousal accumulation.
-_Avoid_: Cover, screen, barrier
+A prop in a Stage (such as a parked car) or an exclusion marker placed in Barkdoku that breaks line of sight between dogs or distractors, stopping Fixation and arousal accumulation.
+_Avoid_: Cover, screen, barrier, cono, X
 
 **Splash**:
 The branded screen shown on every cold start until the Dog is loaded, before the first-run funnel or the World Map.

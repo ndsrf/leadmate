@@ -31,7 +31,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#F6EFE0"
         }
-      ]
+      ],
+      "expo-asset"
     ]
   }
 }

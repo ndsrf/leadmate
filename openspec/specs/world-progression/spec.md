@@ -4,6 +4,7 @@
 Defines the four-world progression map, environment boundary collision, multi-cue pedagogical ramp, and World-specific mechanic unlocks.
 
 ## Requirements
+
 ### Requirement: World 1 — Home & Thresholds
 World 1 SHALL take place in narrow indoor environments (apartment hallways, doorways, elevators) using static minigames focused on impulse control: the Harness Ritual and Doorbell Mat, where the user reads the Dog and picks an action, and the Poste practice, a Tap & Hold exercise. World 1 SHALL have no analog walking.
 
@@ -54,11 +55,15 @@ Scenarios SHALL define routes using ordered waypoint corridors (`waypoints: Vec2
 - **THEN** the leash wraps around the corner vertex to determine effective tension and pathing
 
 ### Requirement: Sequential World unlocking
-The system SHALL organize Nodes into sequential Worlds (`WorldDef`), unlocking each World only when all required Nodes of the preceding World have been completed.
+The system SHALL organize Nodes into sequential Worlds (`WorldDef`), unlocking each World only when all required Nodes of the preceding World have been completed, and distinguishing free progression worlds from premium LeadMate Plus worlds.
 
 #### Scenario: Locked World
 - **WHEN** the user has not completed all required Nodes in World 1
 - **THEN** World 2 remains locked
+
+#### Scenario: Plus World gating
+- **WHEN** a World is designated as a LeadMate Plus world and the user has not unlocked Plus
+- **THEN** the World remains locked and indicates it requires a LeadMate Plus membership
 
 ### Requirement: Scenery set and minimum density
 Every scenario SHALL declare its scenery set matching its environment theme, and SHALL satisfy an automated density check of at least 1 prop per 5 meters of route distance (with a minimum of 8 props per walking scenario).
@@ -66,3 +71,14 @@ Every scenario SHALL declare its scenery set matching its environment theme, and
 #### Scenario: Scenery density enforced
 - **WHEN** a scenario configuration is validated
 - **THEN** it contains at least 1 prop per 5 meters of corridor length and no fewer than 8 total props
+
+### Requirement: Extended Curriculum and World Topics
+The system SHALL support extended curriculum worlds with topic metadata and node counts to preview advanced canine training stages, including park recall, cafe manners, hiking trails, urban crowds, and cooperative care.
+
+#### Scenario: Extended worlds defined
+- **WHEN** the progression system loads world definitions
+- **THEN** it includes preview worlds beyond the core initial worlds, each with a title, world number, topic summary, tier, preview flag, and planned node count
+
+#### Scenario: World topic metadata available
+- **WHEN** a World is queried for map presentation
+- **THEN** it provides a localized topic summary describing the skills trained in that World (e.g. "puertas, timbre, escaleras")

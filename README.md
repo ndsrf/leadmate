@@ -84,10 +84,19 @@ practice, a walking Node with a Cue, pause/Resume, Debrief, settings, Rusty Dog)
 scenarios in the standalone page: walls and scenery, Reaction Tiers, Sintonía, Go Sniff, both Cues, the Daily
 Stage) and `playtest.mjs` (the engagement features end to end in the web shell: World unlocking, both World 1
 Minigames, Walk Diary and Streak, Daily Stage and its replay; takes a viewport size, so it also runs phone-sized).
-`power.mjs` is the power regression check: at most 30 frames/s while playing, and zero frames drawn while the
-Stage is paused, ended, suspended by the shell (`suspend`/`wake`) or hidden (run `node scripts/power.mjs`; it also
-prints the old unlimited-loop numbers as a baseline). Open the standalone page with `?perf=1` for a live readout of
-frames/s, simulation steps/s and ms per frame.
+`power.mjs` is the power regression check: at most 33 loop wakeups/s and 30 frames/s while playing, the same
+simulation steps/s as display-paced frames, no Phaser audio engine, and zero wakeups and frames while the Stage is
+paused, ended, suspended by the shell (`suspend`/`wake`) or hidden (run `node scripts/power.mjs [url]`; it also
+prints the display-paced and old unlimited-loop numbers as a baseline). Open the standalone page with `?perf=1` for
+a live readout of loop wakeups/s (`wakes`: every timer or requestAnimationFrame callback, also the ones the fps
+limit skips), frames/s, simulation steps/s and ms per frame; `window.__leadmate.perf` has the same counters. On a
+device, point the shell at it with `EXPO_PUBLIC_SIM_URL=http://<your-ip>:5173/?perf=1`.
+The Stage loop is paced by a 30 Hz timer (`PACE_WITH_TIMER` in `bundle/main.ts`), so a 90/120 Hz display does
+not wake it at its refresh rate; set it to `false` if a device judders. `?pace=raf` (display-paced) or
+`?pace=timer` in the page address overrides it without rebuilding, for a side-by-side check.
+`scenery-shots.mjs <outDir> [url]` screenshots each scenery theme with the simulation frozen and checks that
+generated textures do not pile up across Stage restarts; `node scripts/scenery-shots.mjs --diff <dirA> <dirB>`
+compares two runs (at most 0.5% of pixels may differ by more than 24 per channel).
 `gen-dog-sounds.mjs` regenerates the placeholder dog vocalizations in `assets/dog/`.
 
 ## Simulation → shell contract

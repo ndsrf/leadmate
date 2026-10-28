@@ -16,12 +16,21 @@ export const NO_STREAK: StreakRecord = { current: 0, best: 0, lastActiveDate: ''
 export type DiaryOutcome = 'completed' | 'struggled' | 'skipped';
 export const DIARY_OUTCOMES: readonly DiaryOutcome[] = ['completed', 'struggled', 'skipped'];
 
-/** One check-in on the real-world exercise of a Node. */
+/**
+ * One check-in on a real walk: on a Mission since Missions exist, and on a Node's Debrief before that (those
+ * old entries keep only `nodeId`).
+ */
 export interface WalkDiaryEntry {
   date: string;
-  nodeId: string;
+  nodeId?: string;
+  missionId?: string;
   outcome: DiaryOutcome;
+  /** The problem picked after "Costó un poco". */
+  problemId?: string;
 }
+
+/** What an entry is about: its Mission, or its Node for an entry from before Missions. */
+export const diarySubject = (e: WalkDiaryEntry): string => e.missionId ?? e.nodeId ?? '';
 
 /** The local calendar date of `now`, as `YYYY-MM-DD`. */
 export function localDateString(now: Date): string {
@@ -71,7 +80,7 @@ export function activeToday(streak: StreakRecord, today: string): boolean {
   return streak.lastActiveDate === today;
 }
 
-/** Adds an entry, replacing an earlier one for the same Node on the same day. */
+/** Adds an entry, replacing an earlier one for the same Mission (or Node) on the same day. */
 export function addDiaryEntry(diary: readonly WalkDiaryEntry[], entry: WalkDiaryEntry): WalkDiaryEntry[] {
-  return [...diary.filter((e) => !(e.date === entry.date && e.nodeId === entry.nodeId)), entry];
+  return [...diary.filter((e) => !(e.date === entry.date && diarySubject(e) === diarySubject(entry))), entry];
 }

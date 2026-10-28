@@ -6,7 +6,7 @@ import { dogPose, gaitPeriod } from '../../src/hud/pose';
 import { applyDetents, keyboardInput, screenToWorldDirection, type Keys } from '../../src/hud/input';
 import { project } from '../../src/hud/iso';
 import { smoothZoom, targetZoom } from '../../src/hud/camera';
-import { createChangeDetector } from '../../src/hud/dirty';
+import { createChangeDetector, quantize, RING_STEPS } from '../../src/hud/dirty';
 import { HINT_SECONDS, HintTracker } from '../../src/hud/hints';
 import type { CueType, ScenarioConfig } from '../../src/sim/config';
 import { leashCurve, leashPoint, type TensionState } from '../../src/sim/leash';
@@ -15,7 +15,7 @@ import { activeDistractor, createState, isDogLooking, isGoSniffAvailable, routeO
 import { createSignalGate, type StageControl, type StageSignal } from '../../src/sim/messages';
 import { add, length, scale, sub, type Vec2 } from '../../src/sim/vec';
 import { TEXTURES, TILE_ORIGIN_Y } from './assets';
-import { drawDecor, drawGroundPatch, drawProp, groundBounds, wallQuad, WALL_COLORS, WALL_HEIGHT } from './props';
+import { drawDecor, drawGroundPatch, drawProp, groundBounds, propLook, wallQuad, WALL_COLORS, WALL_HEIGHT } from './props';
 import { atlas, atlasUrl, ATLAS, DOG_COATS, facingDegrees, pivotOf, propFrame, propScale, resOf } from './sprites';
 import { layoutGround, propWalls, routePoints, shapeOf, type GroundPlan } from '../../src/sim/scenery';
 
@@ -41,6 +41,9 @@ const ROAD_HALF: Partial<Record<ScenarioConfig['theme'], number>> = { quiet_subu
 /** Themes with a flat floor instead of grass tiles: indoors and the paved city. */
 const FLOORS: Partial<Record<ScenarioConfig['theme'], [number, number]>> = { indoor_apartment: [0xd6c7a8, 0xc8b78f], urban_street: [0x9ca3af, 0x94a3b8] };
 
+/** Texture pixels per scene pixel for baked scenery, so it stays sharp under the camera's zoom. */
+const BAKE_RES = 2;
+
 /** Deterministic pseudo-random for scenery only; never feeds the simulation. */
 function hash(n: number): number {
   const x = Math.sin(n * 127.1) * 43758.5453;
@@ -51,11 +54,16 @@ export class StageScene extends Phaser.Scene {
   private options!: StageOptions;
   private sim!: SimState;
   private gfx!: Phaser.GameObjects.Graphics;
+  /** Route markers and the flag, redrawn only when the route index changes. */
+  private routeGfx!: Phaser.GameObjects.Graphics;
+  private routeDirty = createChangeDetector();
   /** Shadows, boards and wheels, under every sprite. */
   private under!: Phaser.GameObjects.Graphics;
   private actors!: { handler: Phaser.GameObjects.Image; dog: Phaser.GameObjects.Image; other: Phaser.GameObjects.Image };
   /** The wall pieces, which fade out when they stand between the camera and an actor. */
-  private wallPieces: { g: Phaser.GameObjects.Graphics; x0: number; x1: number; y0: number; y1: number; depth: number }[] = [];
+  private wallPieces: { img: Phaser.GameObjects.Image; x0: number; x1: number; y0: number; y1: number; depth: number }[] = [];
+  /** Keys of the textures this Stage generated for its static scenery, freed when the scene shuts down. */
+  private baked: string[] = [];
   private lastSeen = new Map<string, { x: number; y: number; moved: number; deg: number }>();
   private hud!: Phaser.GameObjects.Graphics;
   private hudCam!: Phaser.Cameras.Scene2D.Camera;
@@ -127,11 +135,17 @@ export class StageScene extends Phaser.Scene {
 
   create(): void {
     this.sim = createState(this.options.seed, this.options.scenario);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      for (const key of this.baked) this.textures.remove(key);
+      this.baked = [];
+    });
     this.buildScenery();
     this.textures.get(ATLAS).setFilter(Phaser.Textures.FilterMode.LINEAR); // the game renders without antialiasing; sprites need smoothing
     this.under = this.add.graphics().setDepth(-5e4);
     const actor = () => this.add.image(0, 0, ATLAS, 'handler_idle0_0').setVisible(false);
     this.actors = { handler: actor(), dog: actor(), other: actor() };
+    this.routeGfx = this.add.graphics(); // before gfx, so it draws under it at the same depth
+    this.routeDirty.reset();
     this.gfx = this.add.graphics();
     const world = [...this.children.list];
     this.hud = this.add.graphics();
@@ -272,7 +286,6 @@ export class StageScene extends Phaser.Scene {
         tiles.push({ x: pos.x, y: pos.y, key: roads.get(`${i},${j}`) ?? 'grass' });
       }
     }
-    this.bakeGround(tiles, layoutGround(config.theme, routePoints(config), this.sim.seed), config.scenery.filter((p) => p.type === 'pond'));
     this.wallPieces = [];
     // solid walls, in short pieces so the Dog and Handler can pass in front of or behind them
     const height = WALL_HEIGHT[config.theme];
@@ -284,19 +297,25 @@ export class StageScene extends Phaser.Scene {
         const a = add(wall.from, scale(sub(wall.to, wall.from), k / pieces));
         const b = add(wall.from, scale(sub(wall.to, wall.from), (k + 1) / pieces));
         const quad = wallQuad(a, b, height);
-        const g = this.add.graphics();
-        g.fillStyle(colors.side).fillPoints(quad, true);
-        g.lineStyle(1, 0x000000, 0.25).strokePoints(quad, true);
-        g.lineStyle(3, colors.top).lineBetween(quad[3].x, quad[3].y, quad[2].x, quad[2].y);
-        const depth = Math.max(quad[0].y, quad[1].y);
-        g.setDepth(depth);
         const xs = quad.map((q) => q.x);
         const ys = quad.map((q) => q.y);
-        this.wallPieces.push({ g, x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys), depth });
+        const depth = Math.max(quad[0].y, quad[1].y);
+        // pieces of one wall have the same shape, so they share one texture (the key is the shape relative to the box)
+        const box = { x: Math.min(...xs) - 2, y: Math.min(...ys) - 2, w: Math.max(...xs) - Math.min(...xs) + 4, h: Math.max(...ys) - Math.min(...ys) + 4 };
+        const local = quad.map((q) => ({ x: Math.round((q.x - box.x) * 8) / 8, y: Math.round((q.y - box.y) * 8) / 8 }));
+        const key = `wall:${colors.side}:${colors.top}:${local.map((q) => `${q.x},${q.y}`).join(';')}`;
+        this.bake(key, { x: 0, y: 0, w: box.w, h: box.h }, (g) => {
+          g.fillStyle(colors.side).fillPoints(local, true);
+          g.lineStyle(1, 0x000000, 0.25).strokePoints(local, true);
+          g.lineStyle(3, colors.top).lineBetween(local[3].x, local[3].y, local[2].x, local[2].y);
+        });
+        const img = this.add.image(box.x, box.y, key).setOrigin(0, 0).setScale(1 / BAKE_RES).setDepth(depth);
+        this.wallPieces.push({ img, x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys), depth });
       }
     }
-    // the scenery set: Kenney sprites where there is one, shapes for the rest
-    const shadows = this.add.graphics().setDepth(-5e4 + 1);
+    // the scenery set: Kenney sprites where there is one, shapes baked into textures for the rest; prop shadows are
+    // flat, so they are baked into the ground
+    const shadows = this.make.graphics({ x: 0, y: 0 }, false);
     config.scenery.forEach((item, n) => {
       if (item.type === 'pond') return void this.dressPond(item, shadows); // the water is baked into the ground
       const pos = project(item.pos);
@@ -308,11 +327,15 @@ export class StageScene extends Phaser.Scene {
         const pivot = pivotOf(frame);
         this.add.image(pos.x, pos.y, ATLAS, frame).setOrigin(pivot.x, pivot.y).setScale(propScale(item.type)).setDepth(pos.y);
       } else {
-        const g = this.add.graphics();
-        drawProp(g, item, pos.x, pos.y);
-        g.setDepth(pos.y);
+        // props with the same look share one texture, drawn at the origin in a box around the tallest and widest
+        // shape (a bus stop's roof, a parked car)
+        const box = { x: -80, y: -112, w: 160, h: 152 };
+        const key = this.bake(`prop:${propLook(item)}`, box, (g) => drawProp(g, { ...item, pos: { x: 0, y: 0 } }, 0, 0, item.pos));
+        this.add.image(pos.x + box.x, pos.y + box.y, key).setOrigin(0, 0).setScale(1 / BAKE_RES).setDepth(pos.y);
       }
     });
+    this.bakeGround(tiles, layoutGround(config.theme, routePoints(config), this.sim.seed), config.scenery.filter((p) => p.type === 'pond'), shadows);
+    shadows.destroy();
     // debug: the collision footprints of the Obstacles, on with `?footprints` in the page address
     if (typeof location !== 'undefined' && new URLSearchParams(location.search).has('footprints')) {
       const dbg = this.add.graphics().setDepth(1e6);
@@ -325,8 +348,24 @@ export class StageScene extends Phaser.Scene {
     }
   }
 
-  /** Draws the ground into a few render textures (only where there is ground) instead of one image per tile. */
-  private bakeGround(tiles: { x: number; y: number; key?: string; corners?: Vec2[]; color?: number }[], plan: GroundPlan, ponds: ScenarioConfig['scenery']): void {
+  /** Draws `paint` (in scene coordinates) once into a texture covering `box`, at BAKE_RES, and returns its key. */
+  private bake(key: string, box: { x: number; y: number; w: number; h: number }, paint: (g: Phaser.GameObjects.Graphics) => void): string {
+    if (this.textures.exists(key)) return key;
+    const g = this.make.graphics({ x: 0, y: 0 }, false);
+    paint(g);
+    g.setScale(BAKE_RES);
+    const texture = this.textures.addDynamicTexture(key, Math.ceil(box.w * BAKE_RES), Math.ceil(box.h * BAKE_RES))!;
+    texture.draw(g, -box.x * BAKE_RES, -box.y * BAKE_RES);
+    g.destroy();
+    this.baked.push(key);
+    return key;
+  }
+
+  /**
+   * Draws the ground into a few render textures (only where there is ground) instead of one image per tile, with
+   * the prop `shadows` on top.
+   */
+  private bakeGround(tiles: { x: number; y: number; key?: string; corners?: Vec2[]; color?: number }[], plan: GroundPlan, ponds: ScenarioConfig['scenery'], shadows: Phaser.GameObjects.Graphics): void {
     const CHUNK = 1024;
     const chunks = new Map<string, { cx: number; cy: number; rt: Phaser.GameObjects.RenderTexture }>();
     const chunkFor = (x: number, y: number) => {
@@ -382,6 +421,7 @@ export class StageScene extends Phaser.Scene {
     }
     stamp(g);
     g.destroy();
+    stamp(shadows);
   }
 
   // -- input -----------------------------------------------------------------------------------
@@ -569,17 +609,7 @@ export class StageScene extends Phaser.Scene {
     const s = this.sim;
     const pose = dogPose(s);
     g.clear();
-
-    // route: small markers for the corridor points, the flag at the end
-    const route = routeOf(s.config);
-    route.slice(0, -1).forEach((point, i) => {
-      const q = project(point);
-      g.fillStyle(i < s.routeIndex ? 0x64748b : 0xfbbf24, 0.8).fillEllipse(q.x, q.y, 22, 11);
-    });
-    const flag = project(s.config.waypoint);
-    g.fillStyle(0x000000, 0.25).fillEllipse(flag.x, flag.y, 30, 15);
-    g.lineStyle(3, 0xf1f5f9).lineBetween(flag.x, flag.y, flag.x, flag.y - 60);
-    g.fillStyle(0xf59e0b).fillTriangle(flag.x, flag.y - 60, flag.x + 30, flag.y - 50, flag.x, flag.y - 40);
+    this.drawRoute();
 
     // Poste anchor
     const handlerPos = project(s.handler);
@@ -658,11 +688,29 @@ export class StageScene extends Phaser.Scene {
     }
     g.strokePath();
     g.setDepth(Math.max(handlerPos.y, dogPos.y) + 1);
+    this.routeGfx.setDepth(g.depth);
 
     // feedback ring around the dog
     if (this.flash && this.time.now < this.flash.until) {
       g.lineStyle(4, this.flash.color, 0.9).strokeCircle(dogPos.x, dogPos.y - 10, 26);
     }
+  }
+
+  /** Route: small markers for the corridor points (grey once passed), the flag at the end. */
+  private drawRoute(): void {
+    const s = this.sim;
+    if (!this.routeDirty.changed(String(s.routeIndex))) return;
+    const g = this.routeGfx;
+    g.clear();
+    const route = routeOf(s.config);
+    route.slice(0, -1).forEach((point, i) => {
+      const q = project(point);
+      g.fillStyle(i < s.routeIndex ? 0x64748b : 0xfbbf24, 0.8).fillEllipse(q.x, q.y, 22, 11);
+    });
+    const flag = project(s.config.waypoint);
+    g.fillStyle(0x000000, 0.25).fillEllipse(flag.x, flag.y, 30, 15);
+    g.lineStyle(3, 0xf1f5f9).lineBetween(flag.x, flag.y, flag.x, flag.y - 60);
+    g.fillStyle(0xf59e0b).fillTriangle(flag.x, flag.y - 60, flag.x + 30, flag.y - 50, flag.x, flag.y - 40);
   }
 
   /** How the actor `id` is moving: its facing from where it went (or `fallback`), and whether it moved lately. */
@@ -774,7 +822,10 @@ export class StageScene extends Phaser.Scene {
   private fadeWalls(points: Vec2[]): void {
     for (const w of this.wallPieces) {
       const hides = points.some((p) => w.depth > p.y && p.x > w.x0 - 14 && p.x < w.x1 + 14 && p.y - 50 < w.y1 && p.y > w.y0);
-      w.g.setAlpha(w.g.alpha + ((hides ? 0.22 : 1) - w.g.alpha) * 0.25);
+      const target = hides ? 0.22 : 1;
+      const alpha = w.img.alpha;
+      if (alpha === target) continue; // converged: nothing to change
+      w.img.setAlpha(Math.abs(target - alpha) < 0.01 ? target : alpha + (target - alpha) * 0.25);
     }
   }
 
@@ -801,7 +852,7 @@ export class StageScene extends Phaser.Scene {
       height,
       left,
       cues.join('+'),
-      offer ? sniffLeft : '-',
+      offer ? quantize(sniffLeft) : '-', // the ring moves in visible steps, not every frame
       Math.round(barW * level),
       level < 0.5 ? 0 : level < 0.75 ? 1 : 2,
       this.markerPointerDown || this.keys.marker.isDown || this.keys.marker2.isDown,
@@ -854,7 +905,7 @@ export class StageScene extends Phaser.Scene {
     this.sniffLabel.setVisible(offer);
     if (offer) {
       const n = this.sniffHome;
-      const timeLeft = sniffLeft;
+      const timeLeft = quantize(sniffLeft) / RING_STEPS;
       const press = this.sniffPointerDown || this.keys.sniff.isDown ? 3 : 0;
       this.hudDisc(h, n.x, n.y, SNIFF_RADIUS, HUD_COLOR_NUM.surface, HUD_DEPTH, press);
       h.fillStyle(HUD_COLOR_NUM.ink).fillEllipse(n.x + press, n.y + 2 + press, 20, 14);

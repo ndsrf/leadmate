@@ -1,4 +1,4 @@
-import { addDiaryEntry, activeToday, dayDiff, localDateString, markActive, NO_STREAK, shownStreak, type StreakRecord } from './streak';
+import { addDiaryEntry, activeToday, diarySubject, dayDiff, localDateString, markActive, NO_STREAK, shownStreak, type StreakRecord } from './streak';
 
 const streak = (current: number, last: string, best = current): StreakRecord => ({ current, best, lastActiveDate: last });
 
@@ -70,5 +70,18 @@ describe('Walk Diary entries', () => {
     diary = addDiaryEntry(diary, { date: '2026-05-01', nodeId: 'a', outcome: 'completed' });
     expect(diary).toHaveLength(2);
     expect(diary.find((e) => e.nodeId === 'a')?.outcome).toBe('completed');
+  });
+});
+
+describe('Walk Diary entries on Missions', () => {
+  it('keys entries by Mission, or by Node for an old entry, so the two never replace each other', () => {
+    let diary = addDiaryEntry([], { date: '2026-05-01', nodeId: 'a', outcome: 'struggled' });
+    diary = addDiaryEntry(diary, { date: '2026-05-01', missionId: 'm', outcome: 'struggled', problemId: 'p' });
+    diary = addDiaryEntry(diary, { date: '2026-05-01', missionId: 'm', outcome: 'completed' });
+    expect(diary).toEqual([
+      { date: '2026-05-01', nodeId: 'a', outcome: 'struggled' },
+      { date: '2026-05-01', missionId: 'm', outcome: 'completed' },
+    ]);
+    expect(diary.map(diarySubject)).toEqual(['a', 'm']);
   });
 });

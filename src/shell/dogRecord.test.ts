@@ -1,9 +1,11 @@
 import { DEFAULT_ATTRIBUTES } from '../sim/learning';
-import { applyActivity, applyDiary, applyStage, failedPoste, touch, loadDogRecord, migrateRecord, newDogRecord, RECORD_KEY, recordDailyScore, saveDogRecord, setTriggerLevel, toSnapshot, type KeyValueStore } from './dogRecord';
+import { applyActivity, applyMissionCheckIn, updateMission, applyStage, failedPoste, touch, loadDogRecord, mergeLegacyNodes, migrateRecord, newDogRecord, RECORD_KEY, recordDailyScore, saveDogRecord, setTriggerLevel, toSnapshot, type KeyValueStore } from './dogRecord';
 import { payloadWith } from './testPayload';
 import { lookOf } from './onboarding/look';
 import { advance, onDebrief, startNode, type NodeRun } from './nodes/node';
 import { DOORBELL_MAT_NODE, POSTE_PRACTICE, WALK_DISTRACTION } from './nodes/content';
+import { startMission } from './missions/mission';
+import { TEST_MISSION } from './missions/testMission';
 
 function memoryStore(): KeyValueStore & { data: Map<string, string> } {
   const data = new Map<string, string>();
@@ -33,7 +35,7 @@ describe('Dog record', () => {
 
   it('is versioned and repairs unreadable fields', () => {
     const fixed = migrateRecord({ attributes: { followChance: 7, reactivityThreshold: 'x' }, triggerProfile: { child: 9, dog: 1 }, equipment: 'rope' });
-    expect(fixed.version).toBe(6);
+    expect(fixed.version).toBe(7);
     expect(fixed.attributes.followChance).toBe(1);
     expect(fixed.attributes.reactivityThreshold).toBe(DEFAULT_ATTRIBUTES.reactivityThreshold);
     expect(fixed.triggerProfile.child).toBe(2);
@@ -92,7 +94,7 @@ describe('Dog record: Walk Diary, Streak and Daily best', () => {
   it('migrates a version 1 record: keeps what it had and adds the new fields', () => {
     const v1 = { version: 1, attributes: { followChance: 0.9 }, completedNodes: ['poste-practice'], equipment: 'harness', posture: 1 };
     const r = migrateRecord(v1);
-    expect(r.version).toBe(6);
+    expect(r.version).toBe(7);
     expect(r.attributes.followChance).toBeCloseTo(0.9);
     expect(r.completedNodes).toEqual(['poste-practice']);
     expect(r.equipment).toBe('harness');
@@ -115,24 +117,21 @@ describe('Dog record: Walk Diary, Streak and Daily best', () => {
 
   it('persists the diary, the Streak and the Daily best across a restart', async () => {
     const store = memoryStore();
-    let r = applyDiary(newDogRecord(), 'walk-distraction', 'struggled', noon(2026, 5, 1));
+    let r = updateMission(newDogRecord(), TEST_MISSION.id, (s) => startMission(s, noon(2026, 4, 30)));
+    r = applyMissionCheckIn(r, TEST_MISSION, 'struggled', 'excited', noon(2026, 5, 1));
     r = recordDailyScore(r, '2026-05-01', 712).record;
     await saveDogRecord(store, r);
     const reopened = await loadDogRecord(store);
-    expect(reopened.walkDiary).toEqual([{ date: '2026-05-01', nodeId: 'walk-distraction', outcome: 'struggled' }]);
+    expect(reopened.walkDiary).toEqual([{ date: '2026-05-01', missionId: TEST_MISSION.id, outcome: 'struggled', problemId: 'excited' }]);
     expect(reopened.streak).toEqual({ current: 1, best: 1, lastActiveDate: '2026-05-01' });
     expect(reopened.dailyBest).toEqual({ '2026-05-01': 712 });
   });
 
-  it('logs a diary entry with its date and Node and marks the day active', () => {
-    const r = applyDiary(newDogRecord(), 'poste-practice', 'completed', noon(2026, 5, 1));
-    expect(r.walkDiary).toEqual([{ date: '2026-05-01', nodeId: 'poste-practice', outcome: 'completed' }]);
-    expect(r.streak.current).toBe(1);
-  });
-
   it('never changes the Learning Attributes, Trigger Profile or posture, even after a long gap', () => {
     const base = applyStage(newDogRecord(), payloadWith({ posteSuccesses: 1, followMarks: 3, markerHits: 1, markerAccuracyMs: 50 }), noon(2026, 1, 1));
-    const later = applyDiary(applyActivity(applyDiary(base, 'a', 'skipped', noon(2026, 1, 2)), noon(2026, 3, 1)), 'a', 'completed', noon(2026, 6, 1));
+    const started = updateMission(base, TEST_MISSION.id, (s) => startMission(s, noon(2026, 1, 1)));
+    const skipped = applyMissionCheckIn(started, TEST_MISSION, 'skipped', undefined, noon(2026, 1, 2));
+    const later = applyMissionCheckIn(applyActivity(skipped, noon(2026, 3, 1)), TEST_MISSION, 'completed', undefined, noon(2026, 6, 1));
     expect(later.streak.current).toBe(1); // reset after the gaps
     expect(later.attributes).toEqual(base.attributes);
     expect(later.triggerProfile).toEqual(base.triggerProfile);
@@ -173,7 +172,7 @@ describe('Dog record: version 3', () => {
   it('migrates a version 2 record as an existing user who has finished onboarding', () => {
     const v2 = { version: 2, attributes: { followChance: 0.9 }, completedNodes: ['poste-practice'], streak: { current: 2, best: 3, lastActiveDate: '2026-05-01' } };
     const r = migrateRecord(v2);
-    expect(r.version).toBe(6);
+    expect(r.version).toBe(7);
     expect(r.onboarding.step).toBe('done');
     expect(r.weights).toEqual({ dogKg: null, handlerKg: null });
     expect(r.seenHints).toEqual([]);
@@ -225,7 +224,7 @@ describe('stars on the record', () => {
   it('migrates an old record to an empty stars map', () => {
     const old = { version: 3, completedNodes: ['poste-practice'] };
     const r = migrateRecord(old);
-    expect(r.version).toBe(6);
+    expect(r.version).toBe(7);
     expect(r.stars).toEqual({});
     expect(r.completedNodes).toEqual(['poste-practice']);
   });
@@ -286,7 +285,7 @@ describe('Dog record: version 5 (names and the new funnel)', () => {
   it('loads an old record with an empty name', () => {
     const r = migrateRecord({ ...base, onboarding: { step: 'done' } });
     expect(r.name).toBe('');
-    expect(r.version).toBe(6);
+    expect(r.version).toBe(7);
   });
 
   it('keeps a stored name and repairs an unreadable one', () => {
@@ -361,5 +360,118 @@ describe('Dog record: version 6 (read Lessons)', () => {
 
   it('keeps stored ids and drops non-strings', () => {
     expect(migrateRecord({ version: 6, readLessons: ['a', 3, 'b'] }).readLessons).toEqual(['a', 'b']);
+  });
+});
+
+describe('Dog record: version 7 (Missions)', () => {
+  const at = (iso: string) => new Date(iso);
+  const started = (record = newDogRecord()) => updateMission(record, TEST_MISSION.id, (s) => startMission(s, at('2026-05-01T08:00:00')));
+
+  it('starts with no Mission state, no seen Fixes and no legacy Nodes', () => {
+    const r = newDogRecord();
+    expect(r.missions).toEqual({});
+    expect(r.seenFixes).toEqual([]);
+    expect(r.legacyNodes).toEqual([]);
+  });
+
+  it('migrates an older record: empty Missions and Fixes, and a snapshot of its completed Nodes', () => {
+    const r = migrateRecord({ version: 6, completedNodes: ['harness-ritual', 'doorbell-mat'] });
+    expect(r.version).toBe(7);
+    expect(r.missions).toEqual({});
+    expect(r.seenFixes).toEqual([]);
+    expect(r.legacyNodes).toEqual(['harness-ritual', 'doorbell-mat']);
+  });
+
+  it('keeps a version 7 record\'s own legacy Nodes, so later completions are not grandfathered', () => {
+    const r = migrateRecord({ version: 7, completedNodes: ['harness-ritual', 'doorbell-mat'], legacyNodes: ['harness-ritual'] });
+    expect(r.legacyNodes).toEqual(['harness-ritual']);
+    expect(migrateRecord({ version: 7, completedNodes: ['a'] }).legacyNodes).toEqual([]);
+  });
+
+  it('does not count a Node completed under Missions as legacy when an old-app copy re-uploads it', () => {
+    const local = { completedNodes: ['harness-ritual', 'doorbell-mat'], legacyNodes: ['harness-ritual'] };
+    // the old app pulled doorbell-mat down and uploads it again as a version 6 record
+    const stale = migrateRecord({ version: 6, completedNodes: ['harness-ritual', 'doorbell-mat', 'poste-practice'] });
+    expect(mergeLegacyNodes(local, stale).sort()).toEqual(['harness-ritual', 'poste-practice']);
+    expect(mergeLegacyNodes(stale, local).sort()).toEqual(['harness-ritual', 'poste-practice']);
+  });
+
+  it('takes an old copy\'s legacy Nodes whole on a device that has completed nothing', () => {
+    const old = migrateRecord({ version: 6, completedNodes: ['harness-ritual'] });
+    expect(mergeLegacyNodes(newDogRecord(), old)).toEqual(['harness-ritual']);
+  });
+
+  it('reads Mission state and seen Fixes tolerantly', () => {
+    const r = migrateRecord({
+      version: 7,
+      missions: {
+        good: { startedAt: '2026-05-01T08:00:00.000Z', target: 'easier', skipRun: 2, passedOn: '2026-05-03', keepPractising: true, focus: 'x', attempts: [{ date: '2026-05-02', at: '2026-05-02T09:00:00.000Z', outcome: 'struggled', problemId: 'p' }, { date: 'bad', at: 'x', outcome: 'completed' }] },
+        odd: { startedAt: 'soon', target: 'hard', skipRun: -4, attempts: 'none' },
+        broken: 7,
+      },
+      seenFixes: [{ fixId: 'f', missionId: 'good', at: '2026-05-02T09:00:00.000Z' }, { fixId: 3 }, null],
+    });
+    expect(r.missions.good).toEqual({ startedAt: '2026-05-01T08:00:00.000Z', target: 'easier', skipRun: 2, passedOn: '2026-05-03', keepPractising: true, focus: 'x', attempts: [{ date: '2026-05-02', at: '2026-05-02T09:00:00.000Z', outcome: 'struggled', problemId: 'p' }] });
+    expect(r.missions.odd).toEqual({ target: 'full', skipRun: 0, attempts: [] });
+    expect(r.missions.broken).toBeUndefined();
+    expect(r.seenFixes).toEqual([{ fixId: 'f', missionId: 'good', at: '2026-05-02T09:00:00.000Z' }]);
+    expect(migrateRecord({ version: 7, missions: [1], seenFixes: {} })).toMatchObject({ missions: {}, seenFixes: [] });
+  });
+
+  it('keeps old Node diary entries and reads Mission entries with their problem', () => {
+    const r = migrateRecord({
+      walkDiary: [
+        { date: '2026-05-01', nodeId: 'poste-practice', outcome: 'completed' },
+        { date: '2026-05-02', missionId: 'm', outcome: 'struggled', problemId: 'p' },
+        { date: '2026-05-03', outcome: 'completed' },
+      ],
+    });
+    expect(r.walkDiary).toEqual([
+      { date: '2026-05-01', nodeId: 'poste-practice', outcome: 'completed' },
+      { date: '2026-05-02', missionId: 'm', outcome: 'struggled', problemId: 'p' },
+    ]);
+  });
+
+  it('logs a struggle in the diary with its Mission and problem, marks the day and keeps the Fix', () => {
+    const before = started(applyStage(newDogRecord(), payloadWith({ posteSuccesses: 1, followMarks: 3 }), at('2026-04-30T10:00:00')));
+    const r = applyMissionCheckIn(before, TEST_MISSION, 'struggled', 'excited', at('2026-05-02T09:00:00'));
+    expect(r.walkDiary).toEqual([{ date: '2026-05-02', missionId: TEST_MISSION.id, outcome: 'struggled', problemId: 'excited' }]);
+    expect(r.streak).toMatchObject({ current: 1, lastActiveDate: '2026-05-02' });
+    expect(r.seenFixes).toEqual([{ fixId: 'test-fix-excited', missionId: TEST_MISSION.id, at: at('2026-05-02T09:00:00').toISOString() }]);
+    expect(r.missions[TEST_MISSION.id].target).toBe('easier');
+  });
+
+  it('records "Otra cosa" as the general Fix, once', () => {
+    let r = applyMissionCheckIn(started(), TEST_MISSION, 'struggled', undefined, at('2026-05-02T09:00:00'));
+    r = applyMissionCheckIn(r, TEST_MISSION, 'struggled', 'other', at('2026-05-03T19:00:00'));
+    expect(r.seenFixes.map((f) => f.fixId)).toEqual(['test-fix-general']);
+  });
+
+  it('never touches the Learning Attributes, Trigger Profile or posture on any outcome', () => {
+    const base = started(applyStage(newDogRecord(), payloadWith({ posteSuccesses: 1, followMarks: 3, markerHits: 1, markerAccuracyMs: 50 }), at('2026-04-30T10:00:00')));
+    for (const outcome of ['completed', 'struggled', 'skipped'] as const) {
+      const r = applyMissionCheckIn(base, TEST_MISSION, outcome, 'bites', at('2026-05-02T09:00:00'));
+      expect(r.walkDiary).toHaveLength(1);
+      expect(r.attributes).toEqual(base.attributes);
+      expect(r.triggerProfile).toEqual(base.triggerProfile);
+      expect(r.calmCounts).toEqual(base.calmCounts);
+      expect(r.posture).toBe(base.posture);
+    }
+  });
+
+  it('changes nothing while the check-in is closed', () => {
+    const r = started();
+    expect(applyMissionCheckIn(r, TEST_MISSION, 'completed', undefined, at('2026-05-01T20:00:00'))).toBe(r);
+    expect(applyMissionCheckIn(newDogRecord(), TEST_MISSION, 'completed', undefined, at('2026-05-02T20:00:00')).walkDiary).toEqual([]);
+  });
+
+  it('survives a restart', async () => {
+    const store = memoryStore();
+    const r = applyMissionCheckIn(started(), TEST_MISSION, 'struggled', 'excited', at('2026-05-02T09:00:00'));
+    await saveDogRecord(store, r);
+    const reopened = await loadDogRecord(store);
+    expect(reopened.missions).toEqual(r.missions);
+    expect(reopened.seenFixes).toEqual(r.seenFixes);
+    expect(reopened.walkDiary).toEqual(r.walkDiary);
   });
 });

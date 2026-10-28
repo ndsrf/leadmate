@@ -2,6 +2,6 @@
 module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/src', '<rootDir>/bundle'],
-  testMatch: ['**/*.test.ts'],
-  transform: { '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.jest.json', diagnostics: true }] },
+  testMatch: ['**/*.test.ts', '**/*.test.tsx'],
+  transform: { '^.+\\.(ts|tsx)$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.jest.json', diagnostics: true }] },
 };

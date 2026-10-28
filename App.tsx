@@ -16,19 +16,27 @@ import { BUNDLE_MESSAGE_TYPES, decode, type BundleMessage, type ShellMessage } f
 import { newSeed } from './src/sim/rng';
 import { playDogSound, playResolvedCue, prepareAudio } from './src/shell/audio';
 import { createVocalizer } from './src/shell/vocalize';
-import { applyDiary, applyStage, toSnapshot } from './src/shell/dogRecord';
+import { applyActivity, applyMissionCheckIn, toSnapshot, updateMission } from './src/shell/dogRecord';
 import { starsFor } from './src/shell/stars';
 import { lookOf } from './src/shell/onboarding/look';
 import { INTRO_NODE } from './src/shell/onboarding/introNode';
 import { celebrationsFor, starsShown, type Celebration } from './src/shell/celebrations';
 import { completeDaily, dateSeed, generateDailyStage, todayString, warmupAfterDaily, type DailyCompletion } from './src/shell/daily';
 import { CoachMarksOverlay, DogWarningOverlay, ErrorOverlay, HintOverlay, LoadingOverlay, ResumeOverlay } from './src/shell/Overlays';
-import { POSTE_PRACTICE } from './src/shell/nodes/content';
+import { findNode, POSTE_PRACTICE } from './src/shell/nodes/content';
 import { withPull } from './src/shell/nodes/scenarios';
 import { advance, onDebrief, shouldShowPosteLink, startNode, type Metric, type NodeAction, type NodeDef, type NodeRun } from './src/shell/nodes/node';
 import { DailyResultScreen } from './src/shell/screens/DailyResultScreen';
 import { DoorbellMatView } from './src/shell/screens/DoorbellMatView';
-import { LESSONS } from './src/shell/lessons/content';
+import { barkdokuResult, BarkdokuView } from './src/shell/screens/BarkdokuView';
+import { getDailyBoard } from './src/shell/puzzle/boards';
+import { findLesson, LESSONS } from './src/shell/lessons/content';
+import { findFix, findMission } from './src/shell/missions/content';
+import { acceptEasier, canMoveOn, fixFor, moveOn, startMission } from './src/shell/missions/mission';
+import type { DiaryOutcome } from './src/shell/streak';
+import { missionAfterDebrief, missionEntryOf, missionForDebrief } from './src/shell/missions/missionView';
+import { FixScreen, MissionBriefScreen, MissionCheckInScreen, MissionPassedScreen, MissionProblemScreen, MissionWaitingScreen } from './src/shell/screens/MissionScreens';
+import type { Stop } from './src/shell/world';
 import { lessonDay, markLessonRead, todaysLesson } from './src/shell/lessons/lesson';
 import { LessonScreen, LibraryScreen } from './src/shell/screens/LessonScreens';
 import { WorldMapScreen } from './src/shell/screens/WorldMapScreen';
@@ -73,8 +81,13 @@ type Flow =
   | { name: 'daily'; attempt: number; result: DailyRun | null }
   | { name: 'node'; run: NodeRun; attempt: number }
   | { name: 'library' }
-  | { name: 'lesson'; id: string }
-  | { name: 'paywall' };
+  /** A Lesson from the Library, or from its Stop on the map; Done and Back return there. */
+  | { name: 'lesson'; id: string; returnTo: 'map' | 'library' }
+  /** A Mission Stop's screens; a Fix opened from "Tus ajustes" returns to the Library. */
+  | { name: 'mission'; id: string; view: MissionView; fixId?: string; returnTo?: 'map' | 'library' }
+  | { name: 'paywall' }
+  | { name: 'puzzle'; date: string };
+type MissionView = 'brief' | 'waiting' | 'checkin' | 'problem' | 'fix' | 'passed';
 
 /** The shell owns the active language; Spanish is the only one shipped. */
 const CATALOG = es;
@@ -433,6 +446,52 @@ export default function App() {
     setFlow({ name: 'node', run: startNode(node), attempt: 0 });
   };
 
+  // where the map was scrolled, so a Stop's flow returns to the same place
+  const mapScroll = useRef<number | undefined>(undefined);
+
+  /** Opens a Stop by kind: a Lesson Stop returns to the map, a Node starts, a Mission opens on its brief, wait or check-in. */
+  const openStop = (stop: Stop) => {
+    setSettingsOpen(false);
+    if (stop.kind === 'lesson') setFlow({ name: 'lesson', id: stop.id, returnTo: 'map' });
+    else if (stop.kind === 'node') {
+      const node = findNode(stop.id);
+      if (node) startNodeRun(node);
+    } else setFlow({ name: 'mission', id: stop.id, view: recordRef.current ? missionEntryOf(stop.id, recordRef.current, new Date()) : 'brief' });
+  };
+
+  /** A Mission check-in answer: "Costó un poco" first asks what went wrong; a pass celebrates. */
+  const answerMission = (id: string, outcome: DiaryOutcome, problemId?: string) => {
+    const mission = findMission(id);
+    if (!mission) return;
+    if (outcome === 'struggled' && problemId === undefined) {
+      setFlow({ name: 'mission', id, view: 'problem' });
+      return;
+    }
+    const now = new Date();
+    let diff: Celebration[] = [];
+    update((r) => {
+      const after = applyMissionCheckIn(r, mission, outcome, problemId, now);
+      diff = celebrationsFor(r, after, { kind: 'mission', missionId: id });
+      return after;
+    });
+    if (outcome === 'completed') {
+      setCelebrations({ id: `mission:${id}`, list: diff });
+      setFlow({ name: 'mission', id, view: 'passed' });
+    } else if (outcome === 'struggled') setFlow({ name: 'mission', id, view: 'fix', fixId: fixFor(mission, problemId).id });
+    else goHome();
+  };
+
+  const moveOnMission = (id: string) => {
+    let diff: Celebration[] = [];
+    update((r) => {
+      const after = updateMission(r, id, (m) => moveOn(m, new Date()));
+      diff = celebrationsFor(r, after, { kind: 'mission', missionId: id });
+      return after;
+    });
+    setCelebrations({ id: `mission:${id}`, list: diff });
+    setFlow({ name: 'mission', id, view: 'passed' });
+  };
+
   const playingStage =
     simulationKey !== null ||
     (route.name === 'flow' && route.flow.name === 'warmup') ||
@@ -479,7 +538,7 @@ export default function App() {
       <View className="absolute inset-0">
         <WorldMapScreen
           t={t}
-          completed={record.completedNodes}
+          progress={record}
           stars={record.stars}
           rusty={rusty.current === true && warmup !== 'completed'}
           streak={record.streak}
@@ -488,15 +547,19 @@ export default function App() {
           onLibrary={() => setFlow({ name: 'library' })}
           dailyBest={record.dailyBest[todayString()]}
           onDaily={() => setFlow({ name: 'daily', attempt: 0, result: null })}
+          onBarkdoku={() => setFlow({ name: 'puzzle', date: todayString() })}
           rustyPrompt={rusty.current === true && warmup === 'none'}
           skippedWarmup={warmup === 'skipped'}
           onWarmup={() => setFlow({ name: 'warmup' })}
           onSkipWarmup={() => setWarmup('skipped')}
-          onStartNode={startNodeRun}
+          onOpenStop={openStop}
+          initialScrollY={mapScroll.current}
+          onScroll={(y) => (mapScroll.current = y)}
           onSettings={() => setSettingsOpen(true)}
           breed={record.breed}
           coat={record.coat}
           onPaywall={() => setFlow({ name: 'paywall' })}
+          covered={overlay !== null}
           banner={
             account.signedIn && account.sync.paused === 'verify' ? (
               <AccountBanner t={t} kind="verify" />
@@ -581,8 +644,6 @@ export default function App() {
           t={t}
           run={introRun}
           showPosteLink={false}
-          diary={null}
-          onDiary={() => {}}
           onPosteLink={() => {}}
           best={starsFor(payload.handlingScore)}
           celebrations={[]}
@@ -619,23 +680,78 @@ export default function App() {
     const f = route.flow;
     if (f.name === 'library' && record) {
       screen = mapWith(
-        <LibraryScreen t={t} lessons={LESSONS} readIds={record.readLessons} day={lessonDay(record, new Date())} onOpen={(lesson) => setFlow({ name: 'lesson', id: lesson.id })} onBack={goHome} />,
+        <LibraryScreen
+          t={t}
+          lessons={LESSONS}
+          readIds={record.readLessons}
+          day={lessonDay(record, new Date())}
+          seenFixes={record.seenFixes}
+          onOpen={(lesson) => setFlow({ name: 'lesson', id: lesson.id, returnTo: 'library' })}
+          onOpenFix={(entry) => setFlow({ name: 'mission', id: entry.mission.id, view: 'fix', fixId: entry.fix.id, returnTo: 'library' })}
+          onBack={goHome}
+        />,
       );
     } else if (f.name === 'lesson' && record) {
-      const lesson = LESSONS.find((l) => l.id === f.id);
+      const lesson = findLesson(f.id);
+      const back = () => (f.returnTo === 'map' ? goHome() : setFlow({ name: 'library' }));
       screen = mapWith(
         lesson ? (
           <LessonScreen
             t={t}
             lesson={lesson}
+            backLabel={t(f.returnTo === 'map' ? 'lesson.backToMap' : 'lesson.back')}
             onDone={() => {
               update((r) => markLessonRead(r, lesson.id));
-              setFlow({ name: 'library' });
+              back();
             }}
-            onBack={() => setFlow({ name: 'library' })}
+            onBack={back}
           />
         ) : null,
       );
+    } else if (f.name === 'mission' && record) {
+      const mission = findMission(f.id);
+      const state = record.missions[f.id];
+      const close = () => (f.returnTo === 'library' ? setFlow({ name: 'library' }) : goHome());
+      if (!mission) screen = null;
+      else if (f.view === 'brief')
+        screen = (
+          <MissionBriefScreen
+            t={t}
+            mission={mission}
+            state={state}
+            onStart={() => {
+              update((r) => updateMission(r, mission.id, (m) => startMission(m, new Date())));
+              goHome();
+            }}
+            onClose={goHome}
+          />
+        );
+      else if ((f.view === 'waiting' || f.view === 'checkin') && state) {
+        const accept = () => update((r) => updateMission(r, mission.id, acceptEasier));
+        screen =
+          f.view === 'checkin' ? (
+            <MissionCheckInScreen t={t} mission={mission} state={state} onAnswer={(outcome) => answerMission(mission.id, outcome)} onAcceptEasier={accept} onClose={goHome} />
+          ) : (
+            <MissionWaitingScreen t={t} mission={mission} state={state} now={new Date()} onAcceptEasier={accept} onClose={goHome} />
+          );
+      } else if (f.view === 'problem')
+        screen = <MissionProblemScreen t={t} mission={mission} onPick={(problemId) => answerMission(mission.id, 'struggled', problemId)} onBack={() => setFlow({ ...f, view: 'checkin' })} />;
+      else if (f.view === 'fix' && f.fixId) {
+        const found = findFix(f.fixId);
+        screen = found ? (
+          <FixScreen
+            t={t}
+            mission={mission}
+            fix={found.fix}
+            problem={found.problem}
+            canMoveOn={!!state && f.returnTo !== 'library' && canMoveOn(state)}
+            onPractise={() => openStop(found.fix.practise)}
+            onMoveOn={() => moveOnMission(mission.id)}
+            onDone={close}
+          />
+        ) : null;
+      } else if (f.view === 'passed')
+        screen = <MissionPassedScreen t={t} mission={mission} celebrations={celebrations?.id === `mission:${mission.id}` ? celebrations.list : []} onDone={goHome} />;
     } else if (f.name === 'daily') {
       if (f.result) {
         screen = (
@@ -662,6 +778,24 @@ export default function App() {
       );
     } else if (f.name === 'register') {
       screen = <RegisterPrompt t={t} onCreate={() => setFlow({ name: 'auth', mode: 'signup', returnTo: 'map' })} onNotNow={goHome} />;
+    } else if (f.name === 'puzzle' && record) {
+      // The board is pinned to the date the puzzle was opened, so playing past midnight keeps it.
+      screen = (
+        <BarkdokuView
+          key={f.date}
+          t={t}
+          board={getDailyBoard(f.date)}
+          breed={record.breed}
+          coat={record.coat}
+          onFinish={(metrics) => {
+            if (metrics.solved) {
+              update((r) => applyActivity(r, new Date()));
+            }
+            goHome();
+          }}
+          onExit={goHome}
+        />
+      );
     } else if (f.name === 'auth') {
       screen = account.auth ? <AuthScreen t={t} auth={account.auth} initial={f.mode} onDone={onAuthDone} onBack={onAuthDone} /> : null;
     } else if (f.name === 'node' && record) {
@@ -679,6 +813,18 @@ export default function App() {
             <DoorbellMatView key={`minigame-${f.attempt}`} t={t} coat={record.coat} seed={seed} onCue={playCue} onFinish={(r) => finish(r.metrics, r.handlingScore)} />
           ) : minigame === 'harness-ritual' ? (
             <ReadDogView key={`minigame-${f.attempt}`} t={t} scene="harness" coat={record.coat} seed={seed} onCue={playCue} onFinish={(r) => finish(r.metrics, r.handlingScore)} />
+          ) : minigame === 'barkdoku' ? (
+            <BarkdokuView
+              key={`minigame-${f.attempt}`}
+              t={t}
+              breed={record.breed}
+              coat={record.coat}
+              onFinish={(metrics) => {
+                const r = barkdokuResult(metrics);
+                finish(r.metrics, r.handlingScore);
+              }}
+              onExit={goHome}
+            />
           ) : (
             <PosteMinigameView key={`minigame-${f.attempt}`} t={t} coat={record.coat} onFinish={(metrics) => finish(metrics)} />
           );
@@ -688,13 +834,17 @@ export default function App() {
             t={t}
             run={run}
             showPosteLink={shouldShowPosteLink(record, run.node.id)}
-            diary={record.walkDiary.find((e) => e.date === todayString() && e.nodeId === run.node.id)?.outcome ?? null}
-            onDiary={(outcome) => update((r) => applyDiary(r, run.node.id, outcome, new Date()))}
+            mission={findMission(missionForDebrief(run.node.id) ?? '')?.title}
             best={starsShown(record, run.node.id) ?? 1}
             celebrations={celebrations?.id === `${run.node.id}:${f.attempt}` ? celebrations.list : []}
             onPosteLink={() => startNodeRun(POSTE_PRACTICE)}
             onPlayAgain={() => setFlow({ ...f, run: { ...run, step: 'simulation', result: null }, attempt: f.attempt + 1 })}
-            onDone={goHome}
+            onDone={() => {
+              // the Debrief of a Stretch's last Node opens its Mission brief
+              const next = missionAfterDebrief(run.node.id, record, new Date());
+              if (next) setFlow({ name: 'mission', id: next, view: 'brief' });
+              else goHome();
+            }}
           />
         );
       }

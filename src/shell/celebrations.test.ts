@@ -1,9 +1,17 @@
 import { es } from '../i18n';
 import { celebrationsFor, starsShown, streakStatus } from './celebrations';
 import { newDogRecord, type DogRecord } from './dogRecord';
+import type { MissionState } from './missions/mission';
 
 const rec = (over: Partial<DogRecord> = {}): DogRecord => ({ ...newDogRecord(), ...over });
 const node = (id: string) => ({ kind: 'node' as const, nodeId: id });
+const mission = (id: string) => ({ kind: 'mission' as const, missionId: id });
+const started: MissionState = { target: 'full', skipRun: 0, attempts: [], startedAt: '2026-05-01T09:00:00.000Z' };
+const world1 = {
+  completedNodes: ['harness-ritual', 'doorbell-mat', 'poste-practice'],
+  readLessons: ['theory-harness', 'howto-tap-hold', 'theory-doorbell', 'theory-poste'],
+};
+const passedAll: Record<string, MissionState> = { 'mission-harness': { ...started, passedOn: '2026-05-02' }, 'mission-doorbell': { ...started, passedOn: '2026-05-02' } };
 
 describe('celebrationsFor', () => {
   it('celebrates a first completion once', () => {
@@ -12,17 +20,27 @@ describe('celebrationsFor', () => {
     expect(celebrationsFor(before, after, node('harness-ritual'))).toContainEqual({ type: 'first-completion', nodeId: 'harness-ritual' });
   });
 
-  it('names a newly unlocked World when the last Node of a World is completed', () => {
-    const before = rec({ completedNodes: ['harness-ritual', 'doorbell-mat'] });
-    const after = rec({ completedNodes: ['harness-ritual', 'doorbell-mat', 'poste-practice'] });
-    const out = celebrationsFor(before, after, node('poste-practice'));
+  it('names a newly unlocked World when the last Mission of a World is passed', () => {
+    const before = rec({ ...world1, missions: { ...passedAll, 'mission-poste': started } });
+    const after = rec({ ...world1, missions: { ...passedAll, 'mission-poste': { ...started, passedOn: '2026-05-03' } } });
+    const out = celebrationsFor(before, after, mission('mission-poste'));
     expect(out.filter((c) => c.type === 'unlock-world')).toEqual([{ type: 'unlock-world', worldId: 'sidewalk' }]);
   });
 
-  it('celebrates a Node that opens inside an open World', () => {
-    const after = rec({ completedNodes: ['harness-ritual'] });
-    const unlocked = celebrationsFor(rec(), after, node('harness-ritual')).filter((c) => c.type === 'unlock-node');
-    expect(unlocked).toEqual([{ type: 'unlock-node', nodeId: 'doorbell-mat' }]);
+  it('celebrates a passed Mission once, and the Node it opens', () => {
+    const base = { completedNodes: ['harness-ritual'], readLessons: ['theory-harness', 'howto-tap-hold', 'theory-doorbell'] };
+    const before = rec({ ...base, missions: { 'mission-harness': started } });
+    const after = rec({ ...base, missions: { 'mission-harness': { ...started, passedOn: '2026-05-03' } } });
+    const out = celebrationsFor(before, after, mission('mission-harness'));
+    expect(out).toContainEqual({ type: 'mission-passed', missionId: 'mission-harness' });
+    expect(out.filter((c) => c.type === 'unlock-node')).toEqual([{ type: 'unlock-node', nodeId: 'doorbell-mat' }]);
+    expect(celebrationsFor(after, after, mission('mission-harness'))).toEqual([]);
+  });
+
+  it('gives no Mission celebration for a struggle or a skip', () => {
+    const before = rec({ missions: { 'mission-harness': started } });
+    const after = rec({ missions: { 'mission-harness': { ...started, target: 'easier' } } });
+    expect(celebrationsFor(before, after, mission('mission-harness')).some((c) => c.type === 'mission-passed')).toBe(false);
   });
 
   it('celebrates a Streak day when the first activity of a day credits it, and not for more activity that day', () => {

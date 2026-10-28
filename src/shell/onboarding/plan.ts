@@ -1,6 +1,6 @@
 import { DISTRACTOR_KINDS, type DistractorKind, type TriggerProfile } from '../../sim/learning';
 import { findNode } from '../nodes/content';
-import { latencyBand } from './diagnostic';
+import { latencyBand } from './latency';
 
 /** The default order of the opening Nodes: World 1, then the first walking Node. */
 const DEFAULT_PLAN = ['harness-ritual', 'doorbell-mat', 'poste-practice', 'walk-distraction'] as const;
