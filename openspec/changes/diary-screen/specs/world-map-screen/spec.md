@@ -3,12 +3,16 @@
 ## ADDED Requirements
 
 ### Requirement: Diary entry
-The system SHALL keep a Diary entry visible with the other status chips at the top of the World Map. It SHALL open the Diary.
+The Streak chip at the top of the World Map SHALL open the Diary. The system SHALL NOT show a separate Diary chip. The Streak chip's accessible label SHALL say that it opens the Diary.
+
+#### Scenario: Open from the Streak chip
+- **WHEN** the user taps the Streak chip, whether or not a Streak is running
+- **THEN** the Diary opens over the map
 
 #### Scenario: Entry visible while scrolled
 - **WHEN** the user has scrolled down the map
-- **THEN** the Diary entry remains visible
+- **THEN** the Streak chip remains visible and still opens the Diary
 
-#### Scenario: Narrow screen
-- **WHEN** the status chips do not fit on one line
-- **THEN** they wrap onto a further line with nothing clipped and the Diary entry still visible
+#### Scenario: Screen reader
+- **WHEN** a screen reader focuses the Streak chip
+- **THEN** it announces the Streak and the Diary

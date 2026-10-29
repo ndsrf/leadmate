@@ -7,7 +7,7 @@ The app records progress (Walk Diary check-ins, Daily Stage bests, the Streak), 
 ## What Changes
 
 - Add an **Activity Log** to the Dog record: one dated entry per Node Debrief, Daily Stage play, first-time Lesson read and the guided first Stage. Each entry keeps its Stage numbers (score, Slack, pull, peak Arousal, Marker accuracy and hits, missed opportunities, check-ins, Poste successes, harsh stops, Sintonía, Go Sniffs, duration), the Minigame metrics, the stars earned on that run and the real-world exercise the Debrief assigned. The log is display-only: nothing reads progress back from it. It keeps the newest 500 entries.
-- Add a **Diary screen**, opened from a new "Diario" chip in the World Map's top bar, with two views:
+- Add a **Diary screen**, opened by tapping the Streak chip in the World Map's top bar (no separate Diary chip), with two views:
   - **Calendar**: a Monday-first month grid with month navigation. Days with activity are highlighted, each with coloured dots per kind of activity (Node, Daily Stage, Lesson, real-world exercise, first Stage) and a flame bar for days of the live Streak. Tapping a day shows everything that happened on it below the grid.
   - **Days with activity**: only the days that have entries, newest first, grouped under month headings, each fully expanded.
 - Each day card shows the long date, Today and Streak-day markers, an activity count, the kinds present, and every entry with its time: Stage stats, Minigame metrics, stars, the World, the assigned exercise, Walk Diary outcomes, the day's best Daily score and the trial start.
@@ -21,7 +21,7 @@ The app records progress (Walk Diary check-ins, Daily Stage bests, the Streak), 
 - `activity-diary`: the dated Activity Log of what the user did, and the Diary screen that shows it as a calendar and as a list of days with activity.
 
 ### Modified Capabilities
-- `world-map-screen`: the top bar gains a Diary entry next to the other chips.
+- `world-map-screen`: the Streak chip in the top bar opens the Diary.
 - `account-sync`: conflict resolution also unions the Activity Log.
 
 ## Impact

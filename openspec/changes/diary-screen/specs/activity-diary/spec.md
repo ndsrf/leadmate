@@ -69,7 +69,7 @@ The Diary SHALL show, for each local calendar day, the logged entries in the ord
 - **THEN** its day shows the first Stage
 
 ### Requirement: Diary entry
-The World Map SHALL offer an entry that opens the Diary over the map, and leaving the Diary SHALL return to the map at its previous scroll position. The Diary SHALL be free for every user and read-only: no notes, edits or Walk Diary answers are made from it.
+The World Map's Streak chip SHALL open the Diary over the map, and leaving the Diary SHALL return to the map at its previous scroll position. The Diary SHALL be free for every user and read-only: no notes, edits or Walk Diary answers are made from it.
 
 #### Scenario: Open and close
 - **WHEN** the user opens the Diary and goes back
