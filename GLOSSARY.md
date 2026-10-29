@@ -194,27 +194,47 @@ One point on a World's trail: a Lesson, a Node or a Mission.
 _Avoid_: Step, item, level
 
 **Stretch**:
-The run of Stops on a trail up to and including one Mission; the most a user can advance in a day.
+The run of Stops on a trail up to and including one Mission; the most a user can advance in a day without a Day Skip.
 _Avoid_: Session, leg, chapter
 
 **Mission**:
-A real-world task that ends a Stretch, with one concrete target, checked in on a later day; the Stops after it stay closed until it is passed.
+A real-world task that ends a Stretch, with one concrete target, checked in on a later day; the Stops after it stay closed until it is passed or owed.
 _Avoid_: Homework, challenge, quest
+
+**Not today**:
+The check-in answer "Hoy no pudimos": the walk did not happen, so the Mission keeps its target and waits another day.
+_Avoid_: Skip, skipped check-in
+
+**Day Skip**:
+The LeadMate Plus action "Saltar el día" on a started, waiting Mission: it opens the Stops after the Mission without waiting for its check-in, leaving the Mission owed. A World's last Mission cannot be skipped.
+_Avoid_: Skip, fast-forward, skipped Mission
+
+**Owed Mission**:
+A Mission that took a Day Skip and has not been passed yet; it no longer closes the trail but still has to be checked in on a real day. Shown to the user as "Pendiente".
+_Avoid_: Pending Mission, deferred Mission, skipped Mission
+
+**Closing a World**:
+Passing every Mission of a World, Owed Missions included; only then is the World complete and the next one unlocked.
+_Avoid_: Finishing the trail
 
 **Fix**:
 The corrective material shown when a Mission check-in did not go well: reassurance, what likely went wrong, what to change, an easier target and what to practise again.
 _Avoid_: Troubleshooting, tip, remedy
 
 **Plus World**:
-A World designated as part of LeadMate Plus, requiring an active Plus subscription in addition to completing preceding Worlds.
+A World designated as part of LeadMate Plus, requiring Plus membership in addition to completing preceding Worlds.
 _Avoid_: Premium chapter, paid zone
+
+**Plus membership**:
+Whether the user has LeadMate Plus right now. It is the one thing every Plus feature checks; for now it means a free trial started in the last 7 days.
+_Avoid_: Plus subscription, premium, entitlement
 
 **Preview World**:
 An upcoming World shown on the World Map as a curriculum roadmap preview with topic summaries and node counts, but without playable simulation stages yet.
 _Avoid_: Teaser world, dummy chapter
 
 **World Map**:
-The main screen: all Worlds laid out as a trail of Stops showing which are locked, open, next up, waiting or completed, with each Node's Stars.
+The main screen: all Worlds laid out as a trail of Stops showing which are locked, open, next up, waiting, owed or completed, with each Node's Stars.
 _Avoid_: Home, level select, menu
 
 **Star**:
@@ -242,7 +262,7 @@ The day-by-day view of the Activity Log, the Walk Diary and the Daily Stage best
 _Avoid_: Journal, calendar, history
 
 **Active Day**:
-A calendar day that credited the Streak. A day with only a Lesson read has activity but is not an Active Day.
+A calendar day that credited the Streak. A day with only a Lesson read or a Day Skip has activity but is not an Active Day.
 _Avoid_: Played day, day with activity
 
 **Scenery Set**:

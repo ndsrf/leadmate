@@ -1,7 +1,9 @@
 import { ACTIVITY_LOG_MAX, activityAt, addActivity, readActivityLog, stageSummary } from './activity';
 import { completeDaily } from './daily';
-import { dayMarks, diaryDays, diaryTotals, monthGrid, shiftMonth, streakDates, weekdayOf } from './diary';
-import { migrateRecord, newDogRecord, type DogRecord } from './dogRecord';
+import { closedSkipDate, dayMarks, diaryDays, diaryTotals, isActiveDay, monthGrid, shiftMonth, streakDates, weekdayOf } from './diary';
+import { applyDaySkip, applyMissionCheckIn, migrateRecord, newDogRecord, updateMission, type DogRecord } from './dogRecord';
+import { startMission } from './missions/mission';
+import { TEST_MISSION } from './missions/testMission';
 import { markLessonRead } from './lessons/lesson';
 import { WALK_DISTRACTION } from './nodes/content';
 import { advance, onDebrief, startNode } from './nodes/node';
@@ -91,6 +93,41 @@ describe('Diary days', () => {
     const days = diaryDays(r);
     expect(dayMarks(days[0])).toEqual(['lesson']);
     expect(diaryTotals(days)).toMatchObject({ activeDays: 0, lessonsRead: 1, since: null });
+  });
+});
+
+describe('Day Skips in the Diary', () => {
+  const skipped = (r: DogRecord, id: string, day: number) => applyDaySkip(updateMission(r, id, (m) => startMission(m, at(day, 9))), id, at(day, 18));
+
+  it('marks a skip-only day without making it an Active Day', () => {
+    const days = diaryDays(skipped(newDogRecord(), 'mission-harness', 4));
+    expect(dayMarks(days[0])).toEqual(['skip']);
+    expect(isActiveDay(days[0])).toBe(false);
+    expect(diaryTotals(days)).toMatchObject({ activeDays: 0, skips: 1, since: null });
+  });
+
+  it('counts three skips, and one Mission still owed after two passes', () => {
+    let r = newDogRecord();
+    for (const id of ['a', 'b', 'c']) r = skipped(r, id, 4);
+    r = updateMission(r, 'a', (m) => ({ ...m, passedOn: '2026-05-06' }));
+    r = updateMission(r, 'b', (m) => ({ ...m, passedOn: '2026-05-06' }));
+    expect(diaryTotals(diaryDays(r), r.missions)).toMatchObject({ skips: 3, owed: 1 });
+  });
+
+  it('flags only the pass that closes a skipped Mission, with the skip date', () => {
+    let r = skipped(newDogRecord(), TEST_MISSION.id, 4);
+    r = applyMissionCheckIn(r, TEST_MISSION, 'struggled', 'excited', at(5, 10));
+    r = applyMissionCheckIn(r, TEST_MISSION, 'completed', undefined, at(7, 10));
+    const [passed, struggled] = r.walkDiary.slice().sort((x, y) => (x.date < y.date ? 1 : -1));
+    expect(closedSkipDate(passed, r.missions)).toBe('2026-05-04');
+    expect(closedSkipDate(struggled, r.missions)).toBeNull();
+    expect(closedSkipDate({ date: '2026-05-07', missionId: 'other', outcome: 'completed' }, r.missions)).toBeNull();
+  });
+
+  it('does not flag a pass of a Mission that was never skipped', () => {
+    let r = updateMission(newDogRecord(), TEST_MISSION.id, (m) => startMission(m, at(3, 9)));
+    r = applyMissionCheckIn(r, TEST_MISSION, 'completed', undefined, at(4, 9));
+    expect(closedSkipDate(r.walkDiary[0], r.missions)).toBeNull();
   });
 });
 

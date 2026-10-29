@@ -82,6 +82,7 @@ describe('World Map layout', () => {
 
   it('draws a waiting Mission with a moon, and an optional Lesson with a dashed edge', () => {
     expect(nodeVisual('waiting', 'mission')).toMatchObject({ glyph: 'moon', ring: false });
+    expect(nodeVisual('owed', 'mission')).toMatchObject({ glyph: 'hourglass', ring: false });
     expect(nodeVisual('open', 'theory', true).dashed).toBe(true);
     expect(nodeVisual('open', 'theory').dashed).toBe(false);
   });

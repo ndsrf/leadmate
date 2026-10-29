@@ -1,7 +1,7 @@
 import { ONBOARDING_STEPS } from './onboarding/flow';
-import { missionAfterDebrief, missionEntryOf, missionEntryView, missionForDebrief } from './missions/missionView';
+import { canSkipDay, missionAfterDebrief, missionEntryOf, missionEntryView, missionForDebrief } from './missions/missionView';
 import type { MissionState } from './missions/mission';
-import { progressOf } from './world';
+import { findWorld, isLastMissionOfWorld, progressOf, stopsOf } from './world';
 import { isReadyToLeaveSplash, routeFor } from './navigation';
 
 describe('routeFor', () => {
@@ -263,6 +263,27 @@ describe('Mission flows', () => {
     const legacy = progressOf(['harness-ritual', 'doorbell-mat'], { readLessons: ['theory-harness', 'howto-tap-hold', 'theory-doorbell'] });
     expect(missionEntryOf('mission-harness', legacy, at(9))).toBe('passed');
     expect(missionEntryOf('mission-doorbell', legacy, at(9))).toBe('brief');
+  });
+
+  it('offers a Day Skip only on a waiting Mission that is not owed', () => {
+    const waiting = { ...stretch1, missions: { 'mission-harness': started } };
+    expect(canSkipDay('mission-harness', waiting, at(20, 1))).toBe(true);
+    expect(canSkipDay('mission-harness', stretch1, at(20, 1))).toBe(false);
+    expect(canSkipDay('mission-harness', waiting, at(9, 2))).toBe(false);
+    const owed = { ...stretch1, missions: { 'mission-harness': { ...started, skippedAt: at(20, 1).toISOString() } } };
+    expect(canSkipDay('mission-harness', owed, at(21, 1))).toBe(false);
+  });
+
+  it('never offers a Day Skip on a World\'s last Mission', () => {
+    expect(isLastMissionOfWorld('mission-poste')).toBe(true);
+    expect(isLastMissionOfWorld('mission-doorbell')).toBe(false);
+    const stops = stopsOf(findWorld('home')!);
+    const all = progressOf(stops.filter((s) => s.kind === 'node').map((s) => s.id), {
+      readLessons: stops.filter((s) => s.kind === 'lesson').map((s) => s.id),
+      missions: { 'mission-harness': { ...started, passedOn: '2026-05-02' }, 'mission-doorbell': { ...started, passedOn: '2026-05-02' }, 'mission-poste': started },
+    });
+    expect(missionEntryOf('mission-poste', all, at(20, 1))).toBe('waiting');
+    expect(canSkipDay('mission-poste', all, at(20, 1))).toBe(false);
   });
 
   it('names the Mission a Debrief is practice for', () => {

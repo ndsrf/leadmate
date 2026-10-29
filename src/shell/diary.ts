@@ -1,5 +1,6 @@
 import type { ActivityEvent, ActivityKind } from './activity';
 import type { DogRecord } from './dogRecord';
+import { isOwed, type MissionState } from './missions/mission';
 import { dayDiff, isDateString, localDateString, type DiaryOutcome, type WalkDiaryEntry } from './streak';
 
 /**
@@ -10,7 +11,7 @@ import { dayDiff, isDateString, localDateString, type DiaryOutcome, type WalkDia
 
 /** A kind of mark a calendar day can carry. */
 export type DayMark = ActivityKind | 'walk';
-export const DAY_MARKS: readonly DayMark[] = ['node', 'daily', 'lesson', 'walk', 'first-stage'];
+export const DAY_MARKS: readonly DayMark[] = ['node', 'daily', 'lesson', 'walk', 'skip', 'first-stage'];
 
 export interface DiaryDay {
   date: string;
@@ -65,9 +66,20 @@ export function dayMarks(day: DiaryDay): DayMark[] {
   return DAY_MARKS.filter((k) => kinds.has(k));
 }
 
-/** An Active Day credited the Streak: anything but a Lesson read (or a trial start) alone. */
+/** An Active Day credited the Streak: anything but a Lesson read, a Day Skip (or a trial start) alone. */
 export function isActiveDay(day: DiaryDay): boolean {
-  return dayMarks(day).some((m) => m !== 'lesson');
+  return dayMarks(day).some((m) => m !== 'lesson' && m !== 'skip');
+}
+
+/**
+ * The local date of the Day Skip a Walk Diary check-in closed: the "¡Conseguido!" that passed a skipped Mission. A
+ * passed Mission cannot be skipped, so that pass always came after the skip. Null for any other check-in, a struggle
+ * or a "Hoy no pudimos" while owed included.
+ */
+export function closedSkipDate(entry: WalkDiaryEntry, missions: Readonly<Record<string, MissionState>>): string | null {
+  if (entry.outcome !== 'completed' || !entry.missionId) return null;
+  const skippedAt = missions[entry.missionId]?.skippedAt;
+  return skippedAt ? localDateString(new Date(skippedAt)) : null;
 }
 
 export interface DiaryTotals {
@@ -76,6 +88,10 @@ export interface DiaryTotals {
   nodeRuns: number;
   dailyRuns: number;
   lessonsRead: number;
+  /** Day Skips used. */
+  skips: number;
+  /** Missions still owed now, read from the Mission state, not the log. */
+  owed: number;
   walks: Record<DiaryOutcome, number>;
   /** Best handling score of any logged Stage or Daily Stage. */
   bestScore: number | null;
@@ -83,8 +99,9 @@ export interface DiaryTotals {
   since: string | null;
 }
 
-export function diaryTotals(days: readonly DiaryDay[]): DiaryTotals {
-  const totals: DiaryTotals = { activeDays: 0, nodeRuns: 0, dailyRuns: 0, lessonsRead: 0, walks: { completed: 0, struggled: 0, skipped: 0 }, bestScore: null, since: null };
+export function diaryTotals(days: readonly DiaryDay[], missions: Readonly<Record<string, MissionState>> = {}): DiaryTotals {
+  const owed = Object.values(missions).filter((m) => isOwed(m)).length;
+  const totals: DiaryTotals = { activeDays: 0, nodeRuns: 0, dailyRuns: 0, lessonsRead: 0, skips: 0, owed, walks: { completed: 0, struggled: 0, skipped: 0 }, bestScore: null, since: null };
   for (const day of days) {
     if (isActiveDay(day)) {
       totals.activeDays++;
@@ -94,6 +111,7 @@ export function diaryTotals(days: readonly DiaryDay[]): DiaryTotals {
       if (e.kind === 'node') totals.nodeRuns++;
       else if (e.kind === 'daily') totals.dailyRuns++;
       else if (e.kind === 'lesson') totals.lessonsRead++;
+      else if (e.kind === 'skip') totals.skips++;
       if (e.stage) totals.bestScore = Math.max(totals.bestScore ?? 0, e.stage.score);
     }
     for (const w of day.walks) totals.walks[w.outcome]++;

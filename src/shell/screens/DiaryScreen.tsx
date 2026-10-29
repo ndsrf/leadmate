@@ -2,10 +2,11 @@ import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { es, type TextKey, type Translate } from '../../i18n';
 import type { ActivityEvent, MinigameMetrics, StageSummary } from '../activity';
-import { dayMarks, diaryDays, diaryTotals, monthGrid, monthOf, shiftMonth, streakDates, timeOf, weekdayOf, type DayMark, type DiaryDay, type Month } from '../diary';
+import { closedSkipDate, dayMarks, diaryDays, diaryTotals, monthGrid, monthOf, shiftMonth, streakDates, timeOf, weekdayOf, type DayMark, type DiaryDay, type Month } from '../diary';
 import type { DogRecord } from '../dogRecord';
 import { LESSONS } from '../lessons/content';
 import { findMission } from '../missions/content';
+import type { MissionState } from '../missions/mission';
 import { findNode } from '../nodes/content';
 import { Button } from '../Overlays';
 import { shownStreak, type DiaryOutcome, type WalkDiaryEntry } from '../streak';
@@ -24,6 +25,7 @@ const MARK_COLOR: Record<DayMark, string> = {
   daily: color.accent,
   lesson: color.info,
   walk: color.coral,
+  skip: color.accentSoft,
   'first-stage': color.sintonia,
 };
 
@@ -45,6 +47,11 @@ function longDate(t: Translate, date: string): string {
 function nodeTitle(t: Translate, id: string): string {
   const node = findNode(id);
   return node ? t(node.title) : t('diary.event.unknown');
+}
+
+function missionTitle(t: Translate, id: string): string {
+  const mission = findMission(id);
+  return mission ? t(mission.title) : t('diary.event.unknown');
 }
 
 /** A Walk Diary entry's Mission, or its Node for an entry from before Missions. */
@@ -157,6 +164,13 @@ function EventEntry({ t, event }: { t: Translate; event: ActivityEvent }) {
       </Entry>
     );
   }
+  if (event.kind === 'skip') {
+    return (
+      <Entry time={time} mark="skip">
+        <Text className="font-display text-body text-ink">{fill(t('diary.event.skip'), { mission: missionTitle(t, event.id) })}</Text>
+      </Entry>
+    );
+  }
   if (event.kind === 'first-stage') {
     return (
       <Entry time={time} mark="first-stage">
@@ -175,7 +189,8 @@ function EventEntry({ t, event }: { t: Translate; event: ActivityEvent }) {
   );
 }
 
-function WalkEntry({ t, walk }: { t: Translate; walk: WalkDiaryEntry }) {
+function WalkEntry({ t, walk, missions }: { t: Translate; walk: WalkDiaryEntry; missions: Readonly<Record<string, MissionState>> }) {
+  const skipDate = closedSkipDate(walk, missions);
   return (
     <Entry mark="walk">
       <Text className="text-caption text-inkMuted">{t('diary.event.walk')}</Text>
@@ -183,6 +198,7 @@ function WalkEntry({ t, walk }: { t: Translate; walk: WalkDiaryEntry }) {
       <View className="mt-1">
         <Badge label={t(`diary.${walk.outcome}`)} tone={OUTCOME_TONE[walk.outcome]} />
       </View>
+      {skipDate && <Text className="mt-1 text-caption text-inkMuted">{fill(t('diary.event.closesSkip'), { weekday: t(`diary.weekday.${weekdayOf(skipDate)}` as TextKey) })}</Text>}
     </Entry>
   );
 }
@@ -194,7 +210,7 @@ function activityCount(t: Translate, day: DiaryDay): string | null {
 }
 
 /** Everything known about one day. */
-function DayCard({ t, day, date, today, inStreak }: { t: Translate; day: DiaryDay | undefined; date: string; today: string; inStreak: boolean }) {
+function DayCard({ t, day, date, today, inStreak, missions }: { t: Translate; day: DiaryDay | undefined; date: string; today: string; inStreak: boolean; missions: Readonly<Record<string, MissionState>> }) {
   const marks = day ? dayMarks(day) : [];
   const count = day ? activityCount(t, day) : null;
   // a Daily best with no logged play (from before the log) still gets a line
@@ -238,7 +254,7 @@ function DayCard({ t, day, date, today, inStreak }: { t: Translate; day: DiaryDa
             <EventEntry key={`${e.at}|${e.kind}|${e.id}`} t={t} event={e} />
           ))}
           {day.walks.map((w) => (
-            <WalkEntry key={w.nodeId} t={t} walk={w} />
+            <WalkEntry key={w.missionId ?? w.nodeId} t={t} walk={w} missions={missions} />
           ))}
           {day.dailyBest !== undefined && (
             <Entry mark="daily">
@@ -254,7 +270,7 @@ function DayCard({ t, day, date, today, inStreak }: { t: Translate; day: DiaryDa
 }
 
 function Totals({ t, record, days, today }: { t: Translate; record: DogRecord; days: readonly DiaryDay[]; today: string }) {
-  const totals = diaryTotals(days);
+  const totals = diaryTotals(days, record.missions);
   const walks = totals.walks.completed + totals.walks.struggled + totals.walks.skipped;
   const dayWord = (n: number) => `${n} ${t(n === 1 ? 'streak.day' : 'streak.days')}`;
   return (
@@ -268,6 +284,8 @@ function Totals({ t, record, days, today }: { t: Translate; record: DogRecord; d
         <Stat label={t('diary.totals.dailyRuns')} value={String(totals.dailyRuns)} />
         <Stat label={t('diary.totals.lessonsRead')} value={String(totals.lessonsRead)} />
         <Stat label={t('diary.totals.walks')} value={walks === 0 ? '0' : `${walks} (${totals.walks.completed} ✓)`} />
+        <Stat label={t('diary.totals.skips')} value={String(totals.skips)} />
+        {totals.owed > 0 && <Stat label={t('diary.totals.owed')} value={String(totals.owed)} />}
       </View>
       {totals.since && <Text className="mt-1 text-caption text-inkMuted">{fill(t('diary.totals.since'), { date: longDate(t, totals.since).toLowerCase() })}</Text>}
     </Panel>
@@ -277,7 +295,7 @@ function Totals({ t, record, days, today }: { t: Translate; record: DogRecord; d
 function Legend({ t }: { t: Translate }) {
   return (
     <View className="mt-3 flex-row flex-wrap" style={{ gap: theme.space[3] }}>
-      {(['node', 'daily', 'lesson', 'walk', 'first-stage'] as const).map((m) => (
+      {(['node', 'daily', 'lesson', 'walk', 'skip', 'first-stage'] as const).map((m) => (
         <View key={m} className="flex-row items-center" style={{ gap: 4 }}>
           <Dot mark={m} />
           <Text className="text-caption text-inkMuted">{t(`diary.mark.${m}`)}</Text>
@@ -431,7 +449,7 @@ export function DiaryScreen({ t, record, today, onBack }: { t: Translate; record
       {view === 'calendar' ? (
         <>
           <Calendar t={t} month={month} onMonth={setMonth} byDate={byDate} streak={streak} today={today} selected={selected} onSelect={setSelected} />
-          <DayCard t={t} day={byDate.get(selected)} date={selected} today={today} inStreak={streak.has(selected)} />
+          <DayCard t={t} day={byDate.get(selected)} date={selected} today={today} inStreak={streak.has(selected)} missions={record.missions} />
           {!byDate.has(selected) && days.length > 0 && <Text className="mb-4 text-caption text-inkMuted">{t('diary.pickDay')}</Text>}
         </>
       ) : days.length === 0 ? (
@@ -451,7 +469,7 @@ export function DiaryScreen({ t, record, today, onBack }: { t: Translate; record
                   {capitalized(fill(t('diary.monthYear'), { month: monthName(t, m.month), year: m.year }))}
                 </Text>
               )}
-              <DayCard t={t} day={day} date={day.date} today={today} inStreak={streak.has(day.date)} />
+              <DayCard t={t} day={day} date={day.date} today={today} inStreak={streak.has(day.date)} missions={record.missions} />
             </View>
           );
         })

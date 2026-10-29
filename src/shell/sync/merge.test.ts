@@ -1,5 +1,5 @@
 import { newDogRecord, type DogRecord } from '../dogRecord';
-import type { MissionState } from '../missions/mission';
+import { isOwed, type MissionState } from '../missions/mission';
 import { resolve } from './merge';
 
 const rec = (over: Partial<DogRecord>): DogRecord => ({ ...newDogRecord(), ...over });
@@ -120,6 +120,24 @@ describe('resolve Missions and Fixes', () => {
     const merged = resolve(a, b);
     expect(merged.missions.m.keepPractising).toBe(true);
     expect(merged.missions.n).toEqual(waiting);
+  });
+
+  it('keeps a Mission owed when either device skipped it, with the earliest skip', () => {
+    const skipped: MissionState = { ...waiting, skippedAt: '2026-05-04T10:00:00.000Z' };
+    const newer = rec({ ...at('2026-05-05T00:00:00.000Z'), missions: { m: waiting } });
+    const older = rec({ ...at('2026-05-03T00:00:00.000Z'), missions: { m: skipped } });
+    for (const merged of [resolve(newer, older), resolve(older, newer)]) {
+      expect(isOwed(merged.missions.m)).toBe(true);
+      expect(merged.missions.m.skippedAt).toBe('2026-05-04T10:00:00.000Z');
+    }
+    const later = rec({ missions: { m: { ...waiting, skippedAt: '2026-05-04T12:00:00.000Z' } } });
+    expect(resolve(later, older).missions.m.skippedAt).toBe('2026-05-04T10:00:00.000Z');
+  });
+
+  it('lets a pass on one device clear the owed state of the other', () => {
+    const owed = rec({ ...at('2026-05-05T00:00:00.000Z'), missions: { m: { ...waiting, skippedAt: '2026-05-04T10:00:00.000Z' } } });
+    const done = rec({ ...at('2026-05-03T00:00:00.000Z'), missions: { m: passed } });
+    for (const merged of [resolve(owed, done), resolve(done, owed)]) expect(isOwed(merged.missions.m)).toBe(false);
   });
 
   it('unions seen Fixes by Fix, keeping the first time each was shown', () => {

@@ -43,9 +43,20 @@ export function waitingLabel(entry: Pick<MapStop, 'opensAt' | 'opensTomorrow'>, 
   return t('map.opensAt').replace('{time}', clockTime(entry.opensAt));
 }
 
-/** The badge under a Stop: "Siguiente", "¿Cómo fue?" on a due check-in, or when a waiting Mission opens. */
+/** When an Owed Mission can be checked in: "¿Cómo fue?" once due, otherwise when it opens. */
+export function owedLabel(entry: Pick<MapStop, 'opensAt' | 'opensTomorrow' | 'checkInDue'>, t: Translate): string {
+  return entry.checkInDue ? t('map.checkInDue') : waitingLabel(entry, t);
+}
+
+/** One line of the "Cerrar el mundo" panel: the Owed Mission and when it can be checked in. */
+export function owedItemLabel(entry: MapStop, t: Translate): string {
+  return t('map.closeWorld.item').replace('{mission}', t(entry.title)).replace('{when}', owedLabel(entry, t));
+}
+
+/** The badge under a Stop: "Siguiente", "¿Cómo fue?" on a due check-in, or when a waiting or owed Mission opens. */
 export function stopBadge(entry: MapStop, t: Translate): string | null {
   if (entry.state === 'waiting') return waitingLabel(entry, t);
+  if (entry.state === 'owed') return owedLabel(entry, t);
   if (entry.state === 'next') return t(entry.checkInDue ? 'map.checkInDue' : 'map.badgeNext');
   return null;
 }
@@ -55,6 +66,7 @@ export function stopMarks(entry: MapStop, t: Translate): string[] {
   const marks: string[] = [];
   if (entry.optional) marks.push(t('map.optional'));
   if (entry.keepPractising) marks.push(t('map.keepPractising'));
+  if (entry.owed) marks.push(t('map.owed'));
   return marks;
 }
 
@@ -65,6 +77,7 @@ export function stopAccessibilityLabel(entry: MapStop, t: Translate): string {
     : entry.state === 'next' ? t(entry.checkInDue ? 'map.checkInDue' : 'map.nodeNext')
     : entry.state === 'locked' ? t('map.nodeLocked')
     : entry.state === 'waiting' ? `${t('map.waiting')}: ${waitingLabel(entry, t)}`
+    : entry.state === 'owed' ? owedLabel(entry, t)
     : '';
   const parts = [t(`map.stop.${entry.kind}`), t(entry.title), state, ...stopMarks(entry, t)].filter((p) => p !== '');
   return `${parts.join('. ')}.`;
@@ -74,6 +87,11 @@ export function stopAccessibilityLabel(entry: MapStop, t: Translate): string {
 export function worldUnlockBanner(entry: MapWorld, t: Translate): string {
   if (entry.tier === 'plus') {
     return t('world.unlockPlus');
+  }
+  const owed = entry.unlockRequirement?.owedCount;
+  if (owed) {
+    const world = t(entry.unlockRequirement!.worldTitle);
+    return owed === 1 ? t('world.unlockOwed').replace('{world}', world) : t('world.unlockOwedMany').replace('{count}', String(owed)).replace('{world}', world);
   }
   if (entry.unlockRequirement?.lastStopTitle) {
     const stop = t(entry.unlockRequirement.lastStopTitle);

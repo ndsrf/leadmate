@@ -1,6 +1,6 @@
 import type { TextKey } from '../i18n';
 import type { DogRecord } from './dogRecord';
-import { canCheckIn, checkInOpensAt } from './missions/mission';
+import { canCheckIn, checkInOpensAt, isOwed } from './missions/mission';
 import { NODES } from './nodes/content';
 import type { NodeDef } from './nodes/node';
 
@@ -68,8 +68,11 @@ export const WORLDS: readonly WorldDef[] = [
   { id: 'crowds', title: 'world.8.title', worldNumber: 8, stretches: [], unlockedBy: 'trails', topics: 'world.8.topics', tier: 'plus', preview: true, nodeCount: 5 },
 ];
 
-/** What of the Dog record the trail reads. */
-export type Progress = Pick<DogRecord, 'completedNodes' | 'readLessons' | 'missions' | 'legacyNodes'>;
+/**
+ * What of the Dog record the trail reads, and whether the user has LeadMate Plus right now (`isPlus`), which opens
+ * Plus Worlds; absent means a free user.
+ */
+export type Progress = Pick<DogRecord, 'completedNodes' | 'readLessons' | 'missions' | 'legacyNodes'> & { plus?: boolean };
 
 /** Progress with only these Nodes completed (and nothing read, started or grandfathered). */
 export function progressOf(completedNodes: readonly string[], more: Partial<Progress> = {}): Progress {
@@ -123,6 +126,14 @@ export function missionOfStop(stop: Stop, worlds: readonly WorldDef[] = WORLDS):
   return last?.kind === 'mission' ? last.id : undefined;
 }
 
+/** True when the Mission ends the last Stretch of its World: skipping it would open nothing, so it has no Day Skip. */
+export function isLastMissionOfWorld(missionId: string, worlds: readonly WorldDef[] = WORLDS): boolean {
+  const place = placeOf({ kind: 'mission', id: missionId }, worlds);
+  if (!place) return false;
+  const rest = place.world.stretches.slice(place.stretch).flat().slice(place.index + 1);
+  return !rest.some((s) => s.kind === 'mission');
+}
+
 /** True when the Node is the last Node Stop of its Stretch, so closing its Debrief opens the Mission brief. */
 export function isLastNodeOfStretch(nodeId: string, worlds: readonly WorldDef[] = WORLDS): boolean {
   const place = placeOf({ kind: 'node', id: nodeId }, worlds);
@@ -149,11 +160,13 @@ function isGrandfathered(world: WorldDef, stretch: number, progress: Progress): 
 /**
  * Done for gating, and whether that is only because a later Node of the World was already completed: a Lesson left
  * unread, or a Node added to the trail ahead of Nodes the user had already completed (the gate prevents it otherwise).
+ * An Owed Mission is done for gating but `owed`, so it does not complete its World (ADR 0014).
  */
-function doneness(world: WorldDef, stretch: number, index: number, progress: Progress): { done: boolean; satisfied?: boolean; grandfathered?: boolean } {
+function doneness(world: WorldDef, stretch: number, index: number, progress: Progress): { done: boolean; satisfied?: boolean; grandfathered?: boolean; owed?: boolean } {
   const stop = world.stretches[stretch][index];
   if (stop.kind === 'mission') {
     if (progress.missions[stop.id]?.passedOn) return { done: true };
+    if (isOwed(progress.missions[stop.id])) return { done: true, owed: true };
     return isGrandfathered(world, stretch, progress) ? { done: true, grandfathered: true } : { done: false };
   }
   if (stop.kind === 'node' ? progress.completedNodes.includes(stop.id) : progress.readLessons.includes(stop.id)) return { done: true };
@@ -162,14 +175,18 @@ function doneness(world: WorldDef, stretch: number, index: number, progress: Pro
   return satisfied ? { done: true, satisfied: true } : { done: false };
 }
 
-/** True when every Stop of the World is done (read, completed or passed); a preview World never is. */
+/** True when every Stop of the World is done (read, completed or passed, none owed); a preview World never is. */
 export function isWorldComplete(world: WorldDef, progress: Progress): boolean {
   if (world.preview || world.stretches.length === 0) return false;
-  return world.stretches.every((stops, s) => stops.every((_, i) => doneness(world, s, i, progress).done));
+  return world.stretches.every((stops, s) => stops.every((_, i) => {
+    const d = doneness(world, s, i, progress);
+    return d.done && !d.owed;
+  }));
 }
 
-/** A World is open when the one that unlocks it is complete; the first World is always open. */
+/** A World is open when the one that unlocks it is complete; the first World is always open, and a Plus World needs Plus. */
 export function isWorldUnlocked(world: WorldDef, progress: Progress, worlds: readonly WorldDef[] = WORLDS): boolean {
+  if (world.tier === 'plus' && !progress.plus) return false;
   if (!world.unlockedBy) return true;
   const before = findWorld(world.unlockedBy, worlds);
   return before !== undefined && isWorldComplete(before, progress) && isWorldUnlocked(before, progress, worlds);
@@ -220,7 +237,7 @@ export function stopLock(stop: Stop, progress: Progress, worlds: readonly WorldD
   return null;
 }
 
-export type StopState = 'locked' | 'open' | 'waiting' | 'done';
+export type StopState = 'locked' | 'open' | 'waiting' | 'owed' | 'done';
 
 export interface StopStatus {
   state: StopState;
@@ -229,20 +246,27 @@ export interface StopStatus {
   satisfied?: boolean;
   /** A Mission treated as passed for a Dog from before Missions. */
   grandfathered?: boolean;
-  /** A waiting Mission: when its check-in opens. */
+  /** A waiting or owed Mission: when its check-in opens. */
   opensAt?: Date;
-  /** An open Mission whose check-in is due (as opposed to one not yet started). */
+  /** An open or owed Mission whose check-in is due (as opposed to one not yet started). */
   checkInDue?: boolean;
 }
 
 /**
  * Where a Stop stands for the Dog at `now` (design decision 2). A satisfied Lesson or Node reports `open`; a started
- * Mission whose check-in has not opened reports `waiting`.
+ * Mission whose check-in has not opened reports `waiting`; an Owed Mission reports `owed`, due or not, unless its World is locked.
  */
 export function stopStatus(stop: Stop, progress: Progress, now: Date, worlds: readonly WorldDef[] = WORLDS, nodes: readonly NodeDef[] = NODES): StopStatus {
   const place = placeOf(stop, worlds);
   const d = place ? doneness(place.world, place.stretch, place.index, progress) : { done: stop.kind === 'node' && progress.completedNodes.includes(stop.id) };
   const lock = stopLock(stop, progress, worlds, nodes);
+  if (d.owed) {
+    // an Owed Mission of a World that closed again (a Plus World after the trial) is locked with it
+    if (lock?.kind === 'world') return { state: 'locked', lock };
+    const state = progress.missions[stop.id];
+    if (state && canCheckIn(state, now)) return { state: 'owed', checkInDue: true };
+    return { state: 'owed', opensAt: (state && checkInOpensAt(state)) ?? undefined };
+  }
   if (d.done && !d.satisfied) return d.grandfathered ? { state: 'done', grandfathered: true } : { state: 'done' };
   if (lock) return { state: 'locked', lock };
   if (d.satisfied) return { state: 'open', satisfied: true };

@@ -1,5 +1,5 @@
 import { DEFAULT_ATTRIBUTES } from '../sim/learning';
-import { applyActivity, applyMissionCheckIn, updateMission, applyStage, failedPoste, touch, loadDogRecord, mergeLegacyNodes, migrateRecord, newDogRecord, RECORD_KEY, recordDailyScore, saveDogRecord, setTriggerLevel, toSnapshot, type KeyValueStore } from './dogRecord';
+import { applyActivity, applyDaySkip, applyMissionCheckIn, updateMission, applyStage, failedPoste, touch, loadDogRecord, mergeLegacyNodes, migrateRecord, newDogRecord, RECORD_KEY, recordDailyScore, saveDogRecord, setTriggerLevel, toSnapshot, type KeyValueStore } from './dogRecord';
 import { payloadWith } from './testPayload';
 import { lookOf } from './onboarding/look';
 import { advance, onDebrief, startNode, type NodeRun } from './nodes/node';
@@ -399,6 +399,24 @@ describe('Dog record: version 7 (Missions)', () => {
   it('takes an old copy\'s legacy Nodes whole on a device that has completed nothing', () => {
     const old = migrateRecord({ version: 6, completedNodes: ['harness-ritual'] });
     expect(mergeLegacyNodes(newDogRecord(), old)).toEqual(['harness-ritual']);
+  });
+
+  it('applies a Day Skip: the Mission is owed and one skip is logged, nothing else changes', () => {
+    const before = { ...started(), streak: { current: 3, best: 4, lastActiveDate: '2026-04-30' } };
+    const after = applyDaySkip(before, TEST_MISSION.id, at('2026-05-01T18:05:00'));
+    expect(after.missions[TEST_MISSION.id].skippedAt).toBe(at('2026-05-01T18:05:00').toISOString());
+    expect(after.activityLog).toEqual([{ at: at('2026-05-01T18:05:00').toISOString(), date: '2026-05-01', kind: 'skip', id: TEST_MISSION.id }]);
+    expect(after.streak).toBe(before.streak);
+    expect(after.walkDiary).toBe(before.walkDiary);
+    expect(after.attributes).toBe(before.attributes);
+    expect(after.triggerProfile).toBe(before.triggerProfile);
+  });
+
+  it('returns the same record when the Day Skip does not apply', () => {
+    const r = newDogRecord();
+    expect(applyDaySkip(r, TEST_MISSION.id, at('2026-05-01T18:05:00'))).toBe(r);
+    const skipped = applyDaySkip(started(), TEST_MISSION.id, at('2026-05-01T18:05:00'));
+    expect(applyDaySkip(skipped, TEST_MISSION.id, at('2026-05-01T19:00:00'))).toBe(skipped);
   });
 
   it('reads Mission state and seen Fixes tolerantly', () => {

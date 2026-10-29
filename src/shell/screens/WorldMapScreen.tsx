@@ -9,10 +9,12 @@ import { streakStatus, type StreakStatus } from '../celebrations';
 import type { Stars } from '../stars';
 import type { StreakRecord } from '../streak';
 import type { Progress, Stop } from '../world';
+import type { DogRecord } from '../dogRecord';
+import { isPlus, plusEndsAt } from '../plus';
 import { Button } from '../Overlays';
 import { Badge, Chip, Panel, ProgressBar, Raised, StarRow } from '../ui/components';
 import { connector, connectorVisual, labelOnRight, labelWidth, NODE_SIZE, nodeCenterX, nodeVisual, ROW_HEIGHT, stretchFlag, type NodeGlyph } from '../ui/mapLayout';
-import { lockMessage, stopAccessibilityLabel, stopBadge, stopMarks, worldUnlockBanner, worldWalkSubtitle } from '../mapText';
+import { lockMessage, owedItemLabel, stopAccessibilityLabel, stopBadge, stopMarks, worldUnlockBanner, worldWalkSubtitle } from '../mapText';
 import { BreedArt } from '../ui/BreedArt';
 import type { BreedId } from '../onboarding/breeds';
 import type { DogCoat } from '../onboarding/look';
@@ -25,6 +27,8 @@ export interface WorldMapProps {
   t: Translate;
   /** What of the Dog record the trail reads. */
   progress: Progress;
+  /** Whose LeadMate Plus the map checks with `isPlus` against its own clock: Plus Worlds open, and close when the trial ends. */
+  membership?: Pick<DogRecord, 'onboarding'>;
   stars: Readonly<Record<string, Stars>>;
   /** A fixed clock for the waiting Missions (tests); without it the map keeps its own, see `useMapClock`. */
   now?: Date;
@@ -95,7 +99,7 @@ function LockIcon({ tint }: { tint: string }) {
   );
 }
 
-/** The glyph on a Stop's disc: its kind when open (book, controller, paw, flag), a moon while waiting. */
+/** The glyph on a Stop's disc: its kind when open (book, controller, paw, flag), a moon while waiting, an hourglass while owed. */
 function KindGlyph({ glyph, tint }: { glyph: Exclude<NodeGlyph, 'check' | 'lock'>; tint: string }) {
   const ink = color.ink;
   return (
@@ -130,6 +134,13 @@ function KindGlyph({ glyph, tint }: { glyph: Exclude<NodeGlyph, 'check' | 'lock'
         </>
       )}
       {glyph === 'moon' && <Path d="M15 3a9 9 0 100 18 7 7 0 010-18z" fill={color.accent} stroke={ink} strokeWidth={1.8} strokeLinejoin="round" />}
+      {glyph === 'hourglass' && (
+        <>
+          <Path d="M6 3h12M6 21h12" stroke={ink} strokeWidth={2.2} strokeLinecap="round" />
+          <Path d="M7 3c0 5 5 6 5 9s-5 4-5 9h10c0-5-5-6-5-9s5-4 5-9z" fill={color.surface} stroke={ink} strokeWidth={1.8} strokeLinejoin="round" />
+          <Path d="M9.5 19c.5-2 2.5-3 2.5-3s2 1 2.5 3z" fill={color.coral} />
+        </>
+      )}
     </Svg>
   );
 }
@@ -274,9 +285,10 @@ const MAX_TIMER_MS = 2 ** 31 - 1;
 
 /**
  * The map's clock, for waiting Missions. It moves only when it matters: on return to the foreground or uncovering,
- * when the Missions change, and once at the next check-in opening. No timer runs while the map is not `live`.
+ * when the Missions change, and once at the next check-in opening or at `wakeAt` (the end of the trial), whichever
+ * is first. No timer runs while the map is not `live`.
  */
-function useMapClock(live: boolean, missions: Progress['missions']): Date {
+function useMapClock(live: boolean, missions: Progress['missions'], wakeAt: number | null): Date {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     if (!live) return;
@@ -285,11 +297,11 @@ function useMapClock(live: boolean, missions: Progress['missions']): Date {
       setNow(current);
       return;
     }
-    const next = nextMapChange(missions, current);
-    if (!next) return;
-    const timer = setTimeout(() => setNow(new Date()), Math.min(next.getTime() - current.getTime() + 250, MAX_TIMER_MS));
+    const next = Math.min(nextMapChange(missions, current)?.getTime() ?? Infinity, wakeAt ?? Infinity);
+    if (next === Infinity) return;
+    const timer = setTimeout(() => setNow(new Date()), Math.min(next - current.getTime() + 250, MAX_TIMER_MS));
     return () => clearTimeout(timer);
-  }, [live, missions, now]);
+  }, [live, missions, now, wakeAt]);
   return now;
 }
 
@@ -439,7 +451,7 @@ function NodeRow({
             className="flex-row items-center justify-center"
             style={{ position: 'absolute', top: nodeSize + 2, left: -24, right: -24, gap: 2 }}
           >
-            {badge && <NextUpBadge label={badge} quiet={state === 'waiting'} />}
+            {badge && <NextUpBadge label={badge} quiet={state === 'waiting' || (state === 'owed' && !entry.checkInDue)} />}
             {flag && <StretchFlag t={t} n={flag.label} />}
           </View>
         )}
@@ -487,6 +499,28 @@ function NodeRow({
         {state === 'done' && entry.stars !== undefined && <StarRow stars={entry.stars} size={16} label={`${entry.stars} ${t('map.starsOf3')}`} />}
       </Pressable>
     </View>
+  );
+}
+
+/** "Cerrar el mundo": the World's Owed Missions, each opening its Mission, shown at the end of its region. */
+function CloseWorldPanel({ t, owed, onPress }: { t: Translate; owed: MapStop[]; onPress: (entry: MapStop) => void }) {
+  return (
+    <Panel tone="warn" className="mt-3">
+      <Text className="font-display text-title text-ink">{t('map.closeWorld.title')}</Text>
+      <Text className="mt-1 text-body text-ink">{t('map.closeWorld.body')}</Text>
+      {owed.map((entry) => (
+        <Pressable
+          key={entry.stop.id}
+          onPress={() => handlePress(() => onPress(entry))}
+          accessibilityRole="button"
+          accessibilityLabel={`${owedItemLabel(entry, t)}. ${t('map.owed')}`}
+          className="mt-2 rounded-card bg-surface p-3"
+          style={{ borderWidth: theme.border.ink, borderColor: color.ink }}
+        >
+          <Text className="flex-1 text-body text-ink">{owedItemLabel(entry, t)}</Text>
+        </Pressable>
+      ))}
+    </Panel>
   );
 }
 
@@ -737,6 +771,7 @@ function WorldBlock({
           </View>
         )}
       </View>
+      {entry.owed.length > 0 && <CloseWorldPanel t={t} owed={entry.owed} onPress={onPressNode} />}
     </View>
   );
 }
@@ -755,6 +790,7 @@ function StreakChip({ t, status }: { t: Translate; status: StreakStatus }) {
 export function WorldMapScreen({
   t,
   progress,
+  membership,
   stars,
   now,
   streak,
@@ -782,9 +818,11 @@ export function WorldMapScreen({
 }: WorldMapProps) {
   const motion = useMotion();
   const live = useLive(covered);
-  const clock = useMapClock(live, progress.missions);
+  const plusEnd = membership ? (plusEndsAt(membership, new Date())?.getTime() ?? null) : null;
+  const clock = useMapClock(live, progress.missions, plusEnd);
   const at = now ?? clock;
-  const model = useMemo(() => mapModel(progress, stars, at), [progress, stars, at]);
+  const plus = !!membership && isPlus(membership, at);
+  const model = useMemo(() => mapModel(plus ? { ...progress, plus } : progress, stars, at), [progress, plus, stars, at]);
   const scroll = useRef<ScrollViewInstance>(null);
   const [width, setWidth] = useState(theme.size.readableWidth);
   const [lockNote, setLockNote] = useState<string | null>(null);

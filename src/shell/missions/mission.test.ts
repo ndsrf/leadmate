@@ -1,4 +1,4 @@
-import { acceptEasier, activeTarget, canCheckIn, canMoveOn, checkIn, checkInOpensAt, moveOn, NEW_MISSION, offerEasier, opensAtMidnight, startMission, todaysAttempt, type MissionState } from './mission';
+import { acceptEasier, activeTarget, canCheckIn, canMoveOn, checkIn, checkInOpensAt, isOwed, moveOn, NEW_MISSION, offerEasier, opensAtMidnight, readMissions, skipDay, startMission, todaysAttempt, type MissionState } from './mission';
 import { TEST_MISSION } from './testMission';
 
 /** Local time on May 2026. */
@@ -108,5 +108,57 @@ describe('Mission outcomes', () => {
 
   it('records "Otra cosa" for a struggle with no problem', () => {
     expect(checkIn(s, 'struggled', undefined, may(2, 9)).attempts[0].problemId).toBe('other');
+  });
+});
+
+describe('Day Skip', () => {
+  const s = startedAt(may(1, 9));
+
+  it('makes a waiting Mission owed, keeping its target and check-in time', () => {
+    const skipped = skipDay(s, may(1, 9, 5));
+    expect(skipped.skippedAt).toBe(may(1, 9, 5).toISOString());
+    expect(isOwed(skipped)).toBe(true);
+    expect(skipped.target).toBe(s.target);
+    expect(checkInOpensAt(skipped)).toEqual(checkInOpensAt(s));
+  });
+
+  it('keeps the easier target of a struggle', () => {
+    const struggled = checkIn(s, 'struggled', 'excited', may(2, 9));
+    const skipped = skipDay(struggled, may(2, 9, 5));
+    expect(isOwed(skipped)).toBe(true);
+    expect(activeTarget(TEST_MISSION, skipped)).toBe('test-fix-excited.easier');
+  });
+
+  it('does nothing before the start', () => {
+    expect(skipDay(NEW_MISSION, may(1, 9))).toBe(NEW_MISSION);
+  });
+
+  it('does nothing when the check-in is due', () => {
+    expect(skipDay(s, may(2, 9))).toBe(s);
+  });
+
+  it('does nothing the second time', () => {
+    const skipped = skipDay(s, may(1, 10));
+    expect(skipDay(skipped, may(1, 11))).toBe(skipped);
+  });
+
+  it('is cleared by a pass, and by "Move on anyway"', () => {
+    const skipped = skipDay(s, may(1, 10));
+    expect(isOwed(checkIn(skipped, 'completed', undefined, may(2, 9)))).toBe(false);
+    const twice = checkIn(checkIn(skipped, 'struggled', 'excited', may(2, 9)), 'struggled', 'bites', may(3, 9));
+    expect(isOwed(moveOn(twice, may(3, 10)))).toBe(false);
+  });
+
+  it('stays owed after a struggle, which restarts the wait', () => {
+    const skipped = skipDay(s, may(1, 10));
+    const struggled = checkIn(skipped, 'struggled', 'excited', may(2, 9));
+    expect(isOwed(struggled)).toBe(true);
+    expect(canCheckIn(struggled, may(2, 20))).toBe(false);
+  });
+
+  it('is read back from storage', () => {
+    const skipped = skipDay(s, may(1, 10));
+    expect(readMissions(JSON.parse(JSON.stringify({ m: skipped }))).m.skippedAt).toBe(skipped.skippedAt);
+    expect(readMissions({ m: { ...s, skippedAt: 'nope' } }).m.skippedAt).toBeUndefined();
   });
 });

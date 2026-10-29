@@ -18,9 +18,9 @@ import { DEFAULT_BREED, isBreed, type BreedId } from './onboarding/breeds';
 import { cleanDogName } from './onboarding/name';
 import { nextPosture, updateLearning, updateTriggerProfile } from './learning';
 import { isOnboardingStep, type OnboardingStep } from './onboarding/flow';
-import { readActivityLog, type ActivityEvent } from './activity';
+import { activityAt, addActivity, readActivityLog, type ActivityEvent } from './activity';
 import { addDiaryEntry, DIARY_OUTCOMES, isDateString, localDateString, markActive, NO_STREAK, type DiaryOutcome, type StreakRecord, type WalkDiaryEntry } from './streak';
-import { checkIn, fixFor, readMissions, readSeenFixes, NEW_MISSION, type MissionDef, type MissionState, type SeenFix } from './missions/mission';
+import { checkIn, fixFor, readMissions, readSeenFixes, skipDay, NEW_MISSION, type MissionDef, type MissionState, type SeenFix } from './missions/mission';
 
 export const RECORD_VERSION = 7;
 export const RECORD_KEY = 'leadmate.dog';
@@ -363,6 +363,16 @@ export function applyMissionCheckIn(record: DogRecord, mission: MissionDef, outc
     streak: markActive(record.streak, date),
     seenFixes,
   };
+}
+
+/**
+ * A Day Skip (ADR 0014): the waiting Mission becomes owed and the skip is logged for the Diary. A skip that does not
+ * apply returns the same record. Streak, Walk Diary and Learning Attributes are never touched.
+ */
+export function applyDaySkip(record: DogRecord, missionId: string, now: Date): DogRecord {
+  const after = updateMission(record, missionId, (m) => skipDay(m, now));
+  if (after === record) return record;
+  return { ...after, activityLog: addActivity(record.activityLog, activityAt(now, { kind: 'skip', id: missionId })) };
 }
 
 /** Marks today as active (a Node Debrief or a Daily Stage) without touching anything else. */
