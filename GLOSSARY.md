@@ -217,6 +217,10 @@ _Avoid_: Teaser world, dummy chapter
 The main screen: all Worlds laid out as a trail of Stops showing which are locked, open, next up, waiting or completed, with each Node's Stars.
 _Avoid_: Home, level select, menu
 
+**Trail Scenery**:
+The non-interactive paper-cut backdrop illustrations and landmarks decorating a World's trail container on the World Map to reflect its thematic environment.
+_Avoid_: Map props, background decals, world stickers, map decorations
+
 **Star**:
 A 1 to 3 rating of how well a Node was handled, earned at completion and kept at its best. It reflects handling quality only and never unlocks anything.
 _Avoid_: Medal, rank, points

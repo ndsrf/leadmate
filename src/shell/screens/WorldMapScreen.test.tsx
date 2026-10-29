@@ -125,3 +125,75 @@ describe('WorldMapScreen - Zona de Calma Integration (Task 4.1)', () => {
     expect(mockOnBarkdoku).toHaveBeenCalled();
   });
 });
+
+describe('WorldMapScreen - Trail Scenery Integration (Task 4.2 & 4.3)', () => {
+  const t = createTranslator(es);
+
+  it('renders Trail Scenery and Top Landmarks in active world blocks', () => {
+    const markup = renderToStaticMarkup(
+      <WorldMapScreen
+        t={t}
+        progress={progressOf([])}
+        stars={{}}
+        now={new Date('2026-10-28T09:00:00')}
+        streak={NO_STREAK}
+        today="2026-10-28"
+        dailyBest={undefined}
+        rustyPrompt={false}
+        rusty={false}
+        skippedWarmup={false}
+        onWarmup={() => {}}
+        onSkipWarmup={() => {}}
+        onDaily={() => {}}
+        onBarkdoku={() => {}}
+        onOpenStop={() => {}}
+        onSettings={() => {}}
+      />
+    );
+
+    // World 1 active block contains Trail Scenery, environmental backdrop, and World 1 landmark
+    expect(markup).toContain('testID="world-scenery-background"');
+    expect(markup).toContain('testID="environmental-backdrop"');
+    expect(markup).toContain('testID="environmental-backdrop-1"');
+    expect(markup).toContain('testID="top-landmark-1"');
+    // Middle row margin scenery
+    expect(markup).toContain('testID="margin-scenery"');
+    expect(markup).toContain('testID="margin-row-1"');
+  });
+
+  it('omits Trail Scenery in collapsed locked worlds', () => {
+    const markup = renderToStaticMarkup(
+      <WorldMapScreen
+        t={t}
+        progress={progressOf([])}
+        stars={{}}
+        now={new Date('2026-10-28T09:00:00')}
+        streak={NO_STREAK}
+        today="2026-10-28"
+        dailyBest={undefined}
+        rustyPrompt={false}
+        rusty={false}
+        skippedWarmup={false}
+        onWarmup={() => {}}
+        onSkipWarmup={() => {}}
+        onDaily={() => {}}
+        onBarkdoku={() => {}}
+        onOpenStop={() => {}}
+        onSettings={() => {}}
+      />
+    );
+
+    // World 3 & World 4 are collapsed when progress is empty, so their Top Landmarks and backdrops are omitted
+    expect(markup).not.toContain('testID="top-landmark-3"');
+    expect(markup).not.toContain('testID="top-landmark-4"');
+    expect(markup).not.toContain('testID="environmental-backdrop-3"');
+    expect(markup).not.toContain('testID="environmental-backdrop-4"');
+  });
+
+  it('re-exports HouseLandmark for backward compatibility', () => {
+    const { HouseLandmark } = require('./WorldMapScreen');
+    expect(HouseLandmark).toBeDefined();
+    const markup = renderToStaticMarkup(<HouseLandmark />);
+    expect(markup).toContain('top-landmark-1');
+  });
+});

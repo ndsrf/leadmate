@@ -11,6 +11,8 @@ import type { StreakRecord } from '../streak';
 import type { Progress, Stop } from '../world';
 import { Button } from '../Overlays';
 import { Badge, Chip, Panel, ProgressBar, Raised, StarRow } from '../ui/components';
+import { WorldSceneryBackground, HouseLandmark } from '../ui/WorldSceneryBackground';
+export { HouseLandmark };
 import { connector, connectorVisual, labelOnRight, labelWidth, NODE_SIZE, nodeCenterX, nodeVisual, ROW_HEIGHT, stretchFlag, type NodeGlyph } from '../ui/mapLayout';
 import { lockMessage, stopAccessibilityLabel, stopBadge, stopMarks, worldUnlockBanner, worldWalkSubtitle } from '../mapText';
 import { BreedArt } from '../ui/BreedArt';
@@ -238,36 +240,6 @@ export function NextUpBadge({ label, quiet = false }: { label: string; quiet?: b
   );
 }
 
-/** Starting house landmark at the beginning of World 1 (Board 11). */
-export function HouseLandmark() {
-  const ink = color.ink;
-  return (
-    <View
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      className="items-center justify-center mb-3"
-    >
-      <Svg width={44} height={40} viewBox="0 0 44 40" aria-hidden>
-        <Path d="M22 4L4 18h36z" fill={color.coral} stroke={ink} strokeWidth={2.4} strokeLinejoin="round" />
-        <Rect x={30} y={6} width={5} height={10} fill={color.inkMuted} stroke={ink} strokeWidth={2} />
-        <Rect x={8} y={18} width={28} height={18} rx={2} fill={color.surface} stroke={ink} strokeWidth={2.4} />
-        <Rect x={18} y={24} width={8} height={12} rx={1} fill={color.brandDeep} stroke={ink} strokeWidth={1.8} />
-        <Circle cx={13} cy={23} r={3} fill={color.accent} stroke={ink} strokeWidth={1.5} />
-      </Svg>
-    </View>
-  );
-}
-
-/** Decorative paper-cut scenery dots along active world trail borders. */
-function SceneryBushes({ palette }: { palette: { ground: string; sky: string } }) {
-  return (
-    <View pointerEvents="none" style={{ position: 'absolute', inset: 0 }}>
-      <View style={{ position: 'absolute', left: 16, top: 40, width: 12, height: 12, borderRadius: 6, backgroundColor: palette.ground, opacity: 0.6, borderWidth: 1.5, borderColor: color.ink }} />
-      <View style={{ position: 'absolute', right: 20, top: 110, width: 16, height: 16, borderRadius: 8, backgroundColor: palette.ground, opacity: 0.5, borderWidth: 1.5, borderColor: color.ink }} />
-      <View style={{ position: 'absolute', left: 24, top: 220, width: 14, height: 14, borderRadius: 7, backgroundColor: palette.ground, opacity: 0.55, borderWidth: 1.5, borderColor: color.ink }} />
-    </View>
-  );
-}
 
 /** The longest delay setTimeout keeps; a later check-in is rescheduled when the timer fires. */
 const MAX_TIMER_MS = 2 ** 31 - 1;
@@ -691,13 +663,13 @@ function WorldBlock({
           paddingTop: 16,
         }}
       >
-        <SceneryBushes palette={palette} />
-        <View
-          pointerEvents="none"
-          style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 56, backgroundColor: palette.ground, opacity: 0.55 }}
+        <WorldSceneryBackground
+          worldId={entry.world.id}
+          worldNumber={entry.world.worldNumber}
+          palette={palette}
+          stopCount={entry.stops.length}
+          isExpandedPreview={entry.preview && entry.stops.length === 0}
         />
-
-        {entry.world.worldNumber === 1 && <HouseLandmark />}
 
         {entry.preview && entry.stops.length === 0 ? (
           <View className="p-6 items-center justify-center">
@@ -741,13 +713,15 @@ function WorldBlock({
   );
 }
 
-function StreakChip({ t, status }: { t: Translate; status: StreakStatus }) {
+/** The streak, which also opens the Diary. */
+function StreakChip({ t, status, onPress }: { t: Translate; status: StreakStatus; onPress: () => void }) {
   const running = status.mode === 'running';
   return (
     <Chip
       icon={<Flame lit={running} label={t('streak.flame')} />}
       value={running ? `${status.days} ${t(status.days === 1 ? 'streak.day' : 'streak.days')}` : t('map.streakStart')}
-      accessibilityLabel={t('streak.flame')}
+      onPress={onPress}
+      accessibilityLabel={`${t('streak.flame')}. ${t('diary.chip')}`}
     />
   );
 }
@@ -837,7 +811,7 @@ export function WorldMapScreen({
   const header = (
     <View>
       <View className="flex-row flex-wrap items-center" style={{ gap: theme.space[2] }}>
-        <StreakChip t={t} status={streakStatus(streak, today)} />
+        <StreakChip t={t} status={streakStatus(streak, today)} onPress={onDiary} />
         <Chip
           label={t('daily.title')}
           value={dailyBest === undefined ? t('map.dailyNew') : `${dailyBest} ${t('results.scoreOutOf')}`}
@@ -857,7 +831,6 @@ export function WorldMapScreen({
           onPress={onLibrary}
           accessibilityLabel={libraryToday ? `${t('library.chip')}. ${t('library.chipToday')}` : t('library.chip')}
         />
-        <Chip value={t('diary.chip')} onPress={onDiary} accessibilityLabel={t('diary.chip')} />
         <Chip value={t('map.settings')} onPress={onSettings} accessibilityLabel={t('map.settings')} />
       </View>
       {lockNote && (
