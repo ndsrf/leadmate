@@ -104,12 +104,75 @@ describe('mapModel over Stops', () => {
   });
 
   it('gives every Stop exactly one state, and at most one next-up', () => {
-    const states = new Set(['locked', 'open', 'next', 'waiting', 'done']);
+    const states = new Set(['locked', 'open', 'next', 'waiting', 'owed', 'done']);
     for (const p of [progressOf([]), stretch1, { ...stretch1, missions: { 'mission-harness': started(at(9, 1)) } }, allDone(WORLDS.slice(0, 2))]) {
       const stops = mapModel(p, {}, at(20, 1)).worlds.flatMap((w) => w.stops);
       for (const s of stops) expect(states.has(s.state)).toBe(true);
       expect(stops.filter((s) => s.state === 'next').length).toBeLessThanOrEqual(1);
     }
+  });
+});
+
+describe('mapModel with Owed Missions', () => {
+  const owed = (startedAt: Date, over: Partial<MissionState> = {}): MissionState => started(startedAt, { skippedAt: startedAt.toISOString(), ...over });
+  const harnessOwed = { ...stretch1, missions: { 'mission-harness': owed(at(9, 1)) } };
+
+  it('draws an owed Mission waiting for its check-in, with the trail after it open', () => {
+    const m = mapModel(harnessOwed, {}, at(20, 1));
+    expect(find(m, 'mission-harness')).toMatchObject({ state: 'owed', owed: true, opensAt: at(0, 2), opensTomorrow: true });
+    expect(m.nextUp?.stop).toEqual({ kind: 'lesson', id: 'theory-doorbell' });
+    expect(m.waitingAt).toBeUndefined();
+  });
+
+  it('does not count an owed Mission as done', () => {
+    const all = allDone(WORLDS.slice(0, 1));
+    const m = mapModel({ ...all, missions: { ...all.missions, 'mission-doorbell': owed(at(9, 1)) } }, {}, at(20, 1));
+    expect(m.worlds[0]).toMatchObject({ done: 9, total: 10 });
+  });
+
+  it('keeps the first open Stop next-up while an owed check-in is due', () => {
+    const m = mapModel(harnessOwed, {}, at(9, 2));
+    expect(find(m, 'mission-harness')).toMatchObject({ state: 'owed', checkInDue: true });
+    expect(m.nextUp?.stop.id).toBe('theory-doorbell');
+  });
+
+  it('makes the first due owed Mission next-up when nothing else is open', () => {
+    const all = allDone(WORLDS.slice(0, 1));
+    const p = { ...all, missions: { ...all.missions, 'mission-harness': owed(at(9, 1)), 'mission-doorbell': owed(at(9, 1)), 'mission-poste': started(at(9, 2)) } };
+    const m = mapModel(p, {}, at(10, 2));
+    expect(find(m, 'mission-harness')).toMatchObject({ state: 'next', owed: true, checkInDue: true });
+    expect(find(m, 'mission-doorbell')).toMatchObject({ state: 'owed', checkInDue: true });
+    expect(m.nextUp).toEqual({ worldId: 'home', stop: { kind: 'mission', id: 'mission-harness' }, stopKind: 'mission' });
+  });
+
+  it('rests the Dog at an owed Mission when nothing is open or waiting', () => {
+    const all = allDone(WORLDS.slice(0, 1));
+    const m = mapModel({ ...all, missions: { ...all.missions, 'mission-doorbell': owed(at(9, 2)) } }, {}, at(10, 2));
+    expect(m.nextUp).toBeNull();
+    expect(m.waitingAt).toEqual({ worldId: 'home', stop: { kind: 'mission', id: 'mission-doorbell' } });
+    expect(m.allComplete).toBe(false);
+  });
+
+  it('lists the owed Missions of a World for the panel, and none once they are passed', () => {
+    const all = allDone(WORLDS.slice(0, 1));
+    const p = { ...all, missions: { ...all.missions, 'mission-harness': owed(at(9, 1)), 'mission-doorbell': owed(at(9, 2)) } };
+    const home = mapModel(p, {}, at(20, 2)).worlds[0];
+    expect(home.owed.map((s) => [s.stop.id, s.checkInDue ?? false, s.opensTomorrow ?? false])).toEqual([['mission-harness', true, false], ['mission-doorbell', false, true]]);
+    expect(mapModel(all, {}, at(20, 2)).worlds[0].owed).toEqual([]);
+  });
+
+  it('names the owed Missions in the next World\'s unlock banner', () => {
+    const all = allDone(WORLDS.slice(0, 1));
+    const p = { ...all, missions: { ...all.missions, 'mission-harness': owed(at(9, 1)), 'mission-doorbell': owed(at(9, 1)) } };
+    const sidewalk = mapModel(p, {}, at(20, 1)).worlds[1];
+    expect(sidewalk.unlocked).toBe(false);
+    expect(sidewalk.unlockRequirement).toEqual({ worldTitle: 'world.1.title', owedCount: 2 });
+  });
+
+  it('opens a Plus World only for a Plus member', () => {
+    const all = allDone(WORLDS);
+    expect(mapModel(all, {}, at(9)).worlds.find((w) => w.world.id === 'recall')!.unlocked).toBe(false);
+    expect(mapModel({ ...all, plus: true }, {}, at(9)).worlds.find((w) => w.world.id === 'recall')!.unlocked).toBe(true);
   });
 });
 

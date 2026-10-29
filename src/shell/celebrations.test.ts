@@ -1,7 +1,9 @@
 import { es } from '../i18n';
 import { celebrationsFor, starsShown, streakStatus } from './celebrations';
-import { newDogRecord, type DogRecord } from './dogRecord';
+import { applyDaySkip, newDogRecord, type DogRecord } from './dogRecord';
 import type { MissionState } from './missions/mission';
+import { progressAt } from './plus';
+import { stopsOf, WORLDS } from './world';
 
 const rec = (over: Partial<DogRecord> = {}): DogRecord => ({ ...newDogRecord(), ...over });
 const node = (id: string) => ({ kind: 'node' as const, nodeId: id });
@@ -25,6 +27,43 @@ describe('celebrationsFor', () => {
     const after = rec({ ...world1, missions: { ...passedAll, 'mission-poste': { ...started, passedOn: '2026-05-03' } } });
     const out = celebrationsFor(before, after, mission('mission-poste'));
     expect(out.filter((c) => c.type === 'unlock-world')).toEqual([{ type: 'unlock-world', worldId: 'sidewalk' }]);
+  });
+
+  it('names the newly unlocked World when the last Owed Mission is passed', () => {
+    const owed = { ...started, skippedAt: '2026-05-01T09:05:00.000Z' };
+    const lastPassed = { 'mission-poste': { ...started, passedOn: '2026-05-03' } };
+    const before = rec({ ...world1, missions: { ...passedAll, ...lastPassed, 'mission-doorbell': owed } });
+    const after = rec({ ...world1, missions: { ...passedAll, ...lastPassed, 'mission-doorbell': { ...owed, passedOn: '2026-05-04' } } });
+    const out = celebrationsFor(before, after, mission('mission-doorbell'));
+    expect(out.filter((c) => c.type === 'unlock-world')).toEqual([{ type: 'unlock-world', worldId: 'sidewalk' }]);
+    // the Stops after it opened with the skip, so they are not celebrated again
+    expect(out.some((c) => c.type === 'unlock-node')).toBe(false);
+  });
+
+  it('names a Plus World opened during the trial, read through progressAt', () => {
+    const stops = WORLDS.filter((w) => !w.preview).flatMap(stopsOf);
+    const missions = Object.fromEntries(stops.filter((s) => s.kind === 'mission').map((s) => [s.id, { ...started, passedOn: '2026-05-02' }]));
+    const done = {
+      completedNodes: stops.filter((s) => s.kind === 'node').map((s) => s.id),
+      readLessons: stops.filter((s) => s.kind === 'lesson').map((s) => s.id),
+    };
+    const lastId = stops.filter((s) => s.kind === 'mission').pop()!.id;
+    const now = new Date('2026-05-03T10:00:00.000Z');
+    const onboarding = { ...newDogRecord().onboarding, trialStartedAt: '2026-05-01T10:00:00.000Z' };
+    const before = rec({ ...done, onboarding, missions: { ...missions, [lastId]: started } });
+    const after = rec({ ...done, onboarding, missions });
+    const plusOut = celebrationsFor(progressAt(before, now), progressAt(after, now), mission(lastId));
+    expect(plusOut.filter((c) => c.type === 'unlock-world')).toEqual([{ type: 'unlock-world', worldId: 'recall' }]);
+    const later = new Date('2026-05-09T10:00:00.000Z');
+    expect(celebrationsFor(progressAt(before, later), progressAt(after, later), mission(lastId)).some((c) => c.type === 'unlock-world')).toBe(false);
+  });
+
+  it('gives no Mission or World celebration for a Day Skip', () => {
+    const before = rec({ ...world1, missions: { 'mission-harness': { ...started, passedOn: '2026-05-02' }, 'mission-doorbell': started, 'mission-poste': { ...started, passedOn: '2026-05-03' } } });
+    const after = applyDaySkip(before, 'mission-doorbell', new Date('2026-05-01T12:00:00.000Z'));
+    expect(after).not.toBe(before);
+    const out = celebrationsFor(before, after, mission('mission-doorbell'));
+    expect(out.filter((c) => c.type === 'mission-passed' || c.type === 'unlock-world' || c.type === 'streak-day')).toEqual([]);
   });
 
   it('celebrates a passed Mission once, and the Node it opens', () => {

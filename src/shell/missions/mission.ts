@@ -66,6 +66,8 @@ export interface MissionState {
   passedOn?: string;
   /** Passed with "Move on anyway". */
   keepPractising?: boolean;
+  /** ISO date-time of the Day Skip; with no `passedOn`, the Mission is owed (ADR 0014). */
+  skippedAt?: string;
   attempts: MissionAttempt[];
 }
 
@@ -120,6 +122,20 @@ export function canCheckIn(state: MissionState, now: Date): boolean {
   const anchor = waitAnchor(state);
   const opens = checkInOpensAt(state);
   return !!anchor && !!opens && now.getTime() >= anchor.getTime() && now.getTime() >= opens.getTime();
+}
+
+/** An Owed Mission: skipped with a Day Skip and not passed since. It opens the trail but does not close its World. */
+export function isOwed(state: MissionState | undefined): boolean {
+  return !!state?.skippedAt && !state.passedOn;
+}
+
+/**
+ * A Day Skip: a started Mission waiting for its check-in becomes owed. Its target, wait and answers are kept, so
+ * the check-in opens as before. Anything else (not started, due, passed, already skipped) changes nothing.
+ */
+export function skipDay(state: MissionState, now: Date): MissionState {
+  if (!state.startedAt || state.passedOn || state.skippedAt || canCheckIn(state, now)) return state;
+  return { ...state, skippedAt: now.toISOString() };
 }
 
 /** The answer given today, if any; one answer per Mission per local day. */
@@ -214,6 +230,7 @@ export function readMissions(raw: unknown): Record<string, MissionState> {
     if (typeof r.focus === 'string') state.focus = r.focus as TextKey;
     if (isDateString(r.passedOn)) state.passedOn = r.passedOn;
     if (r.keepPractising === true) state.keepPractising = true;
+    if (isTime(r.skippedAt)) state.skippedAt = r.skippedAt;
     missions[id] = state;
   }
   return missions;

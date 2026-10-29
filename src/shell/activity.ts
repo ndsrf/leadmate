@@ -4,12 +4,12 @@ import { isDateString, localDateString } from './streak';
 
 /**
  * The Activity Log: one dated entry per thing the user did (a Node Debrief, a Daily Stage, a Lesson
- * read, the first Stage), kept for the Diary. It is a record of what happened, never an input: no
+ * read, the first Stage, a Day Skip), kept for the Diary. It is a record of what happened, never an input: no
  * Learning Attribute, Streak or star is ever read back from it.
  */
 
-export type ActivityKind = 'node' | 'daily' | 'lesson' | 'first-stage';
-const ACTIVITY_KINDS: readonly ActivityKind[] = ['node', 'daily', 'lesson', 'first-stage'];
+export type ActivityKind = 'node' | 'daily' | 'lesson' | 'first-stage' | 'skip';
+const ACTIVITY_KINDS: readonly ActivityKind[] = ['node', 'daily', 'lesson', 'first-stage', 'skip'];
 
 /** The numbers of one Stage kept in the log. */
 export interface StageSummary {
@@ -38,7 +38,7 @@ export interface ActivityEvent {
   /** Local calendar day it happened, `YYYY-MM-DD`. */
   date: string;
   kind: ActivityKind;
-  /** The Node or Lesson id; empty for a Daily Stage and the first Stage. */
+  /** The Node, Lesson or skipped Mission id; empty for a Daily Stage and the first Stage. */
   id: string;
   /** Stars earned on this run (not the best). */
   stars?: Stars;

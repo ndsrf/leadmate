@@ -84,12 +84,15 @@ export function GameButton({
   variant = 'primary',
   disabled = false,
   className = 'mt-4',
+  accessibilityLabel,
 }: {
   label: string;
   onPress: () => void;
   variant?: ButtonVariant;
   disabled?: boolean;
   className?: string;
+  /** What a screen reader announces, when it must say more than the label. */
+  accessibilityLabel?: string;
 }) {
   const focus = useFocus();
   return (
@@ -99,6 +102,7 @@ export function GameButton({
       onFocus={focus.onFocus}
       onBlur={focus.onBlur}
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled }}
       className={className}
     >

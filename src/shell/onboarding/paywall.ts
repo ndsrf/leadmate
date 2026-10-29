@@ -3,7 +3,7 @@ import { nextStep } from './flow';
 
 /**
  * Leaves the paywall screen. Both buttons come here: "Start trial" also records the start, "Maybe later" does not.
- * Nothing in the app checks an entitlement, so neither choice limits any content.
+ * Plus features read the recorded start through `isPlus`; the first start is kept, so a trial never restarts.
  */
 export function passPaywall(record: DogRecord, startTrial: boolean, now: Date): DogRecord {
   return {

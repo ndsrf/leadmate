@@ -74,7 +74,7 @@ export function connectorVisual(fromState: NodeState, toState?: NodeState): Conn
 
 /** The kind glyphs: a book for a theory Lesson, a controller for a How-to-play Lesson, a paw for a Node, a flag for a Mission. */
 export type KindGlyph = 'book' | 'controller' | 'paw' | 'flag';
-export type NodeGlyph = 'check' | 'lock' | 'moon' | KindGlyph;
+export type NodeGlyph = 'check' | 'lock' | 'moon' | 'hourglass' | KindGlyph;
 
 export const KIND_GLYPH: Record<StopKind, KindGlyph> = { theory: 'book', 'how-to-play': 'controller', node: 'paw', mission: 'flag' };
 
@@ -91,7 +91,7 @@ export interface NodeVisual {
   dashed: boolean;
 }
 
-/** How a Stop's disc is drawn for its state and kind; a waiting Mission shows a moon instead of its flag. */
+/** How a Stop's disc is drawn for its state and kind; a waiting Mission shows a moon instead of its flag, an owed one an hourglass. */
 export function nodeVisual(state: NodeState, kind: StopKind = 'node', optional = false): NodeVisual {
   switch (state) {
     case 'done':
@@ -102,6 +102,8 @@ export function nodeVisual(state: NodeState, kind: StopKind = 'node', optional =
       return { fill: color.surface, edge: color.ink, ink: color.ink, glyph: KIND_GLYPH[kind], ring: false, scale: 1, dashed: optional };
     case 'waiting':
       return { fill: color.surfaceSunken, edge: color.ink, ink: color.ink, glyph: 'moon', ring: false, scale: 1, dashed: false };
+    case 'owed':
+      return { fill: color.accentSoft, edge: color.ink, ink: color.ink, glyph: 'hourglass', ring: false, scale: 1, dashed: false };
     default:
       return { fill: color.locked, edge: color.lockedText, ink: color.lockedText, glyph: 'lock', ring: false, scale: 1, dashed: true };
   }

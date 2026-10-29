@@ -31,11 +31,6 @@ function mergeDailyBest(a: Record<string, number>, b: Record<string, number>): R
 const earlierDate = (a?: string, b?: string) => (a === undefined || b === undefined ? (a ?? b) : b < a ? b : a);
 
 /**
- * One Mission on two devices: a passed Mission wins over an active one (earliest pass date), "keep practising"
- * from either side stays, the answers are unioned by time, and the side that started its wait later supplies
- * the wait, the target and the skip run.
- */
-/**
  * Keeps one check-in answer per local date, as one device allows (`todaysAttempt`): a "completed" answer wins, so
  * the pass that `passedOn` records keeps its attempt; otherwise the earlier answer, which a single device would
  * have kept. Sorted by time.
@@ -50,6 +45,14 @@ function oneAttemptPerDay(attempts: readonly MissionAttempt[]): MissionAttempt[]
   return [...byDate.values()].sort((x, y) => Date.parse(x.at) - Date.parse(y.at));
 }
 
+/** The earlier of two ISO date-times; a missing one never wins. */
+const earlierTime = (a?: string, b?: string) => (a === undefined || b === undefined ? (a ?? b) : Date.parse(b) < Date.parse(a) ? b : a);
+
+/**
+ * One Mission on two devices: a passed Mission wins over an active one (earliest pass date), "keep practising"
+ * from either side stays, the earliest Day Skip from either side stays (so it is owed unless passed), the answers
+ * are unioned by time, and the side that started its wait later supplies the wait, the target and the skip run.
+ */
 function mergeMission(a: MissionState, b: MissionState): MissionState {
   const later = (b.startedAt ?? '') > (a.startedAt ?? '') ? b : a;
   const attempts = oneAttemptPerDay(union(a.attempts, b.attempts, (x) => x.at));
@@ -59,6 +62,9 @@ function mergeMission(a: MissionState, b: MissionState): MissionState {
   if (a.keepPractising || b.keepPractising) merged.keepPractising = true;
   const focus = later.focus ?? a.focus ?? b.focus;
   if (focus) merged.focus = focus;
+  const skippedAt = earlierTime(a.skippedAt, b.skippedAt);
+  if (skippedAt) merged.skippedAt = skippedAt;
+  else delete merged.skippedAt;
   return merged;
 }
 

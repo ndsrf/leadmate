@@ -16,7 +16,7 @@ import { BUNDLE_MESSAGE_TYPES, decode, type BundleMessage, type ShellMessage } f
 import { newSeed } from './src/sim/rng';
 import { playDogSound, playResolvedCue, prepareAudio } from './src/shell/audio';
 import { createVocalizer } from './src/shell/vocalize';
-import { applyActivity, applyMissionCheckIn, toSnapshot, updateMission } from './src/shell/dogRecord';
+import { applyActivity, applyDaySkip, applyMissionCheckIn, toSnapshot, updateMission } from './src/shell/dogRecord';
 import { starsFor } from './src/shell/stars';
 import { lookOf } from './src/shell/onboarding/look';
 import { INTRO_NODE } from './src/shell/onboarding/introNode';
@@ -36,7 +36,8 @@ import { findLesson, LESSONS } from './src/shell/lessons/content';
 import { findFix, findMission } from './src/shell/missions/content';
 import { acceptEasier, canMoveOn, fixFor, moveOn, startMission } from './src/shell/missions/mission';
 import type { DiaryOutcome } from './src/shell/streak';
-import { missionAfterDebrief, missionEntryOf, missionForDebrief } from './src/shell/missions/missionView';
+import { canSkipDay, missionAfterDebrief, missionEntryOf, missionForDebrief } from './src/shell/missions/missionView';
+import { canStartTrial, isPlus, progressAt, startTrialThen, type PendingPlusAction } from './src/shell/plus';
 import { FixScreen, MissionBriefScreen, MissionCheckInScreen, MissionPassedScreen, MissionProblemScreen, MissionWaitingScreen } from './src/shell/screens/MissionScreens';
 import type { Stop } from './src/shell/world';
 import { lessonDay, markLessonRead, todaysLesson } from './src/shell/lessons/lesson';
@@ -88,7 +89,8 @@ type Flow =
   | { name: 'lesson'; id: string; returnTo: 'map' | 'library' }
   /** A Mission Stop's screens; a Fix opened from "Tus ajustes" returns to the Library. */
   | { name: 'mission'; id: string; view: MissionView; fixId?: string; returnTo?: 'map' | 'library' }
-  | { name: 'paywall' }
+  /** The paywall from the map, or from a Plus-only action (`then`) that "Empezar prueba" completes. */
+  | { name: 'paywall'; then?: PendingPlusAction }
   | { name: 'puzzle'; board: BarkdokuBoard };
 type MissionView = 'brief' | 'waiting' | 'checkin' | 'problem' | 'fix' | 'passed';
 
@@ -311,8 +313,9 @@ export default function App() {
     if (debriefId === null || f?.name !== 'node') return;
     let diff: Celebration[] = [];
     update((r) => {
-      const after = onDebrief(r, f.run, new Date());
-      diff = celebrationsFor(r, after, { kind: 'node', nodeId: f.run.node.id });
+      const now = new Date();
+      const after = onDebrief(r, f.run, now);
+      diff = celebrationsFor(progressAt(r, now), progressAt(after, now), { kind: 'node', nodeId: f.run.node.id });
       return after;
     });
     setCelebrations({ id: debriefId, list: diff });
@@ -383,10 +386,11 @@ export default function App() {
         if (f?.name === 'daily' && f.result === null) {
           // the score and the Streak are kept; what the Dog has learned and the campaign are not touched
           const before = recordRef.current!;
-          const completion = completeDaily(before, payload, new Date());
+          const now = new Date();
+          const completion = completeDaily(before, payload, now);
           update(() => completion.record);
           setWarmup((w) => warmupAfterDaily(w));
-          const list = celebrationsFor(before, completion.record, { kind: 'daily', improved: completion.improved, firstOfDay: completion.firstOfDay, best: completion.best });
+          const list = celebrationsFor(progressAt(before, now), progressAt(completion.record, now), { kind: 'daily', improved: completion.improved, firstOfDay: completion.firstOfDay, best: completion.best });
           setFlow({ ...f, result: { payload, completion, celebrations: list } });
         } else if (routeRef.current.name === 'taste') {
           // the time limit: the payload is dropped, nothing is learned from the taste
@@ -452,6 +456,12 @@ export default function App() {
   // where the map was scrolled, so a Stop's flow returns to the same place
   const mapScroll = useRef<number | undefined>(undefined);
 
+  /** The screen a Mission opens on now. */
+  const missionEntry = (id: string) => {
+    const now = new Date();
+    return recordRef.current ? missionEntryOf(id, progressAt(recordRef.current, now), now) : 'brief';
+  };
+
   /** Opens a Stop by kind: a Lesson Stop returns to the map, a Node starts, a Mission opens on its brief, wait or check-in. */
   const openStop = (stop: Stop) => {
     setSettingsOpen(false);
@@ -459,7 +469,7 @@ export default function App() {
     else if (stop.kind === 'node') {
       const node = findNode(stop.id);
       if (node) startNodeRun(node);
-    } else setFlow({ name: 'mission', id: stop.id, view: recordRef.current ? missionEntryOf(stop.id, recordRef.current, new Date()) : 'brief' });
+    } else setFlow({ name: 'mission', id: stop.id, view: missionEntry(stop.id) });
   };
 
   /** A Mission check-in answer: "Costó un poco" first asks what went wrong; a pass celebrates. */
@@ -474,7 +484,7 @@ export default function App() {
     let diff: Celebration[] = [];
     update((r) => {
       const after = applyMissionCheckIn(r, mission, outcome, problemId, now);
-      diff = celebrationsFor(r, after, { kind: 'mission', missionId: id });
+      diff = celebrationsFor(progressAt(r, now), progressAt(after, now), { kind: 'mission', missionId: id });
       return after;
     });
     if (outcome === 'completed') {
@@ -484,11 +494,26 @@ export default function App() {
     else goHome();
   };
 
+  /** "Saltar el día": a Plus member's skip applies and the map opens on the new next-up; a free user meets the paywall. */
+  const skipMission = (id: string) => {
+    const r = recordRef.current;
+    if (!r) return;
+    const now = new Date();
+    if (!isPlus(r, now)) {
+      setFlow({ name: 'paywall', then: { skipMission: id } });
+      return;
+    }
+    update((rec) => applyDaySkip(rec, id, now));
+    mapScroll.current = undefined;
+    goHome();
+  };
+
   const moveOnMission = (id: string) => {
     let diff: Celebration[] = [];
+    const now = new Date();
     update((r) => {
-      const after = updateMission(r, id, (m) => moveOn(m, new Date()));
-      diff = celebrationsFor(r, after, { kind: 'mission', missionId: id });
+      const after = updateMission(r, id, (m) => moveOn(m, now));
+      diff = celebrationsFor(progressAt(r, now), progressAt(after, now), { kind: 'mission', missionId: id });
       return after;
     });
     setCelebrations({ id: `mission:${id}`, list: diff });
@@ -542,6 +567,7 @@ export default function App() {
         <WorldMapScreen
           t={t}
           progress={record}
+          membership={record}
           stars={record.stars}
           rusty={rusty.current === true && warmup !== 'completed'}
           streak={record.streak}
@@ -738,7 +764,15 @@ export default function App() {
           f.view === 'checkin' ? (
             <MissionCheckInScreen t={t} mission={mission} state={state} onAnswer={(outcome) => answerMission(mission.id, outcome)} onAcceptEasier={accept} onClose={goHome} />
           ) : (
-            <MissionWaitingScreen t={t} mission={mission} state={state} now={new Date()} onAcceptEasier={accept} onClose={goHome} />
+            <MissionWaitingScreen
+              t={t}
+              mission={mission}
+              state={state}
+              now={new Date()}
+              onAcceptEasier={accept}
+              onSkip={canSkipDay(mission.id, progressAt(record, new Date()), new Date()) ? () => skipMission(mission.id) : undefined}
+              onClose={goHome}
+            />
           );
       } else if (f.view === 'problem')
         screen = <MissionProblemScreen t={t} mission={mission} onPick={(problemId) => answerMission(mission.id, 'struggled', problemId)} onBack={() => setFlow({ ...f, view: 'checkin' })} />;
@@ -776,10 +810,15 @@ export default function App() {
         <PaywallScreen
           t={t}
           onStartTrial={() => {
-            update((r) => passPaywall(r, true, new Date()));
-            goHome();
+            const now = new Date();
+            // a trial that already ended does not restart, so the held skip is not done: back to its Mission
+            const done = !!f.then && !!recordRef.current && canStartTrial(recordRef.current, now);
+            update((r) => startTrialThen(r, f.then, now));
+            if (done) mapScroll.current = undefined;
+            if (f.then && !done) setFlow({ name: 'mission', id: f.then.skipMission, view: missionEntry(f.then.skipMission) });
+            else goHome();
           }}
-          onLater={goHome}
+          onLater={() => (f.then ? setFlow({ name: 'mission', id: f.then.skipMission, view: missionEntry(f.then.skipMission) }) : goHome())}
         />
       );
     } else if (f.name === 'register') {
@@ -847,7 +886,7 @@ export default function App() {
             onPlayAgain={() => setFlow({ ...f, run: { ...run, step: 'simulation', result: null }, attempt: f.attempt + 1 })}
             onDone={() => {
               // the Debrief of a Stretch's last Node opens its Mission brief
-              const next = missionAfterDebrief(run.node.id, record, new Date());
+              const next = missionAfterDebrief(run.node.id, progressAt(record, new Date()), new Date());
               if (next) setFlow({ name: 'mission', id: next, view: 'brief' });
               else goHome();
             }}

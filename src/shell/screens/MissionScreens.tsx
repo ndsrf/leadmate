@@ -84,7 +84,11 @@ export function MissionBriefScreen({ t, mission, state, onStart, onClose }: { t:
 }
 
 /** A started Mission before its check-in opens: the target, when it opens, and today's answer if one was given. */
-export function MissionWaitingScreen({ t, mission, state, now, onAcceptEasier, onClose }: { t: Translate; mission: MissionDef; state: MissionState; now: Date; onAcceptEasier: () => void; onClose: () => void }) {
+/**
+ * The wait before the check-in. `onSkip` is given only when the Mission can take a Day Skip (`canSkipDay`): the
+ * Plus-badged "Saltar el día" then shows, for free users too, who are sent to the paywall.
+ */
+export function MissionWaitingScreen({ t, mission, state, now, onAcceptEasier, onSkip, onClose }: { t: Translate; mission: MissionDef; state: MissionState; now: Date; onAcceptEasier: () => void; onSkip?: () => void; onClose: () => void }) {
   const today = todaysAttempt(state, now);
   return (
     <Screen>
@@ -97,6 +101,15 @@ export function MissionWaitingScreen({ t, mission, state, now, onAcceptEasier, o
         {today && <Text className="mt-2 text-caption text-inkMuted">{t('mission.waiting.today').replace('{answer}', t(DIARY_KEYS[today.outcome]))}</Text>}
       </Panel>
       <Button label={t('mission.back')} tone="secondary" onPress={onClose} />
+      {onSkip && (
+        <View className="mt-6">
+          <View className="flex-row items-center" style={{ gap: theme.space[2] }}>
+            <Badge label={t('world.plusBadge')} tone="accent" />
+            <Text className="flex-1 text-caption text-inkMuted">{t('mission.skip.hint')}</Text>
+          </View>
+          <Button label={t('mission.skip')} tone="quiet" accessibilityLabel={t('mission.skip.a11y')} onPress={onSkip} />
+        </View>
+      )}
     </Screen>
   );
 }

@@ -15,6 +15,7 @@ import { findLesson } from './lessons/content';
 import { MISSIONS } from './missions/content';
 import type { MissionDef, MissionState } from './missions/mission';
 import { migrateRecord } from './dogRecord';
+import { isPlus } from './plus';
 import type { ScenarioConfig } from '../sim/config';
 import { defaultScenario } from '../sim/config';
 
@@ -474,5 +475,64 @@ describe('Poste practice stays behind World 1', () => {
   it('still gates the first walking Node', () => {
     expect(isAvailable(WALK_DISTRACTION, [])).toBe(false);
     expect(isAvailable(WALK_DISTRACTION, [POSTE_PRACTICE.id])).toBe(true);
+  });
+});
+
+describe('Plus Worlds', () => {
+  const recall = world('recall');
+
+  it('stays locked for a free user, even with the World before it complete', () => {
+    expect(isWorldUnlocked(recall, finished('home', 'sidewalk', 'urban', 'park'))).toBe(false);
+  });
+
+  it('is unlocked for a Plus member once the World before it is complete', () => {
+    expect(isWorldUnlocked(recall, { ...finished('home', 'sidewalk', 'urban', 'park'), plus: true })).toBe(true);
+    expect(isWorldUnlocked(recall, { ...finished('home', 'sidewalk', 'urban'), plus: true })).toBe(false);
+  });
+
+  it('follows the trial through isPlus', () => {
+    const record = { ...migrateRecord({}), ...finished('home', 'sidewalk', 'urban', 'park') };
+    const trial = { ...record, onboarding: { ...record.onboarding, trialStartedAt: at(9, 1).toISOString() } };
+    expect(isWorldUnlocked(recall, { ...trial, plus: isPlus(trial, at(9, 3)) })).toBe(true);
+    expect(isWorldUnlocked(recall, { ...trial, plus: isPlus(trial, at(9, 9)) })).toBe(false);
+  });
+});
+
+describe('Owed Missions', () => {
+  const started: MissionState = { target: 'full', skipRun: 0, attempts: [], startedAt: at(9, 1).toISOString() };
+  const owed: MissionState = { ...started, skippedAt: at(9, 1).toISOString() };
+  /** Every Stop of World 1 done, with these Mission states instead of a pass. */
+  const homeWith = (missions: Record<string, MissionState>): Progress => ({ ...finished('home'), missions: { ...finished('home').missions, ...missions } });
+
+  it('opens the Stretch after it', () => {
+    const p = progressOf(['harness-ritual'], { readLessons: ['theory-harness', 'howto-tap-hold'], missions: { 'mission-harness': owed } });
+    expect(stopLock({ kind: 'lesson', id: 'theory-doorbell' }, p)).toBeNull();
+    expect(stopLock({ kind: 'node', id: 'doorbell-mat' }, { ...p, readLessons: [...p.readLessons, 'theory-doorbell'] })).toBeNull();
+  });
+
+  it('reports the owed state, due or not', () => {
+    const p = progressOf([], { missions: { 'mission-harness': owed } });
+    expect(stopStatus({ kind: 'mission', id: 'mission-harness' }, p, at(20, 1))).toEqual({ state: 'owed', opensAt: at(0, 2) });
+    expect(stopStatus({ kind: 'mission', id: 'mission-harness' }, p, at(9, 2))).toEqual({ state: 'owed', checkInDue: true });
+  });
+
+  it('keeps the next World locked while one Mission is owed', () => {
+    const p = homeWith({ 'mission-doorbell': owed });
+    expect(isWorldComplete(world('home'), p)).toBe(false);
+    expect(isWorldUnlocked(world('sidewalk'), p)).toBe(false);
+  });
+
+  it('unlocks the next World when the last Owed Mission is passed', () => {
+    const p = homeWith({ 'mission-doorbell': { ...owed, passedOn: '2026-05-02' } });
+    expect(isWorldComplete(world('home'), p)).toBe(true);
+    expect(isWorldUnlocked(world('sidewalk'), p)).toBe(true);
+  });
+
+  it('is locked with its World when that World closes again', () => {
+    const plusHome: WorldDef[] = [{ ...world('home'), tier: 'plus' }];
+    const p = progressOf([], { missions: { 'mission-harness': owed } });
+    const mission: Stop = { kind: 'mission', id: 'mission-harness' };
+    expect(stopStatus(mission, { ...p, plus: true }, at(9, 2), plusHome)).toEqual({ state: 'owed', checkInDue: true });
+    expect(stopStatus(mission, p, at(9, 2), plusHome)).toEqual({ state: 'locked', lock: { kind: 'world' } });
   });
 });

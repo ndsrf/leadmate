@@ -1,5 +1,5 @@
 import { createTranslator } from '../i18n';
-import { lockMessage, stopAccessibilityLabel, stopBadge, stopMarks, waitingLabel, worldUnlockBanner, worldWalkSubtitle } from './mapText';
+import { lockMessage, owedItemLabel, stopAccessibilityLabel, stopBadge, stopMarks, waitingLabel, worldUnlockBanner, worldWalkSubtitle } from './mapText';
 import { mapModel, type MapModel } from './mapModel';
 import { migrateRecord } from './dogRecord';
 import type { MissionState } from './missions/mission';
@@ -98,16 +98,46 @@ describe('World subtitles and unlock banners', () => {
   });
 });
 
+describe('Owed Missions on the map', () => {
+  const owed = (d: Date): MissionState => ({ ...started(d), skippedAt: d.toISOString() });
+  const passed = { target: 'full' as const, skipRun: 0, attempts: [], passedOn: '2026-05-01' };
+  const world1 = { completedNodes: ['harness-ritual', 'doorbell-mat', 'poste-practice'], readLessons: ['theory-harness', 'howto-tap-hold', 'theory-doorbell', 'theory-poste'] };
+
+  it('marks an owed Stop "Pendiente" with when it opens, and "¿Cómo fue?" once due', () => {
+    const p = { ...stretch1, missions: { 'mission-harness': owed(at(9, 1)) } };
+    const waiting = find(mapModel(p, {}, at(20, 1)), 'mission-harness');
+    expect(stopMarks(waiting, t)).toEqual(['Pendiente']);
+    expect(stopBadge(waiting, t)).toBe('Mañana');
+    expect(stopAccessibilityLabel(waiting, t)).toContain('Mañana');
+    expect(stopAccessibilityLabel(waiting, t)).toContain('Pendiente');
+    expect(stopBadge(find(mapModel(p, {}, at(9, 2)), 'mission-harness'), t)).toBe('¿Cómo fue?');
+  });
+
+  it('lists each owed Mission in the panel with its check-in state', () => {
+    const p = progressOf(world1.completedNodes, { readLessons: world1.readLessons, missions: { 'mission-harness': owed(at(9, 1)), 'mission-doorbell': owed(at(9, 2)), 'mission-poste': passed } });
+    const home = mapModel(p, {}, at(20, 2)).worlds[0];
+    expect(home.owed.map((s) => owedItemLabel(s, t))).toEqual([`${t('mission.harness.title')} · ¿Cómo fue?`, `${t('mission.doorbell.title')} · Mañana`]);
+  });
+
+  it('says the owed Missions are what the next World is waiting for', () => {
+    const one = progressOf(world1.completedNodes, { readLessons: world1.readLessons, missions: { 'mission-harness': passed, 'mission-doorbell': owed(at(9, 1)), 'mission-poste': passed } });
+    const banner = worldUnlockBanner(mapModel(one, {}, at(20, 1)).worlds[1], t);
+    expect(banner).toBe(t('world.unlockOwed').replace('{world}', t('world.1.title')));
+    const two = { ...one, missions: { ...one.missions, 'mission-harness': owed(at(9, 1)) } };
+    expect(worldUnlockBanner(mapModel(two, {}, at(20, 1)).worlds[1], t)).toContain('2');
+  });
+});
+
 describe('Stop visuals', () => {
   it('gives each state a distinct glyph/ring combination so colour is never the only cue', () => {
-    const seen = (['locked', 'open', 'next', 'waiting', 'done'] as const).map((s) => `${nodeVisual(s, 'mission').glyph}|${nodeVisual(s, 'mission').ring}`);
-    expect(new Set(seen).size).toBe(5);
+    const seen = (['locked', 'open', 'next', 'waiting', 'owed', 'done'] as const).map((s) => `${nodeVisual(s, 'mission').glyph}|${nodeVisual(s, 'mission').ring}`);
+    expect(new Set(seen).size).toBe(6);
     expect(nodeVisual('locked').glyph).toBe('lock');
     expect(nodeVisual('done').glyph).toBe('check');
     expect(nodeVisual('waiting', 'mission').glyph).toBe('moon');
   });
 
   it('draws a single next-up ring', () => {
-    expect((['locked', 'open', 'next', 'waiting', 'done'] as const).filter((s) => nodeVisual(s).ring)).toEqual(['next']);
+    expect((['locked', 'open', 'next', 'waiting', 'owed', 'done'] as const).filter((s) => nodeVisual(s).ring)).toEqual(['next']);
   });
 });
