@@ -11,7 +11,6 @@ import type { DogCoat } from '../../sim/config';
 import { playDogSound } from '../audio';
 import type { BreedId } from '../onboarding/breeds';
 import { Button } from '../Overlays';
-import { INTRO_BARKDOKU_BOARD } from '../puzzle/boards';
 import {
   computeMetrics,
   createPuzzle,
@@ -19,6 +18,7 @@ import {
   resetPuzzle,
   toggleCell,
 } from '../puzzle/engine';
+import { generateBoard } from '../puzzle/generator';
 import {
   type BarkdokuBoard,
   type BarkdokuMetrics,
@@ -31,6 +31,7 @@ import {
   isDogConflicted,
   isRegionSatisfied,
 } from '../puzzle/validator';
+import { newSeed } from '../../sim/rng';
 import { BreedArt } from '../ui/BreedArt';
 import { feedback } from '../ui/feedback';
 import { color, theme } from '../ui/theme';
@@ -284,12 +285,14 @@ export interface BarkdokuViewProps {
  */
 export function BarkdokuView({
   t,
-  board = INTRO_BARKDOKU_BOARD,
+  board: boardProp,
   breed = 'mestizo',
   coat = 'golden',
   onFinish,
   onExit,
 }: BarkdokuViewProps) {
+  // Without a board, each mount deals a fresh 4x4 so replays never repeat.
+  const [board] = useState(() => boardProp ?? generateBoard(4, newSeed()));
   // The last tap's event rides along with the state so rapid taps chain through the updater.
   const [game, setGame] = useState(() => ({
     state: createPuzzle(board),

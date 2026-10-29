@@ -15,7 +15,7 @@ Adapting the classic "Star Battle" / "Queens" logic puzzle into **Barkdoku** ("Z
     2. **Line of Sight Rule**: Exactly 1 dog per row and per column (breaking eye-lock; no two dogs facing each other down the same uninterrupted corridor).
     3. **Personal Space / Reactivity Bubble**: Dogs cannot occupy adjacent cells, including diagonals (8-cell exclusion radius around each dog).
   - Validation engine with real-time conflict detection highlighting violating dogs and rows/columns/regions.
-  - Deterministic board solver and level configuration bank supporting boards from $4 \times 4$ (intro/tutorial) through $5 \times 5$ / $6 \times 6$ (standard curriculum) up to $8 \times 8$ and $9 \times 9$ (advanced daily challenges).
+  - Deterministic board solver and seeded procedural generator dealing a fresh unique-solution board on every play, from $4 \times 4$ (intro/tutorial) up to $8 \times 8$ (map challenge), with a curated $4 \times 4$–$9 \times 9$ catalog as fallback.
 - **Controls & Interaction**:
   - 3-state cell cycle: Single tap places an exclusion marker / **Visual Shield** (bold rounded white `X` on colored tile); second tap places a calm dog (`🐶`); third tap clears the cell.
   - Life & Mistake System: 3 dog treats. Placing a dog in direct violation of a rule triggers an immediate canine agitation alert (barks, stiff ears) and deducts 1 treat. Reaching 0 treats triggers an encouraging retry screen.
@@ -40,7 +40,7 @@ Adapting the classic "Star Battle" / "Queens" logic puzzle into **Barkdoku** ("Z
 
 ## Impact
 
-- `src/shell/puzzle/`: New domain module containing board definitions, rule validation, solver algorithms, and curated levels ($4 \times 4$ through $9 \times 9$).
+- `src/shell/puzzle/`: New domain module containing board definitions, rule validation, solver algorithms, a procedural board generator, and curated fallback levels ($4 \times 4$ through $9 \times 9$).
 - `src/shell/screens/BarkdokuView.tsx`: New full-screen React Native interactive grid component with SVG boards, upper zone silhouette tracker, rule diagram banner, cell controls, and treat HUD.
 - `src/shell/nodes/node.ts`: Add `'barkdoku'` to `MinigameKind` and handle node completion scoring metrics (mistakes, time, accuracy).
 - `src/shell/nodes/content.ts`: Add Barkdoku node definitions to World 3 / World 6 curriculum with Theory Primer cards and Checkpoints.

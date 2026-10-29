@@ -21,6 +21,25 @@ The system SHALL represent Barkdoku as an N x N grid partitioned into exactly N 
 - **WHEN** the board displays in the Paper Meadow theme
 - **THEN** each contiguous zone is rendered in a distinct palette tint with subtle borders separating neighboring regions
 
+### Requirement: Fresh unique-solution board per play
+The system SHALL deal a newly generated board every time a Barkdoku puzzle opens, so that reopening the puzzle or replaying its Node never repeats the previous layout. Every generated board SHALL have exactly one valid solution, and the dealt board SHALL stay fixed for the whole attempt, including resets.
+
+#### Scenario: Opening the Zona de Calma from the map
+- **WHEN** the user opens the "Zona de Calma" puzzle from the World Map
+- **THEN** the system generates a new board between 5x5 and 8x8 instead of reusing a date-pinned or fixed board
+
+#### Scenario: Replaying the World 3 Node
+- **WHEN** the user plays or replays the `calm-zone-intro` Node simulation
+- **THEN** the system generates a new 4x4 board for that attempt
+
+#### Scenario: Unique solution guarantee
+- **WHEN** a board is generated
+- **THEN** a solver confirms it has exactly one solution before it is dealt, and if none can be produced the system falls back to a curated board of the same size
+
+#### Scenario: Resetting keeps the board
+- **WHEN** the user resets the puzzle mid-attempt
+- **THEN** the grid clears but the same board layout remains
+
 ### Requirement: Ethological rule validation
 The system SHALL validate dog placements against three canine ethology rules: exactly 1 dog per colored region, exactly 1 dog per row and column (breaking line of sight), and no two dogs touching orthogonally or diagonally (respecting reactivity bubbles).
 

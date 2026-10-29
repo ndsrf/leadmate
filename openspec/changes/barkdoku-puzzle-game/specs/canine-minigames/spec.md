@@ -22,14 +22,18 @@ The system SHALL display visual posture representations of the Dog reflecting it
 - **THEN** conflicting dogs transition to alert posture with pricked ears and barking indicators until the conflict is resolved
 
 ### Requirement: Environmental scene context in minigames
-The system SHALL render visual environmental props for static minigames, including an entrance door with audio-visual chime cues and a target mat for the Doorbell Mat minigame, an anchored handler-leash connection for the Poste and Harness Ritual minigames, and terrain zone boundaries for spatial deduction minigames.
+The system SHALL render visual environmental props for static minigames, including an entrance door with audio-visual chime cues and a target mat for the Doorbell Mat minigame, the harness and the front door for the Harness Ritual, an anchored handler-leash connection for the Poste practice, and terrain zone boundaries for spatial deduction minigames.
 
 #### Scenario: Visual doorbell and mat cues
 - **WHEN** the doorbell triggers in Doorbell Mat
 - **THEN** the scene shows a chime ripple at the door prop and highlights the mat target where the Dog settles
 
+#### Scenario: Harness shown
+- **WHEN** the Harness Ritual is running
+- **THEN** the scene shows the harness, and it appears on the Dog once Put on harness succeeds
+
 #### Scenario: Leash tension visualization
-- **WHEN** tension changes in the Poste or Harness Ritual
+- **WHEN** tension changes in the Poste practice
 - **THEN** the rendered leash dynamically reflects the curve between Handler and Dog, appearing rigid during pull and curving into slack when held
 
 #### Scenario: Barkdoku park and terrace terrain zones

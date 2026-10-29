@@ -33,7 +33,8 @@ Barkdoku ("Zona de Calma") adapts the classic Star Battle / Queens deduction puz
 - **Structure**:
   - `types.ts`: Core data structures (`BarkdokuBoard`, `CellCoord`, `CellState`, `Conflict`, `BarkdokuState`).
   - `validator.ts`: Pure functions verifying board invariants (row, col, region, 8-neighbor adjacency).
-  - `boards.ts`: Curated catalog of verified unique-solution boards categorized by difficulty ($4 \times 4$, $5 \times 5$, $6 \times 6$, $7 \times 7$, $8 \times 8$, $9 \times 9$).
+  - `boards.ts`: Curated catalog of verified unique-solution boards ($4 \times 4$ through $9 \times 9$) plus the backtracking solver used for uniqueness checks; the catalog now serves as the generator's fallback and name pool.
+  - `generator.ts`: Seeded procedural board generator (`generateBoard(size, seed)`, `randomBoard(min, max, seed)`). It picks a random non-touching one-per-row/column placement, grows one contiguous region from each dog, then repairs ambiguity by moving a cell of any competing solution into a neighbouring region until the solver finds exactly one solution.
   - `engine.ts`: State reducer handling tap transitions, conflict evaluation, treat life deduction, and win/loss states.
 - **Rationale**: Isolating logic from UI components guarantees 100% test coverage with Jest and allows clean reuse between the curriculum Node runner and the World Map Daily Challenge.
 
@@ -73,11 +74,12 @@ Barkdoku fits into two distinct layers of the app:
    - Follows the standard 4-step loop:
      1. **Dual-Aspect Primer**: Real-world cards explain the canine reactivity threshold and line of sight; simulation cards explain Barkdoku rules.
      2. **Checkpoint Quiz**: Quick question on how visual shields break eye-lock between dogs.
-     3. **Interactive Simulation**: `BarkdokuView` opens with a tutorial $4 \times 4$ or $5 \times 5$ board.
+     3. **Interactive Simulation**: `BarkdokuView` deals a freshly generated $4 \times 4$ board on every mount, so each attempt differs.
      4. **Debrief & Real-World Transfer**: Scoring metrics (mistakes, time, accuracy) and real-world homework (e.g., spot 3 visual barriers on today's walk).
 2. **Standalone / Daily Brain Teaser Mode (`App.tsx` & `WorldMapScreen.tsx`)**:
    - Add a "Zona de Calma" chip/button in the World Map header.
-   - Launches a date-seeded daily board (`dateSeed(todayString())`), providing a low-arousal mental exercise that awards daily streak credit (`StreakRecord`) without requiring a walking stage.
+   - Generates a fresh random $5 \times 5$–$8 \times 8$ board each time it opens (`randomBoard(5, 8, newSeed())`), pinned in the `puzzle` flow for the whole attempt. It remains a low-arousal mental exercise that awards daily streak credit (`StreakRecord`) without requiring a walking stage.
+   - *Revised*: an earlier date-seeded board (`getDailyBoard`) drew from only a handful of curated boards and repeated all day, so it was replaced by generation.
 
 ### Decision 3: Visual Design & Meowdoku Benchmark
 
@@ -112,4 +114,6 @@ Following the user reference from Meowdoku (ADR 0013):
 - **[Risk] Accidental taps triggering mistake penalties**
   - *Mitigation*: The 3-state tap cycle ensures an accidental single tap only places a Visual Shield (`X`), which never incurs a penalty. Penalties only evaluate when placing a dog.
 - **[Risk] Puzzle unsolvability or ambiguity**
-  - *Mitigation*: All bundled boards are verified with an offline solver to ensure exactly one unique solution.
+  - *Mitigation*: Every generated board is checked by the solver for exactly one solution before it is dealt; curated fallback boards are verified by the same solver in tests.
+- **[Risk] Generation latency on large boards**
+  - *Mitigation*: Generation with ambiguity repair takes well under 50 ms up to $8 \times 8$, the largest size dealt; $9 \times 9$ is slower (~0.5 s) and is not dealt by any entry point.

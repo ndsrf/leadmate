@@ -23,10 +23,15 @@
 
 ## 4. Standalone Daily Challenge Hub Integration
 
-- [x] 4.1 Add the "Zona de Calma" button to `WorldMapScreen.tsx` and wire date-seeded daily puzzle flows in `App.tsx`; verify map rendering and flow navigation in `src/shell/screens/WorldMapScreen.test.tsx`.
+- [x] 4.1 Add the "Zona de Calma" button to `WorldMapScreen.tsx` and wire the puzzle flow in `App.tsx`; verify map rendering and flow navigation in `src/shell/screens/WorldMapScreen.test.tsx`.
 - [x] 4.2 Award daily streak credit in `src/shell/streak.ts` and celebratory feedback upon completing the daily Barkdoku puzzle; verify streak integration in `src/shell/streak.test.ts`.
 
-## 5. System Verification
+## 5. Board Randomisation
 
-- [x] 5.1 Run the full test suite (`npm test`) and verify zero regressions across existing stages, nodes, and minigames.
-- [x] 5.2 Validate the OpenSpec change using `openspec validate "barkdoku-puzzle-game" --strict`.
+- [x] 5.1 Implement a seeded procedural generator in `src/shell/puzzle/generator.ts` that deals unique-solution boards with ambiguity repair and a curated fallback; verify uniqueness, determinism per seed, and variety in `src/shell/puzzle/generator.test.ts`.
+- [x] 5.2 Deal a fresh $5 \times 5$–$8 \times 8$ board each time the map's "Zona de Calma" opens (pinned in the `puzzle` flow) and a fresh $4 \times 4$ board per `calm-zone-intro` attempt in `BarkdokuView.tsx`; remove the date-seeded `getDailyBoard`.
+
+## 6. System Verification
+
+- [x] 6.1 Run the full test suite (`npm test`) and verify zero regressions across existing stages, nodes, and minigames.
+- [x] 6.2 Validate the OpenSpec change using `openspec validate "barkdoku-puzzle-game" --strict`.

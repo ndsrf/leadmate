@@ -30,7 +30,8 @@ import { DailyResultScreen } from './src/shell/screens/DailyResultScreen';
 import { DiaryScreen } from './src/shell/screens/DiaryScreen';
 import { DoorbellMatView } from './src/shell/screens/DoorbellMatView';
 import { barkdokuResult, BarkdokuView } from './src/shell/screens/BarkdokuView';
-import { getDailyBoard } from './src/shell/puzzle/boards';
+import { randomBoard } from './src/shell/puzzle/generator';
+import type { BarkdokuBoard } from './src/shell/puzzle/types';
 import { findLesson, LESSONS } from './src/shell/lessons/content';
 import { findFix, findMission } from './src/shell/missions/content';
 import { acceptEasier, canMoveOn, fixFor, moveOn, startMission } from './src/shell/missions/mission';
@@ -88,7 +89,7 @@ type Flow =
   /** A Mission Stop's screens; a Fix opened from "Tus ajustes" returns to the Library. */
   | { name: 'mission'; id: string; view: MissionView; fixId?: string; returnTo?: 'map' | 'library' }
   | { name: 'paywall' }
-  | { name: 'puzzle'; date: string };
+  | { name: 'puzzle'; board: BarkdokuBoard };
 type MissionView = 'brief' | 'waiting' | 'checkin' | 'problem' | 'fix' | 'passed';
 
 /** The shell owns the active language; Spanish is the only one shipped. */
@@ -550,7 +551,7 @@ export default function App() {
           onDiary={() => setFlow({ name: 'diary' })}
           dailyBest={record.dailyBest[todayString()]}
           onDaily={() => setFlow({ name: 'daily', attempt: 0, result: null })}
-          onBarkdoku={() => setFlow({ name: 'puzzle', date: todayString() })}
+          onBarkdoku={() => setFlow({ name: 'puzzle', board: randomBoard(5, 8, newSeed()) })}
           rustyPrompt={rusty.current === true && warmup === 'none'}
           skippedWarmup={warmup === 'skipped'}
           onWarmup={() => setFlow({ name: 'warmup' })}
@@ -784,12 +785,12 @@ export default function App() {
     } else if (f.name === 'register') {
       screen = <RegisterPrompt t={t} onCreate={() => setFlow({ name: 'auth', mode: 'signup', returnTo: 'map' })} onNotNow={goHome} />;
     } else if (f.name === 'puzzle' && record) {
-      // The board is pinned to the date the puzzle was opened, so playing past midnight keeps it.
+      // A fresh board is dealt each time the puzzle opens and pinned in the flow for the whole play.
       screen = (
         <BarkdokuView
-          key={f.date}
+          key={f.board.id}
           t={t}
-          board={getDailyBoard(f.date)}
+          board={f.board}
           breed={record.breed}
           coat={record.coat}
           onFinish={(metrics) => {
