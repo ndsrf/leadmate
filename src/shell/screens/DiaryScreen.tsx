@@ -8,7 +8,7 @@ import { LESSONS } from '../lessons/content';
 import { findMission } from '../missions/content';
 import { findNode } from '../nodes/content';
 import { Button } from '../Overlays';
-import { shownStreak, type DiaryOutcome, type WalkDiaryEntry } from '../streak';
+import { diarySubject, shownStreak, type DiaryOutcome, type WalkDiaryEntry } from '../streak';
 import { Badge, Choice, Panel, StarRow } from '../ui/components';
 import { handlePress } from '../ui/press';
 import type { BadgeTone } from '../ui/styles';
@@ -238,7 +238,7 @@ function DayCard({ t, day, date, today, inStreak }: { t: Translate; day: DiaryDa
             <EventEntry key={`${e.at}|${e.kind}|${e.id}`} t={t} event={e} />
           ))}
           {day.walks.map((w) => (
-            <WalkEntry key={w.nodeId} t={t} walk={w} />
+            <WalkEntry key={diarySubject(w)} t={t} walk={w} />
           ))}
           {day.dailyBest !== undefined && (
             <Entry mark="daily">
