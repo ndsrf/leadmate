@@ -1,5 +1,5 @@
 import Svg, { Circle, Ellipse, G, Path, Rect } from 'react-native-svg';
-import { color, theme } from './theme';
+import { lightColor, theme } from './theme';
 
 const { coat, coatDark, coatLight } = theme.mascot;
 
@@ -13,7 +13,7 @@ export function isLessonArt(name: string): name is LessonArtName {
 
 /** A flat-fill paper-cut dog, ink outline, in a 16:9 scene (viewBox 320 by 180); `head` lowers it for sniffing. */
 function Dog({ x, y, head = 0, calm = false }: { x: number; y: number; head?: number; calm?: boolean }) {
-  const ink = color.ink;
+  const ink = lightColor.ink;
   return (
     <G transform={`translate(${x} ${y})`}>
       <Ellipse cx={30} cy={62} rx={42} ry={5} fill={ink} opacity={0.14} />
@@ -36,19 +36,19 @@ function Dog({ x, y, head = 0, calm = false }: { x: number; y: number; head?: nu
 
 /** A flat paper-cut illustration for placeholder Lessons; decorative unless `label` is given. */
 export function LessonArt({ name, width = 320, label }: { name: LessonArtName; width?: number; label?: string }) {
-  const ink = color.ink;
+  const ink = lightColor.ink;
   const a11y = label !== undefined ? { role: 'img' as const, 'aria-label': label } : { 'aria-hidden': true };
   return (
     <Svg width={width} height={(width * 180) / 320} viewBox="0 0 320 180" {...a11y}>
-      <Rect width={320} height={180} fill={color.sky} />
-      <Circle cx={270} cy={36} r={18} fill={color.accent} stroke={ink} strokeWidth={3} />
-      <Path d="M0 120C60 100 120 124 190 110S290 100 320 112V180H0Z" fill={color.brand} stroke={ink} strokeWidth={3} />
-      <Path d="M0 150C70 134 150 156 230 142S300 138 320 146V180H0Z" fill={color.brandDeep} stroke={ink} strokeWidth={3} />
+      <Rect width={320} height={180} fill={lightColor.sky} />
+      <Circle cx={270} cy={36} r={18} fill={lightColor.accent} stroke={ink} strokeWidth={3} />
+      <Path d="M0 120C60 100 120 124 190 110S290 100 320 112V180H0Z" fill={lightColor.brand} stroke={ink} strokeWidth={3} />
+      <Path d="M0 150C70 134 150 156 230 142S300 138 320 146V180H0Z" fill={lightColor.brandDeep} stroke={ink} strokeWidth={3} />
       {name === 'leash' && (
         <>
           <Dog x={150} y={72} />
           <Path d="M60 90C90 128 130 128 148 106" fill="none" stroke={ink} strokeWidth={4} strokeLinecap="round" />
-          <Circle cx={56} cy={84} r={9} fill={color.coral} stroke={ink} strokeWidth={3} />
+          <Circle cx={56} cy={84} r={9} fill={lightColor.coral} stroke={ink} strokeWidth={3} />
         </>
       )}
       {name === 'body' && (
@@ -61,14 +61,14 @@ export function LessonArt({ name, width = 320, label }: { name: LessonArtName; w
         <>
           <Dog x={190} y={72} calm />
           <Path d="M40 80C70 140 150 140 196 104" fill="none" stroke={ink} strokeWidth={5} strokeLinecap="round" />
-          <Circle cx={40} cy={78} r={9} fill={color.coral} stroke={ink} strokeWidth={3} />
+          <Circle cx={40} cy={78} r={9} fill={lightColor.coral} stroke={ink} strokeWidth={3} />
         </>
       )}
       {name === 'marker' && (
         <>
           <Dog x={110} y={72} calm />
-          <Circle cx={250} cy={86} r={20} fill={color.accent} stroke={ink} strokeWidth={3} />
-          <Path d="M250 74l4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z" fill={color.surface} stroke={ink} strokeWidth={2} strokeLinejoin="round" />
+          <Circle cx={250} cy={86} r={20} fill={lightColor.accent} stroke={ink} strokeWidth={3} />
+          <Path d="M250 74l4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z" fill={lightColor.surface} stroke={ink} strokeWidth={2} strokeLinejoin="round" />
         </>
       )}
       {name === 'sniff' && (
@@ -80,8 +80,8 @@ export function LessonArt({ name, width = 320, label }: { name: LessonArtName; w
       {name === 'poster' && (
         <>
           <Dog x={70} y={72} calm />
-          <Circle cx={248} cy={92} r={30} fill={color.surface} stroke={ink} strokeWidth={3.5} />
-          <Path d="M240 76L264 92L240 108Z" fill={color.brand} stroke={ink} strokeWidth={3} strokeLinejoin="round" />
+          <Circle cx={248} cy={92} r={30} fill={lightColor.surface} stroke={ink} strokeWidth={3.5} />
+          <Path d="M240 76L264 92L240 108Z" fill={lightColor.brand} stroke={ink} strokeWidth={3} strokeLinejoin="round" />
         </>
       )}
     </Svg>

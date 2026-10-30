@@ -4,7 +4,8 @@ export type Stars = 1 | 2 | 3;
 
 /**
  * Stars for a finished Node from its handling score (0-1000): 1 for completing it, 2 from 650 and 3
- * from 850. A Node without a score (a Minigame) earns 1. Only handling quality counts, never time or taps.
+ * from 850. A Node without a score (a Minigame) earns 1. Only handling quality counts, never time or taps,
+ * except that a Barkdoku solved over its Target Time is capped below 3 (ADR 0014).
  */
 export function starsFor(handlingScore: number | undefined): Stars {
   if (handlingScore === undefined || !Number.isFinite(handlingScore)) return 1;

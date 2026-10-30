@@ -4,6 +4,7 @@ import { mapModel, type MapModel } from './mapModel';
 import { migrateRecord } from './dogRecord';
 import type { MissionState } from './missions/mission';
 import { nodeVisual } from './ui/mapLayout';
+import { lightColor } from './ui/theme';
 import { progressOf } from './world';
 
 const t = createTranslator();
@@ -100,14 +101,14 @@ describe('World subtitles and unlock banners', () => {
 
 describe('Stop visuals', () => {
   it('gives each state a distinct glyph/ring combination so colour is never the only cue', () => {
-    const seen = (['locked', 'open', 'next', 'waiting', 'done'] as const).map((s) => `${nodeVisual(s, 'mission').glyph}|${nodeVisual(s, 'mission').ring}`);
+    const seen = (['locked', 'open', 'next', 'waiting', 'done'] as const).map((s) => `${nodeVisual(lightColor, s, 'mission').glyph}|${nodeVisual(lightColor, s, 'mission').ring}`);
     expect(new Set(seen).size).toBe(5);
-    expect(nodeVisual('locked').glyph).toBe('lock');
-    expect(nodeVisual('done').glyph).toBe('check');
-    expect(nodeVisual('waiting', 'mission').glyph).toBe('moon');
+    expect(nodeVisual(lightColor, 'locked').glyph).toBe('lock');
+    expect(nodeVisual(lightColor, 'done').glyph).toBe('check');
+    expect(nodeVisual(lightColor, 'waiting', 'mission').glyph).toBe('moon');
   });
 
   it('draws a single next-up ring', () => {
-    expect((['locked', 'open', 'next', 'waiting', 'done'] as const).filter((s) => nodeVisual(s).ring)).toEqual(['next']);
+    expect((['locked', 'open', 'next', 'waiting', 'done'] as const).filter((s) => nodeVisual(lightColor, s).ring)).toEqual(['next']);
   });
 });

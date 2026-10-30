@@ -2,13 +2,15 @@ import './global.css';
 import * as ExpoSplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, View } from 'react-native';
+import { AppState, useColorScheme, View } from 'react-native';
 import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Fredoka_600SemiBold } from '@expo-google-fonts/fredoka';
 import { createTranslator, es } from './src/i18n';
 import { installFeedback } from './src/shell/ui/feedbackBackends';
 import { useUiSettings } from './src/shell/ui/useUiSettings';
+import { PaletteRoot } from './src/shell/ui/components';
+import { PaletteProvider, type ColorScheme } from './src/shell/ui/theme';
 import { defaultScenario, type ScenarioConfig } from './src/sim/config';
 import type { LearningSnapshot } from './src/sim/learning';
 import type { SimulationDebriefPayload } from './src/sim/payload';
@@ -16,7 +18,7 @@ import { BUNDLE_MESSAGE_TYPES, decode, type BundleMessage, type ShellMessage } f
 import { newSeed } from './src/sim/rng';
 import { playDogSound, playResolvedCue, prepareAudio } from './src/shell/audio';
 import { createVocalizer } from './src/shell/vocalize';
-import { applyActivity, applyMissionCheckIn, toSnapshot, updateMission } from './src/shell/dogRecord';
+import { applyMissionCheckIn, recordDailyBarkdoku, toSnapshot, updateMission } from './src/shell/dogRecord';
 import { starsFor } from './src/shell/stars';
 import { lookOf } from './src/shell/onboarding/look';
 import { INTRO_NODE } from './src/shell/onboarding/introNode';
@@ -31,6 +33,7 @@ import { DiaryScreen } from './src/shell/screens/DiaryScreen';
 import { DoorbellMatView } from './src/shell/screens/DoorbellMatView';
 import { barkdokuResult, BarkdokuView } from './src/shell/screens/BarkdokuView';
 import { getDailyBoard } from './src/shell/puzzle/boards';
+import type { PuzzleSummary } from './src/shell/puzzle/types';
 import { findLesson, LESSONS } from './src/shell/lessons/content';
 import { findFix, findMission } from './src/shell/missions/content';
 import { acceptEasier, canMoveOn, fixFor, moveOn, startMission } from './src/shell/missions/mission';
@@ -124,6 +127,9 @@ export default function App() {
   }, []);
 
   const ui = useUiSettings(dogStore);
+  // System follows the phone (or browser); one that reports no preference gets Light
+  const systemScheme = useColorScheme();
+  const scheme: ColorScheme = ui.settings.appearance === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : ui.settings.appearance;
   const sim = useRef<SimViewHandle>(null);
   const { record, update, replace } = useDog(dogStore);
   const account = useAccount(dogStore, record, replace);
@@ -549,6 +555,7 @@ export default function App() {
           onLibrary={() => setFlow({ name: 'library' })}
           onDiary={() => setFlow({ name: 'diary' })}
           dailyBest={record.dailyBest[todayString()]}
+          barkdokuToday={record.dailyBarkdoku[todayString()]}
           onDaily={() => setFlow({ name: 'daily', attempt: 0, result: null })}
           onBarkdoku={() => setFlow({ name: 'puzzle', date: todayString() })}
           rustyPrompt={rusty.current === true && warmup === 'none'}
@@ -784,17 +791,21 @@ export default function App() {
     } else if (f.name === 'register') {
       screen = <RegisterPrompt t={t} onCreate={() => setFlow({ name: 'auth', mode: 'signup', returnTo: 'map' })} onNotNow={goHome} />;
     } else if (f.name === 'puzzle' && record) {
-      // The board is pinned to the date the puzzle was opened, so playing past midnight keeps it.
+      // The board is pinned to the date the puzzle was opened, so playing past midnight keeps it. Once the date's
+      // board is solved, replays are practice and save nothing (ADR 0014).
+      const board = getDailyBoard(f.date);
+      const practice = record.dailyBarkdoku[f.date] !== undefined;
       screen = (
         <BarkdokuView
           key={f.date}
           t={t}
-          board={getDailyBoard(f.date)}
+          board={board}
           breed={record.breed}
           coat={record.coat}
-          onFinish={(metrics) => {
-            if (metrics.solved) {
-              update((r) => applyActivity(r, new Date()));
+          practice={practice}
+          onFinish={(metrics, summary) => {
+            if (metrics.solved && !practice) {
+              update((r) => recordDailyBarkdoku(r, board.id, summary, metrics.stars, f.date, new Date()));
             }
             goHome();
           }}
@@ -809,7 +820,8 @@ export default function App() {
       else if (run.step === 'checkpoint')
         screen = <CheckpointScreen t={t} run={run} setting={record.checkpointSeconds} onAnswer={(option) => act({ type: 'answer', option })} onTimeout={() => act({ type: 'timeout' })} />;
       else if (run.step === 'simulation' && run.node.mode === 'minigame') {
-        const finish = (metrics: Partial<Record<Metric, number>>, handlingScore?: number) => act({ type: 'finish', result: { kind: 'minigame', metrics, handlingScore } });
+        const finish = (metrics: Partial<Record<Metric, number>>, handlingScore?: number, puzzle?: PuzzleSummary) =>
+          act({ type: 'finish', result: { kind: 'minigame', metrics, handlingScore, ...(puzzle ? { puzzle } : {}) } });
         const minigame = run.node.simulation.minigame;
         const seed = f.attempt + 1 + (dateSeed(todayString()) % 1000);
         const playCue = () => playResolvedCue(resolveCue(record, LANGUAGE));
@@ -824,9 +836,9 @@ export default function App() {
               t={t}
               breed={record.breed}
               coat={record.coat}
-              onFinish={(metrics) => {
+              onFinish={(metrics, summary) => {
                 const r = barkdokuResult(metrics);
-                finish(r.metrics, r.handlingScore);
+                finish(r.metrics, r.handlingScore, summary);
               }}
               onExit={goHome}
             />
@@ -858,42 +870,44 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <View className="flex-1 bg-bg">
-        <SimView key={attempt} ref={sim} onMessage={onMessage} onLoadError={() => setBundle('error')} />
-        {screen}
-        {playingStage && hint && !dogWarning && !paused && <HintOverlay text={t(HINT_TEXT[hint])} />}
-        {playingStage && record && !tastePayoff && !paused && bundle === 'ready' && (
-          <CoachMarksOverlay
-            moveText={t('coach.controls.move')}
-            markText={t('coach.controls.mark')}
-            showMove={!controlsUsed.move && !record.seenHints.includes(COACH_ID.move)}
-            showMark={!controlsUsed.mark && !markExpired && !record.seenHints.includes(COACH_ID.mark)}
-          />
-        )}
-        {playingStage && record && dogWarning && !paused && (
-          <DogWarningOverlay text={withDogName(t('coach.dog.warning'), record.name, t('dog.neutral'))} bearing={dogWarning.bearing} />
-        )}
-        {route.name === 'taste' && tastePayoff && record && <PayoffOverlay t={t} name={record.name} onContinue={() => update(completeTaste)} />}
-        {playingStage && bundle === 'loading' && <LoadingOverlay t={t} />}
-        {playingStage && paused && (
-          <ResumeOverlay
-            t={t}
-            onResume={() => {
-              setPaused(false);
-              send({ type: 'resume' });
-            }}
-            onExit={() => {
-              if (route.name === 'taste' || route.name === 'first-stage') {
-                // the funnel cannot be left from a Stage; Exit just carries on
+      <PaletteProvider scheme={scheme}>
+        <PaletteRoot className="flex-1 bg-bg">
+          <SimView key={attempt} ref={sim} onMessage={onMessage} onLoadError={() => setBundle('error')} />
+          {screen}
+          {playingStage && hint && !dogWarning && !paused && <HintOverlay text={t(HINT_TEXT[hint])} />}
+          {playingStage && record && !tastePayoff && !paused && bundle === 'ready' && (
+            <CoachMarksOverlay
+              moveText={t('coach.controls.move')}
+              markText={t('coach.controls.mark')}
+              showMove={!controlsUsed.move && !record.seenHints.includes(COACH_ID.move)}
+              showMark={!controlsUsed.mark && !markExpired && !record.seenHints.includes(COACH_ID.mark)}
+            />
+          )}
+          {playingStage && record && dogWarning && !paused && (
+            <DogWarningOverlay text={withDogName(t('coach.dog.warning'), record.name, t('dog.neutral'))} bearing={dogWarning.bearing} />
+          )}
+          {route.name === 'taste' && tastePayoff && record && <PayoffOverlay t={t} name={record.name} onContinue={() => update(completeTaste)} />}
+          {playingStage && bundle === 'loading' && <LoadingOverlay t={t} />}
+          {playingStage && paused && (
+            <ResumeOverlay
+              t={t}
+              onResume={() => {
                 setPaused(false);
                 send({ type: 'resume' });
-              } else goHome();
-            }}
-          />
-        )}
-        {bundle === 'error' && <ErrorOverlay t={t} onRetry={retry} />}
-        <StatusBar style="dark" hidden />
-      </View>
+              }}
+              onExit={() => {
+                if (route.name === 'taste' || route.name === 'first-stage') {
+                  // the funnel cannot be left from a Stage; Exit just carries on
+                  setPaused(false);
+                  send({ type: 'resume' });
+                } else goHome();
+              }}
+            />
+          )}
+          {bundle === 'error' && <ErrorOverlay t={t} onRetry={retry} />}
+          <StatusBar style="dark" hidden />
+        </PaletteRoot>
+      </PaletteProvider>
     </SafeAreaProvider>
   );
 }

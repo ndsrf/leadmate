@@ -4,12 +4,13 @@ import type { Translate } from '../../i18n';
 import { fractionToKg, kgText, kgToFraction, stepKg, type KgRange } from '../onboarding/weights';
 import { Raised } from './components';
 import { handlePress } from './press';
-import { color, theme } from './theme';
+import { theme, usePalette } from './theme';
 
 const THUMB = 28;
 const TRACK = 14;
 
 function StepButton({ label, glyph, onPress }: { label: string; glyph: '-' | '+'; onPress: () => void }) {
+  const color = usePalette();
   return (
     <Pressable onPress={() => handlePress(onPress)} accessibilityRole="button" accessibilityLabel={label} style={{ width: theme.size.touchMin, height: theme.size.touchMin, alignItems: 'center', justifyContent: 'center' }}>
       <Raised fill={color.surface} radius={theme.radius.pill} offset={2} faceStyle={{ width: 34, height: 34, alignItems: 'center', justifyContent: 'center' }}>
@@ -43,6 +44,7 @@ export function WeightSlider({
   hint?: readonly [min: number, max: number] | null;
   onChange: (kg: number) => void;
 }) {
+  const color = usePalette();
   const [width, setWidth] = useState(0);
   const shown = value ?? start;
   const travel = Math.max(0, width - THUMB);
@@ -75,18 +77,18 @@ export function WeightSlider({
           onResponderMove={at}
         >
           <View pointerEvents="none" style={{ position: 'absolute', left, top: 0, minWidth: THUMB + 20, marginLeft: -10, alignItems: 'center' }}>
-            <View style={{ paddingHorizontal: theme.space[2], paddingVertical: 2, borderRadius: theme.radius.sm, borderWidth: theme.border.ink, borderColor: color.ink, backgroundColor: color.accent }}>
+            <View style={{ paddingHorizontal: theme.space[2], paddingVertical: 2, borderRadius: theme.radius.sm, borderWidth: theme.border.ink, borderColor: color.outline, backgroundColor: color.accent }}>
               <Text className="font-display text-label" style={{ color: color.onAccent }}>
                 {text}
               </Text>
             </View>
           </View>
           <View pointerEvents="none" style={{ height: THUMB, justifyContent: 'center' }}>
-            <View style={{ height: TRACK, borderRadius: TRACK / 2, borderWidth: theme.border.ink, borderColor: color.ink, backgroundColor: color.surfaceSunken, overflow: 'hidden' }}>
+            <View style={{ height: TRACK, borderRadius: TRACK / 2, borderWidth: theme.border.ink, borderColor: color.outline, backgroundColor: color.surfaceSunken, overflow: 'hidden' }}>
               {band && <View style={{ position: 'absolute', left: band.left, right: band.right, top: 0, bottom: 0, backgroundColor: color.brand, opacity: 0.45 }} />}
               <View style={{ width: left + THUMB / 2, height: '100%', backgroundColor: value === null ? color.edge : color.brand }} />
             </View>
-            <View style={{ position: 'absolute', left, width: THUMB, height: THUMB, borderRadius: THUMB / 2, borderWidth: theme.border.ink, borderColor: color.ink, backgroundColor: color.surface }} />
+            <View style={{ position: 'absolute', left, width: THUMB, height: THUMB, borderRadius: THUMB / 2, borderWidth: theme.border.ink, borderColor: color.outline, backgroundColor: color.surface }} />
           </View>
         </View>
         <StepButton label={t('weight.more')} glyph="+" onPress={() => step(1)} />

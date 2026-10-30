@@ -3,17 +3,17 @@ import type { DogCoat } from '../../sim/config';
 import type { BreedId } from '../onboarding/breeds';
 import { BREED_SHAPES, BREED_VIEW, FIT_PIVOT, GROUND_Y, artBreed, fitScale, geometryOf, type BreedShape } from './breedShapes';
 import { COAT_PALETTE, type CoatPalette } from './canine';
-import { color } from './theme';
+import { lightColor } from './theme';
 
 const STROKE = 2.4;
-const outline = { stroke: color.ink, strokeWidth: STROKE, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const };
+const outline = { stroke: lightColor.ink, strokeWidth: STROKE, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const };
 
 function Tail({ s, rump, pal }: { s: BreedShape; rump: { x: number; y: number }; pal: CoatPalette }) {
   const { x, y } = rump;
   const k = s.tail.size;
   const line = (d: string, w: number) => (
     <G>
-      <Path d={d} fill="none" stroke={color.ink} strokeWidth={w + STROKE * 1.6} strokeLinecap="round" />
+      <Path d={d} fill="none" stroke={lightColor.ink} strokeWidth={w + STROKE * 1.6} strokeLinecap="round" />
       <Path d={d} fill="none" stroke={pal.shade} strokeWidth={w} strokeLinecap="round" />
     </G>
   );
@@ -76,7 +76,7 @@ function Dog({ breed, pal, looking }: { breed: BreedId; pal: CoatPalette; lookin
   const neckBase = { x: g.bodyCx + s.bodyRx * 0.7, y: g.bodyTop + s.bodyRy * 0.5 };
   return (
     <G transform={`translate(${FIT_PIVOT.x} ${FIT_PIVOT.y}) scale(${fitScale(s)}) translate(${-FIT_PIVOT.x} ${-FIT_PIVOT.y})`}>
-      <Ellipse cx={g.bodyCx} cy={GROUND_Y + 2} rx={s.bodyRx + 6} ry={4} fill={color.ink} opacity={0.14} />
+      <Ellipse cx={g.bodyCx} cy={GROUND_Y + 2} rx={s.bodyRx + 6} ry={4} fill={lightColor.ink} opacity={0.14} />
       {leg(g.legX.back + 6, pal.shade)}
       {leg(g.legX.front + 6, pal.shade)}
       <Tail s={s} rump={g.rump} pal={pal} />
@@ -91,21 +91,21 @@ function Dog({ breed, pal, looking }: { breed: BreedId; pal: CoatPalette; lookin
           ))}
         </G>
       )}
-      <Path d={`M${neckBase.x - 8} ${neckBase.y} L${g.head.x} ${g.head.y + s.headR * 0.5}`} stroke={color.ink} strokeWidth={s.headR * 1.15 + STROKE * 1.6} strokeLinecap="round" fill="none" />
+      <Path d={`M${neckBase.x - 8} ${neckBase.y} L${g.head.x} ${g.head.y + s.headR * 0.5}`} stroke={lightColor.ink} strokeWidth={s.headR * 1.15 + STROKE * 1.6} strokeLinecap="round" fill="none" />
       <Path d={`M${neckBase.x - 8} ${neckBase.y} L${g.head.x} ${g.head.y + s.headR * 0.5}`} stroke={pal.fill} strokeWidth={s.headR * 1.15} strokeLinecap="round" fill="none" />
       <Ear s={s} head={g.head} pal={pal} back looking={looking} />
       <Circle cx={g.head.x} cy={g.head.y} r={s.headR} fill={pal.fill} {...outline} />
       <Rect x={g.snout.x} y={g.snout.y} width={s.snout.l + s.headR * 0.5} height={s.snout.h} rx={s.snout.h / 2} fill={pal.belly} {...outline} />
-      <Ellipse cx={g.snout.x + s.snout.l + s.headR * 0.5 - 3} cy={g.snout.y + 3} rx={3} ry={2.4} fill={color.ink} />
+      <Ellipse cx={g.snout.x + s.snout.l + s.headR * 0.5 - 3} cy={g.snout.y + 3} rx={3} ry={2.4} fill={lightColor.ink} />
       {s.topknot && <Circle cx={g.head.x - 1} cy={g.head.y - s.headR - 2} r={s.headR * 0.55} fill={pal.fill} {...outline} />}
       <Ear s={s} head={g.head} pal={pal} back={false} looking={looking} />
-      {looking && <Circle cx={g.head.x + s.headR * 0.3} cy={g.head.y - s.headR * 0.1} r={4.4} fill={color.surface} {...outline} strokeWidth={1.6} />}
-      <Circle cx={g.head.x + s.headR * 0.3} cy={g.head.y - s.headR * 0.1} r={looking ? 2.8 : 2.4} fill={color.ink} />
-      <Circle cx={g.head.x + s.headR * 0.38} cy={g.head.y - s.headR * 0.18} r={0.8} fill={color.surface} />
+      {looking && <Circle cx={g.head.x + s.headR * 0.3} cy={g.head.y - s.headR * 0.1} r={4.4} fill={lightColor.surface} {...outline} strokeWidth={1.6} />}
+      <Circle cx={g.head.x + s.headR * 0.3} cy={g.head.y - s.headR * 0.1} r={looking ? 2.8 : 2.4} fill={lightColor.ink} />
+      <Circle cx={g.head.x + s.headR * 0.38} cy={g.head.y - s.headR * 0.18} r={0.8} fill={lightColor.surface} />
       {looking && (
         <G>
           {[0, 1].map((i) => (
-            <Path key={i} d={`M${g.snout.x + s.snout.l + s.headR * 0.5 + 5 + i * 6} ${g.head.y - s.headR * 0.1 - 6} Q${g.snout.x + s.snout.l + s.headR * 0.5 + 9 + i * 6} ${g.head.y - s.headR * 0.1} ${g.snout.x + s.snout.l + s.headR * 0.5 + 5 + i * 6} ${g.head.y - s.headR * 0.1 + 6}`} fill="none" stroke={color.accent} strokeWidth={2.4} strokeLinecap="round" />
+            <Path key={i} d={`M${g.snout.x + s.snout.l + s.headR * 0.5 + 5 + i * 6} ${g.head.y - s.headR * 0.1 - 6} Q${g.snout.x + s.snout.l + s.headR * 0.5 + 9 + i * 6} ${g.head.y - s.headR * 0.1} ${g.snout.x + s.snout.l + s.headR * 0.5 + 5 + i * 6} ${g.head.y - s.headR * 0.1 + 6}`} fill="none" stroke={lightColor.accent} strokeWidth={2.4} strokeLinecap="round" />
           ))}
         </G>
       )}

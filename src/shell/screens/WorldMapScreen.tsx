@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, Text, View, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { useLive } from '../ui/useAppActive';
 import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import type { Translate } from '../../i18n';
@@ -8,16 +8,19 @@ import { mapModel, nextMapChange, type MapStop, type MapWorld, type NodeState } 
 import { streakStatus, type StreakStatus } from '../celebrations';
 import type { Stars } from '../stars';
 import type { StreakRecord } from '../streak';
+import type { DailyBarkdokuSolve } from '../dogRecord';
+import { formatClock, solveTimeText } from '../puzzle/engine';
 import type { Progress, Stop } from '../world';
 import { Button } from '../Overlays';
-import { Badge, Chip, Panel, ProgressBar, Raised, StarRow } from '../ui/components';
+import { Badge, Chip, GearGlyph, IconChip, LightRegion, Panel, ProgressBar, Raised, StarRow } from '../ui/components';
 import { connector, connectorVisual, labelOnRight, labelWidth, NODE_SIZE, nodeCenterX, nodeVisual, ROW_HEIGHT, stretchFlag, type NodeGlyph } from '../ui/mapLayout';
 import { lockMessage, stopAccessibilityLabel, stopBadge, stopMarks, worldUnlockBanner, worldWalkSubtitle } from '../mapText';
+import { HouseLandmark, SceneryBushes } from '../ui/art';
 import { BreedArt } from '../ui/BreedArt';
 import type { BreedId } from '../onboarding/breeds';
 import type { DogCoat } from '../onboarding/look';
 import { handlePress } from '../ui/press';
-import { color, theme } from '../ui/theme';
+import { theme, usePalette } from '../ui/theme';
 import { useMotion } from '../ui/useMotion';
 import { Screen } from './Screen';
 
@@ -41,6 +44,8 @@ export interface WorldMapProps {
   onWarmup: () => void;
   onSkipWarmup: () => void;
   onDaily: () => void;
+  /** Today's first Daily Barkdoku solve, if solved. */
+  barkdokuToday?: DailyBarkdokuSolve;
   onBarkdoku?: () => void;
   /** Opens an available Stop by kind: a Lesson, a Node or a Mission. */
   onOpenStop: (stop: Stop) => void;
@@ -67,6 +72,7 @@ export interface WorldMapProps {
 
 /** A flame drawn from two rotated drops, so it needs no emoji font; grey when there is no Streak to show. */
 export function Flame({ lit, label }: { lit: boolean; label: string }) {
+  const color = usePalette();
   const drop = (size: number, fill: string) => ({
     width: size,
     height: size,
@@ -97,13 +103,15 @@ function LockIcon({ tint }: { tint: string }) {
 
 /** The glyph on a Stop's disc: its kind when open (book, controller, paw, flag), a moon while waiting. */
 function KindGlyph({ glyph, tint }: { glyph: Exclude<NodeGlyph, 'check' | 'lock'>; tint: string }) {
-  const ink = color.ink;
+  const color = usePalette();
+  // the tint is the glyph colour that reads on the disc; the faces are paper
+  const ink = tint;
   return (
     <Svg width={26} height={26} viewBox="0 0 24 24" aria-hidden>
       {glyph === 'book' && (
         <>
-          <Path d="M3 5c3-1.5 6-1.5 9 0v14c-3-1.5-6-1.5-9 0z" fill={tint === ink ? color.surface : tint} stroke={ink} strokeWidth={1.8} strokeLinejoin="round" />
-          <Path d="M21 5c-3-1.5-6-1.5-9 0v14c3-1.5 6-1.5 9 0z" fill={tint === ink ? color.surface : tint} stroke={ink} strokeWidth={1.8} strokeLinejoin="round" />
+          <Path d="M3 5c3-1.5 6-1.5 9 0v14c-3-1.5-6-1.5-9 0z" fill={color.surface} stroke={ink} strokeWidth={1.8} strokeLinejoin="round" />
+          <Path d="M21 5c-3-1.5-6-1.5-9 0v14c3-1.5 6-1.5 9 0z" fill={color.surface} stroke={ink} strokeWidth={1.8} strokeLinejoin="round" />
         </>
       )}
       {glyph === 'controller' && (
@@ -136,12 +144,13 @@ function KindGlyph({ glyph, tint }: { glyph: Exclude<NodeGlyph, 'check' | 'lock'
 
 /** The "Tramo N" flag drawn at each Mission, marking the end of a Stretch. */
 function StretchFlag({ t, n }: { t: Translate; n: number }) {
+  const color = usePalette();
   return (
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       className="flex-row items-center"
-      style={{ backgroundColor: color.surface, borderWidth: 2, borderColor: color.ink, borderRadius: theme.radius.pill, paddingHorizontal: 6, paddingVertical: 1, gap: 2 }}
+      style={{ backgroundColor: color.surface, borderWidth: 2, borderColor: color.outline, borderRadius: theme.radius.pill, paddingHorizontal: 6, paddingVertical: 1, gap: 2 }}
     >
       <Text className="font-display text-[10px] font-bold uppercase text-ink">{t('map.stretch').replace('{n}', String(n))}</Text>
     </View>
@@ -150,8 +159,9 @@ function StretchFlag({ t, n }: { t: Translate; n: number }) {
 
 /** The Dog's marker on the map: a paw (kept for compatibility), muted and ringed in amber while Rusty. */
 export function PawMarker({ rusty, label }: { rusty: boolean; label: string }) {
+  const color = usePalette();
   const fill = rusty ? color.flame : color.brandDeep;
-  const toe = { width: 7, height: 8, borderRadius: 4, backgroundColor: color.ink };
+  const toe = { width: 7, height: 8, borderRadius: 4, backgroundColor: color.outline };
   return (
     <View accessibilityLabel={label} className="h-8 w-8 items-center justify-center rounded-game-pill" style={{ backgroundColor: fill, borderWidth: rusty ? 3 : 0, borderColor: color.accent }}>
       <View className="flex-row" style={{ gap: 2, marginBottom: 1 }}>
@@ -160,7 +170,7 @@ export function PawMarker({ rusty, label }: { rusty: boolean; label: string }) {
         <View style={toe} />
         <View style={[toe, { marginTop: 3 }]} />
       </View>
-      <View style={{ width: 12, height: 8, borderRadius: 5, backgroundColor: color.ink }} />
+      <View style={{ width: 12, height: 8, borderRadius: 5, backgroundColor: color.outline }} />
     </View>
   );
 }
@@ -180,6 +190,7 @@ export function MapDogAvatar({
   resting?: boolean;
   label: string;
 }) {
+  const color = usePalette();
   return (
     <View
       accessibilityLabel={label}
@@ -207,7 +218,7 @@ export function MapDogAvatar({
       </View>
       {resting && (
         <View pointerEvents="none" style={{ position: 'absolute', top: -6, right: 0 }}>
-          <KindGlyph glyph="moon" tint={color.ink} />
+          <KindGlyph glyph="moon" tint={color.outline} />
         </View>
       )}
     </View>
@@ -216,6 +227,7 @@ export function MapDogAvatar({
 
 /** The badge pill below a Stop: [Siguiente], [¿Cómo fue?], or when a waiting Mission opens. */
 export function NextUpBadge({ label, quiet = false }: { label: string; quiet?: boolean }) {
+  const color = usePalette();
   return (
     <View
       accessibilityElementsHidden
@@ -223,7 +235,7 @@ export function NextUpBadge({ label, quiet = false }: { label: string; quiet?: b
       style={{
         backgroundColor: quiet ? color.surface : color.accent,
         borderWidth: 2,
-        borderColor: color.ink,
+        borderColor: color.outline,
         borderRadius: theme.radius.pill,
         paddingHorizontal: 6,
         paddingVertical: 1,
@@ -231,40 +243,9 @@ export function NextUpBadge({ label, quiet = false }: { label: string; quiet?: b
         marginTop: 2,
       }}
     >
-      <Text className="font-display text-[10px] uppercase font-bold text-ink">
+      <Text className={`font-display text-[10px] uppercase font-bold ${quiet ? 'text-ink' : 'text-onAccent'}`}>
         {label}
       </Text>
-    </View>
-  );
-}
-
-/** Starting house landmark at the beginning of World 1 (Board 11). */
-export function HouseLandmark() {
-  const ink = color.ink;
-  return (
-    <View
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      className="items-center justify-center mb-3"
-    >
-      <Svg width={44} height={40} viewBox="0 0 44 40" aria-hidden>
-        <Path d="M22 4L4 18h36z" fill={color.coral} stroke={ink} strokeWidth={2.4} strokeLinejoin="round" />
-        <Rect x={30} y={6} width={5} height={10} fill={color.inkMuted} stroke={ink} strokeWidth={2} />
-        <Rect x={8} y={18} width={28} height={18} rx={2} fill={color.surface} stroke={ink} strokeWidth={2.4} />
-        <Rect x={18} y={24} width={8} height={12} rx={1} fill={color.brandDeep} stroke={ink} strokeWidth={1.8} />
-        <Circle cx={13} cy={23} r={3} fill={color.accent} stroke={ink} strokeWidth={1.5} />
-      </Svg>
-    </View>
-  );
-}
-
-/** Decorative paper-cut scenery dots along active world trail borders. */
-function SceneryBushes({ palette }: { palette: { ground: string; sky: string } }) {
-  return (
-    <View pointerEvents="none" style={{ position: 'absolute', inset: 0 }}>
-      <View style={{ position: 'absolute', left: 16, top: 40, width: 12, height: 12, borderRadius: 6, backgroundColor: palette.ground, opacity: 0.6, borderWidth: 1.5, borderColor: color.ink }} />
-      <View style={{ position: 'absolute', right: 20, top: 110, width: 16, height: 16, borderRadius: 8, backgroundColor: palette.ground, opacity: 0.5, borderWidth: 1.5, borderColor: color.ink }} />
-      <View style={{ position: 'absolute', left: 24, top: 220, width: 14, height: 14, borderRadius: 7, backgroundColor: palette.ground, opacity: 0.55, borderWidth: 1.5, borderColor: color.ink }} />
     </View>
   );
 }
@@ -298,6 +279,7 @@ function useMapClock(live: boolean, missions: Progress['missions']): Date {
  * while it is not `live` (the app is in the background or the map is covered by another screen).
  */
 function NextUpRing({ pulse, live }: { pulse: boolean; live: boolean }) {
+  const color = usePalette();
   const phase = useSharedValue(0);
   useEffect(() => {
     if (!pulse || !live) {
@@ -313,7 +295,7 @@ function NextUpRing({ pulse, live }: { pulse: boolean; live: boolean }) {
   return (
     <Animated.View
       pointerEvents="none"
-      style={[{ position: 'absolute', left: -7, top: -7, width: size, height: size, borderRadius: size / 2, borderWidth: 3, borderStyle: 'dashed', borderColor: color.ink }, style]}
+      style={[{ position: 'absolute', left: -7, top: -7, width: size, height: size, borderRadius: size / 2, borderWidth: 3, borderStyle: 'dashed', borderColor: color.outline }, style]}
     />
   );
 }
@@ -350,12 +332,13 @@ function NodeRow({
   dogResting: boolean;
   onPress: (entry: MapStop) => void;
 }) {
-  const c = nodeVisual(entry.state, entry.kind, entry.optional);
+  const color = usePalette();
+  const c = nodeVisual(color, entry.state, entry.kind, entry.optional);
   const shadow = c.glyph === 'lock' ? 0 : theme.depth.sm.x;
   const cx = nodeCenterX(index, width);
   const onRight = labelOnRight(index);
   const seg = connector(index, width);
-  const cSeg = connectorVisual(entry.state, nextState);
+  const cSeg = connectorVisual(color, entry.state, nextState);
   const title = t(entry.title);
   const state = entry.state;
   const badge = stopBadge(entry, t);
@@ -502,6 +485,7 @@ function CollapsedWorldHeader({
   isExpanded: boolean;
   onToggle: () => void;
 }) {
+  const color = usePalette();
   const palette =
     theme.world[`w${entry.world.worldNumber}` as keyof typeof theme.world] ??
     (entry.world.worldNumber % 4 === 1
@@ -534,7 +518,7 @@ function CollapsedWorldHeader({
         >
           <View
             className="items-center justify-center rounded-game-pill bg-surface"
-            style={{ width: 36, height: 36, borderWidth: theme.border.ink, borderColor: color.ink }}
+            style={{ width: 36, height: 36, borderWidth: theme.border.ink, borderColor: color.outline }}
           >
             <LockIcon tint={color.ink} />
           </View>
@@ -556,24 +540,7 @@ function CollapsedWorldHeader({
   );
 }
 
-function WorldBlock({
-  t,
-  entry,
-  width,
-  rusty,
-  pulse,
-  live,
-  isFirstLocked,
-  isExpanded,
-  onToggleExpand,
-  onPressNode,
-  onPressPaywall,
-  onLayout,
-  onPathLayout,
-  breed,
-  coat,
-  restingAt,
-}: {
+type WorldBlockProps = {
   t: Translate;
   entry: MapWorld;
   width: number;
@@ -591,7 +558,36 @@ function WorldBlock({
   onPathLayout: (e: LayoutChangeEvent) => void;
   breed?: BreedId;
   coat?: DogCoat;
-}) {
+};
+
+/** A world's header and trail sit on its scenery, so they stay Light whatever the Appearance. */
+function WorldBlock(props: WorldBlockProps) {
+  const active = props.entry.unlocked || props.isFirstLocked || props.isExpanded;
+  return (
+    <LightRegion className={active ? 'mb-6' : undefined} onLayout={props.onLayout} style={active ? { opacity: props.entry.unlocked ? 1 : 0.9 } : undefined}>
+      <WorldArena {...props} />
+    </LightRegion>
+  );
+}
+
+function WorldArena({
+  t,
+  entry,
+  width,
+  rusty,
+  pulse,
+  live,
+  isFirstLocked,
+  isExpanded,
+  onToggleExpand,
+  onPressNode,
+  onPressPaywall,
+  onPathLayout,
+  breed,
+  coat,
+  restingAt,
+}: WorldBlockProps) {
+  const color = usePalette();
   const isArenaActive = entry.unlocked || isFirstLocked || isExpanded;
   const palette =
     theme.world[`w${entry.world.worldNumber}` as keyof typeof theme.world] ??
@@ -604,20 +600,11 @@ function WorldBlock({
           : theme.world.w4);
 
   if (!isArenaActive) {
-    return (
-      <View onLayout={onLayout}>
-        <CollapsedWorldHeader
-          t={t}
-          entry={entry}
-          isExpanded={isExpanded}
-          onToggle={onToggleExpand}
-        />
-      </View>
-    );
+    return <CollapsedWorldHeader t={t} entry={entry} isExpanded={isExpanded} onToggle={onToggleExpand} />;
   }
 
   return (
-    <View className="mb-6" onLayout={onLayout} style={{ opacity: entry.unlocked ? 1 : 0.9 }}>
+    <>
       <Raised
         fill={palette.sky}
         radius={theme.radius.lg}
@@ -633,7 +620,7 @@ function WorldBlock({
       >
         <View
           className="items-center justify-center rounded-game-pill bg-surface"
-          style={{ width: 40, height: 40, borderWidth: theme.border.ink, borderColor: color.ink }}
+          style={{ width: 40, height: 40, borderWidth: theme.border.ink, borderColor: color.outline }}
         >
           {entry.unlocked ? (
             <Text className="font-display text-title text-ink">{entry.world.worldNumber}</Text>
@@ -665,7 +652,7 @@ function WorldBlock({
       {isFirstLocked && (
         <View
           className="mb-3 p-3 rounded-card bg-surface flex-row items-center"
-          style={{ borderWidth: theme.border.ink, borderColor: color.ink }}
+          style={{ borderWidth: theme.border.ink, borderColor: color.outline }}
         >
           <Text className="mr-2 text-title">🔒</Text>
           <Text className="text-body text-ink flex-1">
@@ -685,7 +672,7 @@ function WorldBlock({
         className="overflow-hidden"
         style={{
           borderWidth: theme.border.ink,
-          borderColor: color.ink,
+          borderColor: color.outline,
           borderRadius: theme.radius.lg,
           backgroundColor: palette.sky,
           paddingTop: 16,
@@ -737,7 +724,7 @@ function WorldBlock({
           </View>
         )}
       </View>
-    </View>
+    </>
   );
 }
 
@@ -750,6 +737,19 @@ function StreakChip({ t, status }: { t: Translate; status: StreakStatus }) {
       accessibilityLabel={t('streak.flame')}
     />
   );
+}
+
+/** The Daily Barkdoku chip: "new" until today's first solve, then its Daily Solve Time against the Target Time. */
+export function BarkdokuChip({ t, solve, onPress }: { t: Translate; solve?: DailyBarkdokuSolve; onPress?: () => void }) {
+  const name = t('map.barkdoku.daily');
+  if (!solve) return <Chip label={name} value={t('map.dailyNew')} highlight onPress={onPress} accessibilityLabel={`${name}. ${t('map.barkdoku.dailyHelp')}`} />;
+  const time = formatClock(solve.seconds);
+  const met = solve.targetSeconds !== undefined && solve.seconds <= solve.targetSeconds;
+  const spoken =
+    solve.targetSeconds === undefined
+      ? t('minigame.barkdoku.clockLabel').replace('{time}', time)
+      : t('minigame.barkdoku.clockLabelTarget').replace('{time}', time).replace('{target}', formatClock(solve.targetSeconds));
+  return <Chip label={name} value={solveTimeText(solve.seconds, solve.targetSeconds)} onPress={onPress} accessibilityLabel={`${name}. ${spoken}${met ? `. ${t('minigame.barkdoku.targetMet')}` : ''}`} />;
 }
 
 export function WorldMapScreen({
@@ -766,6 +766,7 @@ export function WorldMapScreen({
   onWarmup,
   onSkipWarmup,
   onDaily,
+  barkdokuToday,
   onBarkdoku,
   onOpenStop,
   initialScrollY,
@@ -780,6 +781,7 @@ export function WorldMapScreen({
   onPaywall = () => {},
   covered = false,
 }: WorldMapProps) {
+  const color = usePalette();
   const motion = useMotion();
   const live = useLive(covered);
   const clock = useMapClock(live, progress.missions);
@@ -836,8 +838,13 @@ export function WorldMapScreen({
 
   const header = (
     <View>
-      <View className="flex-row flex-wrap items-center" style={{ gap: theme.space[2] }}>
-        <StreakChip t={t} status={streakStatus(streak, today)} />
+      <View className="flex-row items-center justify-between" style={{ gap: theme.space[2] }}>
+        <View className="shrink">
+          <StreakChip t={t} status={streakStatus(streak, today)} />
+        </View>
+        <IconChip icon={<GearGlyph />} onPress={onSettings} accessibilityLabel={t('map.settings')} />
+      </View>
+      <View className="mt-2 flex-row flex-wrap items-center" style={{ gap: theme.space[2] }}>
         <Chip
           label={t('daily.title')}
           value={dailyBest === undefined ? t('map.dailyNew') : `${dailyBest} ${t('results.scoreOutOf')}`}
@@ -845,20 +852,15 @@ export function WorldMapScreen({
           onPress={onDaily}
           accessibilityLabel={t('daily.title')}
         />
-        <Chip
-          value={t('map.barkdoku.daily')}
-          onPress={onBarkdoku}
-          accessibilityLabel={t('map.barkdoku.dailyHelp')}
-        />
+        <BarkdokuChip t={t} solve={barkdokuToday} onPress={onBarkdoku} />
         <Chip
           label={libraryToday ? t('library.chipToday') : undefined}
           value={t('library.chip')}
-          icon={libraryToday ? <View className="mr-2 h-3 w-3 rounded-game-pill bg-accent" style={{ borderWidth: 2, borderColor: color.ink }} /> : undefined}
+          icon={libraryToday ? <View className="mr-2 h-3 w-3 rounded-game-pill bg-accent" style={{ borderWidth: 2, borderColor: color.outline }} /> : undefined}
           onPress={onLibrary}
           accessibilityLabel={libraryToday ? `${t('library.chip')}. ${t('library.chipToday')}` : t('library.chip')}
         />
         <Chip value={t('diary.chip')} onPress={onDiary} accessibilityLabel={t('diary.chip')} />
-        <Chip value={t('map.settings')} onPress={onSettings} accessibilityLabel={t('map.settings')} />
       </View>
       {lockNote && (
         <Panel className="mt-2">

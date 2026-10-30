@@ -1,7 +1,7 @@
 import { ACTIVITY_LOG_MAX, activityAt, addActivity, readActivityLog, stageSummary } from './activity';
 import { completeDaily } from './daily';
 import { dayMarks, diaryDays, diaryTotals, monthGrid, shiftMonth, streakDates, weekdayOf } from './diary';
-import { migrateRecord, newDogRecord, type DogRecord } from './dogRecord';
+import { migrateRecord, newDogRecord, recordDailyBarkdoku, type DogRecord } from './dogRecord';
 import { markLessonRead } from './lessons/lesson';
 import { WALK_DISTRACTION } from './nodes/content';
 import { advance, onDebrief, startNode } from './nodes/node';
@@ -53,6 +53,14 @@ describe('Activity Log', () => {
     expect(migrateRecord({}).activityLog).toEqual([]);
   });
 
+  it('reads a Daily Barkdoku entry and drops only a malformed board summary', () => {
+    const solve = activityAt(at(1), { kind: 'barkdoku', id: 'b-5', stars: 2, puzzle: { size: 5, difficulty: 'easy', durationSeconds: 102, targetSeconds: 120, mistakes: 1 } });
+    expect(migrateRecord({ activityLog: [solve] }).activityLog).toEqual([solve]);
+    const broken = { ...solve, puzzle: { size: 12, durationSeconds: 'slow', mistakes: 0 } };
+    const { puzzle: _dropped, ...rest } = solve;
+    expect(migrateRecord({ activityLog: [broken] }).activityLog).toEqual([rest]);
+  });
+
   it('unions two copies of the log when syncing', () => {
     const a = activityAt(at(1), { kind: 'lesson', id: 'a' });
     const b = activityAt(at(2), { kind: 'lesson', id: 'b' });
@@ -91,6 +99,33 @@ describe('Diary days', () => {
     const days = diaryDays(r);
     expect(dayMarks(days[0])).toEqual(['lesson']);
     expect(diaryTotals(days)).toMatchObject({ activeDays: 0, lessonsRead: 1, since: null });
+  });
+});
+
+describe('Daily Barkdoku in the Diary', () => {
+  const summary = { size: 5, durationSeconds: 102, targetSeconds: 120, mistakes: 1 };
+  const solved = (r: DogRecord, d: number) => recordDailyBarkdoku(r, 'b-5', summary, 2, localDateString(at(d)), at(d, 9));
+
+  it('marks the day and counts it as an Active Day', () => {
+    const days = diaryDays(solved(newDogRecord(), 4));
+    expect(dayMarks(days[0])).toEqual(['barkdoku']);
+    expect(days[0].dailyBarkdoku).toMatchObject({ seconds: 102, targetSeconds: 120 });
+    expect(diaryTotals(days)).toMatchObject({ activeDays: 1, barkdokuSolves: 1, bestScore: null });
+  });
+
+  it('keeps the Daily Solve Time on its day after the log entry is gone', () => {
+    const r = { ...solved(newDogRecord(), 4), activityLog: [] };
+    const [day] = diaryDays(r);
+    expect(day.events).toEqual([]);
+    expect(dayMarks(day)).toEqual(['barkdoku']);
+    expect(day.dailyBarkdoku?.seconds).toBe(102);
+  });
+
+  it('counts solved dates, not log entries', () => {
+    let r = solved(solved(solved(newDogRecord(), 4), 5), 6);
+    const dup = r.activityLog[0];
+    r = { ...r, activityLog: [...r.activityLog, { ...dup, at: at(4, 20).toISOString() }] };
+    expect(diaryTotals(diaryDays(r)).barkdokuSolves).toBe(3);
   });
 });
 

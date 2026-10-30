@@ -1,5 +1,5 @@
 import { DEFAULT_ATTRIBUTES } from '../sim/learning';
-import { applyActivity, applyMissionCheckIn, updateMission, applyStage, failedPoste, touch, loadDogRecord, mergeLegacyNodes, migrateRecord, newDogRecord, RECORD_KEY, recordDailyScore, saveDogRecord, setTriggerLevel, toSnapshot, type KeyValueStore } from './dogRecord';
+import { applyActivity, applyMissionCheckIn, updateMission, applyStage, failedPoste, touch, loadDogRecord, mergeLegacyNodes, migrateRecord, newDogRecord, RECORD_KEY, recordDailyBarkdoku, recordDailyScore, saveDogRecord, setTriggerLevel, toSnapshot, type KeyValueStore } from './dogRecord';
 import { payloadWith } from './testPayload';
 import { lookOf } from './onboarding/look';
 import { advance, onDebrief, startNode, type NodeRun } from './nodes/node';
@@ -473,5 +473,50 @@ describe('Dog record: version 7 (Missions)', () => {
     expect(reopened.missions).toEqual(r.missions);
     expect(reopened.seenFixes).toEqual(r.seenFixes);
     expect(reopened.walkDiary).toEqual(r.walkDiary);
+  });
+});
+
+describe('Dog record: Daily Barkdoku', () => {
+  const summary = { size: 5, difficulty: 'easy' as const, durationSeconds: 130, targetSeconds: 120, mistakes: 0 };
+  const morning = new Date(2026, 9, 28, 9);
+
+  it('starts empty and reads leniently', () => {
+    expect(newDogRecord().dailyBarkdoku).toEqual({});
+    expect(migrateRecord({}).dailyBarkdoku).toEqual({});
+    const r = migrateRecord({
+      dailyBarkdoku: {
+        '2026-10-28': { seconds: 130, at: '2026-10-28T08:00:00.000Z', targetSeconds: 120 },
+        '2026-10-29': { seconds: 90, at: '2026-10-29T08:00:00.000Z', targetSeconds: -1 },
+        'yesterday': { seconds: 90, at: '2026-10-29T08:00:00.000Z' },
+        '2026-10-30': { seconds: 0, at: '2026-10-30T08:00:00.000Z' },
+        '2026-10-31': { seconds: 60, at: 'never' },
+      },
+    });
+    expect(r.dailyBarkdoku).toEqual({
+      '2026-10-28': { seconds: 130, at: '2026-10-28T08:00:00.000Z', targetSeconds: 120 },
+      '2026-10-29': { seconds: 90, at: '2026-10-29T08:00:00.000Z' },
+    });
+  });
+
+  it('keeps and logs the first solve of a date and credits the Streak', () => {
+    const r = recordDailyBarkdoku(newDogRecord(), 'b-5', summary, 2, '2026-10-28', morning);
+    expect(r.dailyBarkdoku['2026-10-28']).toEqual({ seconds: 130, at: morning.toISOString(), targetSeconds: 120 });
+    expect(r.activityLog).toEqual([expect.objectContaining({ kind: 'barkdoku', id: 'b-5', stars: 2, date: '2026-10-28', puzzle: summary })]);
+    expect(r.streak.lastActiveDate).toBe('2026-10-28');
+  });
+
+  it('ignores a later solve of the same date, even a faster one', () => {
+    const first = recordDailyBarkdoku(newDogRecord(), 'b-5', summary, 2, '2026-10-28', morning);
+    const again = recordDailyBarkdoku(first, 'b-5', { ...summary, durationSeconds: 20 }, 3, '2026-10-28', new Date(2026, 9, 28, 10));
+    expect(again.dailyBarkdoku).toEqual(first.dailyBarkdoku);
+    expect(again.activityLog).toEqual(first.activityLog);
+  });
+
+  it("keeps the time on the board's date and the Streak on the day it was played", () => {
+    const pastMidnight = new Date(2026, 9, 29, 0, 3);
+    const r = recordDailyBarkdoku(newDogRecord(), 'b-5', summary, 2, '2026-10-28', pastMidnight);
+    expect(Object.keys(r.dailyBarkdoku)).toEqual(['2026-10-28']);
+    expect(r.streak.lastActiveDate).toBe('2026-10-29');
+    expect(r.activityLog[0].date).toBe('2026-10-29');
   });
 });

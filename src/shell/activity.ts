@@ -1,15 +1,16 @@
 import type { SimulationDebriefPayload } from '../sim/payload';
+import type { PuzzleSummary } from './puzzle/types';
 import { isStars, type Stars } from './stars';
 import { isDateString, localDateString } from './streak';
 
 /**
- * The Activity Log: one dated entry per thing the user did (a Node Debrief, a Daily Stage, a Lesson
- * read, the first Stage), kept for the Diary. It is a record of what happened, never an input: no
+ * The Activity Log: one dated entry per thing the user did (a Node Debrief, a Daily Stage, the first
+ * Daily Barkdoku solve of a day, a Lesson read, the first Stage), kept for the Diary. It is a record of what happened, never an input: no
  * Learning Attribute, Streak or star is ever read back from it.
  */
 
-export type ActivityKind = 'node' | 'daily' | 'lesson' | 'first-stage';
-const ACTIVITY_KINDS: readonly ActivityKind[] = ['node', 'daily', 'lesson', 'first-stage'];
+export type ActivityKind = 'node' | 'daily' | 'barkdoku' | 'lesson' | 'first-stage';
+const ACTIVITY_KINDS: readonly ActivityKind[] = ['node', 'daily', 'barkdoku', 'lesson', 'first-stage'];
 
 /** The numbers of one Stage kept in the log. */
 export interface StageSummary {
@@ -38,12 +39,14 @@ export interface ActivityEvent {
   /** Local calendar day it happened, `YYYY-MM-DD`. */
   date: string;
   kind: ActivityKind;
-  /** The Node or Lesson id; empty for a Daily Stage and the first Stage. */
+  /** The Node, Lesson or Barkdoku board id; empty for a Daily Stage and the first Stage. */
   id: string;
   /** Stars earned on this run (not the best). */
   stars?: Stars;
   stage?: StageSummary;
   metrics?: MinigameMetrics;
+  /** The solved board of a Daily Barkdoku or a Barkdoku Node. */
+  puzzle?: PuzzleSummary;
   /** Catalog key of the real-world exercise the Debrief assigned. */
   exercise?: string;
 }
@@ -109,6 +112,18 @@ function readMetrics(raw: unknown): MinigameMetrics | undefined {
   return metrics;
 }
 
+const DIFFICULTIES: readonly NonNullable<PuzzleSummary['difficulty']>[] = ['tutorial', 'easy', 'medium', 'hard'];
+
+function readPuzzle(raw: unknown): PuzzleSummary | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const r = raw as Record<string, unknown>;
+  if (!finite(r.size) || r.size < 4 || r.size > 9 || !finite(r.durationSeconds) || r.durationSeconds <= 0 || !finite(r.mistakes) || r.mistakes < 0) return undefined;
+  const puzzle: PuzzleSummary = { size: r.size, durationSeconds: r.durationSeconds, mistakes: r.mistakes };
+  if (DIFFICULTIES.includes(r.difficulty as never)) puzzle.difficulty = r.difficulty as PuzzleSummary['difficulty'];
+  if (finite(r.targetSeconds) && r.targetSeconds > 0) puzzle.targetSeconds = r.targetSeconds;
+  return puzzle;
+}
+
 /** Reads a stored log; unreadable entries are dropped. */
 export function readActivityLog(raw: unknown): ActivityEvent[] {
   if (!Array.isArray(raw)) return [];
@@ -124,6 +139,8 @@ export function readActivityLog(raw: unknown): ActivityEvent[] {
     if (stage) event.stage = stage;
     const metrics = readMetrics(r.metrics);
     if (metrics) event.metrics = metrics;
+    const puzzle = readPuzzle(r.puzzle);
+    if (puzzle) event.puzzle = puzzle;
     if (typeof r.exercise === 'string') event.exercise = r.exercise;
     log.push(event);
   }

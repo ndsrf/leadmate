@@ -18,7 +18,8 @@ import { DEFAULT_BREED, isBreed, type BreedId } from './onboarding/breeds';
 import { cleanDogName } from './onboarding/name';
 import { nextPosture, updateLearning, updateTriggerProfile } from './learning';
 import { isOnboardingStep, type OnboardingStep } from './onboarding/flow';
-import { readActivityLog, type ActivityEvent } from './activity';
+import { activityAt, addActivity, readActivityLog, type ActivityEvent } from './activity';
+import type { PuzzleSummary } from './puzzle/types';
 import { addDiaryEntry, DIARY_OUTCOMES, isDateString, localDateString, markActive, NO_STREAK, type DiaryOutcome, type StreakRecord, type WalkDiaryEntry } from './streak';
 import { checkIn, fixFor, readMissions, readSeenFixes, NEW_MISSION, type MissionDef, type MissionState, type SeenFix } from './missions/mission';
 
@@ -64,6 +65,8 @@ export interface DogRecord {
   streak: StreakRecord;
   /** Best Daily Stage handling score (0-1000) by local date. */
   dailyBest: Record<string, number>;
+  /** The Daily Solve Time by the Daily Barkdoku board's date: its first solve only, never replaced. */
+  dailyBarkdoku: Record<string, DailyBarkdokuSolve>;
   /** ISO date-time of the last change; the later one wins when two copies conflict. */
   updatedAt: string;
   weights: Weights;
@@ -83,6 +86,16 @@ export interface DogRecord {
   legacyNodes: string[];
   /** Dated log of what the user did, oldest first, for the Diary; nothing reads progress from it. */
   activityLog: ActivityEvent[];
+}
+
+/** The first solve of a date's Daily Barkdoku. */
+export interface DailyBarkdokuSolve {
+  /** The Solve Time in seconds. */
+  seconds: number;
+  /** ISO date-time it was solved; the earlier solve wins when two copies conflict. */
+  at: string;
+  /** The Target Time it was played against; absent when the board had none. */
+  targetSeconds?: number;
 }
 
 /** Dog and Handler weights in kilograms; null until entered (setup lets the user skip). */
@@ -125,6 +138,7 @@ export function newDogRecord(): DogRecord {
     walkDiary: [],
     streak: { ...NO_STREAK },
     dailyBest: {},
+    dailyBarkdoku: {},
     updatedAt: new Date(0).toISOString(),
     weights: { dogKg: null, handlerKg: null },
     onboarding: { ...NEW_ONBOARDING },
@@ -177,6 +191,21 @@ function readDailyBest(raw: unknown): Record<string, number> {
     if (isDateString(date) && typeof score === 'number' && Number.isFinite(score)) best[date] = Math.max(0, Math.min(1000, Math.round(score)));
   }
   return best;
+}
+
+function readDailyBarkdoku(raw: unknown): Record<string, DailyBarkdokuSolve> {
+  const solves: Record<string, DailyBarkdokuSolve> = {};
+  if (!raw || typeof raw !== 'object') return solves;
+  for (const [date, v] of Object.entries(raw)) {
+    if (!isDateString(date) || !v || typeof v !== 'object') continue;
+    const r = v as Record<string, unknown>;
+    if (typeof r.seconds !== 'number' || !Number.isFinite(r.seconds) || r.seconds <= 0) continue;
+    if (typeof r.at !== 'string' || Number.isNaN(Date.parse(r.at))) continue;
+    const solve: DailyBarkdokuSolve = { seconds: Math.round(r.seconds), at: r.at };
+    if (typeof r.targetSeconds === 'number' && Number.isFinite(r.targetSeconds) && r.targetSeconds > 0) solve.targetSeconds = r.targetSeconds;
+    solves[date] = solve;
+  }
+  return solves;
 }
 
 const kg = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null);
@@ -245,6 +274,7 @@ export function migrateRecord(raw: unknown): DogRecord {
     walkDiary: readDiary(r.walkDiary),
     streak: readStreak(r.streak),
     dailyBest: readDailyBest(r.dailyBest),
+    dailyBarkdoku: readDailyBarkdoku(r.dailyBarkdoku),
     updatedAt: typeof r.updatedAt === 'string' && !Number.isNaN(Date.parse(r.updatedAt)) ? r.updatedAt : base.updatedAt,
     weights: readWeights(r.weights),
     onboarding: readOnboarding(r.onboarding, r.version),
@@ -369,6 +399,25 @@ export function applyMissionCheckIn(record: DogRecord, mission: MissionDef, outc
 export function applyActivity(record: DogRecord, now: Date): DogRecord {
   const streak = markActive(record.streak, localDateString(now));
   return streak === record.streak ? record : { ...record, streak };
+}
+
+/**
+ * Records a solve of the Daily Barkdoku board dated `boardDate`. Only the date's first solve counts (ADR 0014): it
+ * keeps the Daily Solve Time and logs the solve. The Streak is marked on the day it was played either way.
+ */
+export function recordDailyBarkdoku(record: DogRecord, boardId: string, summary: PuzzleSummary, stars: Stars, boardDate: string, now: Date): DogRecord {
+  const active = applyActivity(record, now);
+  if (record.dailyBarkdoku[boardDate] !== undefined) return active;
+  const solve: DailyBarkdokuSolve = {
+    seconds: summary.durationSeconds,
+    at: now.toISOString(),
+    ...(summary.targetSeconds !== undefined ? { targetSeconds: summary.targetSeconds } : {}),
+  };
+  return {
+    ...active,
+    dailyBarkdoku: { ...active.dailyBarkdoku, [boardDate]: solve },
+    activityLog: addActivity(active.activityLog, activityAt(now, { kind: 'barkdoku', id: boardId, stars, puzzle: summary })),
+  };
 }
 
 export interface DailyResult {

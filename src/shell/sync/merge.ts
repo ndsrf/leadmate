@@ -27,6 +27,16 @@ function mergeDailyBest(a: Record<string, number>, b: Record<string, number>): R
   return best;
 }
 
+/** The first Daily Barkdoku solve per date: when both copies solved a date, the earlier solve wins. */
+function mergeDailyBarkdoku(a: DogRecord['dailyBarkdoku'], b: DogRecord['dailyBarkdoku']): DogRecord['dailyBarkdoku'] {
+  const first = { ...a };
+  for (const [date, solve] of Object.entries(b)) {
+    const mine = first[date];
+    if (mine === undefined || Date.parse(solve.at) < Date.parse(mine.at)) first[date] = solve;
+  }
+  return first;
+}
+
 /** The earlier of two local dates; a missing one never wins. */
 const earlierDate = (a?: string, b?: string) => (a === undefined || b === undefined ? (a ?? b) : b < a ? b : a);
 
@@ -107,6 +117,7 @@ export function resolve(local: DogRecord, remote: DogRecord): DogRecord {
     activityLog: trimLog(union(base.activityLog, other.activityLog, activityKey)),
     completedNodes: union(base.completedNodes, other.completedNodes, (id) => id),
     dailyBest: mergeDailyBest(base.dailyBest, other.dailyBest),
+    dailyBarkdoku: mergeDailyBarkdoku(base.dailyBarkdoku, other.dailyBarkdoku),
     stars: mergeStars(base.stars, other.stars),
     streak: mergeStreaks(base.streak, other.streak),
   };

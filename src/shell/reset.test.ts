@@ -102,7 +102,8 @@ describe('resetProgress', () => {
     },
     seenFixes: [{ fixId: 'fix-harness-excited', missionId: 'mission-harness', at: '2026-06-02T10:00:00.000Z' }],
     legacyNodes: ['heel-turns'],
-    activityLog: [{ at: '2026-05-01T10:00:00.000Z', date: '2026-05-01', kind: 'lesson', id: 'lesson-1' }],
+    activityLog: [{ at: '2026-05-01T10:00:00.000Z', date: '2026-05-01', kind: 'lesson', id: 'lesson-1' }, { at: '2026-05-02T10:00:00.000Z', date: '2026-05-02', kind: 'barkdoku', id: 'b-5', stars: 2, puzzle: { size: 5, durationSeconds: 130, mistakes: 0 } }],
+    dailyBarkdoku: { '2026-05-02': { seconds: 130, at: '2026-05-02T10:00:00.000Z', targetSeconds: 120 } },
   };
 
   it('createResetRecord produces first-run state with strictly later updatedAt', () => {
@@ -120,6 +121,7 @@ describe('resetProgress', () => {
     expect(reset.stars).toEqual({});
     expect(reset.walkDiary).toEqual([]);
     expect(reset.dailyBest).toEqual({});
+    expect(reset.dailyBarkdoku).toEqual({});
     expect(reset.customCues).toEqual({});
     expect(reset.seenHints).toEqual([]);
     expect(reset.readLessons).toEqual([]);

@@ -1,4 +1,7 @@
-import { contrastRatio, color, colorNight, MIN_CONTRAST, MIN_CONTRAST_LARGE, NIGHT_TEXT_PAIRS, TEXT_PAIRS, theme } from './theme';
+import React from 'react';
+// @ts-ignore
+import { renderToStaticMarkup } from 'react-dom/server';
+import { contrastRatio, lightColor as color, colorNight, MIN_CONTRAST, MIN_CONTRAST_LARGE, NIGHT_TEXT_PAIRS, PaletteProvider, paletteVariables, TEXT_PAIRS, theme, usePalette } from './theme';
 
 describe('theme tokens', () => {
   it.each(TEXT_PAIRS.map(([t, b]) => [t, b]))('%s on %s has at least 4.5:1 contrast', (text, background) => {
@@ -10,11 +13,30 @@ describe('theme tokens', () => {
     expect(contrastRatio(colorNight[text], colorNight[background])).toBeGreaterThanOrEqual(MIN_CONTRAST);
   });
 
-  it('defines a night value for every surface and ink token the shell draws on', () => {
-    for (const name of ['bg', 'surface', 'surfaceSunken', 'edge', 'ink', 'inkMuted'] as const) {
-      expect(colorNight[name]).toMatch(/^#[0-9a-f]{6}$/i);
-      expect(color[name]).toMatch(/^#[0-9a-f]{6}$/i);
-    }
+  it('defines a night value for every light colour token', () => {
+    expect(Object.keys(colorNight)).toEqual(expect.arrayContaining(Object.keys(color)));
+    for (const value of [...Object.values(color), ...Object.values(colorNight)]) expect(value).toMatch(/^#[0-9a-f]{6}$/i);
+  });
+
+  it('draws light outlines in ink, so the light palette is unchanged', () => {
+    expect(color.outline).toBe(color.ink);
+  });
+
+  it('keeps meaning-carrying fills the same in both palettes', () => {
+    for (const name of ['brand', 'accent', 'danger', 'sintonia', 'star'] as const) expect(colorNight[name]).toBe(color[name]);
+  });
+
+  it('gives the active palette to usePalette()', () => {
+    const Probe = () => React.createElement('i', null, usePalette().bg);
+    expect(renderToStaticMarkup(React.createElement(Probe))).toBe(`<i>${color.bg}</i>`);
+    expect(renderToStaticMarkup(React.createElement(PaletteProvider, { scheme: 'dark' }, React.createElement(Probe)))).toBe(`<i>${colorNight.bg}</i>`);
+  });
+
+  it('builds one NativeWind variable per colour token, as rgb channels', () => {
+    const vars = paletteVariables('light');
+    expect(Object.keys(vars)).toHaveLength(Object.keys(color).length);
+    expect(vars['--c-ink']).toBe('30 42 58');
+    expect(paletteVariables('dark')['--c-bg']).toBe('27 34 51');
   });
 
   it('keeps the ink outline readable against the page and the paper', () => {
@@ -42,7 +64,8 @@ describe('theme tokens', () => {
 
   it('feeds Tailwind from the same file', () => {
     const config = require('../../../tailwind.config.js');
-    expect(config.theme.extend.colors.brand).toBe(color.brand);
+    expect(config.theme.extend.colors.brand).toBe('rgb(var(--c-brand) / <alpha-value>)');
+    expect(Object.keys(config.theme.extend.colors)).toEqual(Object.keys(color));
     expect(config.theme.extend.borderRadius['game-md']).toBe(`${theme.radius.md}px`);
     expect(config.theme.extend.fontFamily.display).toEqual([theme.type.family.display]);
   });

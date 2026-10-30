@@ -1,3 +1,4 @@
+import { activityAt } from '../activity';
 import { newDogRecord, type DogRecord } from '../dogRecord';
 import type { MissionState } from '../missions/mission';
 import { resolve } from './merge';
@@ -51,6 +52,22 @@ describe('resolve', () => {
   it('keeps the best Daily Stage score per date', () => {
     const merged = resolve(rec({ dailyBest: { '2026-05-01': 400, '2026-05-02': 900 }, ...at('2026-05-02T00:00:00.000Z') }), rec({ dailyBest: { '2026-05-01': 700, '2026-05-03': 100 }, ...at('2026-05-01T00:00:00.000Z') }));
     expect(merged.dailyBest).toEqual({ '2026-05-01': 700, '2026-05-02': 900, '2026-05-03': 100 });
+  });
+
+  it('keeps the earlier first Daily Barkdoku solve per date, whichever copy is newer', () => {
+    const phone = { seconds: 130, at: '2026-05-01T09:00:00.000Z', targetSeconds: 120 };
+    const tablet = { seconds: 110, at: '2026-05-01T20:00:00.000Z', targetSeconds: 120 };
+    const only = { seconds: 90, at: '2026-05-02T09:00:00.000Z' };
+    const a = rec({ dailyBarkdoku: { '2026-05-01': phone }, ...at('2026-05-01T00:00:00.000Z') });
+    const b = rec({ dailyBarkdoku: { '2026-05-01': tablet, '2026-05-02': only }, ...at('2026-05-03T00:00:00.000Z') });
+    for (const merged of [resolve(a, b), resolve(b, a)]) expect(merged.dailyBarkdoku).toEqual({ '2026-05-01': phone, '2026-05-02': only });
+  });
+
+  it('unions Daily Barkdoku log entries without duplicates', () => {
+    const solve = activityAt(new Date('2026-05-01T09:00:00.000Z'), { kind: 'barkdoku', id: 'b-5', stars: 2, puzzle: { size: 5, durationSeconds: 130, mistakes: 0 } });
+    const other = activityAt(new Date('2026-05-01T20:00:00.000Z'), { kind: 'barkdoku', id: 'b-5', stars: 3, puzzle: { size: 5, durationSeconds: 110, mistakes: 0 } });
+    const merged = resolve(rec({ activityLog: [solve], ...at('2026-05-01T00:00:00.000Z') }), rec({ activityLog: [solve, other], ...at('2026-05-02T00:00:00.000Z') }));
+    expect(merged.activityLog).toEqual([solve, other]);
   });
 
   it('keeps the run that was active later and the best of both bests', () => {

@@ -11,7 +11,8 @@ import { atDoor, COLLAR_POINT, DOG_VIEW, HANDLER_LEAN_DEG, HANDLER_PALETTE, HAND
 import type { ReadDogAction } from '../nodes/readDog';
 import { Raised } from './components';
 import { buttonStyle } from './styles';
-import { color, theme } from './theme';
+// The *Scene illustrations stay Light whatever the Appearance; the captions, pips, gauge and buttons are UI chrome.
+import { lightColor, theme, usePalette } from './theme';
 import { useLive } from './useAppActive';
 import { useMotion } from './useMotion';
 
@@ -29,7 +30,7 @@ const pctY = (y: number) => `${(y / SCENE.h) * 100}%` as const;
 /** A scene frame: a rounded, clipped stage whose height follows its width. */
 function Stage({ children, onLayout }: { children: React.ReactNode; onLayout?: (e: LayoutChangeEvent) => void }) {
   return (
-    <View onLayout={onLayout} style={{ width: '100%', aspectRatio: SCENE.w / SCENE.h, borderRadius: theme.radius.lg, overflow: 'hidden', backgroundColor: color.surfaceSunken, borderWidth: theme.border.ink, borderColor: color.ink }}>
+    <View onLayout={onLayout} style={{ width: '100%', aspectRatio: SCENE.w / SCENE.h, borderRadius: theme.radius.lg, overflow: 'hidden', backgroundColor: lightColor.surfaceSunken, borderWidth: theme.border.ink, borderColor: lightColor.ink }}>
       {children}
     </View>
   );
@@ -51,7 +52,7 @@ function BellRipple({ ringing, x, y }: { ringing: boolean; x: number; y: number 
     return () => cancelAnimation(pulse);
   }, [ringing, reduced, live, pulse]);
   const style = useAnimatedStyle(() => ({ opacity: ringing ? (reduced ? 0.7 : 0.8 * (1 - pulse.value)) : 0, transform: [{ scale: 0.6 + pulse.value * 1.6 }] }));
-  return <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: pctX(x), top: pctY(y), width: 30, height: 30, marginLeft: -15, marginTop: -15, borderRadius: 15, borderWidth: 3, borderColor: color.accent }, style]} />;
+  return <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: pctX(x), top: pctY(y), width: 30, height: 30, marginLeft: -15, marginTop: -15, borderRadius: 15, borderWidth: 3, borderColor: lightColor.accent }, style]} />;
 }
 
 const DOOR_DOG_X = 44;
@@ -61,22 +62,22 @@ const MAT_DOG_X = 170;
 function RoomBackdrop({ ringing }: { ringing: boolean }) {
   return (
     <G>
-      <Rect x={0} y={0} width={SCENE.w} height={140} fill={color.surfaceSunken} />
-      <Rect x={0} y={96} width={SCENE.w} height={44} fill={color.edge} opacity={0.55} />
-      <Rect x={0} y={94} width={SCENE.w} height={3} fill={color.lockedText} />
-      <Rect x={0} y={140} width={SCENE.w} height={50} fill={color.lockedText} />
-      <Rect x={0} y={136} width={SCENE.w} height={6} fill={color.surface} />
-      <Rect x={150} y={24} width={72} height={54} rx={4} fill={color.info} opacity={0.55} />
-      <Line x1={186} y1={24} x2={186} y2={78} stroke={color.surfaceSunken} strokeWidth={3} />
-      <Line x1={150} y1={51} x2={222} y2={51} stroke={color.surfaceSunken} strokeWidth={3} />
-      <Rect x={150} y={24} width={72} height={54} rx={4} fill="none" stroke={color.edge} strokeWidth={4} />
-      <Rect x={8} y={14} width={78} height={128} rx={4} fill={color.lockedText} />
-      <Rect x={14} y={20} width={66} height={122} rx={3} fill={color.edge} />
-      <Rect x={24} y={30} width={46} height={42} rx={3} fill="none" stroke={color.lockedText} strokeWidth={3} />
-      <Rect x={24} y={82} width={46} height={50} rx={3} fill="none" stroke={color.lockedText} strokeWidth={3} />
-      <Circle cx={72} cy={84} r={4.5} fill={color.accent} />
-      <Rect x={92} y={62} width={18} height={30} rx={5} fill={color.surface} />
-      <Circle cx={101} cy={77} r={6} fill={ringing ? color.accent : color.flame} />
+      <Rect x={0} y={0} width={SCENE.w} height={140} fill={lightColor.surfaceSunken} />
+      <Rect x={0} y={96} width={SCENE.w} height={44} fill={lightColor.edge} opacity={0.55} />
+      <Rect x={0} y={94} width={SCENE.w} height={3} fill={lightColor.lockedText} />
+      <Rect x={0} y={140} width={SCENE.w} height={50} fill={lightColor.lockedText} />
+      <Rect x={0} y={136} width={SCENE.w} height={6} fill={lightColor.surface} />
+      <Rect x={150} y={24} width={72} height={54} rx={4} fill={lightColor.info} opacity={0.55} />
+      <Line x1={186} y1={24} x2={186} y2={78} stroke={lightColor.surfaceSunken} strokeWidth={3} />
+      <Line x1={150} y1={51} x2={222} y2={51} stroke={lightColor.surfaceSunken} strokeWidth={3} />
+      <Rect x={150} y={24} width={72} height={54} rx={4} fill="none" stroke={lightColor.edge} strokeWidth={4} />
+      <Rect x={8} y={14} width={78} height={128} rx={4} fill={lightColor.lockedText} />
+      <Rect x={14} y={20} width={66} height={122} rx={3} fill={lightColor.edge} />
+      <Rect x={24} y={30} width={46} height={42} rx={3} fill="none" stroke={lightColor.lockedText} strokeWidth={3} />
+      <Rect x={24} y={82} width={46} height={50} rx={3} fill="none" stroke={lightColor.lockedText} strokeWidth={3} />
+      <Circle cx={72} cy={84} r={4.5} fill={lightColor.accent} />
+      <Rect x={92} y={62} width={18} height={30} rx={5} fill={lightColor.surface} />
+      <Circle cx={101} cy={77} r={6} fill={ringing ? lightColor.accent : lightColor.flame} />
     </G>
   );
 }
@@ -99,11 +100,11 @@ export function DoorbellScene({ t, posture, ringing, coat }: { t: Translate; pos
       <Svg style={fill} viewBox={`0 0 ${SCENE.w} ${SCENE.h}`} accessibilityLabel={t(ringing ? 'minigame.doorRinging' : 'minigame.door')}>
         <RoomBackdrop ringing={ringing} />
         <G>
-          <Rect x={186} y={146} width={104} height={20} rx={8} fill={matActive ? color.brandDeep : color.lockedText} />
-          <Rect x={188} y={144} width={100} height={20} rx={8} fill={matActive ? color.brand : color.info} />
-          <Line x1={202} y1={150} x2={202} y2={158} stroke={color.onInfo} strokeWidth={2} opacity={0.5} />
-          <Line x1={238} y1={150} x2={238} y2={158} stroke={color.onInfo} strokeWidth={2} opacity={0.5} />
-          <Line x1={274} y1={150} x2={274} y2={158} stroke={color.onInfo} strokeWidth={2} opacity={0.5} />
+          <Rect x={186} y={146} width={104} height={20} rx={8} fill={matActive ? lightColor.brandDeep : lightColor.lockedText} />
+          <Rect x={188} y={144} width={100} height={20} rx={8} fill={matActive ? lightColor.brand : lightColor.info} />
+          <Line x1={202} y1={150} x2={202} y2={158} stroke={lightColor.onInfo} strokeWidth={2} opacity={0.5} />
+          <Line x1={238} y1={150} x2={238} y2={158} stroke={lightColor.onInfo} strokeWidth={2} opacity={0.5} />
+          <Line x1={274} y1={150} x2={274} y2={158} stroke={lightColor.onInfo} strokeWidth={2} opacity={0.5} />
         </G>
       </Svg>
       <BellRipple ringing={ringing} x={101} y={77} />
@@ -125,12 +126,12 @@ export function HarnessScene({ t, posture, harness, coat }: { t: Translate; post
     <Stage onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
       <Svg style={fill} viewBox={`0 0 ${SCENE.w} ${SCENE.h}`} accessibilityLabel={t(harness ? 'minigame.harnessOn' : 'minigame.harnessScene')}>
         <RoomBackdrop ringing={false} />
-        <Rect x={248} y={34} width={30} height={6} rx={3} fill={color.lockedText} />
+        <Rect x={248} y={34} width={30} height={6} rx={3} fill={lightColor.lockedText} />
         {!harness && (
           <G>
-            <Path d="M254 40 L254 78 M272 40 L272 78" stroke={color.danger} strokeWidth={5} strokeLinecap="round" />
-            <Path d="M254 78 Q263 92 272 78" stroke={color.danger} strokeWidth={5} strokeLinecap="round" fill="none" />
-            <Circle cx={263} cy={40} r={4} fill={color.accent} stroke={color.ink} strokeWidth={1} />
+            <Path d="M254 40 L254 78 M272 40 L272 78" stroke={lightColor.danger} strokeWidth={5} strokeLinecap="round" />
+            <Path d="M254 78 Q263 92 272 78" stroke={lightColor.danger} strokeWidth={5} strokeLinecap="round" fill="none" />
+            <Circle cx={263} cy={40} r={4} fill={lightColor.accent} stroke={lightColor.ink} strokeWidth={1} />
           </G>
         )}
       </Svg>
@@ -158,16 +159,16 @@ export function LeashScene({ t, posture, tension, coat }: { t: Translate; postur
   return (
     <Stage onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
       <Svg style={fill} viewBox={`0 0 ${SCENE.w} ${SCENE.h}`}>
-        <Rect x={0} y={0} width={SCENE.w} height={140} fill={color.surfaceSunken} />
-        <Circle cx={44} cy={40} r={16} fill={color.accent} opacity={0.85} />
-        <Ellipse cx={150} cy={140} rx={90} ry={34} fill={color.brandDeep} opacity={0.5} />
-        <Ellipse cx={256} cy={144} rx={80} ry={30} fill={color.brandDeep} opacity={0.35} />
-        <Rect x={0} y={136} width={SCENE.w} height={14} fill={color.brandDeep} />
-        <Rect x={0} y={150} width={SCENE.w} height={40} fill={color.edge} />
-        <Rect x={0} y={150} width={SCENE.w} height={4} fill={color.lockedText} />
-        <Rect x={286} y={34} width={8} height={116} rx={3} fill={color.lockedText} />
-        <Rect x={278} y={28} width={24} height={14} rx={6} fill={color.lockedText} />
-        <Circle cx={290} cy={50} r={6} fill={color.accent} opacity={0.9} />
+        <Rect x={0} y={0} width={SCENE.w} height={140} fill={lightColor.surfaceSunken} />
+        <Circle cx={44} cy={40} r={16} fill={lightColor.accent} opacity={0.85} />
+        <Ellipse cx={150} cy={140} rx={90} ry={34} fill={lightColor.brandDeep} opacity={0.5} />
+        <Ellipse cx={256} cy={144} rx={80} ry={30} fill={lightColor.brandDeep} opacity={0.35} />
+        <Rect x={0} y={136} width={SCENE.w} height={14} fill={lightColor.brandDeep} />
+        <Rect x={0} y={150} width={SCENE.w} height={40} fill={lightColor.edge} />
+        <Rect x={0} y={150} width={SCENE.w} height={4} fill={lightColor.lockedText} />
+        <Rect x={286} y={34} width={8} height={116} rx={3} fill={lightColor.lockedText} />
+        <Rect x={278} y={28} width={24} height={14} rx={6} fill={lightColor.lockedText} />
+        <Circle cx={290} cy={50} r={6} fill={lightColor.accent} opacity={0.9} />
         <G transform={`rotate(${-HANDLER_LEAN_DEG * tension} ${HANDLER_PIVOT.x} ${HANDLER_PIVOT.y})`}>
           <Line x1={36} y1={116} x2={33} y2={146} stroke={skin.trousers} strokeWidth={9} strokeLinecap="round" />
           <Line x1={44} y1={116} x2={49} y2={146} stroke={skin.trousers} strokeWidth={9} strokeLinecap="round" />
@@ -185,7 +186,7 @@ export function LeashScene({ t, posture, tension, coat }: { t: Translate; postur
         <CanineMinigameAvatar t={t} posture={posture} coat={coat} width={(width * DOG_W) / SCENE.w} />
       </View>
       <Svg style={fill} pointerEvents="none" viewBox={`0 0 ${SCENE.w} ${SCENE.h}`} accessibilityLabel={t(taut ? 'minigame.leashTaut' : 'minigame.leashSlack')}>
-        <Path d={leashPath(tension, hand, collar, 46)} stroke={taut ? color.danger : color.inkMuted} strokeWidth={3.5} strokeLinecap="round" fill="none" />
+        <Path d={leashPath(tension, hand, collar, 46)} stroke={taut ? lightColor.danger : lightColor.inkMuted} strokeWidth={3.5} strokeLinecap="round" fill="none" />
       </Svg>
     </Stage>
   );
@@ -193,9 +194,10 @@ export function LeashScene({ t, posture, tension, coat }: { t: Translate; postur
 
 /** What the Dog is doing, in a few words: reading it is the skill the exercise trains. */
 export function CueCaption({ t, posture }: { t: Translate; posture: CaninePosture }) {
+  const color = usePalette();
   return (
     <View accessible={false} className="mt-3 flex-row items-center justify-center">
-      <View className="rounded-game-lg bg-surface px-5 py-2.5 max-w-full" style={{ borderWidth: theme.border.ink, borderColor: color.ink }}>
+      <View className="rounded-game-lg bg-surface px-5 py-2.5 max-w-full" style={{ borderWidth: theme.border.ink, borderColor: color.outline }}>
         <Text className="text-center font-display text-title text-ink">{t(postureSpec(posture).cue)}</Text>
       </View>
     </View>
@@ -204,6 +206,7 @@ export function CueCaption({ t, posture }: { t: Translate; posture: CaninePostur
 
 /** One pip per round: green when it went well, red when it did not, an empty ring while pending. */
 export function RoundPips({ t, total, results }: { t: Translate; total: number; results: readonly boolean[] }) {
+  const color = usePalette();
   return (
     <View className="flex-row items-center" style={{ gap: theme.space[2] }}>
       {Array.from({ length: total }, (_, i) => {
@@ -224,10 +227,11 @@ export function RoundPips({ t, total, results }: { t: Translate; total: number; 
 
 /** The result of the round that just ended, coloured so it reads at a glance. */
 export function ResultChip({ label, good }: { label: string | null; good: boolean }) {
+  const color = usePalette();
   return (
     <View className="my-3 min-h-[52px] items-center justify-center">
       {label ? (
-        <View className="rounded-game-lg px-5 py-2.5 max-w-full" style={{ backgroundColor: good ? color.brand : color.danger, borderWidth: theme.border.ink, borderColor: color.ink }}>
+        <View className="rounded-game-lg px-5 py-2.5 max-w-full" style={{ backgroundColor: good ? color.brand : color.danger, borderWidth: theme.border.ink, borderColor: color.outline }}>
           <Text className="text-center font-display text-title" style={{ color: good ? color.onBrand : color.onDanger }}>
             {label}
           </Text>
@@ -239,12 +243,13 @@ export function ResultChip({ label, good }: { label: string | null; good: boolea
 
 /** Leash tension as a bar that goes green, amber, red, so the user sees the pull building and easing. */
 export function TensionGauge({ t, tension }: { t: Translate; tension: number }) {
+  const color = usePalette();
   const tone = tensionTone(tension);
   const fillColor = tone === 'calm' ? theme.tension.slack : tone === 'warn' ? theme.tension.taut : theme.tension.rigid;
   return (
     <View accessible accessibilityRole="progressbar" accessibilityLabel={t('minigame.tension')} accessibilityValue={{ min: 0, max: 100, now: Math.round(tension * 100) }} className="mt-3">
       <Text className="mb-1 text-body text-inkMuted">{t('minigame.tension')}</Text>
-      <View className="overflow-hidden rounded-game-pill bg-surfaceSunken" style={{ height: 18, borderWidth: theme.border.ink, borderColor: color.ink }}>
+      <View className="overflow-hidden rounded-game-pill bg-surfaceSunken" style={{ height: 18, borderWidth: theme.border.ink, borderColor: color.outline }}>
         <View style={{ width: `${Math.round(tension * 100)}%`, height: '100%', backgroundColor: fillColor }} />
       </View>
     </View>
@@ -255,10 +260,11 @@ export type ActionIcon = ReadDogAction | 'hand';
 
 /** The one big control of the Poste practice: raised like every game button, with an icon, and it sinks while held. */
 export function MinigameButton({ label, icon, onPressIn, onPressOut }: { label: string; icon: ActionIcon; onPressIn?: () => void; onPressOut?: () => void }) {
+  const color = usePalette();
   return (
     <Pressable onPressIn={onPressIn} onPressOut={onPressOut} accessibilityRole="button" accessibilityLabel={label}>
       {({ pressed }) => {
-        const s = buttonStyle('primary', { pressed });
+        const s = buttonStyle(color, 'primary', { pressed });
         return (
           <Raised fill={s.fill} edge={s.edge} radius={theme.radius.lg} offset={theme.depth.md.x} shift={pressed ? theme.depth.md.x - theme.depth.pressed.x : 0} pressable
             faceStyle={{ minHeight: 88, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: theme.space[4], paddingHorizontal: theme.space[4] }}>
@@ -282,13 +288,14 @@ export interface ActionButton {
 
 /** The actions of an action Minigame in a 2x2 grid of large targets, each with an icon, a label and an accessible name and effect. */
 export function ActionButtonRow({ actions, onPress, disabled = false }: { actions: readonly ActionButton[]; onPress: (action: ReadDogAction) => void; disabled?: boolean }) {
+  const color = usePalette();
   return (
     <View className="flex-row flex-wrap" style={{ gap: theme.space[3] }}>
       {actions.map(({ action, label, effect }) => (
         <View key={action} style={{ flexBasis: '47%', flexGrow: 1 }}>
           <Pressable onPress={() => onPress(action)} disabled={disabled} accessibilityRole="button" accessibilityLabel={`${label}. ${effect}`} accessibilityState={{ disabled }}>
             {({ pressed }) => {
-              const s = buttonStyle('primary', { pressed });
+              const s = buttonStyle(color, 'primary', { pressed });
               return (
                 <Raised fill={s.fill} edge={s.edge} radius={theme.radius.lg} offset={theme.depth.md.x} shift={pressed ? theme.depth.md.x - theme.depth.pressed.x : 0} pressable
                   faceStyle={{ minHeight: 76, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: theme.space[1], paddingHorizontal: theme.space[2], opacity: disabled ? 0.6 : 1 }}>
@@ -307,6 +314,7 @@ export function ActionButtonRow({ actions, onPress, disabled = false }: { action
 }
 
 function ButtonIcon({ icon, tint }: { icon: ActionIcon; tint: string }) {
+  const color = usePalette();
   return (
     <Svg width={32} height={32} viewBox="0 0 36 36" aria-hidden>
       {icon === 'marker' ? (
@@ -373,11 +381,11 @@ export function DiagnosticScene({ t, breed, coat, looking }: { t: Translate; bre
   return (
     <Stage onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
       <Svg style={fill} viewBox={`0 0 ${SCENE.w} ${SCENE.h}`} aria-hidden>
-        <Rect x={0} y={0} width={SCENE.w} height={SCENE.h} fill={color.sky} />
-        <Circle cx={270} cy={40} r={20} fill={color.accent} stroke={color.ink} strokeWidth={2.5} />
-        <Path d="M0 122C50 100 110 118 170 106S280 96 320 112V190H0Z" fill={theme.world.w2.ground} stroke={color.ink} strokeWidth={2.5} />
-        <Path d="M0 150C70 132 150 156 230 142S300 134 320 142V190H0Z" fill={color.brand} stroke={color.ink} strokeWidth={2.5} />
-        <Path d="M0 174C80 162 170 182 250 170S300 166 320 170V190H0Z" fill={color.brandDeep} stroke={color.ink} strokeWidth={2.5} />
+        <Rect x={0} y={0} width={SCENE.w} height={SCENE.h} fill={lightColor.sky} />
+        <Circle cx={270} cy={40} r={20} fill={lightColor.accent} stroke={lightColor.ink} strokeWidth={2.5} />
+        <Path d="M0 122C50 100 110 118 170 106S280 96 320 112V190H0Z" fill={theme.world.w2.ground} stroke={lightColor.ink} strokeWidth={2.5} />
+        <Path d="M0 150C70 132 150 156 230 142S300 134 320 142V190H0Z" fill={lightColor.brand} stroke={lightColor.ink} strokeWidth={2.5} />
+        <Path d="M0 174C80 162 170 182 250 170S300 166 320 170V190H0Z" fill={lightColor.brandDeep} stroke={lightColor.ink} strokeWidth={2.5} />
       </Svg>
       <View accessible={false} style={{ position: 'absolute', left: pctX(66), top: pctY(150 - (dogH * 100) / 110), width: pctX(MEADOW_DOG_W) }}>
         <Animated.View style={popStyle}>
@@ -392,6 +400,7 @@ const PAW_PATHS = ['M9 14a2.4 3 0 1 0 0.1 0z', 'M15 8a2.4 3 0 1 0 0.1 0z', 'M23 
 
 /** The Diagnostic progress: one paw per response, filled brand green; empty paws stay outlined, so the count reads without colour. */
 export function PawRow({ t, filled, total }: { t: Translate; filled: number; total: number }) {
+  const color = usePalette();
   const label = t('diagnostic.paws').split('{n}').join(String(filled)).split('{total}').join(String(total));
   return (
     <View accessible accessibilityRole="progressbar" accessibilityLabel={label} accessibilityValue={{ min: 0, max: total, now: filled }} className="flex-row items-center" style={{ gap: theme.space[1] }}>

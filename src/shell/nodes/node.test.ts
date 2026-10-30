@@ -3,7 +3,7 @@ import { DEFAULT_ATTRIBUTES } from '../../sim/learning';
 import { newDogRecord } from '../dogRecord';
 import { DIARY_OUTCOMES } from '../streak';
 import { payloadWith } from '../testPayload';
-import { DOORBELL_MAT_NODE, HARNESS_RITUAL_NODE, LEAVE_IT_NODE, NODES, POSTE_PRACTICE, SCOOTER_NODE, URBAN_MIX_NODE, WALK_DISTRACTION } from './content';
+import { BARKDOKU_INTRO_NODE, DOORBELL_MAT_NODE, HARNESS_RITUAL_NODE, LEAVE_IT_NODE, NODES, POSTE_PRACTICE, SCOOTER_NODE, URBAN_MIX_NODE, WALK_DISTRACTION } from './content';
 import { placeOf, worldOfNode } from '../world';
 import { findLesson } from '../lessons/content';
 import { INTRO_NODE } from '../onboarding/introNode';
@@ -212,6 +212,16 @@ describe('Barkdoku minigame node integration', () => {
       attention: 0.8,
       tension: 1,
     });
+  });
+
+  it('keeps the solved board in the Node entry of the Activity Log', () => {
+    const run: NodeRun = {
+      ...startNode(BARKDOKU_INTRO_NODE),
+      step: 'debrief',
+      result: { kind: 'minigame', metrics: { timing: 1 }, handlingScore: 1000, puzzle: { size: 4, difficulty: 'tutorial', durationSeconds: 190, mistakes: 0 } },
+    };
+    const [entry] = onDebrief(newDogRecord(), run, new Date('2026-02-02T10:00:00Z')).activityLog;
+    expect(entry).toMatchObject({ kind: 'node', id: BARKDOKU_INTRO_NODE.id, stars: 3, metrics: { timing: 1 }, puzzle: { size: 4, durationSeconds: 190, mistakes: 0 } });
   });
 });
 

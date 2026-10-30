@@ -117,8 +117,24 @@ One step of an action Minigame: the Dog shows one Canine Posture and exactly one
 _Avoid_: Round, turn, question
 
 **Barkdoku**:
-A spatial deduction Minigame on an N x N partitioned grid where the Handler distributes Dogs across color zones to respect Reactivity Thresholds and break direct line-of-sight Fixation.
-_Avoid_: Meowdoku, Queens, dog puzzle, Star Battle
+A spatial deduction Minigame on an N x N partitioned grid where the Handler distributes Dogs across color zones to respect Reactivity Thresholds and break direct line-of-sight Fixation. Shown to Spanish users as "Guaudoku".
+_Avoid_: Zona de Calma, Meowdoku, Queens, dog puzzle, Star Battle
+
+**Daily Barkdoku**:
+The Barkdoku board of the day, chosen by date and opened from the Map Header. It credits the Streak and is not a Node.
+_Avoid_: Zona de Calma, Daily Calm Zone, daily puzzle
+
+**Solve Time**:
+The active play time of one Barkdoku attempt, from its first tap to its solve, excluding time with the app in the background. A reset or retry starts a new attempt.
+_Avoid_: Duration, completion time
+
+**Target Time**:
+The Solve Time a non-tutorial Barkdoku board asks for; meeting it is required for 3 Stars. Tutorial boards have none.
+_Avoid_: Par, goal time, time limit
+
+**Daily Solve Time**:
+The Solve Time of the first solve of a date's Daily Barkdoku. Later solves that day are practice and do not count.
+_Avoid_: Best Solve Time, best time, record
 
 **Checkpoint**:
 The 5-second timed quiz between the Theory Primer and the Interactive Simulation.
@@ -217,8 +233,16 @@ _Avoid_: Teaser world, dummy chapter
 The main screen: all Worlds laid out as a trail of Stops showing which are locked, open, next up, waiting or completed, with each Node's Stars.
 _Avoid_: Home, level select, menu
 
+**Map Header**:
+The fixed strip at the top of the World Map that stays in view while the trail scrolls. It holds the Status Chips and the Settings gear.
+_Avoid_: Top menu, top bar, toolbar
+
+**Status Chip**:
+A raised, pill-shaped entry in the Map Header that shows a status or opens a section, such as the Streak, the Daily Stage, the Library or the Diary.
+_Avoid_: Tab, menu item, pill
+
 **Star**:
-A 1 to 3 rating of how well a Node was handled, earned at completion and kept at its best. It reflects handling quality only and never unlocks anything.
+A 1 to 3 rating of how well a Node or a Daily Barkdoku solve was handled. A Node's Stars are kept at their best; a Daily Barkdoku's are a rating of that one solve and are not kept as progress. It reflects handling quality, plus the Target Time for a Barkdoku, and never unlocks anything.
 _Avoid_: Medal, rank, points
 
 **Daily Stage**:
@@ -234,11 +258,11 @@ The log of Mission check-ins: what the user reported about each real walk, which
 _Avoid_: Homework log, walk notes
 
 **Activity Log**:
-The dated record of what the user did: one entry per Node Debrief, Daily Stage play, first read of a Lesson and the guided first Stage, with that run's results. It records progress but never drives it.
+The dated record of what the user did: one entry per Node Debrief, Daily Stage play, first Daily Barkdoku solve of a day, first read of a Lesson and the guided first Stage, with that run's results. It records progress but never drives it.
 _Avoid_: History, event log, timeline
 
 **Diary**:
-The day-by-day view of the Activity Log, the Walk Diary and the Daily Stage bests, shown as a calendar or as the list of days with activity. It contains Walk Diary entries but is not the Walk Diary.
+The day-by-day view of the Activity Log, the Walk Diary, the Daily Stage bests and the Daily Solve Times, shown as a calendar or as the list of days with activity. It contains Walk Diary entries but is not the Walk Diary.
 _Avoid_: Journal, calendar, history
 
 **Active Day**:
@@ -260,6 +284,10 @@ _Avoid_: Cover, screen, barrier, cono, X
 **Splash**:
 The branded screen shown on every cold start until the Dog is loaded, before the first-run funnel or the World Map.
 _Avoid_: Loading screen, intro
+
+**Appearance**:
+This device's choice of System, Light or Dark colours for the app's screens. It is never part of the Dog record and never changes how a running Stage or an illustration looks.
+_Avoid_: Theme, dark mode, night mode
 
 **Reset Progress**:
 A deliberate, confirmed return of a local-only Dog to its first-run state, available only while signed out. It never touches an account or a cloud Dog.

@@ -6,7 +6,7 @@ import { celebrationSound, celebrationText } from '../celebrationText';
 import type { Celebration } from '../celebrations';
 import { feedback } from './feedback';
 import { Raised } from './components';
-import { color, theme } from './theme';
+import { theme, usePalette } from './theme';
 import { useMotion } from './useMotion';
 
 /**
@@ -15,6 +15,7 @@ import { useMotion } from './useMotion';
  * single diff computed when the result opened, so mounting again never invents new ones.
  */
 export function CelebrationList({ t, celebrations }: { t: Translate; celebrations: readonly Celebration[] }) {
+  const color = usePalette();
   const { reduced } = useMotion();
   useEffect(() => {
     if (celebrations.length === 0) return;

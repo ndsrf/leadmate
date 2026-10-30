@@ -1,5 +1,5 @@
 import type { NodeState, StopKind } from '../mapModel';
-import { color } from './theme';
+import type { Palette } from './theme';
 
 /** Geometry of the World Map path: pure, so the zig-zag and its connectors are testable without rendering. */
 export const NODE_SIZE = 64;
@@ -52,14 +52,14 @@ export interface ConnectorVisual {
 }
 
 /** Path styles distinguishing completed solid trails from upcoming dashed trails (Board 11). */
-export function connectorVisual(fromState: NodeState, toState?: NodeState): ConnectorVisual {
+export function connectorVisual(color: Palette, fromState: NodeState, toState?: NodeState): ConnectorVisual {
   const isSolid = fromState === 'done' && toState === 'done';
   if (isSolid) {
     return {
       kind: 'solid',
       outerWidth: 14,
       innerWidth: 7,
-      outerColor: color.ink,
+      outerColor: color.outline,
       innerColor: color.brand,
     };
   }
@@ -67,7 +67,7 @@ export function connectorVisual(fromState: NodeState, toState?: NodeState): Conn
     kind: 'dashed',
     outerWidth: 8,
     innerWidth: 4,
-    outerColor: color.ink,
+    outerColor: color.outline,
     innerColor: color.surface,
   };
 }
@@ -92,16 +92,16 @@ export interface NodeVisual {
 }
 
 /** How a Stop's disc is drawn for its state and kind; a waiting Mission shows a moon instead of its flag. */
-export function nodeVisual(state: NodeState, kind: StopKind = 'node', optional = false): NodeVisual {
+export function nodeVisual(color: Palette, state: NodeState, kind: StopKind = 'node', optional = false): NodeVisual {
   switch (state) {
     case 'done':
-      return { fill: color.brand, edge: color.ink, ink: color.onBrand, glyph: 'check', ring: false, scale: 1, dashed: false };
+      return { fill: color.brand, edge: color.outline, ink: color.onBrand, glyph: 'check', ring: false, scale: 1, dashed: false };
     case 'next':
-      return { fill: color.accent, edge: color.ink, ink: color.ink, glyph: KIND_GLYPH[kind], ring: true, scale: 1.08, dashed: false };
+      return { fill: color.accent, edge: color.outline, ink: color.onAccent, glyph: KIND_GLYPH[kind], ring: true, scale: 1.08, dashed: false };
     case 'open':
-      return { fill: color.surface, edge: color.ink, ink: color.ink, glyph: KIND_GLYPH[kind], ring: false, scale: 1, dashed: optional };
+      return { fill: color.surface, edge: color.outline, ink: color.ink, glyph: KIND_GLYPH[kind], ring: false, scale: 1, dashed: optional };
     case 'waiting':
-      return { fill: color.surfaceSunken, edge: color.ink, ink: color.ink, glyph: 'moon', ring: false, scale: 1, dashed: false };
+      return { fill: color.surfaceSunken, edge: color.outline, ink: color.ink, glyph: 'moon', ring: false, scale: 1, dashed: false };
     default:
       return { fill: color.locked, edge: color.lockedText, ink: color.lockedText, glyph: 'lock', ring: false, scale: 1, dashed: true };
   }

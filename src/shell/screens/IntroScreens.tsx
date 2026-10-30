@@ -8,13 +8,14 @@ import { withDogName } from '../onboarding/intro';
 import { DOG_COAT_NAMES, type DogCoat } from '../onboarding/look';
 import { cleanDogName, DOG_NAME_MAX } from '../onboarding/name';
 import { BreedArt } from '../ui/BreedArt';
-import { Panel, Raised, TextField } from '../ui/components';
+import { LightRegion, Panel, Raised, TextField } from '../ui/components';
 import { BreedTile, CoatSwatch, StepHeader } from '../ui/Pickers';
-import { color, theme } from '../ui/theme';
+import { theme, usePalette } from '../ui/theme';
 import { Screen } from './Screen';
 
 /** The Dog in its breed and coat on a sky card, so each pick shows at once. */
 function DogPreview({ t, breed, coat }: { t: Translate; breed: BreedId; coat: DogCoat }) {
+  const color = usePalette();
   const label = t('dog.look.of').split('{breed}').join(t(`breed.${breed}`)).split('{coat}').join(t(`coat.${coat}`));
   return (
     <Raised fill={color.sky} radius={theme.radius.lg} offset={theme.depth.sm.x} className="mb-4" faceStyle={{ alignItems: 'center', paddingVertical: theme.space[3] }}>
@@ -114,8 +115,9 @@ export function DogLookScreen({ t, record, onDone }: { t: Translate; record: Dog
 /** Over the taste Stage once the Dog has reacted: the same text whatever the result, naming the Dog. The Stage stays visible above it. */
 export function PayoffOverlay({ t, name, onContinue }: { t: Translate; name: string; onContinue: () => void }) {
   const neutral = t('dog.neutral');
+  // drawn over the running Stage, so it stays Light whatever the Appearance
   return (
-    <View className="absolute inset-0 justify-end p-4">
+    <LightRegion className="absolute inset-0 justify-end p-4">
       <Panel className="w-full max-w-md self-center">
         <Text className="mb-2 font-display text-displayM text-ink" accessibilityRole="header">
           {withDogName(t('payoff.title'), name, neutral)}
@@ -124,6 +126,6 @@ export function PayoffOverlay({ t, name, onContinue }: { t: Translate; name: str
         <Text className="mb-4 text-bodyL text-inkMuted">{withDogName(t('payoff.body'), name, neutral)}</Text>
         <Button label={t('payoff.continue')} onPress={onContinue} />
       </Panel>
-    </View>
+    </LightRegion>
   );
 }
