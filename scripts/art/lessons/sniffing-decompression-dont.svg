@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="lesson.5.dont" data-alt="lesson.5.dont">
+  <!-- don't: Migas pulls to the hedge and you follow him there with the leash tight -->
+  <use href="#sky"/>
+  <use href="#ground-grass"/>
+  <use href="#bush" transform="translate(540 300) scale(1.2)"/>
+  <g transform="translate(110 300) scale(1.2)">
+    <use href="#person-walk" transform="rotate(10 0 0)"/>
+    <use href="#dog-pull" transform="translate(200 0)"/>
+    <use href="#leash-taut"/>
+  </g>
+  <use href="#arrow-ink" transform="translate(220 100)"/>
+  <use href="#badge-cross" transform="translate(580 70) scale(1.5)"/>
+</svg>

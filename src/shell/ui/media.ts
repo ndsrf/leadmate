@@ -1,15 +1,19 @@
 import type { NodeMedia } from '../nodes/node';
 
-export type MediaDisplay = 'media' | 'placeholder';
+export type MediaDisplay = 'bundled' | 'media' | 'placeholder';
 
-/** Whether to draw the media itself or its placeholder: a placeholder flag, an empty URL or a load error all fall back. */
-export function mediaDisplay(media: NodeMedia, failed: boolean): MediaDisplay {
+/**
+ * Whether to draw the media or its placeholder: media naming bundled Lesson art draws it whenever it is bundled
+ * (`bundled`), offline included; otherwise a placeholder flag, an empty URL or a load error all fall back.
+ */
+export function mediaDisplay(media: NodeMedia, failed: boolean, bundled = false): MediaDisplay {
+  if (media.art !== undefined) return bundled ? 'bundled' : 'placeholder';
   return media.placeholder || media.url.trim() === '' || failed ? 'placeholder' : 'media';
 }
 
 /** Why the placeholder is showing: still pending content, or content that failed to load. */
 export function placeholderReason(media: NodeMedia, failed: boolean): 'pending' | 'unavailable' {
-  return !media.placeholder && media.url.trim() !== '' && failed ? 'unavailable' : 'pending';
+  return media.art === undefined && !media.placeholder && media.url.trim() !== '' && failed ? 'unavailable' : 'pending';
 }
 
 export type BrowserState = 'loading' | 'ready' | 'offline';
@@ -48,11 +52,15 @@ export function videoWatchUrl(id: string): string | null {
   return VIDEO_ID.test(id) ? `https://www.youtube.com/watch?v=${id}` : null;
 }
 
-export type LessonImageKind = 'art' | 'remote' | 'placeholder';
+export type LessonImageKind = 'bundled' | 'art' | 'remote' | 'placeholder';
 
-/** How a Lesson image draws: bundled art by name, a remote web address, or the themed placeholder (unknown source or a load error). */
-export function lessonImageKind(source: string, isArt: boolean, failed: boolean): LessonImageKind {
-  if (isArt) return 'art';
+/**
+ * How a Lesson image draws: a bundled illustration from the registry by name, then an inline scene by name, then a
+ * remote web address, else the themed placeholder (unknown name or a load error).
+ */
+export function lessonImageKind(source: string, known: { bundled: boolean; inline: boolean }, failed: boolean): LessonImageKind {
+  if (known.bundled) return 'bundled';
+  if (known.inline) return 'art';
   return !failed && isWebUrl(source) ? 'remote' : 'placeholder';
 }
 

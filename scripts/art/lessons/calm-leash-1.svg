@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="lesson.1.image.1.caption" data-alt="lesson.1.image.1.alt">
+  <!-- concept: the leash hanging in a J while you walk together (right), next to a taut leash (wrong) -->
+  <use href="#sky"/>
+  <use href="#ground-street"/>
+  <path d="M320 26V280" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="12 10" stroke-linecap="round"/>
+  <g transform="translate(34 300) scale(0.86)">
+    <use href="#person-walk"/>
+    <use href="#dog-walk-calm" transform="translate(200 0)"/>
+    <use href="#leash-j"/>
+  </g>
+  <use href="#badge-check" transform="translate(276 64) scale(1.3)"/>
+  <g transform="translate(348 300) scale(0.86)">
+    <use href="#person-walk" transform="rotate(10 0 0)"/>
+    <use href="#dog-pull" transform="translate(200 0)"/>
+    <use href="#leash-taut"/>
+  </g>
+  <use href="#badge-cross" transform="translate(596 64) scale(1.3)"/>
+</svg>

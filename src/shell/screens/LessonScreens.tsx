@@ -3,7 +3,7 @@ import { Pressable, Text, View, type NativeScrollEvent, type NativeSyntheticEven
 import type { Translate } from '../../i18n';
 import { libraryEntries, type LessonDef } from '../lessons/lesson';
 import { lessonItems, readingProgress, type LessonItem } from '../lessons/lessonRun';
-import { fixEntries, fixEntryLabel, lessonKindLabel, lessonPlaceLabel, libraryEntryLabel, type FixEntry } from '../lessons/libraryText';
+import { fixEntries, fixEntryLabel, lessonKindLabel, lessonPlaceLabel, libraryEntryLabel, readingMinutes, type FixEntry } from '../lessons/libraryText';
 import type { SeenFix } from '../missions/mission';
 import { Button } from '../Overlays';
 import { Badge, Panel, ProgressBar } from '../ui/components';
@@ -91,7 +91,7 @@ export function LibraryScreen({
               </View>
               <Text className="mt-2 font-display text-title text-ink">{t(lesson.title)}</Text>
               <View className="mt-1 flex-row items-center" style={{ gap: theme.space[3] }}>
-                <Text className="text-caption text-inkMuted">{`${lesson.minutes} ${t('lesson.minutes')}`}</Text>
+                <Text className="text-caption text-inkMuted">{`${readingMinutes(lesson, t)} ${t('lesson.minutes')}`}</Text>
                 <Text className="font-display text-caption text-ink">{`${read ? '✓' : '○'} ${state}`}</Text>
               </View>
             </Panel>

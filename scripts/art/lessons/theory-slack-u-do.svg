@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-slack-u.do" data-alt="trail.theory-slack-u.do">
+  <!-- do: the hand stays at your waist; Migas walks close and the U comes from him, not from your arm -->
+  <use href="#sky"/>
+  <use href="#ground-street"/>
+  <g transform="translate(110 300) scale(1.2)">
+    <use href="#person-walk"/>
+    <use href="#dog-checkin" transform="translate(200 0)"/>
+    <use href="#leash-u"/>
+  </g>
+  <use href="#badge-check" transform="translate(570 70) scale(1.5)"/>
+</svg>

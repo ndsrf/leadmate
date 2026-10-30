@@ -1,5 +1,6 @@
 import { es } from '../../i18n';
 import { findFix, MISSIONS } from './content';
+import { lessonTextKeys } from '../lessons/lesson';
 
 const fixes = MISSIONS.flatMap((m) => [...m.problems.map((p) => p.fix), m.generalFix]);
 
@@ -36,8 +37,9 @@ describe('Mission content', () => {
       if (b.type === 'image' || b.type === 'video') {
         expect(es[b.alt]).toBeTruthy();
         expect(es[b.caption]).toBeTruthy();
-      } else expect(es[b.text]).toBeTruthy();
+      }
     }
+    for (const key of lessonTextKeys(f.blocks)) expect(es[key]).toBeTruthy();
     expect(es[f.easierTarget]).toBeTruthy();
     expect(f.practise).toBeDefined();
     expect(f.placeholder).toBe(true);

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-harness.image.2.caption" data-alt="trail.theory-harness.image.2.alt">
+  <!-- scene: in the hall, harness on, Migas sits calm and gets his treat at your hand; the door stays shut until then -->
+  <use href="#backdrop-indoor"/>
+  <g transform="translate(0 292) scale(1.22) translate(0 -292)">
+    <use href="#door" transform="translate(470 292)"/>
+    <use href="#person-crouch" transform="translate(210 292)"/>
+    <use href="#dog-sit" transform="translate(336 292) scale(-1 1)"/>
+  </g>
+  <use href="#heart" transform="translate(370 120) scale(1.6)"/>
+</svg>

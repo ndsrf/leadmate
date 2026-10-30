@@ -7,15 +7,22 @@ import { BARKDOKU_INTRO_NODE, DOORBELL_MAT_NODE, HARNESS_RITUAL_NODE, LEAVE_IT_N
 import { placeOf, worldOfNode } from '../world';
 import { findLesson } from '../lessons/content';
 import { INTRO_NODE } from '../onboarding/introNode';
-import { advance, checkpointLimit, isAvailable, metricScores, missingPrerequisites, onDebrief, pickExercise, primerCardOf, shouldShowPosteLink, startNode, type NodeRun } from './node';
+import { createRng } from '../../sim/rng';
+import { advance, checkpointLimit, shuffledOrder, isAvailable, metricScores, missingPrerequisites, onDebrief, pickExercise, primerCardOf, shouldShowPosteLink, startNode, type NodeRun } from './node';
 import { newPosteMinigame, posteMinigameMetrics, POSTE_MINIGAME, stepPosteMinigame, tensionOf } from './posteMinigame';
 
 const stageResult = (over = {}) => ({ kind: 'stage' as const, payload: payloadWith(over) });
 
-function toSimulation(node = WALK_DISTRACTION): NodeRun {
+function toCheckpoint(node = WALK_DISTRACTION): NodeRun {
   let run = startNode(node);
   for (let i = 0; i < node.primerCards.length; i++) run = advance(run, { type: 'next' });
-  return advance(run, { type: 'answer', option: 0 });
+  return run;
+}
+
+function toSimulation(node = WALK_DISTRACTION): NodeRun {
+  let run = toCheckpoint(node);
+  for (const _ of node.checkpoint) run = advance(run, { type: 'answer', option: 0 });
+  return run;
 }
 
 describe('prerequisites', () => {
@@ -39,7 +46,7 @@ describe('Node state machine', () => {
       run = advance(run, { type: 'next' });
       if (steps[steps.length - 1] !== run.step) steps.push(run.step);
     }
-    run = advance(run, { type: 'answer', option: 0 });
+    for (const _ of WALK_DISTRACTION.checkpoint) run = advance(run, { type: 'answer', option: 0 });
     steps.push(run.step);
     run = advance(run, { type: 'finish', result: stageResult() });
     steps.push(run.step);
@@ -63,33 +70,61 @@ describe('Node state machine', () => {
     expect(INTRO_NODE.primerCards.length).toBeLessThanOrEqual(5);
   });
 
-  it('records a missed answer on timeout and still starts the simulation', () => {
-    let run = startNode(POSTE_PRACTICE);
-    for (const _ of POSTE_PRACTICE.primerCards) run = advance(run, { type: 'next' });
-    run = advance(run, { type: 'timeout' });
-    expect(run.step).toBe('simulation');
-    expect(run.checkpoint).toBe('missed');
+  it('asks the questions in order, one answer each, and starts the simulation after the last', () => {
+    let run = toCheckpoint(WALK_DISTRACTION);
+    expect(run.question).toBe(0);
+    run = advance(run, { type: 'answer', option: 0 });
+    expect(run).toMatchObject({ step: 'checkpoint', question: 1, checkpoint: ['correct'] });
+    run = advance(run, { type: 'answer', option: 2 });
+    expect(run).toMatchObject({ step: 'checkpoint', question: 2, checkpoint: ['correct', 'wrong'] });
+    run = advance(run, { type: 'answer', option: 0 });
+    expect(run).toMatchObject({ step: 'simulation', checkpoint: ['correct', 'wrong', 'correct'] });
   });
 
-  it('starts the simulation after a wrong answer without touching the Dog', () => {
+  it('records a timeout mid-quiz as missed and shows the next question', () => {
+    let run = advance(toCheckpoint(POSTE_PRACTICE), { type: 'answer', option: 0 });
+    run = advance(run, { type: 'timeout' });
+    expect(run).toMatchObject({ step: 'checkpoint', question: 2, checkpoint: ['correct', 'missed'] });
+    run = advance(run, { type: 'timeout' });
+    expect(run).toMatchObject({ step: 'simulation', checkpoint: ['correct', 'missed', 'missed'] });
+  });
+
+  it('starts the simulation after wrong answers without touching the Dog', () => {
     const record = newDogRecord();
-    let run = startNode(WALK_DISTRACTION);
-    for (const _ of WALK_DISTRACTION.primerCards) run = advance(run, { type: 'next' });
-    run = advance(run, { type: 'answer', option: 1 });
+    let run = toCheckpoint(WALK_DISTRACTION);
+    for (const _ of WALK_DISTRACTION.checkpoint) run = advance(run, { type: 'answer', option: 1 });
     expect(run.step).toBe('simulation');
-    expect(run.checkpoint).toBe('wrong');
+    expect(run.checkpoint).toEqual(['wrong', 'wrong', 'wrong']);
     expect(record.attributes).toEqual(DEFAULT_ATTRIBUTES);
   });
 
-  it('ignores an answer that is not an option', () => {
-    let run = startNode(POSTE_PRACTICE);
-    for (const _ of POSTE_PRACTICE.primerCards) run = advance(run, { type: 'next' });
-    expect(advance(run, { type: 'answer', option: 9 }).step).toBe('checkpoint');
+  it('ignores an answer that is not an option, and Checkpoint actions outside the Checkpoint', () => {
+    const run = toCheckpoint(POSTE_PRACTICE);
+    expect(advance(run, { type: 'answer', option: 9 })).toBe(run);
+    expect(advance(run, { type: 'next' })).toBe(run);
+    const atSimulation = toSimulation(POSTE_PRACTICE);
+    expect(advance(atSimulation, { type: 'answer', option: 0 })).toBe(atSimulation);
+    expect(advance(atSimulation, { type: 'timeout' })).toBe(atSimulation);
+    expect(advance(startNode(POSTE_PRACTICE), { type: 'timeout' }).step).toBe('primer');
   });
 
   it('refuses a result of the wrong kind for the mode', () => {
     expect(advance(toSimulation(WALK_DISTRACTION), { type: 'finish', result: { kind: 'minigame', metrics: {} } }).step).toBe('simulation');
     expect(advance(toSimulation(POSTE_PRACTICE), { type: 'finish', result: stageResult() }).step).toBe('simulation');
+  });
+
+  it('shuffles option order into a permutation, putting the right answer in every position over many runs', () => {
+    const rng = createRng(42);
+    const random = () => rng.next();
+    const seen = new Set<number>();
+    for (let i = 0; i < 200; i++) {
+      const order = shuffledOrder(3, random);
+      expect([...order].sort()).toEqual([0, 1, 2]);
+      seen.add(order.indexOf(0));
+    }
+    expect(seen).toEqual(new Set([0, 1, 2]));
+    expect(shuffledOrder(0, random)).toEqual([]);
+    expect(shuffledOrder(1, random)).toEqual([0]);
   });
 
   it('turns the Checkpoint setting into a limit: 5 s, 10 s or none', () => {
@@ -178,10 +213,13 @@ describe('Barkdoku minigame node integration', () => {
       title: 'node.barkdoku.title',
       mode: 'minigame',
       primerCards: ['primer.1', 'primer.2', 'primer.3'],
-      checkpoint: {
-        question: 'q',
-        options: [{ text: 'opt1', correct: true }, { text: 'opt2', correct: false }],
-      },
+      checkpoint: [
+        {
+          question: 'q',
+          options: [{ text: 'opt1', correct: true }, { text: 'opt2', correct: false }],
+          explanation: 'why',
+        },
+      ],
       simulation: { minigame: 'barkdoku' },
       exercises: [{ metric: 'tension', key: 'ex.tension' }],
       prerequisites: [],
@@ -228,9 +266,9 @@ describe('Barkdoku minigame node integration', () => {
 describe('initial content', () => {
   it('comes from the catalog', () => {
     for (const node of NODES) {
-      const keys = [node.title, ...node.primerCards.map((c) => primerCardOf(c).text), node.checkpoint.question, ...node.checkpoint.options.map((o) => o.text), ...node.exercises.map((e) => e.key)];
+      const questions = node.checkpoint.flatMap((q) => [q.question, q.explanation, ...q.options.map((o) => o.text)]);
+      const keys = [node.title, ...node.primerCards.map((c) => primerCardOf(c).text), ...questions, ...node.exercises.map((e) => e.key)];
       for (const key of keys) expect(es[key]).toBeTruthy();
-      expect(node.checkpoint.options.filter((o) => o.correct)).toHaveLength(1);
     }
   });
 });
@@ -423,6 +461,17 @@ describe('structured Primer cards', () => {
   });
 
   it('tests the theory Lesson in the Checkpoint of every trail Node', () => {
-    for (const node of NODES) expect(node.checkpoint.question).toMatch(/\.tq\.question$/);
+    for (const node of NODES) for (const q of node.checkpoint) expect(q.question).toMatch(/\.tq[123]\.question$/);
+  });
+
+  it('asks three questions of three options, exactly one right, on every trail Node', () => {
+    for (const node of NODES) {
+      expect({ node: node.id, questions: node.checkpoint.length }).toEqual({ node: node.id, questions: 3 });
+      for (const q of node.checkpoint) {
+        expect(q.options).toHaveLength(3);
+        expect(q.options.filter((o) => o.correct)).toHaveLength(1);
+        for (const key of [q.question, q.explanation, ...q.options.map((o) => o.text)]) expect({ key, text: es[key] }).toEqual({ key, text: expect.any(String) });
+      }
+    }
   });
 });

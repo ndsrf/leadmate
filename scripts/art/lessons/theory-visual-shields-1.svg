@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-visual-shields.image.1.caption" data-alt="trail.theory-visual-shields.image.1.alt">
+  <!-- concept, top-down: with nothing in between, Migas's line of sight reaches the scooter; a parked car cuts it -->
+  <use href="#top-ground"/>
+  <rect x="-4" y="-4" width="648" height="200" fill="#D8CFB8" stroke="#1E2A3A" stroke-width="3.5"/>
+  <path d="M320 12V348" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="12 10" stroke-linecap="round"/>
+  <!-- left: open sidewalk, Migas sees the scooter -->
+  <use href="#top-scooter" transform="translate(190 92) scale(1.4)"/>
+  <use href="#motion" transform="translate(140 92)"/>
+  <use href="#sight" transform="translate(190 250) rotate(-90) scale(1.12)"/>
+  <path d="M100 292H184" fill="none" stroke="#1E2A3A" stroke-width="8.5" stroke-linecap="round"/>
+  <path d="M100 292H184" fill="none" stroke="#6FAF73" stroke-width="4.5" stroke-linecap="round"/>
+  <use href="#top-person" transform="translate(96 292) scale(1.3)"/>
+  <use href="#top-dog" transform="translate(190 300) rotate(-90) scale(1.3)"/>
+  <use href="#badge-cross" transform="translate(52 52) scale(1.3)"/>
+  <!-- right: a parked car between Migas and the scooter -->
+  <use href="#top-scooter" transform="translate(510 70) scale(1.4)"/>
+  <use href="#motion" transform="translate(460 70)"/>
+  <use href="#top-car" transform="translate(510 158) scale(1.25)"/>
+  <path d="M510 250V214" fill="none" stroke="#1E2A3A" stroke-width="3.5" stroke-dasharray="10 8" stroke-linecap="round"/>
+  <path d="M488 202H532" stroke="#1E2A3A" stroke-width="6" stroke-linecap="round"/>
+  <path d="M420 292H504" fill="none" stroke="#1E2A3A" stroke-width="8.5" stroke-linecap="round"/>
+  <path d="M420 292H504" fill="none" stroke="#6FAF73" stroke-width="4.5" stroke-linecap="round"/>
+  <use href="#top-person" transform="translate(416 292) scale(1.3)"/>
+  <use href="#top-dog" transform="translate(510 300) rotate(-90) scale(1.3)"/>
+  <use href="#badge-check" transform="translate(372 52) scale(1.3)"/>
+</svg>

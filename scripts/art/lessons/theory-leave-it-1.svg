@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-leave-it.image.1.caption" data-alt="trail.theory-leave-it.image.1.alt">
+  <!-- concept: at home, Migas looks at the food on the floor (1); he turns his head to you and the treat comes from your hand (2) -->
+  <use href="#backdrop-indoor"/>
+  <path d="M320 26V280" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="12 10" stroke-linecap="round"/>
+  <g transform="translate(60 292) scale(0.86)">
+    <use href="#person-crouch"/>
+    <use href="#dog-look" transform="translate(120 0)"/>
+    <use href="#food" transform="translate(250 -2) scale(2.2)"/>
+    <use href="#sight" transform="translate(206 -64) rotate(36) scale(0.56 1)"/>
+  </g>
+  <use href="#step-1" transform="translate(40 50) scale(1.2)"/>
+  <g transform="translate(386 292) scale(0.86)">
+    <use href="#person-crouch"/>
+    <use href="#dog-checkin" transform="translate(120 0)"/>
+    <use href="#food" transform="translate(250 -2) scale(2.2)"/>
+  </g>
+  <use href="#heart" transform="translate(452 128) scale(1.6)"/>
+  <use href="#step-2" transform="translate(360 50) scale(1.2)"/>
+</svg>

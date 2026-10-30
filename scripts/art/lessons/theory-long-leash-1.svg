@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-long-leash.image.1.caption" data-alt="trail.theory-long-leash.image.1.alt">
+  <!-- concept, seen from above: calm, Migas sniffs near the edge of the 3 m reach; a runner on the path, the leash is gathered and he walks close -->
+  <rect x="0" y="0" width="640" height="360" fill="#6FAF73"/>
+  <rect x="-4" y="-4" width="648" height="56" fill="#EDE3CC" stroke="#1E2A3A" stroke-width="3"/>
+  <!-- left: calm, three metres -->
+  <g transform="translate(160 208)">
+    <use href="#reach" transform="scale(1.2)"/>
+    <g transform="scale(1.4)">
+      <use href="#top-dog" transform="translate(56 20) rotate(40)"/>
+      <path d="M10 6C16 56 52 54 60 22" fill="none" stroke="#1E2A3A" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M10 6C16 56 52 54 60 22" fill="none" stroke="#6FAF73" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="60" cy="22" r="3.5" fill="#1E2A3A"/>
+      <use href="#top-person"/>
+    </g>
+  </g>
+  <path d="M320 60V350" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="12 10" stroke-linecap="round"/>
+  <!-- right: something fast, one metre -->
+  <g transform="translate(470 206)">
+    <use href="#reach" transform="scale(0.75)"/>
+    <g transform="scale(1.4)">
+      <use href="#top-dog" transform="translate(8 34)"/>
+      <path d="M8 6C18 12 16 24 12 33" fill="none" stroke="#1E2A3A" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M8 6C18 12 16 24 12 33" fill="none" stroke="#6FAF73" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="12" cy="33" r="3.5" fill="#1E2A3A"/>
+      <use href="#top-person"/>
+    </g>
+  </g>
+  <g transform="translate(520 25)">
+    <use href="#top-runner" transform="rotate(180)"/>
+    <use href="#motion" transform="translate(30 0) scale(-1 1)"/>
+  </g>
+</svg>

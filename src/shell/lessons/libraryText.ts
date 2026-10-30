@@ -2,7 +2,7 @@ import type { TextKey, Translate } from '../../i18n';
 import { findFix } from '../missions/content';
 import type { Fix, MissionDef, SeenFix } from '../missions/mission';
 import { placeOfLesson } from '../world';
-import type { LessonDef, LibraryEntry } from './lesson';
+import { countWords, lessonArtNames, lessonTextKeys, type LessonDef, type LibraryEntry } from './lesson';
 
 /** The kind of a Lesson, named in text: "Teoría" or "Cómo se juega". */
 export function lessonKindLabel(lesson: Pick<LessonDef, 'kind'>, t: Translate): string {
@@ -16,9 +16,25 @@ export function lessonPlaceLabel(lesson: Pick<LessonDef, 'id' | 'day'>, t: Trans
   return place ? t('library.place').replace('{world}', String(place.world)).replace('{stretch}', String(place.stretch)) : '';
 }
 
+const WORDS_PER_MINUTE = 180;
+const SECONDS_PER_IMAGE = 10;
+const SECONDS_PER_VIDEO = 30;
+
+/**
+ * Estimated reading time in whole minutes (at least 1): the Lesson's words in the active language at 180 per minute,
+ * plus 10 s for each illustration and 30 s for each video. Edited text changes it with no edit to the Lesson.
+ */
+export function readingMinutes(lesson: Pick<LessonDef, 'blocks'>, t: Translate): number {
+  const words = lessonTextKeys(lesson.blocks).reduce((sum, key) => sum + countWords(t(key)), 0);
+  const images = lessonArtNames(lesson.blocks).length;
+  const videos = lesson.blocks.filter((b) => b.type === 'video').length;
+  const seconds = (words / WORDS_PER_MINUTE) * 60 + images * SECONDS_PER_IMAGE + videos * SECONDS_PER_VIDEO;
+  return Math.max(1, Math.ceil(seconds / 60));
+}
+
 /** A Library entry for a screen reader: place, kind, title, minutes, read state and "for today". */
 export function libraryEntryLabel({ lesson, read, today }: LibraryEntry, t: Translate): string {
-  const parts = [lessonPlaceLabel(lesson, t), lessonKindLabel(lesson, t), t(lesson.title), `${lesson.minutes} ${t('lesson.minutes')}`, t(read ? 'library.read' : 'library.unread')];
+  const parts = [lessonPlaceLabel(lesson, t), lessonKindLabel(lesson, t), t(lesson.title), `${readingMinutes(lesson, t)} ${t('lesson.minutes')}`, t(read ? 'library.read' : 'library.unread')];
   if (today) parts.push(t('library.today'));
   return `${parts.filter((p) => p !== '').join('. ')}.`;
 }

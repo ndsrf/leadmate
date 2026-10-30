@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-blind-corner.image.2.caption" data-alt="trail.theory-blind-corner.image.2.alt">
+  <!-- scene: a few steps before the corner, the Person has stopped and Migas turns back on a loose leash; something sounds round the corner -->
+  <use href="#sky"/>
+  <use href="#wall" transform="translate(640 300) scale(1.2 1.1)"/>
+  <use href="#ground-street"/>
+  <use href="#sound" transform="translate(500 180) scale(-1.5 1.5)"/>
+  <g transform="translate(70 300) scale(1.15)">
+    <use href="#person-still"/>
+    <use href="#dog-checkin" transform="translate(200 0)"/>
+    <use href="#leash-still-u"/>
+  </g>
+  <use href="#pause" transform="translate(76 50) scale(1.3)"/>
+</svg>

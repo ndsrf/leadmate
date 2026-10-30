@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-poste.image.1.caption" data-alt="trail.theory-poste.image.1.alt">
+  <!-- concept: the opposition reflex; you pull back, the dog pushes forward harder -->
+  <use href="#sky"/>
+  <use href="#ground-grass"/>
+  <g transform="translate(70 300) scale(1.18)">
+    <use href="#person-still" transform="rotate(-12 0 0)"/>
+    <use href="#dog-pull" transform="translate(200 0)"/>
+    <path d="M-4 -102L214 -66" fill="none" stroke="#1E2A3A" stroke-width="8.5" stroke-linecap="round"/>
+    <path d="M-4 -102L214 -66" fill="none" stroke="#6FAF73" stroke-width="4.5" stroke-linecap="round"/>
+  </g>
+  <use href="#arrow-ink" transform="translate(150 86) scale(-1.2 1.2)"/>
+  <use href="#arrow-ink" transform="translate(300 86) scale(1.2)"/>
+  <use href="#arrow-ink" transform="translate(370 86) scale(1.2)"/>
+</svg>

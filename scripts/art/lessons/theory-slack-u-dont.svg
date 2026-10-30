@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-slack-u.dont" data-alt="trail.theory-slack-u.dont">
+  <!-- don't: the arm stretched forward keeps a U, but the hand follows Migas and he walks out in front -->
+  <use href="#sky"/>
+  <use href="#ground-street"/>
+  <g transform="translate(70 300) scale(1.1)">
+    <ellipse cx="0" cy="1" rx="34" ry="5" fill="#1E2A3A" opacity="0.14"/>
+    <use href="#person-leg" transform="translate(-2 -80) rotate(16)"/>
+    <use href="#person-leg" transform="translate(2 -80) rotate(-16)"/>
+    <use href="#person-top" transform="translate(0 -76)"/>
+    <use href="#person-arm" transform="translate(4 -130) rotate(-75)"/>
+    <use href="#dog-walk" transform="translate(300 0)"/>
+    <path d="M54 -116C80 -30 250 -30 314 -66" fill="none" stroke="#1E2A3A" stroke-width="8.5" stroke-linecap="round"/>
+    <path d="M54 -116C80 -30 250 -30 314 -66" fill="none" stroke="#6FAF73" stroke-width="4.5" stroke-linecap="round"/>
+    <circle cx="314" cy="-66" r="3.5" fill="#1E2A3A"/>
+    <use href="#arrow-ink" transform="translate(76 -146)"/>
+  </g>
+  <use href="#badge-cross" transform="translate(570 70) scale(1.5)"/>
+</svg>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-poste.image.2.caption" data-alt="trail.theory-poste.image.2.alt">
+  <!-- scene: outside the bakery, the Person stands still and Migas turns back; the leash hangs again -->
+  <use href="#sky"/>
+  <use href="#wall" transform="translate(560 300) scale(1.2 1)"/>
+  <use href="#door" transform="translate(560 300) scale(0.9)"/>
+  <use href="#ground-street"/>
+  <g transform="translate(70 300) scale(1.15)">
+    <use href="#person-still"/>
+    <use href="#dog-checkin" transform="translate(200 0)"/>
+    <use href="#leash-still-u"/>
+  </g>
+  <use href="#heart" transform="translate(300 116) scale(1.6)"/>
+</svg>

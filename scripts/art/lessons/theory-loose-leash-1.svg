@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-loose-leash.image.1.caption" data-alt="trail.theory-loose-leash.image.1.alt">
+  <!-- concept: walking on a loose leash (1) is what earns the sniff (2) -->
+  <use href="#sky"/>
+  <use href="#ground-street"/>
+  <path d="M320 26V280" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="12 10" stroke-linecap="round"/>
+  <use href="#step-1" transform="translate(42 46) scale(1.2)"/>
+  <g transform="translate(34 296) scale(0.86)">
+    <use href="#person-walk"/>
+    <use href="#dog-walk-calm" transform="translate(200 0)"/>
+    <use href="#leash-j"/>
+  </g>
+  <use href="#arrow-ink" transform="translate(196 156)"/>
+  <use href="#step-2" transform="translate(362 46) scale(1.2)"/>
+  <use href="#bush" transform="translate(588 296) scale(0.8)"/>
+  <g transform="translate(350 296) scale(0.86)">
+    <use href="#person-still"/>
+    <use href="#dog-sniff" transform="translate(200 0)"/>
+    <use href="#leash-still-u"/>
+  </g>
+  <use href="#sniff-lines" transform="translate(566 236) scale(1.2)"/>
+</svg>

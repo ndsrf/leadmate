@@ -24,6 +24,7 @@ daily Streak and "El Paseo del Día" (Daily Stage).
 | `src/sim/` (engagement) | `geometry.ts` (walls, sliding, line of sight, corner leash path), `scenery.ts` (scenery sets and the density validator) |
 | `src/hud/` | Pure HUD logic: isometric projection, joystick detents, keyboard mapping, text fitting, Cue/Go Sniff button layout, Dog pose |
 | `src/i18n/` | Text catalog and lookup |
+| `docs/content/` | Content authoring: [writing a theory Lesson](docs/content/lesson-guide.md) (voice, method rules, the teaching pattern, illustrations, Checkpoint questions) |
 | `docs/adr/` | Decisions: [Phaser in a WebView](docs/adr/0001-phaser-in-webview.md), [pure seeded simulation](docs/adr/0002-pure-seeded-simulation.md), [learning snapshot in, update out](docs/adr/0003-learning-state-snapshot-in-update-out.md), [Arousal causes Fixation](docs/adr/0004-arousal-causes-fixation.md), [Stars merge by max](docs/adr/0007-stars-merge-by-max.md) |
 
 ## Running

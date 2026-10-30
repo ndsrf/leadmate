@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="lesson.2.image.1.caption" data-alt="lesson.2.image.1.alt">
+  <!-- concept: the same dog relaxed (loose, ear down, mouth open, tail low, weight centred) and tense (stiff, ear up, mouth shut, tail high, weight forward) -->
+  <use href="#sky"/>
+  <use href="#ground-grass"/>
+  <path d="M320 26V276" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="12 10" stroke-linecap="round"/>
+  <!-- relaxed: legs under the body, low loose tail, soft ear, open mouth -->
+  <g transform="translate(130 298) scale(1.6)">
+    <ellipse cx="2" cy="1" rx="50" ry="5" fill="#1E2A3A" opacity="0.14"/>
+    <use href="#dog-leg-back" transform="translate(-26 -28)"/>
+    <use href="#dog-leg-back" transform="translate(22 -28)"/>
+    <use href="#dog-leg" transform="translate(-18 -28)"/>
+    <use href="#dog-leg" transform="translate(30 -28)"/>
+    <use href="#dog-tail-down" transform="translate(-36 -52)"/>
+    <use href="#dog-body" transform="translate(0 -44)"/>
+    <g transform="translate(46 -62) rotate(8)">
+      <path d="M15 12C14 26 19 31 23 31C27 31 30 26 28 12z" fill="#E8795C" stroke="#1E2A3A" stroke-width="2.5" stroke-linejoin="round"/>
+      <use href="#dog-head-calm"/>
+    </g>
+  </g>
+  <use href="#heart" transform="translate(150 80) scale(1.6)"/>
+  <!-- tense: body shifted forward over the front legs, tail high and straight, ear pricked, mouth shut -->
+  <g transform="translate(440 298) scale(1.6)">
+    <ellipse cx="2" cy="1" rx="50" ry="5" fill="#1E2A3A" opacity="0.14"/>
+    <path d="M-24 -56L-20 -106" fill="none" stroke="#1E2A3A" stroke-width="9" stroke-linecap="round"/>
+    <path d="M-24 -56L-20 -106" fill="none" stroke="#B9783A" stroke-width="5" stroke-linecap="round"/>
+    <use href="#dog-leg-back" transform="translate(-16 -30) rotate(22)"/>
+    <use href="#dog-leg-back" transform="translate(32 -30) rotate(22)"/>
+    <use href="#dog-leg" transform="translate(-8 -30) rotate(22)"/>
+    <use href="#dog-leg" transform="translate(40 -30) rotate(22)"/>
+    <use href="#dog-body" transform="translate(10 -48) rotate(-4)"/>
+    <use href="#dog-head-alert" transform="translate(60 -76) rotate(-6)"/>
+  </g>
+  <use href="#arrow-ink" transform="translate(420 112) scale(0.9)"/>
+</svg>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="lesson.5.do" data-alt="lesson.5.do">
+  <!-- do: near the hedge the leash hangs and Migas looks back; now the smell is his -->
+  <use href="#sky"/>
+  <use href="#ground-grass"/>
+  <use href="#bush" transform="translate(540 300) scale(1.2)"/>
+  <g transform="translate(70 300) scale(1.2)">
+    <use href="#person-still"/>
+    <use href="#dog-checkin" transform="translate(200 0)"/>
+    <use href="#leash-still-u"/>
+  </g>
+  <use href="#badge-check" transform="translate(580 70) scale(1.5)"/>
+</svg>

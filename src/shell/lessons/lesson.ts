@@ -9,7 +9,20 @@ export type LessonBlock =
   | { type: 'text'; text: TextKey }
   | { type: 'tip'; text: TextKey }
   | { type: 'image'; art: string; alt: TextKey; caption: TextKey; placeholder?: boolean }
-  | { type: 'video'; videoId: string; poster: string; alt: TextKey; caption: TextKey; placeholder?: boolean };
+  | { type: 'video'; videoId: string; poster: string; alt: TextKey; caption: TextKey; placeholder?: boolean }
+  /** A numbered how-to list. */
+  | { type: 'steps'; items: TextKey[] }
+  /** A short story of the technique on a real walk, set apart from the body. */
+  | { type: 'example'; title: TextKey; text: TextKey }
+  /** A common mistake: the right way ("do") next to the wrong one ("don't"), each optionally with bundled art. */
+  | { type: 'compare'; do: CompareSide; dont: CompareSide }
+  /** A short bulleted summary. */
+  | { type: 'takeaways'; items: TextKey[] };
+
+export interface CompareSide {
+  text: TextKey;
+  art?: string;
+}
 
 /** `theory` teaches the real dog; `how-to-play` teaches the simulator's controls and how to read the virtual Dog. */
 export type LessonKind = 'theory' | 'how-to-play';
@@ -21,10 +34,40 @@ export interface LessonDef {
   kind: LessonKind;
   /** Suggested day after the first Stage (Day 1 is the day it was completed); absent for a Lesson on a World's trail. */
   day?: number;
-  minutes: number;
   /** Provisional text; shows the placeholder badge on the card and at the top of the Lesson. */
   placeholder?: boolean;
   blocks: LessonBlock[];
+}
+
+/** The catalog keys of a Lesson's reading text, in order: everything but image and video captions and alt text. */
+export function lessonTextKeys(blocks: readonly LessonBlock[]): TextKey[] {
+  return blocks.flatMap((b): TextKey[] => {
+    switch (b.type) {
+      case 'heading':
+      case 'text':
+      case 'tip':
+        return [b.text];
+      case 'steps':
+      case 'takeaways':
+        return b.items;
+      case 'example':
+        return [b.title, b.text];
+      case 'compare':
+        return [b.do.text, b.dont.text];
+      default:
+        return [];
+    }
+  });
+}
+
+/** The illustrations of a Lesson: every image block's art and every do / don't side's art, in order. */
+export function lessonArtNames(blocks: readonly LessonBlock[]): string[] {
+  return blocks.flatMap((b) => (b.type === 'image' ? [b.art] : b.type === 'compare' ? [b.do.art, b.dont.art].filter((a): a is string => a !== undefined) : []));
+}
+
+/** Words in a text: runs of letters or digits, so punctuation and dashes do not count. */
+export function countWords(text: string): number {
+  return text.match(/[\p{L}\p{N}]+(?:['’][\p{L}]+)*/gu)?.length ?? 0;
 }
 
 /**

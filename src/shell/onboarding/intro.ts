@@ -1,3 +1,4 @@
+import type { Translate } from '../../i18n';
 import type { DogRecord } from '../dogRecord';
 import type { BreedId } from './breeds';
 import type { DogCoat } from './look';
@@ -29,9 +30,23 @@ export function completeTaste(record: DogRecord): DogRecord {
   return leave(record, 'taste');
 }
 
-/** Replaces `{name}` in catalog text with the Dog's name, or the neutral "your Dog" text when it has none. */
+/**
+ * Replaces `{name}` in catalog text with the Dog's name, or the neutral "your Dog" text when it has none, capitalised
+ * where it starts a sentence.
+ */
 export function withDogName(text: string, name: string, neutral: string): string {
-  return text.split('{name}').join(name === '' ? neutral : name);
+  if (name !== '') return text.split('{name}').join(name);
+  const upper = neutral.charAt(0).toUpperCase() + neutral.slice(1);
+  return text
+    .replace(/(^|[.!?:]\s+)([¿¡«]?)\{name\}/g, (_m, before: string, mark: string) => `${before}${mark}${upper}`)
+    .split('{name}')
+    .join(neutral);
+}
+
+/** A translator that fills `{name}` in every text it returns (see `withDogName`). */
+export function namedTranslator(t: Translate, name: string): Translate {
+  const neutral = t('dog.neutral');
+  return (key) => withDogName(t(key), name, neutral);
 }
 
 /** Settings: sets or edits the name; a blank or too long name keeps the one the Dog has. */

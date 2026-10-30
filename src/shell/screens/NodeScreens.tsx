@@ -13,7 +13,7 @@ import { useLive } from '../ui/useAppActive';
 import { createCountdown } from '../ui/countdown';
 import type { Celebration } from '../celebrations';
 import { starsFor, type Stars } from '../stars';
-import { checkpointLimit, pickExercise, primerCardOf, type NodeRun } from '../nodes/node';
+import { checkpointLimit, pickExercise, primerCardOf, shuffledOrder, type CheckpointQuestion, type NodeRun } from '../nodes/node';
 import type { CheckpointSeconds } from '../dogRecord';
 import { DIARY_OUTCOMES, type DiaryOutcome } from '../streak';
 import { Screen } from './Screen';
@@ -41,8 +41,8 @@ export function PrimerScreen({ t, run, onNext, onExit }: { t: Translate; run: No
 }
 
 /**
- * Counts down on a 100 ms ticker, which alone decides the timeout; the number and the screen change once a second
- * and the bar runs down smoothly on the UI thread. The answer only feeds the Debrief, so a timeout never blocks anything.
+ * One question at a time, with "Pregunta n de N" when there are several. Each question is its own keyed view, so the
+ * countdown restarts and the options are reshuffled per question, and the order stays put while it is on screen.
  */
 export function CheckpointScreen({
   t,
@@ -57,11 +57,38 @@ export function CheckpointScreen({
   onAnswer: (option: number) => void;
   onTimeout: () => void;
 }) {
+  const question = run.node.checkpoint[run.question];
+  if (!question) return null;
+  const progress = run.node.checkpoint.length > 1 ? t('node.checkpoint.progress').replace('{n}', String(run.question + 1)).replace('{total}', String(run.node.checkpoint.length)) : null;
+  return <CheckpointQuestionView key={`${run.node.id}:${run.question}`} t={t} question={question} progress={progress} setting={setting} onAnswer={onAnswer} onTimeout={onTimeout} />;
+}
+
+/**
+ * Counts down on a 100 ms ticker, which alone decides the timeout; the number and the screen change once a second
+ * and the bar runs down smoothly on the UI thread. The answer only feeds the Debrief, so a timeout never blocks anything.
+ * Options show in a random order; a press answers with the option's authored index.
+ */
+function CheckpointQuestionView({
+  t,
+  question,
+  progress,
+  setting,
+  onAnswer,
+  onTimeout,
+}: {
+  t: Translate;
+  question: CheckpointQuestion;
+  progress: string | null;
+  setting: CheckpointSeconds;
+  onAnswer: (option: number) => void;
+  onTimeout: () => void;
+}) {
   const limit = checkpointLimit(setting);
   const [left, setLeft] = useState<number | null>(limit === null ? null : Math.ceil(limit));
   const timeout = useRef(onTimeout);
   timeout.current = onTimeout;
   const countdown = useMemo(() => (limit === null ? null : createCountdown(limit, setLeft, () => timeout.current())), [limit]);
+  const order = useMemo(() => shuffledOrder(question.options.length), [question]);
   const live = useLive();
 
   // counts only while the app is in the foreground, so backgrounding does not eat the time
@@ -71,14 +98,42 @@ export function CheckpointScreen({
     <Screen>
       <View className="flex-row items-center justify-between">
         <Badge label={t('node.checkpoint.title')} tone="warn" />
+        {progress !== null && <Text className="font-display text-label text-inkMuted">{progress}</Text>}
         {left !== null && <Text className="font-display text-label text-ink">{`${left} ${t('node.checkpoint.seconds')}`}</Text>}
       </View>
       {left !== null && limit !== null && <ProgressBar className="my-2" tone="accent" value={left} max={limit} runDown={{ live }} />}
-      <Text className="my-4 font-display text-displayM text-ink">{t(run.node.checkpoint.question)}</Text>
-      {run.node.checkpoint.options.map((option, i) => (
-        <OptionCard key={option.text} label={t(option.text)} onPress={() => onAnswer(i)} />
+      <Text className="my-4 font-display text-displayM text-ink">{t(question.question)}</Text>
+      {order.map((i) => (
+        <OptionCard key={question.options[i].text} label={t(question.options[i].text)} onPress={() => onAnswer(i)} />
       ))}
     </Screen>
+  );
+}
+
+/** The score of the Checkpoint and, for each question not answered right, its right answer and why. */
+function CheckpointReview({ t, run }: { t: Translate; run: NodeRun }) {
+  const asked = run.checkpoint.length;
+  if (asked === 0) return null;
+  const right = run.checkpoint.filter((a) => a === 'correct').length;
+  const missed = run.node.checkpoint.flatMap((question, i) => {
+    const answer = run.checkpoint[i];
+    return answer && answer !== 'correct' ? [{ question, answer }] : [];
+  });
+  return (
+    <View className="mb-2">
+      <Text className="text-body text-inkMuted">{t('results.checkpoint.score').replace('{n}', String(right)).replace('{total}', String(asked))}</Text>
+      {missed.map(({ question, answer }) => {
+        const correct = question.options.find((o) => o.correct);
+        return (
+          <Panel key={question.question} className="mt-2">
+            <Text className="font-display text-body text-ink">{t(question.question)}</Text>
+            {answer === 'missed' && <Text className="mt-1 text-caption text-inkMuted">{t('results.checkpoint.missed')}</Text>}
+            {correct && <Text className="mt-1 text-body text-brandText">{t('results.checkpoint.answer').replace('{answer}', t(correct.text))}</Text>}
+            <Text className="mt-1 text-body text-ink">{t(question.explanation)}</Text>
+          </Panel>
+        );
+      })}
+    </View>
   );
 }
 
@@ -199,7 +254,6 @@ function DebriefBody({
     <Screen>
       <Pressable onPress={reveal.skip} disabled={!revealing} accessibilityLabel={revealing ? t('reveal.skip') : undefined}>
         <Text className="mb-3 font-display text-displayM text-ink">{t('results.title')}</Text>
-        {run.checkpoint && <Text className="mb-2 text-body text-inkMuted">{t(`results.checkpoint.${run.checkpoint}`)}</Text>}
         <Panel className="mb-3 items-center">
           {score !== undefined ? (
             <>
@@ -221,6 +275,7 @@ function DebriefBody({
           )}
         </Panel>
       </Pressable>
+      <CheckpointReview t={t} run={run} />
       {phase === 'done' && <CelebrationList t={t} celebrations={celebrations} />}
       {showRows && (
         <>

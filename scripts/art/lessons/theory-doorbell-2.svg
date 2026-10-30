@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-doorbell.image.2.caption" data-alt="trail.theory-doorbell.image.2.alt">
+  <!-- scene: the bell rings by the door; Migas lies on his mat and gets his treat at your hand -->
+  <use href="#backdrop-indoor"/>
+  <g transform="translate(0 292) scale(1.2) translate(0 -292)">
+    <use href="#door" transform="translate(404 292)"/>
+    <use href="#doorbell" transform="translate(472 186) scale(1.4)"/>
+    <use href="#sound" transform="translate(490 186)"/>
+    <use href="#mat" transform="translate(226 292)"/>
+    <use href="#person-crouch" transform="translate(88 292)"/>
+    <use href="#dog-down" transform="translate(226 282) scale(-1 1)"/>
+  </g>
+</svg>

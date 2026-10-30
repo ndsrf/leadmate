@@ -22,7 +22,7 @@ function walk(r: DogRecord, outcome: DiaryOutcome, now: Date): DogRecord {
 function debriefed(score: number) {
   let run = startNode(WALK_DISTRACTION);
   for (let i = 0; i < WALK_DISTRACTION.primerCards.length; i++) run = advance(run, { type: 'next' });
-  run = advance(run, { type: 'answer', option: 0 });
+  for (const _ of WALK_DISTRACTION.checkpoint) run = advance(run, { type: 'answer', option: 0 });
   return advance(run, { type: 'finish', result: { kind: 'stage', payload: payloadWith({ handlingScore: score }) } });
 }
 

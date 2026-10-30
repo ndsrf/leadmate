@@ -1,6 +1,7 @@
 import { es } from '../../i18n';
 import { videoEmbedUrl } from '../ui/media';
-import { FIRST_WEEK_LESSONS, LESSONS, TRAIL_LESSONS } from './content';
+import { FIRST_WEEK_LESSONS, LESSONS, theoryLesson, TRAIL_LESSONS } from './content';
+import { lessonTextKeys } from './lesson';
 
 describe('placeholder Lessons', () => {
   it('has unique ids, and the first week covers days 1 to 5', () => {
@@ -8,17 +9,15 @@ describe('placeholder Lessons', () => {
     for (const day of [1, 2, 3, 4, 5]) expect(FIRST_WEEK_LESSONS.some((l) => l.day === day)).toBe(true);
   });
 
-  it('only uses catalog keys, and Lesson text is flagged placeholder', () => {
+  it('only uses catalog keys, and a placeholder Lesson flags its media placeholder', () => {
     for (const l of LESSONS) {
-      expect(l.placeholder).toBe(true);
       expect(es[l.title]).toBeTruthy();
+      for (const key of lessonTextKeys(l.blocks)) expect({ key, text: es[key] }).toEqual({ key, text: expect.any(String) });
       for (const b of l.blocks) {
-        if (b.type === 'heading' || b.type === 'text' || b.type === 'tip') expect(es[b.text]).toBeTruthy();
-        else {
-          expect(es[b.alt]).toBeTruthy();
-          expect(es[b.caption]).toBeTruthy();
-          expect(b.placeholder).toBe(true);
-        }
+        if (b.type !== 'image' && b.type !== 'video') continue;
+        expect(es[b.alt]).toBeTruthy();
+        expect(es[b.caption]).toBeTruthy();
+        if (l.placeholder) expect(b.placeholder).toBe(true);
       }
     }
   });
@@ -37,6 +36,24 @@ describe('placeholder Lessons', () => {
       expect(l.blocks.some((b) => b.type === 'image' || b.type === 'video')).toBe(true);
     }
     for (const l of FIRST_WEEK_LESSONS) for (const type of ['text', 'image', 'video'] as const) expect(l.blocks.some((b) => b.type === type)).toBe(true);
+  });
+});
+
+describe('theoryLesson', () => {
+  it('emits the teaching pattern in canonical order', () => {
+    const lesson = theoryLesson('t', { keys: 'x', images: ['a', 'b', 'c'], steps: 3, takeaways: 2, compare: { do: 'd', dont: 'e' }, video: { id: 'WPWbgzAd6C0' } });
+    expect(lesson.blocks.map((b) => b.type)).toEqual(['heading', 'text', 'heading', 'text', 'image', 'heading', 'steps', 'example', 'image', 'image', 'heading', 'compare', 'video', 'tip', 'takeaways']);
+    expect(lesson.blocks.map((b) => ('text' in b ? b.text : 'art' in b ? b.art : b.type === 'steps' || b.type === 'takeaways' ? b.items.join() : b.type))).toEqual([
+      'x.heading', 'x.hook', 'lesson.section.why', 'x.why', 'a', 'lesson.section.how', 'x.step.1,x.step.2,x.step.3', 'x.example.text', 'b', 'c', 'lesson.section.mistakes', 'compare', 'video', 'x.today', 'x.takeaway.1,x.takeaway.2',
+    ]);
+    expect(lesson).toMatchObject({ id: 't', title: 'x.title', kind: 'theory' });
+    expect(lesson.placeholder).toBeUndefined();
+  });
+
+  it('leaves the video out when there is none', () => {
+    const lesson = theoryLesson('t', { keys: 'x', images: ['a'], steps: 3, takeaways: 2, day: 2, placeholder: true });
+    expect(lesson.blocks.map((b) => b.type)).toEqual(['heading', 'text', 'heading', 'text', 'image', 'heading', 'steps', 'example', 'heading', 'compare', 'tip', 'takeaways']);
+    expect(lesson).toMatchObject({ day: 2, placeholder: true });
   });
 });
 

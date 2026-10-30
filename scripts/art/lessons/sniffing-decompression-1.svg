@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="lesson.5.image.1.caption" data-alt="lesson.5.image.1.alt">
+  <!-- concept: on the busy pavement Migas pulls, all tension (left); nose in the grass, the leash hangs and he unwinds (right) -->
+  <defs>
+    <clipPath id="right-half"><rect x="320" y="0" width="320" height="360"/></clipPath>
+  </defs>
+  <use href="#sky"/>
+  <use href="#ground-street"/>
+  <g clip-path="url(#right-half)"><use href="#ground-grass"/></g>
+  <path d="M320 26V280" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="12 10" stroke-linecap="round"/>
+  <g transform="translate(34 300) scale(0.86)">
+    <use href="#person-walk" transform="rotate(10 0 0)"/>
+    <use href="#dog-pull" transform="translate(200 0)"/>
+    <use href="#leash-taut"/>
+  </g>
+  <g transform="translate(352 300) scale(0.86)">
+    <use href="#person-still"/>
+    <use href="#dog-sniff" transform="translate(200 0)"/>
+    <use href="#leash-still-u"/>
+    <use href="#sniff-lines" transform="translate(286 -6)"/>
+  </g>
+  <use href="#arrow-ink" transform="translate(284 64)"/>
+</svg>

@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-blind-corner.image.1.caption" data-alt="trail.theory-blind-corner.image.1.alt">
+  <!-- concept, top-down: hugging the wall, the sight line hits the building; on the wide line it reaches the bike in the other street -->
+  <use href="#top-ground"/>
+  <g>
+    <!-- road along the bottom and the right edge of the panel -->
+    <path d="M0 314H286V0H320V360H0z" fill="#8D99AE"/>
+    <path d="M0 312H288V0" fill="none" stroke="#1E2A3A" stroke-width="3.5"/>
+    <!-- the building on the inside of the corner -->
+    <rect x="-4" y="-4" width="170" height="196" fill="#D8CFB8" stroke="#1E2A3A" stroke-width="3.5"/>
+    <path d="M20 110H140M20 150H140" stroke="#EDE3CC" stroke-width="5" stroke-linecap="round"/>
+    <!-- the bike coming down the other street, close to the wall -->
+    <use href="#top-bike" transform="translate(214 100) rotate(90) scale(1.1)"/>
+    <use href="#motion" transform="translate(214 52) rotate(90)"/>
+    <!-- hugging the wall: the sight line ends on the building -->
+    <path d="M118 210L166 194" fill="none" stroke="#1E2A3A" stroke-width="3.5" stroke-dasharray="10 8" stroke-linecap="round"/>
+    <use href="#top-dog" transform="translate(84 250) scale(1.1)"/>
+    <use href="#top-person" transform="translate(104 212) scale(1.1)"/>
+    <use href="#badge-cross" transform="translate(56 50) scale(1.4)"/>
+  </g>
+  <g transform="translate(320 0)">
+    <path d="M0 314H286V0H320V360H0z" fill="#8D99AE"/>
+    <path d="M0 312H288V0" fill="none" stroke="#1E2A3A" stroke-width="3.5"/>
+    <rect x="-4" y="-4" width="170" height="196" fill="#D8CFB8" stroke="#1E2A3A" stroke-width="3.5"/>
+    <path d="M20 110H140M20 150H140" stroke="#EDE3CC" stroke-width="5" stroke-linecap="round"/>
+    <use href="#top-bike" transform="translate(214 100) rotate(90) scale(1.1)"/>
+    <use href="#motion" transform="translate(214 52) rotate(90)"/>
+    <!-- the wide line: the sight line passes the corner and reaches the bike -->
+    <path d="M152 264L204 130" fill="none" stroke="#1E2A3A" stroke-width="3.5" stroke-dasharray="10 8" stroke-linecap="round"/>
+    <use href="#top-dog" transform="translate(92 240) scale(1.1)"/>
+    <use href="#top-person" transform="translate(140 276) scale(1.1)"/>
+    <use href="#badge-check" transform="translate(56 50) scale(1.4)"/>
+  </g>
+  <path d="M320 0V360" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="12 10" stroke-linecap="round"/>
+</svg>

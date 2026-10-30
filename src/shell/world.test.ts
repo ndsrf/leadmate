@@ -290,11 +290,11 @@ describe('trail validation', () => {
 
 describe('Node content of every World', () => {
   it.each(NODES.map((n) => [n.id, n] as const))('%s has all its text in the catalog and one right answer', (_id, node) => {
-    const keys = [node.title, ...node.primerCards.map((c) => primerCardOf(c).text), node.checkpoint.question, ...node.checkpoint.options.map((o) => o.text), ...node.exercises.map((e) => e.key)];
+    const keys = [node.title, ...node.primerCards.map((c) => primerCardOf(c).text), ...node.checkpoint.flatMap((q) => [q.question, q.explanation, ...q.options.map((o) => o.text)]), ...node.exercises.map((e) => e.key)];
     for (const key of keys) expect(es[key]).toBeTruthy();
     expect(node.primerCards.length).toBeGreaterThanOrEqual(1);
     expect(node.primerCards.length).toBeLessThanOrEqual(2);
-    expect(node.checkpoint.options.filter((o) => o.correct)).toHaveLength(1);
+    for (const q of node.checkpoint) expect(q.options.filter((o) => o.correct)).toHaveLength(1);
     expect(node.exercises.length).toBeGreaterThan(0);
   });
 

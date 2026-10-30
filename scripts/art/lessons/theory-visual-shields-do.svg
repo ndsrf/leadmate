@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-visual-shields.do" data-alt="trail.theory-visual-shields.do">
+  <!-- do: turn around and gain distance, your body between Migas and the other dog -->
+  <use href="#sky"/>
+  <use href="#ground-street"/>
+  <g transform="translate(400 300) scale(-1.1 1.1)">
+    <use href="#person-walk"/>
+    <use href="#dog-walk-calm" transform="translate(200 0)"/>
+    <use href="#leash-u"/>
+  </g>
+  <use href="#dog2-look" transform="translate(580 300) scale(-0.7 0.7)"/>
+  <use href="#arrow-ink" transform="translate(230 90) scale(-1.3 1.3)"/>
+  <use href="#badge-check" transform="translate(52 64) scale(1.5)"/>
+</svg>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-poste.dont" data-alt="trail.theory-poste.dont">
+  <!-- don't: stepping forward while the leash is tight pays the pull -->
+  <use href="#sky"/>
+  <use href="#ground-grass"/>
+  <g transform="translate(70 300) scale(1.2)">
+    <use href="#person-walk" transform="rotate(10 0 0)"/>
+    <use href="#dog-pull" transform="translate(200 0)"/>
+    <use href="#leash-taut"/>
+  </g>
+  <use href="#motion" transform="translate(56 150) scale(1.2)"/>
+  <use href="#badge-cross" transform="translate(570 70) scale(1.5)"/>
+</svg>

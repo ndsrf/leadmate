@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="lesson.2.image.2.caption" data-alt="lesson.2.image.2.alt">
+  <!-- scene: in the park, far from a grey dog, Migas sniffs the grass next to the Person; the leash hangs -->
+  <use href="#backdrop"/>
+  <use href="#ground-grass"/>
+  <use href="#dog2-walk" transform="translate(586 290) scale(-0.62 0.62)"/>
+  <g transform="translate(56 300) scale(1.15)">
+    <use href="#person-still"/>
+    <use href="#dog-sniff" transform="translate(200 0)"/>
+    <use href="#leash-still-u"/>
+  </g>
+  <use href="#sniff-lines" transform="translate(392 300) scale(1.2)"/>
+</svg>

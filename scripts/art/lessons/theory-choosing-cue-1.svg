@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-choosing-cue.image.1.caption" data-alt="trail.theory-choosing-cue.image.1.alt">
+  <!-- concept: a still thing on the ground (food) -> Migas leaves it and looks at you; a moving thing (scooter) -> you turn and walk away together -->
+  <use href="#sky"/>
+  <use href="#ground-street"/>
+  <path d="M320 26V280" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="12 10" stroke-linecap="round"/>
+  <g transform="translate(44 300) scale(0.84)">
+    <use href="#person-still"/>
+    <use href="#dog-checkin" transform="translate(150 0)"/>
+    <path d="M16 -100C46 -12 128 -12 164 -66" fill="none" stroke="#1E2A3A" stroke-width="8.5" stroke-linecap="round"/>
+    <path d="M16 -100C46 -12 128 -12 164 -66" fill="none" stroke="#6FAF73" stroke-width="4.5" stroke-linecap="round"/>
+    <circle cx="164" cy="-66" r="3.5" fill="#1E2A3A"/>
+    <use href="#food" transform="translate(262 -4) scale(1.4)"/>
+  </g>
+  <use href="#pause" transform="translate(264 216)"/>
+  <g transform="translate(506 300) scale(-0.8 0.8)">
+    <use href="#person-walk"/>
+    <use href="#dog-walk-calm" transform="translate(140 0)"/>
+    <path d="M18 -82C46 -20 120 -20 154 -66" fill="none" stroke="#1E2A3A" stroke-width="8.5" stroke-linecap="round"/>
+    <path d="M18 -82C46 -20 120 -20 154 -66" fill="none" stroke="#6FAF73" stroke-width="4.5" stroke-linecap="round"/>
+    <circle cx="154" cy="-66" r="3.5" fill="#1E2A3A"/>
+  </g>
+  <use href="#arrow-ink" transform="translate(460 120) scale(-1 1)"/>
+  <g transform="translate(572 300) scale(-0.76 0.76)">
+    <use href="#scooter"/>
+  </g>
+  <use href="#motion" transform="translate(604 270) scale(-0.7 0.7)"/>
+</svg>
