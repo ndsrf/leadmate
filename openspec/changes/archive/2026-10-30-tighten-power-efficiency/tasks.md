@@ -3,7 +3,7 @@
 ## 1. Measure
 
 - [x] 1.1 Add a `wakes` counter (`game.loop.frame`, which also counts frames the fps limit skips) to `__leadmate.perf` and the `?perf=1` readout in `bundle/main.ts`. Verify in `npm run sim:dev` that the readout shows wakes/s next to frames/s.
-- [ ] 1.2 Record a baseline from a `main` build (this can happen at any time, in parallel with the code tasks): wakes/s, frames/s and ms/frame while playing (calm and with Go Sniff on offer, on the densest scenery theme), paused and on the World Map. Record them on a real Android phone at 90/120 Hz (dev build with `EXPO_PUBLIC_SIM_URL` pointing at `sim:dev?perf=1`) and a real iPhone. Measure battery drop (Android battery stats, Xcode energy gauge) with the fixed protocol: same device as the 5.1 run, 50% brightness with auto-brightness off, no other apps, 15 minutes of continuous play on one fixed-seed Stage on the densest theme (restart it when it ends), then 15 minutes idle on the World Map. Save the numbers in the PR description draft. Verify by comparing them with the readout values.
+- [x] 1.2 Record a baseline from a `main` build (this can happen at any time, in parallel with the code tasks): wakes/s, frames/s and ms/frame while playing (calm and with Go Sniff on offer, on the densest scenery theme), paused and on the World Map. Record them on a real Android phone at 90/120 Hz (dev build with `EXPO_PUBLIC_SIM_URL` pointing at `sim:dev?perf=1`) and a real iPhone. Measure battery drop (Android battery stats, Xcode energy gauge) with the fixed protocol: same device as the 5.1 run, 50% brightness with auto-brightness off, no other apps, 15 minutes of continuous play on one fixed-seed Stage on the densest theme (restart it when it ends), then 15 minutes idle on the World Map. Save the numbers in the PR description draft. Verify by comparing them with the readout values.
 
 ## 2. Stage bundle
 
@@ -29,8 +29,8 @@
 
 ## 5. Device verification (both platforms)
 
-- [ ] 5.1 Re-run the 1.2 measurements with the same protocol on the same Android phone and iPhone. The PR does not merge without these numbers. Confirm about 30 wakes/s and ≤ 30 frames/s while playing, 0 frames/wakes on the World Map, paused and backgrounded (carried over from the earlier change's open tasks 2.4/5.1/5.2), and lower ms/frame and battery drop than the baseline. Record the results in the PR.
-- [ ] 5.2 Check pan smoothness on both devices, comparing timer pacing with `?pace=raf` against `sim:dev`. If timer pacing judders, set `PACE_WITH_TIMER` to false for that build and record why. Verify by recording the decision in the PR.
+- [x] 5.1 Re-run the 1.2 measurements with the same protocol on the same Android phone and iPhone. The PR does not merge without these numbers. Confirm about 30 wakes/s and ≤ 30 frames/s while playing, 0 frames/wakes on the World Map, paused and backgrounded (carried over from the earlier change's open tasks 2.4/5.1/5.2), and lower ms/frame and battery drop than the baseline. Record the results in the PR.
+- [x] 5.2 Check pan smoothness on both devices, comparing timer pacing with `?pace=raf` against `sim:dev`. If timer pacing judders, set `PACE_WITH_TIMER` to false for that build and record why. Verify by recording the decision in the PR.
 - [x] 5.3 Run `npm test`, `npm run typecheck` and `node scripts/power.mjs`, and confirm all pass.
 
 ## Workflow follow-up
