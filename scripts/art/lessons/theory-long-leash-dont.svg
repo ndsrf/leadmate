@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-long-leash.dont" data-alt="trail.theory-long-leash.dont">
+  <!-- dont, close-up: the leash wrapped round the hand; Migas pulls and the turns tighten -->
+  <use href="#sky"/>
+  <use href="#ground-grass"/>
+  <!-- sleeve and fist (drawn inline: the kit has no close-up hand) -->
+  <rect x="40" y="186" width="190" height="56" rx="26" fill="#E8795C" stroke="#1E2A3A" stroke-width="3.5" transform="rotate(-12 230 214)"/>
+  <circle cx="246" cy="200" r="44" fill="#F0D4A8" stroke="#1E2A3A" stroke-width="3.5"/>
+  <path d="M276 172q10 10 0 20M282 196q10 10 0 20" fill="none" stroke="#1E2A3A" stroke-width="3" stroke-linecap="round"/>
+  <!-- the leash runs to Migas, taut, and is wound three times round the fist -->
+  <path d="M268 210L520 242" fill="none" stroke="#1E2A3A" stroke-width="8.5" stroke-linecap="round"/>
+  <path d="M268 210L520 242" fill="none" stroke="#6FAF73" stroke-width="4.5" stroke-linecap="round"/>
+  <g fill="none" stroke-linecap="round">
+    <ellipse cx="224" cy="200" rx="13" ry="50" stroke="#1E2A3A" stroke-width="8.5"/>
+    <ellipse cx="224" cy="200" rx="13" ry="50" stroke="#6FAF73" stroke-width="4.5"/>
+    <ellipse cx="248" cy="200" rx="13" ry="50" stroke="#1E2A3A" stroke-width="8.5"/>
+    <ellipse cx="248" cy="200" rx="13" ry="50" stroke="#6FAF73" stroke-width="4.5"/>
+    <ellipse cx="272" cy="202" rx="13" ry="48" stroke="#1E2A3A" stroke-width="8.5"/>
+    <ellipse cx="272" cy="202" rx="13" ry="48" stroke="#6FAF73" stroke-width="4.5"/>
+  </g>
+  <use href="#attention" transform="translate(198 130) scale(-1 1) rotate(30)"/>
+  <use href="#dog-pull" transform="translate(504 304)"/>
+  <use href="#motion" transform="translate(452 196)"/>
+  <use href="#badge-cross" transform="translate(56 56) scale(1.3)"/>
+</svg>

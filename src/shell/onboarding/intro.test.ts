@@ -1,5 +1,5 @@
 import { loadDogRecord, newDogRecord, saveDogRecord, type DogRecord, type KeyValueStore } from '../dogRecord';
-import { completeTaste, leaveWelcome, renameDog, saveNameAndLook, withDogName } from './intro';
+import { completeTaste, leaveWelcome, namedTranslator, renameDog, saveNameAndLook, withDogName } from './intro';
 import type { OnboardingStep } from './flow';
 
 const at = (step: OnboardingStep): DogRecord => ({ ...newDogRecord(), onboarding: { ...newDogRecord().onboarding, step } });
@@ -51,6 +51,18 @@ describe('Dog name in text', () => {
   it('uses the name, or a neutral word when there is none', () => {
     expect(withDogName('Hola {name}', 'Luna', 'tu perro')).toBe('Hola Luna');
     expect(withDogName('Hola {name}', '', 'tu perro')).toBe('Hola tu perro');
+  });
+
+  it('capitalises the neutral text where it starts a sentence', () => {
+    expect(withDogName('{name} tira. Esperas y {name} vuelve. ¿{name} te mira? Paso 2: {name} se sienta.', '', 'tu perro')).toBe(
+      'Tu perro tira. Esperas y tu perro vuelve. ¿Tu perro te mira? Paso 2: Tu perro se sienta.',
+    );
+    expect(withDogName('{name} tira. ¿{name} te mira?', 'luna', 'tu perro')).toBe('luna tira. ¿luna te mira?');
+  });
+
+  it('fills every text of a named translator', () => {
+    const t = namedTranslator(((key: string) => (key === 'dog.neutral' ? 'tu perro' : `{name} y {name}`)) as never, 'Luna');
+    expect(t('x' as never)).toBe('Luna y Luna');
   });
 });
 

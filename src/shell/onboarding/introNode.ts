@@ -14,14 +14,18 @@ export const INTRO_NODE: NodeDef = {
     { kind: 'virtual-dog', text: 'node.intro.card3' },
     { kind: 'virtual-dog', text: 'node.intro.card4' },
   ],
-  checkpoint: {
-    question: 'node.intro.question',
-    options: [
-      { text: 'node.intro.optionAnchor', correct: true },
-      { text: 'node.intro.optionPull', correct: false },
-      { text: 'node.intro.optionRun', correct: false },
-    ],
-  },
+  // one question only, to keep the funnel short
+  checkpoint: [
+    {
+      question: 'node.intro.question',
+      options: [
+        { text: 'node.intro.optionAnchor', correct: true },
+        { text: 'node.intro.optionPull', correct: false },
+        { text: 'node.intro.optionRun', correct: false },
+      ],
+      explanation: 'node.intro.why',
+    },
+  ],
   simulation: {},
   exercises: [
     { metric: 'poste', key: 'node.intro.exercisePoste' },

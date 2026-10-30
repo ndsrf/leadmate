@@ -3,7 +3,7 @@ import { lessonDay, markLessonRead, todaysLesson, type LessonDef } from './lesso
 
 const withStage = (iso: string | null) => ({ onboarding: { ...newDogRecord().onboarding, firstStageCompletedAt: iso } });
 const local = (y: number, m: number, d: number, h = 12, min = 0) => new Date(y, m - 1, d, h, min);
-const lesson = (day: number): LessonDef => ({ id: `l${day}`, title: 'lesson.title' as never, kind: 'theory', day, minutes: 2, blocks: [] });
+const lesson = (day: number): LessonDef => ({ id: `l${day}`, title: 'lesson.title' as never, kind: 'theory', day, blocks: [] });
 const lessons = [1, 2, 3, 4, 5].map(lesson);
 
 describe('lessonDay', () => {
@@ -62,7 +62,7 @@ describe('markLessonRead', () => {
 });
 
 describe('trail Lessons', () => {
-  const trail: LessonDef = { id: 'trail', title: 'lesson.title' as never, kind: 'theory', minutes: 2, blocks: [] };
+  const trail: LessonDef = { id: 'trail', title: 'lesson.title' as never, kind: 'theory', blocks: [] };
 
   it('are never for today', () => {
     expect(todaysLesson([trail], [], 3)).toBeNull();

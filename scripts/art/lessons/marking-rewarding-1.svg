@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="lesson.4.image.1.caption" data-alt="lesson.4.image.1.alt">
+  <!-- concept: the order of a mark; 1 Migas sits, 2 you say «bien» with your hands still, 3 the treat comes after -->
+  <use href="#sky"/>
+  <use href="#ground-grass"/>
+  <path d="M213 104V272M427 104V272" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="12 10" stroke-linecap="round"/>
+  <use href="#step-1" transform="translate(107 56) scale(1.3)"/>
+  <use href="#arrow-ink" transform="translate(172 56) scale(1.15)"/>
+  <use href="#step-2" transform="translate(320 56) scale(1.3)"/>
+  <use href="#arrow-ink" transform="translate(386 56) scale(1.15)"/>
+  <use href="#step-3" transform="translate(533 56) scale(1.3)"/>
+  <g transform="translate(48 300) scale(0.8)">
+    <use href="#person-stand"/>
+    <use href="#dog-sit" transform="translate(122 0) scale(-1 1)"/>
+  </g>
+  <g transform="translate(261 300) scale(0.8)">
+    <use href="#person-stand"/>
+    <use href="#sound" transform="translate(28 -152) scale(0.9)"/>
+    <use href="#dog-sit" transform="translate(122 0) scale(-1 1)"/>
+  </g>
+  <g transform="translate(490 300) scale(0.74)">
+    <use href="#person-crouch"/>
+    <use href="#dog-sit" transform="translate(126 0) scale(-1 1)"/>
+  </g>
+</svg>

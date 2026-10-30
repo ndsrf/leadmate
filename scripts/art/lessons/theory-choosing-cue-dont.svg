@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-choosing-cue.dont" data-alt="trail.theory-choosing-cue.dont">
+  <!-- don't: waiting until the other dog is close, then repeating the cue louder while Migas pulls -->
+  <use href="#sky"/>
+  <use href="#ground-street"/>
+  <g transform="translate(70 300) scale(1.1)">
+    <use href="#person-still"/>
+    <use href="#dog-pull" transform="translate(200 0)"/>
+    <use href="#leash-still-taut"/>
+  </g>
+  <use href="#sound" transform="translate(112 106) scale(1.1)"/>
+  <use href="#sound" transform="translate(140 106) scale(1.6)"/>
+  <g transform="translate(470 300) scale(-1 1)">
+    <use href="#dog2-look"/>
+  </g>
+  <use href="#badge-cross" transform="translate(570 70) scale(1.5)"/>
+</svg>

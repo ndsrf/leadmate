@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-doorbell.image.1.caption" data-alt="trail.theory-doorbell.image.1.alt">
+  <!-- concept: read Migas on the mat; standing and alert, you wait; lying and relaxed, you mark and pay -->
+  <use href="#backdrop-indoor"/>
+  <path d="M320 26V280" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="12 10" stroke-linecap="round"/>
+  <g transform="translate(160 294) scale(1.3)">
+    <use href="#mat"/>
+    <use href="#dog-look" transform="translate(-6 -10)"/>
+  </g>
+  <use href="#clock" transform="translate(160 76) scale(1.6)"/>
+  <g transform="translate(476 294) scale(1.3)">
+    <use href="#mat"/>
+    <use href="#dog-down" transform="translate(-14 -10)"/>
+    <use href="#treat" transform="translate(64 -18) scale(1.2)"/>
+  </g>
+  <use href="#heart" transform="translate(500 120) scale(1.8)"/>
+</svg>

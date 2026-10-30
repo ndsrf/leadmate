@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-park-mix.image.2.caption" data-alt="trail.theory-park-mix.image.2.alt">
+  <!-- scene: away from the path, Migas sniffs a bush on the slack long leash while a runner goes by in the distance -->
+  <use href="#backdrop"/>
+  <path d="M0 190C160 170 400 200 640 178V300H0z" fill="#7CC48A" stroke="#1E2A3A" stroke-width="3.5"/>
+  <use href="#tree" transform="translate(236 222) scale(0.55)"/>
+  <path d="M0 214C200 204 420 226 640 206V228C420 248 200 226 0 236z" fill="#EDE3CC" stroke="#1E2A3A" stroke-width="3" stroke-linejoin="round"/>
+  <use href="#motion" transform="translate(528 190) scale(0.8)"/>
+  <use href="#person-run" transform="translate(566 230) scale(0.5)"/>
+  <use href="#ground-grass"/>
+  <g transform="translate(56 300) scale(1.1)">
+    <use href="#bush" transform="translate(396 0) scale(0.75)"/>
+    <use href="#person-still"/>
+    <use href="#dog-sniff" transform="translate(300 0)"/>
+    <path d="M16 -100C70 0 250 0 314 -66" fill="none" stroke="#1E2A3A" stroke-width="8.5" stroke-linecap="round"/>
+    <path d="M16 -100C70 0 250 0 314 -66" fill="none" stroke="#6FAF73" stroke-width="4.5" stroke-linecap="round"/>
+    <circle cx="314" cy="-66" r="3.5" fill="#1E2A3A"/>
+  </g>
+</svg>

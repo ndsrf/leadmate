@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-park-mix.image.1.caption" data-alt="trail.theory-park-mix.image.1.alt">
+  <!-- concept: each trigger (1 runner, 2 bike, 3 food) adds a layer to the arousal cup up to the dashed threshold; a sniff break empties it -->
+  <use href="#sky"/>
+  <use href="#ground-grass"/>
+  <path d="M320 26V276" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="12 10" stroke-linecap="round"/>
+  <!-- the three triggers, numbered, on cards -->
+  <rect x="22" y="22" width="104" height="72" rx="14" fill="#FFFBF1" stroke="#1E2A3A" stroke-width="3"/>
+  <use href="#person-run" transform="translate(70 90) scale(0.4)"/>
+  <rect x="22" y="106" width="104" height="72" rx="14" fill="#FFFBF1" stroke="#1E2A3A" stroke-width="3"/>
+  <use href="#bike" transform="translate(74 166) scale(0.5)"/>
+  <rect x="22" y="190" width="104" height="72" rx="14" fill="#FFFBF1" stroke="#1E2A3A" stroke-width="3"/>
+  <use href="#food" transform="translate(74 238) scale(2)"/>
+  <use href="#step-1" transform="translate(24 26) scale(0.75)"/>
+  <use href="#step-2" transform="translate(24 110) scale(0.75)"/>
+  <use href="#step-3" transform="translate(24 194) scale(0.75)"/>
+  <use href="#arrow-ink" transform="translate(140 160) scale(0.55)"/>
+  <!-- the cup filling up, one layer per trigger -->
+  <path d="M188 236V272Q188 290 206 290H266Q284 290 284 272V236z" fill="#FBE3AE" stroke="#1E2A3A" stroke-width="2.5"/>
+  <rect x="188" y="180" width="96" height="56" fill="#F2B84B" stroke="#1E2A3A" stroke-width="2.5"/>
+  <rect x="188" y="124" width="96" height="56" fill="#E8795C" stroke="#1E2A3A" stroke-width="2.5"/>
+  <path d="M186 80V272Q186 292 206 292H266Q286 292 286 272V80" fill="none" stroke="#1E2A3A" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <use href="#step-1" transform="translate(236 263) scale(0.8)"/>
+  <use href="#step-2" transform="translate(236 208) scale(0.8)"/>
+  <use href="#step-3" transform="translate(236 152) scale(0.8)"/>
+  <path d="M170 108H302" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="10 8" stroke-linecap="round"/>
+  <!-- the sniff break: Migas sniffs and the cup goes down -->
+  <g transform="translate(410 296) scale(0.95)">
+    <use href="#dog-sniff"/>
+    <use href="#sniff-lines" transform="translate(84 -46)"/>
+  </g>
+  <path d="M528 236V272Q528 290 546 290H606Q624 290 624 272V236z" fill="#FBE3AE" stroke="#1E2A3A" stroke-width="2.5"/>
+  <path d="M526 80V272Q526 292 546 292H606Q626 292 626 272V80" fill="none" stroke="#1E2A3A" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M510 108H632" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="10 8" stroke-linecap="round"/>
+  <use href="#arrow-ink" transform="translate(576 128) rotate(90) scale(0.85)"/>
+</svg>

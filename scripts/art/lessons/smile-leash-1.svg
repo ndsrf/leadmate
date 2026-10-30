@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="lesson.3.image.1.caption" data-alt="lesson.3.image.1.alt">
+  <!-- concept: what each leash shape earns; the smile (slack curve) earns a treat, the straight line earns a pause -->
+  <use href="#sky"/>
+  <use href="#ground-street"/>
+  <path d="M320 26V280" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="12 10" stroke-linecap="round"/>
+  <g transform="translate(34 300) scale(0.86)">
+    <use href="#person-walk"/>
+    <use href="#dog-walk-calm" transform="translate(200 0)"/>
+    <use href="#leash-u"/>
+  </g>
+  <use href="#heart" transform="translate(272 74) scale(2.6)"/>
+  <g transform="translate(348 300) scale(0.86)">
+    <use href="#person-still"/>
+    <use href="#dog-pull" transform="translate(200 0)"/>
+    <use href="#leash-still-taut"/>
+  </g>
+  <use href="#pause" transform="translate(590 70) scale(1.3)"/>
+</svg>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-leave-it.dont" data-alt="trail.theory-leave-it.dont">
+  <!-- don't: Migas already has his nose on the food and you repeat the cue again and again -->
+  <use href="#sky"/>
+  <use href="#ground-street"/>
+  <g transform="translate(50 300) scale(1.1)">
+    <use href="#person-still"/>
+    <use href="#dog-sniff" transform="translate(200 0)"/>
+    <use href="#leash-still-u"/>
+    <use href="#food" transform="translate(290 -2) scale(1.8)"/>
+    <use href="#sound" transform="translate(34 -166)"/>
+    <use href="#sound" transform="translate(64 -166)"/>
+    <use href="#sound" transform="translate(94 -166)"/>
+  </g>
+  <use href="#badge-cross" transform="translate(570 70) scale(1.5)"/>
+</svg>

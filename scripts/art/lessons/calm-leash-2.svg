@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="lesson.1.image.2.caption" data-alt="lesson.1.image.2.alt">
+  <!-- scene: at the door, the hand on the handle waits until Migas sits; the door opens on calm -->
+  <use href="#backdrop-indoor"/>
+  <g transform="translate(0 300) scale(1.25) translate(0 -292)">
+    <use href="#door" transform="translate(410 292) scale(-1 1)"/>
+    <use href="#dog-sit" transform="translate(196 292)"/>
+    <use href="#person-stand" transform="translate(356 292)"/>
+    <path d="M362 212C320 300 220 290 190 220" fill="none" stroke="#1E2A3A" stroke-width="8.5" stroke-linecap="round"/>
+    <path d="M362 212C320 300 220 290 190 220" fill="none" stroke="#6FAF73" stroke-width="4.5" stroke-linecap="round"/>
+  </g>
+  <use href="#clock" transform="translate(250 86) scale(1.5)"/>
+</svg>

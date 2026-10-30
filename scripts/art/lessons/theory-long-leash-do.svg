@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-long-leash.do" data-alt="trail.theory-long-leash.do">
+  <!-- do, close-up: the spare leash folded in loose folds inside the palm, hanging free; Migas sniffs on a slack leash -->
+  <use href="#sky"/>
+  <use href="#ground-grass"/>
+  <!-- sleeve and fist (drawn inline: the kit has no close-up hand) -->
+  <rect x="40" y="166" width="190" height="56" rx="26" fill="#E8795C" stroke="#1E2A3A" stroke-width="3.5" transform="rotate(-12 230 194)"/>
+  <!-- loose folds hang from the fist -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M216 196C196 304 250 304 240 200M240 200C226 286 280 286 266 198" stroke="#1E2A3A" stroke-width="8.5"/>
+    <path d="M216 196C196 304 250 304 240 200M240 200C226 286 280 286 266 198" stroke="#6FAF73" stroke-width="4.5"/>
+  </g>
+  <circle cx="246" cy="180" r="44" fill="#F0D4A8" stroke="#1E2A3A" stroke-width="3.5"/>
+  <path d="M276 152q10 10 0 20M282 176q10 10 0 20" fill="none" stroke="#1E2A3A" stroke-width="3" stroke-linecap="round"/>
+  <!-- the leash runs slack to Migas -->
+  <path d="M286 190C330 300 430 290 488 238" fill="none" stroke="#1E2A3A" stroke-width="8.5" stroke-linecap="round"/>
+  <path d="M286 190C330 300 430 290 488 238" fill="none" stroke="#6FAF73" stroke-width="4.5" stroke-linecap="round"/>
+  <use href="#dog-sniff" transform="translate(474 304)"/>
+  <circle cx="488" cy="238" r="3.5" fill="#1E2A3A"/>
+  <use href="#badge-check" transform="translate(56 56) scale(1.3)"/>
+</svg>

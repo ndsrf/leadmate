@@ -13,6 +13,8 @@ export type Metric = 'tension' | 'timing' | 'poste' | 'attention';
 export interface CheckpointQuestion {
   question: TextKey;
   options: { text: TextKey; correct: boolean }[];
+  /** One sentence the Debrief shows with the right answer when the question was missed. */
+  explanation: TextKey;
 }
 
 export interface NodeExercise {
@@ -20,10 +22,14 @@ export interface NodeExercise {
   key: TextKey;
 }
 
-/** An external media attachment of a Primer card; an empty `url` or `placeholder` shows the themed placeholder. */
+/**
+ * A media attachment of a Primer card: bundled Lesson art by name (`art`), or an external `url`; an unknown name, an
+ * empty `url` or `placeholder` shows the themed placeholder.
+ */
 export interface NodeMedia {
   type: 'image' | 'video';
   url: string;
+  art?: string;
   caption: TextKey;
   placeholder?: boolean;
 }
@@ -56,7 +62,8 @@ export interface NodeDef {
   mode: 'stage' | 'minigame';
   /** 3 to 5 short cards; real-world dog theory first, then the virtual dog's mechanics. */
   primerCards: PrimerCard[];
-  checkpoint: CheckpointQuestion;
+  /** Asked one at a time; three on a trail Node, one on the introductory Node. */
+  checkpoint: CheckpointQuestion[];
   /** For a Stage: scenario overrides. For a Minigame: which one to run. */
   simulation: { scenario?: Partial<ScenarioConfig>; minigame?: MinigameKind };
   exercises: NodeExercise[];
@@ -121,8 +128,10 @@ export interface NodeRun {
   step: NodeStep;
   /** Card shown in the Theory Primer. */
   card: number;
-  /** Feedback for the Debrief only; it never blocks the simulation or touches the Dog. */
-  checkpoint: CheckpointAnswer | null;
+  /** Checkpoint question shown. */
+  question: number;
+  /** One answer per question asked so far; feedback for the Debrief only, it never blocks the simulation or touches the Dog. */
+  checkpoint: CheckpointAnswer[];
   result: NodeResult | null;
 }
 
@@ -133,7 +142,7 @@ export type NodeAction =
   | { type: 'finish'; result: NodeResult };
 
 export function startNode(node: NodeDef): NodeRun {
-  return { node, step: 'primer', card: 0, checkpoint: null, result: null };
+  return { node, step: 'primer', card: 0, question: 0, checkpoint: [], result: null };
 }
 
 /**
@@ -148,12 +157,13 @@ export function advance(run: NodeRun, action: NodeAction): NodeRun {
         ? { ...run, card: run.card + 1 }
         : { ...run, step: 'checkpoint' };
     case 'checkpoint':
+      // `option` is the authored index: the screen maps its shuffled display order back before answering
       if (action.type === 'answer') {
-        const option = run.node.checkpoint.options[action.option];
+        const option = run.node.checkpoint[run.question]?.options[action.option];
         if (!option) return run;
-        return { ...run, step: 'simulation', checkpoint: option.correct ? 'correct' : 'wrong' };
+        return answered(run, option.correct ? 'correct' : 'wrong');
       }
-      if (action.type === 'timeout') return { ...run, step: 'simulation', checkpoint: 'missed' };
+      if (action.type === 'timeout') return answered(run, 'missed');
       return run;
     case 'simulation':
       if (action.type !== 'finish') return run;
@@ -164,8 +174,29 @@ export function advance(run: NodeRun, action: NodeAction): NodeRun {
   }
 }
 
+/** Records the current question's answer and shows the next question, or starts the simulation after the last. */
+function answered(run: NodeRun, answer: CheckpointAnswer): NodeRun {
+  const checkpoint = [...run.checkpoint, answer];
+  return run.question + 1 < run.node.checkpoint.length
+    ? { ...run, question: run.question + 1, checkpoint }
+    : { ...run, step: 'simulation', checkpoint };
+}
+
 function resultMatchesMode(node: NodeDef, result: NodeResult): boolean {
   return (node.mode === 'stage') === (result.kind === 'stage');
+}
+
+/**
+ * A random display order of `n` options (Fisher-Yates): `order[slot]` is the authored index shown in that slot, so
+ * the right answer's position carries no signal. `random` returns [0, 1), like Math.random.
+ */
+export function shuffledOrder(n: number, random: () => number = Math.random): number[] {
+  const order = Array.from({ length: n }, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return order;
 }
 
 /** Seconds on the Checkpoint timer, or null when the timer is off. */

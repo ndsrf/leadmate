@@ -18,11 +18,14 @@ describe('INTRO_NODE', () => {
       }
     }
 
-    expect(es[INTRO_NODE.checkpoint.question]).toBeTruthy();
-    expect(INTRO_NODE.checkpoint.options).toHaveLength(3);
-    const correctOptions = INTRO_NODE.checkpoint.options.filter((o) => o.correct);
+    expect(INTRO_NODE.checkpoint).toHaveLength(1);
+    const [question] = INTRO_NODE.checkpoint;
+    expect(es[question.question]).toBeTruthy();
+    expect(es[question.explanation]).toBeTruthy();
+    expect(question.options).toHaveLength(3);
+    const correctOptions = question.options.filter((o) => o.correct);
     expect(correctOptions).toHaveLength(1);
-    for (const opt of INTRO_NODE.checkpoint.options) {
+    for (const opt of question.options) {
       expect(es[opt.text]).toBeTruthy();
     }
 
@@ -53,7 +56,7 @@ describe('INTRO_NODE', () => {
 
     run = advance(run, { type: 'answer', option: 0 });
     expect(run.step).toBe('simulation');
-    expect(run.checkpoint).toBe('correct');
+    expect(run.checkpoint).toEqual(['correct']);
 
     const payload = payloadWith({ markerHits: 2, pullPercentage: 15 });
     run = advance(run, { type: 'finish', result: { kind: 'stage', payload } });

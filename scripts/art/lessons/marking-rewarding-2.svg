@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="lesson.4.image.2.caption" data-alt="lesson.4.image.2.alt">
+  <!-- scene: on the pavement by a tree, Migas looks up at you and you say «bien» in that very moment, hands still -->
+  <use href="#sky"/>
+  <use href="#tree" transform="translate(520 300) scale(1.3)"/>
+  <use href="#ground-street"/>
+  <g transform="translate(80 300) scale(1.18)">
+    <use href="#person-walk"/>
+    <use href="#dog-checkin" transform="translate(200 0)"/>
+    <use href="#leash-j"/>
+    <use href="#sound" transform="translate(28 -160) scale(0.9)"/>
+  </g>
+</svg>

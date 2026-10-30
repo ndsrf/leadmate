@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-harness.image.1.caption" data-alt="trail.theory-harness.image.1.alt">
+  <!-- concept: the harness follows calm; Migas jumps and it goes back to your body, Migas sits and it comes to him -->
+  <use href="#backdrop-indoor"/>
+  <path d="M320 26V280" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="12 10" stroke-linecap="round"/>
+  <g transform="translate(64 292) scale(0.88)">
+    <use href="#person-still"/>
+    <use href="#harness" transform="translate(32 -96) scale(1.15)"/>
+    <use href="#dog-jump" transform="translate(196 0) scale(-1 1)"/>
+  </g>
+  <use href="#arrow-ink" transform="translate(224 150) scale(-1 1)"/>
+  <g transform="translate(400 292) scale(0.88)">
+    <use href="#person-crouch"/>
+    <use href="#dog-sit" transform="translate(150 0) scale(-1 1)"/>
+    <use href="#harness" transform="translate(64 -66) rotate(-90) scale(1.15)"/>
+  </g>
+  <use href="#arrow-ink" transform="translate(432 150)"/>
+</svg>

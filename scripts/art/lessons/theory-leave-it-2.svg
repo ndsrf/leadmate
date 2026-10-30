@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-leave-it.image.2.caption" data-alt="trail.theory-leave-it.image.2.alt">
+  <!-- scene: on the pavement by the kiosk, Migas turns back to you a few steps before the food; the leash hangs in a J -->
+  <use href="#sky"/>
+  <use href="#wall" transform="translate(40 290) scale(1.1 1)"/>
+  <use href="#ground-street"/>
+  <g transform="translate(40 300) scale(1.15)">
+    <use href="#person-walk"/>
+    <use href="#dog-checkin" transform="translate(200 0)"/>
+    <use href="#leash-j"/>
+    <use href="#food" transform="translate(372 -2) scale(1.8)"/>
+  </g>
+  <use href="#heart" transform="translate(268 112) scale(1.6)"/>
+</svg>

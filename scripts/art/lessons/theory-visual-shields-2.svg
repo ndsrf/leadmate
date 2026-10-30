@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-visual-shields.image.2.caption" data-alt="trail.theory-visual-shields.image.2.alt">
+  <!-- scene: behind a parked car, the scooter passes on the far side and Migas looks back at you, leash slack -->
+  <use href="#backdrop"/>
+  <use href="#ground-street"/>
+  <use href="#scooter" transform="translate(572 342) scale(-1.25 1.25)"/>
+  <use href="#motion" transform="translate(584 256) scale(-1 1)"/>
+  <use href="#car" transform="translate(420 342) scale(1.05)"/>
+  <g transform="translate(36 300) scale(1.1)">
+    <use href="#person-still"/>
+    <use href="#dog-checkin" transform="translate(200 0)"/>
+    <use href="#leash-still-u"/>
+  </g>
+  <use href="#heart" transform="translate(250 120) scale(1.5)"/>
+</svg>

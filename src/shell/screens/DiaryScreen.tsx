@@ -5,6 +5,7 @@ import type { ActivityEvent, MinigameMetrics, StageSummary } from '../activity';
 import { closedSkipDate, DAY_MARKS, dayMarks, diaryDays, diaryTotals, monthGrid, monthOf, shiftMonth, streakDates, timeOf, weekdayOf, type DayMark, type DiaryDay, type Month } from '../diary';
 import type { DogRecord } from '../dogRecord';
 import { LESSONS } from '../lessons/content';
+import { readingMinutes } from '../lessons/libraryText';
 import { findMission } from '../missions/content';
 import type { MissionState } from '../missions/mission';
 import { findNode } from '../nodes/content';
@@ -213,7 +214,7 @@ function EventEntry({ t, event }: { t: Translate; event: ActivityEvent }) {
     <Entry time={time} mark="lesson">
       <Text className="text-caption text-inkMuted">{t('diary.event.lessonRead')}</Text>
       <Text className="font-display text-body text-ink">{lesson ? t(lesson.title) : t('diary.event.unknown')}</Text>
-      {lesson && <Text className="text-caption text-inkMuted">{`${t('library.day')} ${lesson.day} · ${lesson.minutes} ${t('lesson.minutes')}`}</Text>}
+      {lesson && <Text className="text-caption text-inkMuted">{`${t('library.day')} ${lesson.day} · ${readingMinutes(lesson, t)} ${t('lesson.minutes')}`}</Text>}
     </Entry>
   );
 }

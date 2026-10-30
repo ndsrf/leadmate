@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-leave-it.do" data-alt="trail.theory-leave-it.do">
+  <!-- do: Migas just noticed the food, still a few steps away; you say the cue once -->
+  <use href="#sky"/>
+  <use href="#ground-street"/>
+  <g transform="translate(50 300) scale(1.1)">
+    <use href="#person-walk"/>
+    <use href="#dog-look" transform="translate(200 0)"/>
+    <use href="#leash-j"/>
+    <use href="#food" transform="translate(418 -2) scale(1.8)"/>
+    <use href="#sound" transform="translate(34 -166)"/>
+  </g>
+  <use href="#badge-check" transform="translate(570 70) scale(1.5)"/>
+</svg>

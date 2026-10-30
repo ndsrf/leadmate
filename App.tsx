@@ -63,7 +63,7 @@ import { completeFirstStage } from './src/shell/onboarding/firstStage';
 import { nextStep } from './src/shell/onboarding/flow';
 import { recordDiagnostic } from './src/shell/onboarding/diagnostic';
 import { COACH_ID, HINT_TEXT, hintFor, markHintSeen, type HintId } from './src/shell/onboarding/hints';
-import { completeTaste, leaveWelcome, saveNameAndLook, withDogName } from './src/shell/onboarding/intro';
+import { completeTaste, leaveWelcome, namedTranslator, saveNameAndLook, withDogName } from './src/shell/onboarding/intro';
 import { passPaywall } from './src/shell/onboarding/paywall';
 import { TASTE_LINGER_MS, TASTE_SNAPSHOT, tasteScenario } from './src/shell/onboarding/taste';
 import { useDog } from './src/shell/useDog';
@@ -153,7 +153,9 @@ export default function App() {
   // celebrations are diffed once when a result opens and then only displayed, so each shows once
   const [celebrations, setCelebrations] = useState<{ id: string; list: Celebration[] } | null>(null);
   const [attempt, setAttempt] = useState(0); // bumping it reloads the bundle
-  const t = useMemo(() => createTranslator(CATALOG), []);
+  // every text that names the Dog (`{name}`) shows its name, or "tu perro" before it has one
+  const dogName = record?.name ?? '';
+  const t = useMemo(() => namedTranslator(createTranslator(CATALOG), dogName), [dogName]);
 
   const flowRef = useRef(flow);
   flowRef.current = flow;

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="lesson.5.image.2.caption" data-alt="lesson.5.image.2.alt">
+  <!-- scene: in the park Migas sniffs the hedge with the leash hanging; you wait without moving -->
+  <use href="#backdrop"/>
+  <use href="#tree" transform="translate(576 292)"/>
+  <use href="#ground-grass"/>
+  <use href="#bush" transform="translate(484 300) scale(1.2)"/>
+  <g transform="translate(90 300) scale(1.15)">
+    <use href="#person-still"/>
+    <use href="#dog-sniff" transform="translate(200 0)"/>
+    <use href="#leash-still-u"/>
+    <use href="#sniff-lines" transform="translate(272 -26)"/>
+  </g>
+  <use href="#clock" transform="translate(70 64) scale(1.3)"/>
+</svg>

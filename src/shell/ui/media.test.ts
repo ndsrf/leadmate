@@ -14,6 +14,14 @@ describe('media fallback', () => {
     expect(mediaDisplay(image, true)).toBe('placeholder');
   });
 
+  it('draws Primer media naming bundled Lesson art from the bundle, offline too, and the placeholder for an unknown name', () => {
+    const art: NodeMedia = { type: 'image', url: '', art: 'theory-poste-1', caption: 'media.caption.poste' };
+    expect(mediaDisplay(art, false, true)).toBe('bundled');
+    expect(mediaDisplay(art, true, true)).toBe('bundled'); // a failed network load never matters for bundled art
+    expect(mediaDisplay({ ...art, art: 'nope' }, false, false)).toBe('placeholder');
+    expect(placeholderReason({ ...art, art: 'nope' }, false)).toBe('pending');
+  });
+
   it('tells pending content from content that failed to load', () => {
     expect(placeholderReason({ ...image, placeholder: true }, false)).toBe('pending');
     expect(placeholderReason(image, true)).toBe('unavailable');
@@ -62,12 +70,20 @@ describe('video embedding', () => {
 });
 
 describe('lesson image display', () => {
-  it('prefers bundled art, then a loading remote address, else the placeholder', () => {
-    expect(lessonImageKind('leash', true, false)).toBe('art');
-    expect(lessonImageKind('https://example.com/a.png', false, false)).toBe('remote');
-    expect(lessonImageKind('https://example.com/a.png', false, true)).toBe('placeholder');
-    expect(lessonImageKind('unknown-art', false, false)).toBe('placeholder');
-    expect(lessonImageKind('javascript:1', false, false)).toBe('placeholder');
+  const none = { bundled: false, inline: false };
+
+  it('prefers a registry hit, then an inline scene, then a loading remote address, else the placeholder', () => {
+    expect(lessonImageKind('theory-poste-1', { bundled: true, inline: false }, false)).toBe('bundled');
+    expect(lessonImageKind('leash', { bundled: true, inline: true }, false)).toBe('bundled');
+    expect(lessonImageKind('leash', { bundled: false, inline: true }, false)).toBe('art');
+    expect(lessonImageKind('https://example.com/a.png', none, false)).toBe('remote');
+    expect(lessonImageKind('unknown-art', none, false)).toBe('placeholder');
+    expect(lessonImageKind('javascript:1', none, false)).toBe('placeholder');
+  });
+
+  it('draws a registry hit offline, and falls back to the placeholder for a remote image that cannot load', () => {
+    expect(lessonImageKind('theory-poste-1', { bundled: true, inline: false }, true)).toBe('bundled');
+    expect(lessonImageKind('https://example.com/a.png', none, true)).toBe('placeholder');
   });
 });
 
