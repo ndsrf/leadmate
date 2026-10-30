@@ -20,14 +20,14 @@
 - [x] 3.1 Add Diary text to `src/i18n/es.ts` (chip, views, month and weekday names, date templates, marks, totals, entry labels, metrics) and verify `src/i18n` tests and the catalog-usage test pass
 - [x] 3.2 Build `src/shell/screens/DiaryScreen.tsx`: header with back and the view toggle, totals panel, calendar with month navigation, highlights, mark dots, today outline, Streak bar and legend, and a shared `DayCard` with full per-entry detail. Verify `noRawColors` and catalog-usage tests pass
 - [x] 3.3 Make the World Map's Streak chip open the Diary (`onDiary`), with no separate Diary chip, and the `diary` flow in `App.tsx`, rendered over the map with `mapWith`. Verify `npx tsc --noEmit` reports no new errors
-- [ ] 3.4 Capitalise the first letter of month and long-date titles in code, not with CSS `capitalize` (which gave "Octubre De 2026"), and verify in the web build that the calendar title reads "Octubre de 2026"
+- [x] 3.4 Capitalise the first letter of month and long-date titles in code, not with CSS `capitalize` (which gave "Octubre De 2026"), and verify in the web build that the calendar title reads "Octubre de 2026"
 - [x] 3.5 Label Nodes as "Paseo del mapa" / "Paseos del mapa" and Lessons as "Lectura" / "Lecturas" in the Diary, never as "lecciones", and verify `src/i18n/es.ts` has no `diary.*` text calling a Node a lección
 
 ## 4. Integration checks
 
 - [x] 4.1 Run `npx jest` and verify all suites pass
-- [ ] 4.2 In the web build at phone width, with a seeded record: open the Diary from the map, verify highlighted days and dots, tap a day to see its card, switch to "Días con actividad" and check that only active days are listed by month, and check that going back keeps the map's scroll position
-- [ ] 4.3 On a device, play a Node, the Daily Stage and read a Lesson, then verify each appears in the Diary under today with its time and details
+- [x] 4.2 In the web build at phone width, with a seeded record: open the Diary from the map, verify highlighted days and dots, tap a day to see its card, switch to "Días con actividad" and check that only active days are listed by month, and check that going back keeps the map's scroll position
+- [x] 4.3 On a device, play a Node, the Daily Stage and read a Lesson, then verify each appears in the Diary under today with its time and details
 
 ## Workflow follow-up
 

@@ -45,7 +45,7 @@
 ## 8. Integration checks
 
 - [x] 8.1 Run `npm test` and `npm run typecheck`; both pass.
-- [ ] 8.2 In the running app: the clock stays at `0:00` until the first tap and pauses in background; solve today's Guaudoku, then replay it faster in practice. The chip and the Diary show the first solve's time against the target, the practice solve changes nothing, and no "Zona de Calma" text appears.
+- [x] 8.2 In the running app: the clock stays at `0:00` until the first tap and pauses in background; solve today's Guaudoku, then replay it faster in practice. The chip and the Diary show the first solve's time against the target, the practice solve changes nothing, and no "Zona de Calma" text appears.
 
 ## Workflow follow-up
 

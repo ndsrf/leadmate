@@ -4,6 +4,7 @@
 Defines accounts and the local-first replication of the user's profile data to Supabase. Local storage stays the source of truth ([ADR 0006](../../../docs/adr/0006-local-first-sync.md)).
 
 ## Requirements
+
 ### Requirement: Email and password auth
 The system SHALL support sign-up, login, logout and password reset with email and password, SHALL persist the session across restarts, and SHALL NOT offer social login.
 
@@ -51,9 +52,8 @@ When the user registers or logs in on a device and the account already has a Dog
 - **WHEN** a user logs in from the welcome screen of a device that was never paired and the account has a Dog
 - **THEN** the account's Dog replaces the empty one without a prompt and resumes at its own onboarding step
 
-
 ### Requirement: Conflict resolution
-The system SHALL resolve conflicting edits per record by last-write-wins on `updatedAt`, SHALL union Walk Diary entries by date and Node, SHALL keep the best Daily Stage score per date, SHALL keep the longer Streak (the later `lastActiveDate` for the current run, the maximum for the best), and SHALL NOT blend Learning Attributes field by field.
+The system SHALL resolve conflicting edits per record by last-write-wins on `updatedAt`, SHALL union Walk Diary entries by date and Node or Mission, SHALL merge Mission state with a passed Mission winning over an active one, SHALL union the seen Fixes, SHALL union Activity Log entries by time, kind and item (keeping the newest 500), SHALL keep the best Daily Stage score per date, SHALL keep the earlier first Daily Barkdoku solve per date, SHALL keep the longer Streak (the later `lastActiveDate` for the current run, the maximum for the best), and SHALL NOT blend Learning Attributes field by field.
 
 #### Scenario: Two devices edit
 - **WHEN** two devices change the Learning Attributes offline
@@ -62,6 +62,18 @@ The system SHALL resolve conflicting edits per record by last-write-wins on `upd
 #### Scenario: Diary entries from both devices
 - **WHEN** each device logged a different day
 - **THEN** both days are present after sync
+
+#### Scenario: Mission passed on one device
+- **WHEN** one device passed a Mission while the other, with a later `updatedAt`, still has it waiting
+- **THEN** the Mission is passed after sync
+
+#### Scenario: Activity from both devices
+- **WHEN** each device logged different activity offline
+- **THEN** the Diary shows the activity of both after sync, with no entry duplicated
+
+#### Scenario: Daily Barkdoku solved on both devices
+- **WHEN** one device first solved today's Daily Barkdoku at 09:00 in 2:10 and the other at 20:00 in 1:50
+- **THEN** after sync today's Daily Solve Time is 2:10 on both devices
 
 ### Requirement: One Dog per account
 The system SHALL support one Dog per account, and the stored rows SHALL be keyed by `user_id` and `dog_id`, protected by row-level security so a user can only access their own rows.
@@ -87,3 +99,14 @@ The system SHALL let the user delete their account in the app, which SHALL delet
 #### Scenario: Delete
 - **WHEN** the user confirms account deletion
 - **THEN** all their cloud rows are removed and they are logged out
+
+### Requirement: Owed state merge
+On multi-device sync, a Mission SHALL be owed after the merge when either copy holds it as owed and neither copy has passed it, keeping the earliest skip time. A passed Mission SHALL win over an owed one.
+
+#### Scenario: Skipped on one device
+- **WHEN** device A skipped a Mission that device B still shows as waiting
+- **THEN** after sync both devices show it owed and the Stops after it open
+
+#### Scenario: Passed wins over owed
+- **WHEN** device A shows a Mission owed and device B has passed it
+- **THEN** after sync the Mission is passed and not owed

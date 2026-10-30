@@ -4,23 +4,28 @@
 Provides rich, canine-centric graphical interfaces and behavioral posture representations for static minigames, connecting user timing directly to visible dog body language and environmental context.
 
 ## Requirements
+
 ### Requirement: Canine posture and behavioral state visualization
-The system SHALL display visual posture representations of the Dog reflecting its behavioral state and arousal during static minigames, including standing alert, jumping, lunging/straining, sniffing, sitting attentive, settling, and resting calmly, instead of relying solely on abstract colored boxes or text labels.
+The system SHALL display visual posture representations of the Dog reflecting its behavioral state and arousal during static minigames, including standing alert, lunging/straining, settling, and resting calmly, instead of relying solely on abstract colored boxes or text labels.
 
 #### Scenario: Doorbell Mat canine posture cycle
-- **WHEN** a Doorbell Mat scene runs
-- **THEN** the Dog shows barking at the door, unsettled on the mat, distracted by a smell, and lying relaxed on the mat, in an order set by the scene
+- **WHEN** a round of Doorbell Mat runs
+- **THEN** the system displays the Dog progressing through four distinct postures: `standing_waiting` before the bell, `alert_barking` when the bell rings, `settling_towards_mat` as it disengages from the door, and `calm_sphinx_on_mat` once settled
 
 #### Scenario: Early mark triggers agitation
-- **WHEN** the user picks an action that does not fit while the Dog is aroused
-- **THEN** the system displays the Dog remaining aroused, providing immediate visual canine feedback that the action did not help
+- **WHEN** the user marks while the Dog is in `alert_barking` or `settling_towards_mat`
+- **THEN** the system displays the Dog remaining aroused and barking, providing immediate visual canine feedback that an uncalm state was rewarded
 
 #### Scenario: Poste and Harness Ritual leash strain postures
-- **WHEN** the Dog strains against the leash in the Poste practice (the Harness Ritual no longer uses the leash scene)
+- **WHEN** the Dog strains against the leash in the Poste or Harness Ritual
 - **THEN** the system renders the Dog's body visibly leaning and pulling forward under tension, transitioning to an eased rest and relaxed sit as the Handler holds and settles the Dog
 
+#### Scenario: Barkdoku spatial conflict posture
+- **WHEN** a dog placement in Barkdoku violates a line-of-sight, region, or personal space constraint
+- **THEN** conflicting dogs transition to alert posture with pricked ears and barking indicators until the conflict is resolved
+
 ### Requirement: Environmental scene context in minigames
-The system SHALL render visual environmental props for static minigames, including an entrance door with audio-visual chime cues and a target mat for the Doorbell Mat minigame, the harness and the front door for the Harness Ritual, and an anchored handler-leash connection for the Poste practice.
+The system SHALL render visual environmental props for static minigames, including an entrance door with audio-visual chime cues and a target mat for the Doorbell Mat minigame, the harness and the front door for the Harness Ritual, an anchored handler-leash connection for the Poste practice, and terrain zone boundaries for spatial deduction minigames.
 
 #### Scenario: Visual doorbell and mat cues
 - **WHEN** the doorbell triggers in Doorbell Mat
@@ -33,6 +38,10 @@ The system SHALL render visual environmental props for static minigames, includi
 #### Scenario: Leash tension visualization
 - **WHEN** tension changes in the Poste practice
 - **THEN** the rendered leash dynamically reflects the curve between Handler and Dog, appearing rigid during pull and curving into slack when held
+
+#### Scenario: Barkdoku park and terrace terrain zones
+- **WHEN** Barkdoku renders its grid
+- **THEN** the environmental background depicts a park or cafe terrace divided into terrain zones with visual obstacle props acting as sight-blocking buffers
 
 ### Requirement: Canine-cue-driven interaction timing
 The system SHALL align user input to observable canine body language cues, rewarding the user for reading the Dog's physical demeanor and penalizing actions taken during inappropriate canine behavioral states.

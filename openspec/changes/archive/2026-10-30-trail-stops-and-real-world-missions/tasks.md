@@ -91,8 +91,8 @@
 
 ## 7. Flows and screens
 
-- [ ] 7.1 Add the `mission` flow and the `lesson` `returnTo` to `App.tsx`. Closing the Debrief of a Stretch's last Node Stop opens the Mission brief, and finishing a Lesson Stop returns to the map at the same scroll position. Verify with `navigation.test.ts` and a manual check
-- [ ] 7.2 Build `src/shell/screens/MissionScreens.tsx` with these screens:
+- [x] 7.1 Add the `mission` flow and the `lesson` `returnTo` to `App.tsx`. Closing the Debrief of a Stretch's last Node Stop opens the Mission brief, and finishing a Lesson Stop returns to the map at the same scroll position. Verify with `navigation.test.ts` and a manual check
+- [x] 7.2 Build `src/shell/screens/MissionScreens.tsx` with these screens:
   - the brief, with "Tu foco" and "Start mission";
   - the waiting screen, with its opening time;
   - the check-in, reusing `WalkDiaryBar`;
@@ -107,7 +107,7 @@
 ## 8. Docs and integration
 
 - [x] 8.1 Check that `GLOSSARY.md` (Stop, Stretch, Mission, Fix, How-to-play Lesson, and the revised Lesson, Theory Primer, World, World Map and Walk Diary) and `docs/adr/0013-real-world-mission-gate.md` still match the implemented behaviour, and correct any drift
-- [ ] 8.2 Run `npm test`, `npm run type-check` and `openspec validate trail-stops-and-real-world-missions --strict`. Then walk World 1 in the app:
+- [x] 8.2 Run `npm test`, `npm run type-check` and `openspec validate trail-stops-and-real-world-missions --strict`. Then walk World 1 in the app:
   1. Lesson → How-to-play → Node.
   2. The brief opens automatically → start the Mission → the Stop shows waiting.
   3. Move the device time forward ≥ 8 h to the next day → "Costó un poco" → pick a problem → the Fix page appears.
