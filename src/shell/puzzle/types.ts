@@ -1,5 +1,5 @@
 /**
- * Barkdoku ("Zona de Calma") Core Types.
+ * Barkdoku Core Types.
  * Models canine territory, personal space (reactivity threshold), and line-of-sight constraints.
  */
 
@@ -36,6 +36,8 @@ export interface BarkdokuBoard {
   /** Solution dog coordinates (length N). */
   solution: CellCoord[];
   difficulty?: 'tutorial' | 'easy' | 'medium' | 'hard';
+  /** Target Time in seconds; overrides the size default. Ignored on tutorial boards, which have none. */
+  targetSeconds?: number;
 }
 
 /** Canine ethological conflict categories. */
@@ -63,8 +65,12 @@ export interface BarkdokuState {
   conflicts: ConflictMarker[];
   status: PuzzleStatus;
   mistakes: number;
-  startTime: number;
-  endTime?: number;
+  /** Active play time banked so far, excluding time with the app in the background. */
+  elapsedMs: number;
+  /** When the clock last (re)started; null before the first tap, while paused and once finished. */
+  runningSince: number | null;
+  /** The attempt has had its first tap, so the clock may run. */
+  started: boolean;
 }
 
 /** Resulting debrief metrics upon puzzle completion. */
@@ -72,8 +78,22 @@ export interface BarkdokuMetrics {
   solved: boolean;
   mistakes: number;
   treatsLeft: number;
+  /** The Solve Time, in whole seconds (at least 1). */
   durationSeconds: number;
+  /** Absent on boards without a Target Time (tutorials). */
+  targetSeconds?: number;
+  /** Solved within the Target Time; true when the board has none. */
+  withinTarget: boolean;
   stars: 1 | 2 | 3;
+}
+
+/** One solved board as the Activity Log keeps it. */
+export interface PuzzleSummary {
+  size: number;
+  difficulty?: BarkdokuBoard['difficulty'];
+  durationSeconds: number;
+  targetSeconds?: number;
+  mistakes: number;
 }
 
 /** Check if two coordinates are the same cell. */

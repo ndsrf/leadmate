@@ -1,15 +1,15 @@
-import { color, theme, type ColorToken } from './theme';
+import { theme, type ColorToken, type Palette } from './theme';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'quiet' | 'accent' | 'info' | 'danger';
 
-interface Palette {
+interface VariantTokens {
   fill: ColorToken | null;
   /** Face while pressed. */
   pressedFill: ColorToken | null;
   label: ColorToken;
 }
 
-const PALETTES: Record<ButtonVariant, Palette> = {
+const VARIANTS: Record<ButtonVariant, VariantTokens> = {
   primary: { fill: 'brand', pressedFill: 'brand', label: 'onBrand' },
   secondary: { fill: 'surface', pressedFill: 'surfaceSunken', label: 'ink' },
   quiet: { fill: null, pressedFill: 'infoSoft', label: 'infoText' },
@@ -21,7 +21,7 @@ const PALETTES: Record<ButtonVariant, Palette> = {
 export interface ButtonStyle {
   /** Face colour; `null` for the quiet link, which has no face. */
   fill: string | null;
-  /** The ink outline and the offset shadow share this colour. */
+  /** The outline and the offset shadow share this colour. */
   edge: string;
   label: string;
   borderWidth: number;
@@ -47,22 +47,22 @@ export function desaturate(hex: string, amount = 0.7): string {
 }
 
 /**
- * Pure style of an ink-outlined button on a solid offset shadow: pressing moves the face toward the
- * shadow; disabled is flat, grey and outlined in grey; the quiet variant is a link with no face.
+ * Pure style of an ink-outlined button on a solid offset shadow, in palette `color`: pressing moves the
+ * face toward the shadow; disabled is flat, grey and outlined in grey; the quiet variant is a link with no face.
  */
-export function buttonStyle(variant: ButtonVariant, state: { pressed?: boolean; disabled?: boolean } = {}): ButtonStyle {
-  const palette = PALETTES[variant];
+export function buttonStyle(color: Palette, variant: ButtonVariant, state: { pressed?: boolean; disabled?: boolean } = {}): ButtonStyle {
+  const tokens = VARIANTS[variant];
   const disabled = state.disabled === true;
   const pressed = state.pressed === true && !disabled;
   const quiet = variant === 'quiet';
   const flat = disabled || quiet;
   const shadowOffset = flat ? 0 : theme.depth.rest.x;
   const travel = pressed && !flat ? theme.depth.pressed.translate : 0;
-  const fillToken = pressed ? palette.pressedFill : palette.fill;
+  const fillToken = pressed ? tokens.pressedFill : tokens.fill;
   return {
     fill: disabled ? (quiet ? null : color.disabled) : fillToken === null ? null : color[fillToken],
-    edge: disabled ? color.disabledText : quiet ? 'transparent' : color.ink,
-    label: disabled ? color.disabledText : color[palette.label],
+    edge: disabled ? color.disabledText : quiet ? 'transparent' : color.outline,
+    label: disabled ? color.disabledText : color[tokens.label],
     borderWidth: theme.border.ink,
     shadowOffset,
     travel,
@@ -94,7 +94,7 @@ export function starSlots(stars: number, total = 3): boolean[] {
 
 export type BadgeTone = 'brand' | 'accent' | 'quiet' | 'info' | 'warn';
 
-export function badgeColors(tone: BadgeTone): { fill: string; label: string } {
+export function badgeColors(color: Palette, tone: BadgeTone): { fill: string; label: string } {
   const map: Record<BadgeTone, [ColorToken, ColorToken]> = {
     brand: ['brand', 'onBrand'],
     accent: ['accent', 'onAccent'],
@@ -107,14 +107,14 @@ export function badgeColors(tone: BadgeTone): { fill: string; label: string } {
 }
 
 /** A selectable pill: the chosen one is brand green on a short shadow, the others are flat paper. */
-export function choiceStyle(selected: boolean): { fill: string; label: string; shadowOffset: number } {
+export function choiceStyle(color: Palette, selected: boolean): { fill: string; label: string; shadowOffset: number } {
   return selected
     ? { fill: color.brand, label: color.onBrand, shadowOffset: theme.depth.sm.x - 1 }
     : { fill: color.surface, label: color.ink, shadowOffset: 0 };
 }
 
 /** The minigame pad: green while it is time to act, paper while waiting; it sinks to the shadow when held. */
-export function padStyle(fill: 'brand' | 'quiet', pressed: boolean): { fill: string; label: string; shadowOffset: number; travel: number } {
+export function padStyle(color: Palette, fill: 'brand' | 'quiet', pressed: boolean): { fill: string; label: string; shadowOffset: number; travel: number } {
   const go = fill === 'brand';
   const shadowOffset = theme.depth.md.x;
   return {

@@ -8,20 +8,25 @@ import { COAT_PALETTE } from './canine';
 import { Raised, useFocus } from './components';
 import { handlePress } from './press';
 import { choiceStyle } from './styles';
-import { color, theme } from './theme';
+import { theme, usePalette } from './theme';
 
 /** A check mark in a circle of the given size; selection is never colour alone. */
-export function CheckMark({ size = 20, fill = color.brand }: { size?: number; fill?: string }) {
+export function CheckMark({ size = 20, fill }: { size?: number; fill?: string }) {
+  const color = usePalette();
+  const face = fill ?? color.brand;
+  // the tick contrasts with the face: dark on brand green, ink on paper
+  const tick = face === color.surface ? color.ink : color.onBrand;
   return (
     <Svg width={size} height={size} viewBox="0 0 20 20" aria-hidden>
-      <Path d="M10 1.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17z" fill={fill} stroke={color.ink} strokeWidth={1.8} />
-      <Path d="M5.8 10.3l3 3 5.6-6.2" fill="none" stroke={color.ink} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M10 1.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17z" fill={face} stroke={color.outline} strokeWidth={1.8} />
+      <Path d="M5.8 10.3l3 3 5.6-6.2" fill="none" stroke={tick} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
 }
 
 /** "n of total" with a segment per step, and a back control when there is somewhere to go back to. */
 export function StepHeader({ t, step, total, onBack }: { t: Translate; step: number; total: number; onBack?: () => void }) {
+  const color = usePalette();
   const text = t('step.of').split('{n}').join(String(step)).split('{total}').join(String(total));
   return (
     <View className="mb-4 flex-row items-center" style={{ gap: theme.space[3] }}>
@@ -34,7 +39,7 @@ export function StepHeader({ t, step, total, onBack }: { t: Translate; step: num
       ) : null}
       <View className="flex-1 flex-row" style={{ gap: theme.space[1] }} accessible accessibilityRole="progressbar" accessibilityLabel={text} accessibilityValue={{ min: 1, max: total, now: step }}>
         {Array.from({ length: total }, (_, i) => (
-          <View key={i} style={{ flex: 1, height: 10, borderRadius: theme.radius.pill, borderWidth: 2, borderColor: color.ink, backgroundColor: i < step ? color.brand : color.surfaceSunken }} />
+          <View key={i} style={{ flex: 1, height: 10, borderRadius: theme.radius.pill, borderWidth: 2, borderColor: color.outline, backgroundColor: i < step ? color.brand : color.surfaceSunken }} />
         ))}
       </View>
       <Text className="font-display text-label text-inkMuted">{text}</Text>
@@ -44,6 +49,7 @@ export function StepHeader({ t, step, total, onBack }: { t: Translate; step: num
 
 /** One breed in the picker: its silhouette in the chosen coat over its name; the selected tile has a check and a warm fill. */
 export function BreedTile({ breed, coat, label, selected, onPress }: { breed: BreedId; coat: DogCoat; label: string; selected: boolean; onPress: () => void }) {
+  const color = usePalette();
   const focus = useFocus();
   return (
     <Pressable onPress={() => handlePress(onPress)} onFocus={focus.onFocus} onBlur={focus.onBlur} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected }} style={{ minHeight: theme.size.touchMin }}>
@@ -62,6 +68,7 @@ export function BreedTile({ breed, coat, label, selected, onPress }: { breed: Br
 
 /** One coat: a round colour with its name under it as text, and a check on the selected one. */
 export function CoatSwatch({ coat, label, selected, onPress }: { coat: DogCoat; label: string; selected: boolean; onPress: () => void }) {
+  const color = usePalette();
   const focus = useFocus();
   return (
     <Pressable onPress={() => handlePress(onPress)} onFocus={focus.onFocus} onBlur={focus.onBlur} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected }} style={{ minHeight: theme.size.touchMin, minWidth: theme.size.touchMin, alignItems: 'center' }}>
@@ -75,8 +82,9 @@ export function CoatSwatch({ coat, label, selected, onPress }: { coat: DogCoat; 
 
 /** A selectable chip for "pick any of these": brand green with a check when on, flat paper when off. */
 export function SelectChip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+  const color = usePalette();
   const focus = useFocus();
-  const c = choiceStyle(selected);
+  const c = choiceStyle(color, selected);
   return (
     <Pressable onPress={() => handlePress(onPress)} onFocus={focus.onFocus} onBlur={focus.onBlur} accessibilityRole="button" accessibilityState={{ selected }} className="mr-2 mt-2" style={{ minHeight: theme.size.touchMin }}>
       <Raised fill={c.fill} radius={theme.radius.pill} offset={c.shadowOffset} focused={focus.focused} faceStyle={{ minHeight: theme.size.touchMin - c.shadowOffset, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: theme.space[4], gap: theme.space[2] }}>
@@ -91,13 +99,14 @@ export function SelectChip({ label, selected, onPress }: { label: string; select
 
 /** Two to four joined options of one choice (such as an intensity); the selected one is brand green. */
 export function Segmented<T extends string>({ options, value, onChange, label }: { options: readonly { id: T; label: string }[]; value: T; onChange: (id: T) => void; label?: string }) {
+  const color = usePalette();
   return (
     <View accessibilityRole="radiogroup" accessibilityLabel={label} className="flex-row" style={{ gap: theme.space[1] }}>
       {options.map((o) => {
         const selected = o.id === value;
         return (
           <Pressable key={o.id} onPress={() => handlePress(() => onChange(o.id))} accessibilityRole="radio" accessibilityState={{ checked: selected }} style={{ flex: 1, minHeight: theme.size.touchMin }}>
-            <View style={{ flex: 1, minHeight: theme.size.touchMin, alignItems: 'center', justifyContent: 'center', paddingHorizontal: theme.space[1], borderRadius: theme.radius.sm, borderWidth: theme.border.ink, borderColor: color.ink, backgroundColor: selected ? color.brand : color.surface }}>
+            <View style={{ flex: 1, minHeight: theme.size.touchMin, alignItems: 'center', justifyContent: 'center', paddingHorizontal: theme.space[1], borderRadius: theme.radius.sm, borderWidth: theme.border.ink, borderColor: color.outline, backgroundColor: selected ? color.brand : color.surface }}>
               <Text className="text-center font-display text-label" style={{ color: selected ? color.onBrand : color.ink }}>
                 {o.label}
               </Text>
@@ -111,21 +120,22 @@ export function Segmented<T extends string>({ options, value, onChange, label }:
 
 /** The collar (a ring with a tag) or the Y-harness (a Y of straps over a chest plate), drawn in ink on paper. */
 function EquipmentArt({ kind }: { kind: 'collar' | 'harness' }) {
-  const strap = { stroke: color.ink, strokeWidth: 3, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
+  const color = usePalette();
+  const strap = { stroke: color.outline, strokeWidth: 3, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
   return (
     <Svg width={72} height={72} viewBox="0 0 72 72" aria-hidden>
       {kind === 'collar' ? (
         <>
-          <Path d="M10 30 Q36 52 62 30 L62 42 Q36 64 10 42 Z" fill={color.info} stroke={color.ink} strokeWidth={3} strokeLinejoin="round" />
+          <Path d="M10 30 Q36 52 62 30 L62 42 Q36 64 10 42 Z" fill={color.info} stroke={color.outline} strokeWidth={3} strokeLinejoin="round" />
           <Path d="M36 53 L36 58" {...strap} />
-          <Path d="M36 56 a6 6 0 1 0 0.1 0 z" fill={color.accent} stroke={color.ink} strokeWidth={3} />
+          <Path d="M36 56 a6 6 0 1 0 0.1 0 z" fill={color.accent} stroke={color.outline} strokeWidth={3} />
         </>
       ) : (
         <>
           <Path d="M14 16 L36 40 L58 16" {...strap} stroke={color.coral} strokeWidth={9} />
           <Path d="M36 40 L36 62" {...strap} stroke={color.coral} strokeWidth={9} />
           <Path d="M20 50 Q36 44 52 50" {...strap} stroke={color.coral} strokeWidth={9} />
-          <Path d="M36 40 a5 5 0 1 0 0.1 0 z" fill={color.accent} stroke={color.ink} strokeWidth={3} />
+          <Path d="M36 40 a5 5 0 1 0 0.1 0 z" fill={color.accent} stroke={color.outline} strokeWidth={3} />
         </>
       )}
     </Svg>
@@ -134,6 +144,7 @@ function EquipmentArt({ kind }: { kind: 'collar' | 'harness' }) {
 
 /** An illustrated choice with a name and a one-line note; the selected card has a check and a warm fill. */
 export function EquipmentCard({ kind, label, note, selected, onPress }: { kind: 'collar' | 'harness'; label: string; note: string; selected: boolean; onPress: () => void }) {
+  const color = usePalette();
   const focus = useFocus();
   return (
     <Pressable onPress={() => handlePress(onPress)} onFocus={focus.onFocus} onBlur={focus.onBlur} accessibilityRole="button" accessibilityLabel={`${label}. ${note}`} accessibilityState={{ selected }} style={{ flex: 1, minHeight: theme.size.touchMin }}>

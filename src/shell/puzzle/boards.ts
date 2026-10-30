@@ -1187,3 +1187,19 @@ export function solveBoard(board: BarkdokuBoard, maxSolutions = 2): CellCoord[][
   search(0, []);
   return solutions;
 }
+
+/**
+ * Return a date-seeded daily Barkdoku board.
+ * Picks between sizes 5x5 and 8x8 for varied daily mental exercises.
+ */
+export function getDailyBoard(dateString: string): BarkdokuBoard {
+  // Simple deterministic integer hash of YYYY-MM-DD
+  let hash = 0;
+  for (let i = 0; i < dateString.length; i++) {
+    hash = (hash << 5) - hash + dateString.charCodeAt(i);
+    hash |= 0;
+  }
+  const eligible = BARKDOKU_BOARDS.filter((b) => b.size >= 5 && b.size <= 8);
+  const index = Math.abs(hash) % eligible.length;
+  return eligible[index];
+}

@@ -4,7 +4,7 @@ import Svg, { Circle, Ellipse, G, Line, Path, Rect } from 'react-native-svg';
 import type { Translate } from '../../i18n';
 import type { DogCoat } from '../../sim/config';
 import { COAT_PALETTE, COLLAR_POINT, DOG_VIEW, emotePoint, postureSpec, type CaninePosture, type CoatPalette, type Emote, type Eyes } from './canine';
-import { color } from './theme';
+import { lightColor } from './theme';
 import { useLive } from './useAppActive';
 import { useMotion } from './useMotion';
 
@@ -16,32 +16,32 @@ function Head({ x, y, pal, ears, mouth, eyes }: { x: number; y: number; pal: Coa
       {ears === 'up' && <Path d={`M${x - 12} ${y - 8} L${x - 8} ${y - 30} L${x + 4} ${y - 12} Z`} fill={pal.shade} />}
       <Circle cx={x} cy={y} r={16} fill={pal.fill} />
       <Path d={`M${x + 4} ${y - 2} Q${x + 18} ${y - 4} ${x + 32} ${y + 2} L${x + 32} ${y + 10} Q${x + 30} ${y + 16} ${x + 20} ${y + 16} L${x + 10} ${y + 14} Z`} fill={pal.belly} />
-      <Circle cx={x + 31} cy={y + 3} r={4.2} fill={color.onAccent} />
+      <Circle cx={x + 31} cy={y + 3} r={4.2} fill={lightColor.onAccent} />
       {ears === 'down' && <Ellipse cx={x - 3} cy={y + 3} rx={6.5} ry={12} fill={pal.shade} transform={`rotate(14 ${x - 3} ${y + 3})`} />}
       {ears === 'back' && <Ellipse cx={x - 12} cy={y - 3} rx={12} ry={5} fill={pal.shade} transform={`rotate(-12 ${x - 12} ${y - 3})`} />}
       {eyes === 'closed' ? (
-        <Path d={`M${x + 4} ${y - 5} Q${x + 8} ${y - 1} ${x + 12} ${y - 5}`} stroke={color.onAccent} strokeWidth={2} strokeLinecap="round" fill="none" />
+        <Path d={`M${x + 4} ${y - 5} Q${x + 8} ${y - 1} ${x + 12} ${y - 5}`} stroke={lightColor.onAccent} strokeWidth={2} strokeLinecap="round" fill="none" />
       ) : eyes === 'wide' ? (
         <G>
-          <Circle cx={x + 8} cy={y - 5} r={5.4} fill={color.surface} stroke={color.onAccent} strokeWidth={1.4} />
-          <Circle cx={x + 9} cy={y - 5} r={2.4} fill={color.onAccent} />
+          <Circle cx={x + 8} cy={y - 5} r={5.4} fill={lightColor.surface} stroke={lightColor.onAccent} strokeWidth={1.4} />
+          <Circle cx={x + 9} cy={y - 5} r={2.4} fill={lightColor.onAccent} />
         </G>
       ) : (
         <G>
-          <Circle cx={x + 8} cy={y - 5} r={3.4} fill={color.onAccent} />
-          <Circle cx={x + 9} cy={y - 6} r={1.1} fill={color.ink} />
+          <Circle cx={x + 8} cy={y - 5} r={3.4} fill={lightColor.onAccent} />
+          <Circle cx={x + 9} cy={y - 6} r={1.1} fill={lightColor.ink} />
         </G>
       )}
       {mouth ? (
         <G>
-          <Path d={`M${x + 12} ${y + 10} L${x + 32} ${y + 9} L${x + 28} ${y + 23} Q${x + 20} ${y + 25} ${x + 12} ${y + 10} Z`} fill={color.onDanger} />
-          <Ellipse cx={x + 23} cy={y + 20} rx={5.5} ry={3.4} fill={color.danger} />
+          <Path d={`M${x + 12} ${y + 10} L${x + 32} ${y + 9} L${x + 28} ${y + 23} Q${x + 20} ${y + 25} ${x + 12} ${y + 10} Z`} fill={lightColor.onDanger} />
+          <Ellipse cx={x + 23} cy={y + 20} rx={5.5} ry={3.4} fill={lightColor.danger} />
           {[0, 1, 2].map((i) => (
-            <Path key={i} d={`M${x + 40 + i * 8} ${y - 6 - i * 3} Q${x + 46 + i * 8} ${y + 4} ${x + 40 + i * 8} ${y + 14 + i * 3}`} stroke={color.accent} strokeWidth={2.4} strokeLinecap="round" fill="none" opacity={1 - i * 0.25} />
+            <Path key={i} d={`M${x + 40 + i * 8} ${y - 6 - i * 3} Q${x + 46 + i * 8} ${y + 4} ${x + 40 + i * 8} ${y + 14 + i * 3}`} stroke={lightColor.accent} strokeWidth={2.4} strokeLinecap="round" fill="none" opacity={1 - i * 0.25} />
           ))}
         </G>
       ) : (
-        <Path d={`M${x + 12} ${y + 11} Q${x + 22} ${y + 14} ${x + 31} ${y + 9}`} stroke={color.onAccent} strokeWidth={1.8} strokeLinecap="round" fill="none" />
+        <Path d={`M${x + 12} ${y + 11} Q${x + 22} ${y + 14} ${x + 31} ${y + 9}`} stroke={lightColor.onAccent} strokeWidth={1.8} strokeLinecap="round" fill="none" />
       )}
     </G>
   );
@@ -50,8 +50,8 @@ function Head({ x, y, pal, ears, mouth, eyes }: { x: number; y: number; pal: Coa
 function Collar({ x, y }: { x: number; y: number }) {
   return (
     <G>
-      <Line x1={x - 5} y1={y - 8} x2={x + 5} y2={y + 8} stroke={color.info} strokeWidth={5} />
-      <Circle cx={x + 4} cy={y + 9} r={3.2} fill={color.accent} />
+      <Line x1={x - 5} y1={y - 8} x2={x + 5} y2={y + 8} stroke={lightColor.info} strokeWidth={5} />
+      <Circle cx={x + 4} cy={y + 9} r={3.2} fill={lightColor.accent} />
     </G>
   );
 }
@@ -225,16 +225,16 @@ function EmoteBubble({ emote, x, y }: { emote: Emote; x: number; y: number }) {
   if (emote === 'none') return null;
   return (
     <G transform={`translate(${x} ${y})`}>
-      <Circle r={10} fill={color.surface} stroke={color.ink} strokeWidth={1.8} />
+      <Circle r={10} fill={lightColor.surface} stroke={lightColor.ink} strokeWidth={1.8} />
       {emote === 'alert' && (
-        <G fill={color.danger}>
+        <G fill={lightColor.danger}>
           <Rect x={-1.6} y={-6.5} width={3.2} height={8} rx={1.4} />
           <Circle cy={5} r={1.9} />
         </G>
       )}
-      {emote === 'distracted' && <Path d="M-6 0 Q-3 -4 0 0 T6 0" stroke={color.info} strokeWidth={2} strokeLinecap="round" fill="none" />}
-      {emote === 'love' && <Path d="M0 6 C-8 0 -6 -6 0 -2 C6 -6 8 0 0 6 Z" fill={color.danger} />}
-      {emote === 'sleepy' && <Path d="M-4 -4 L4 -4 L-4 4 L4 4" stroke={color.inkMuted} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" />}
+      {emote === 'distracted' && <Path d="M-6 0 Q-3 -4 0 0 T6 0" stroke={lightColor.info} strokeWidth={2} strokeLinecap="round" fill="none" />}
+      {emote === 'love' && <Path d="M0 6 C-8 0 -6 -6 0 -2 C6 -6 8 0 0 6 Z" fill={lightColor.danger} />}
+      {emote === 'sleepy' && <Path d="M-4 -4 L4 -4 L-4 4 L4 4" stroke={lightColor.inkMuted} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" />}
     </G>
   );
 }
@@ -244,9 +244,9 @@ function Harness({ posture }: { posture: CaninePosture }) {
   const c = COLLAR_POINT[posture];
   return (
     <G>
-      <Path d={`M${c.x - 20} ${c.y - 6} L${c.x - 14} ${c.y + 28}`} stroke={color.danger} strokeWidth={5} strokeLinecap="round" />
-      <Path d={`M${c.x - 20} ${c.y - 6} L${c.x - 2} ${c.y + 4}`} stroke={color.danger} strokeWidth={4} strokeLinecap="round" />
-      <Circle cx={c.x - 20} cy={c.y - 6} r={3.2} fill={color.accent} stroke={color.ink} strokeWidth={1} />
+      <Path d={`M${c.x - 20} ${c.y - 6} L${c.x - 14} ${c.y + 28}`} stroke={lightColor.danger} strokeWidth={5} strokeLinecap="round" />
+      <Path d={`M${c.x - 20} ${c.y - 6} L${c.x - 2} ${c.y + 4}`} stroke={lightColor.danger} strokeWidth={4} strokeLinecap="round" />
+      <Circle cx={c.x - 20} cy={c.y - 6} r={3.2} fill={lightColor.accent} stroke={lightColor.ink} strokeWidth={1} />
     </G>
   );
 }
@@ -284,7 +284,7 @@ export function CanineMinigameAvatar({ t, posture, coat = 'golden', width = 150,
   return (
     <Animated.View accessible accessibilityRole="image" accessibilityLabel={`${t(postureSpec(posture).label)}${harness ? `. ${t('minigame.harnessOn')}` : ''}`} style={[{ width, height }, wobble]}>
       <Svg width={width} height={height} viewBox={`0 0 ${DOG_VIEW.w} ${DOG_VIEW.h}`} style={facing === 'left' ? { transform: [{ scaleX: -1 }] } : undefined}>
-        <Ellipse cx={72} cy={100} rx={posture === 'calm_sphinx_on_mat' || posture === 'relaxed_lying' ? 56 : posture === 'jumping' ? 34 : 46} ry={5} fill={color.bg} opacity={0.35} />
+        <Ellipse cx={72} cy={100} rx={posture === 'calm_sphinx_on_mat' || posture === 'relaxed_lying' ? 56 : posture === 'jumping' ? 34 : 46} ry={5} fill={lightColor.bg} opacity={0.35} />
         <Pose posture={posture} pal={pal} />
         {harness && <Harness posture={posture} />}
         <EmoteBubble emote={postureSpec(posture).emote} x={emotePoint(posture).x} y={emotePoint(posture).y} />

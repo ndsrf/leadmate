@@ -2,6 +2,7 @@ import {
   BARKDOKU_BOARDS,
   getBoardById,
   getBoardsBySize,
+  getDailyBoard,
   INTRO_BARKDOKU_BOARD,
   solveBoard,
 } from './boards';
@@ -101,5 +102,16 @@ describe('Barkdoku Boards Catalog', () => {
   test('INTRO_BARKDOKU_BOARD is defined and size 4 or 5', () => {
     expect(INTRO_BARKDOKU_BOARD).toBeDefined();
     expect(INTRO_BARKDOKU_BOARD.size).toBeLessThanOrEqual(5);
+  });
+
+  test('getDailyBoard returns deterministic boards of sizes 5-8', () => {
+    const b1 = getDailyBoard('2026-10-28');
+    const b2 = getDailyBoard('2026-10-28');
+    expect(b1.id).toBe(b2.id);
+    expect(b1.size).toBeGreaterThanOrEqual(5);
+    expect(b1.size).toBeLessThanOrEqual(8);
+
+    const b3 = getDailyBoard('2026-10-29');
+    expect(b3).toBeDefined();
   });
 });

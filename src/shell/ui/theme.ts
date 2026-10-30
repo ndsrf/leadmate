@@ -1,3 +1,4 @@
+import { createContext, createElement, useContext, type ReactNode } from 'react';
 import tokens from './tokens.json';
 
 /**
@@ -7,8 +8,40 @@ import tokens from './tokens.json';
  */
 export const theme = tokens;
 export type ColorToken = keyof typeof tokens.color;
-export const color = tokens.color;
-export const colorNight = tokens.colorNight;
+export type Palette = Record<ColorToken, string>;
+export type ColorScheme = 'light' | 'dark';
+
+/** The Light palette, for the Light-only regions (a running Stage, the Splash, illustrations) only. */
+export const lightColor: Palette = tokens.color;
+export const colorNight: Palette = tokens.colorNight;
+export const palettes: Record<ColorScheme, Palette> = { light: lightColor, dark: colorNight };
+
+const SchemeContext = createContext<ColorScheme>('light');
+
+/** Provides the active palette at the app root; `usePalette()` reads it. */
+export function PaletteProvider({ scheme, children }: { scheme: ColorScheme; children?: ReactNode }) {
+  return createElement(SchemeContext.Provider, { value: scheme }, children);
+}
+
+/** The scheme of the active palette. */
+export function usePaletteScheme(): ColorScheme {
+  return useContext(SchemeContext);
+}
+
+/** The active palette, with the same keys as the Light one. Shell UI chrome takes its colours from here. */
+export function usePalette(): Palette {
+  return palettes[useContext(SchemeContext)];
+}
+
+function channels(hex: string): string {
+  const n = parseInt(hex.slice(1), 16);
+  return `${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255}`;
+}
+
+/** The NativeWind variables of a palette (`--c-<token>` as `r g b`), applied at the root with `vars()`. */
+export function paletteVariables(scheme: ColorScheme): Record<string, string> {
+  return Object.fromEntries(Object.entries(palettes[scheme]).map(([k, v]) => [`--c-${k}`, channels(v)]));
+}
 
 /** A text/background pair the kit draws; `theme.test.ts` checks each against `MIN_CONTRAST`. */
 export const TEXT_PAIRS: readonly (readonly [text: ColorToken, background: ColorToken])[] = [
@@ -36,15 +69,8 @@ export const TEXT_PAIRS: readonly (readonly [text: ColorToken, background: Color
   ['focus', 'surface'],
 ];
 
-/** Pairs of the night set, checked as tokens only (no screen uses them yet). */
-export const NIGHT_TEXT_PAIRS: readonly (readonly [text: keyof typeof tokens.colorNight, background: keyof typeof tokens.colorNight])[] = [
-  ['ink', 'bg'],
-  ['ink', 'surface'],
-  ['ink', 'surfaceSunken'],
-  ['inkMuted', 'bg'],
-  ['inkMuted', 'surface'],
-  ['inkMuted', 'surfaceSunken'],
-];
+/** The same pairs, checked against the night set. */
+export const NIGHT_TEXT_PAIRS = TEXT_PAIRS;
 
 /** Large text (display type from 24 points, or bold from 19) needs only this much. */
 export const MIN_CONTRAST_LARGE = 3;

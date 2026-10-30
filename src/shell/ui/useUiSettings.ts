@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { KeyValueStore } from '../dogRecord';
-import { DEFAULT_FEEDBACK_SETTINGS, setFeedbackSettings } from './feedback';
-import { loadUiSettings, saveUiSettings, type UiSettings } from './uiSettings';
+import { setFeedbackSettings } from './feedback';
+import { DEFAULT_UI_SETTINGS, loadUiSettings, saveUiSettings, type UiSettings } from './uiSettings';
 
-/** Loads the device's sound and haptics choices once, keeps the feedback service in step and saves each change. */
+/** Loads the device's sound, haptics and Appearance choices once, keeps the feedback service in step and saves each change. */
 export function useUiSettings(store: KeyValueStore): { settings: UiSettings; change: (patch: Partial<UiSettings>) => void } {
-  const [settings, setSettings] = useState<UiSettings>(DEFAULT_FEEDBACK_SETTINGS);
+  const [settings, setSettings] = useState<UiSettings>(DEFAULT_UI_SETTINGS);
 
   useEffect(() => {
     let alive = true;

@@ -8,7 +8,7 @@ import { LessonArt, isLessonArt } from './lessonArt';
 import { browserNext, videoEmbedUrl, videoWatchUrl, type BrowserState } from './media';
 import { CanineMinigameAvatar } from './CanineMinigameAvatar';
 import { handlePress } from './press';
-import { color, theme } from './theme';
+import { theme, usePalette } from './theme';
 
 export type VideoBlock = Extract<LessonBlock, { type: 'video' }>;
 
@@ -21,6 +21,7 @@ export type PlayerRenderer = (props: { uri: string; attempt: number; onLoaded: (
  * platform player loads; a failed load shows the themed placeholder with retry, and "Open video" always works.
  */
 export function LessonVideoCard({ t, block, renderPlayer }: { t: Translate; block: VideoBlock; renderPlayer: PlayerRenderer }) {
+  const color = usePalette();
   const [started, setStarted] = useState(false);
   const [state, setState] = useState<BrowserState>('loading');
   const [attempt, setAttempt] = useState(0);
@@ -33,7 +34,7 @@ export function LessonVideoCard({ t, block, renderPlayer }: { t: Translate; bloc
   return (
     <View accessible={!started} accessibilityLabel={started ? undefined : `${t(block.alt)}. ${t(block.caption)}`} className="mt-4">
       <Raised fill={color.surfaceSunken} radius={theme.radius.lg} offset={theme.depth.sm.x} faceStyle={{ overflow: 'hidden' }}>
-        <View style={{ aspectRatio: 16 / 9, width: '100%', backgroundColor: color.ink }}>
+        <View style={{ aspectRatio: 16 / 9, width: '100%', backgroundColor: color.outline }}>
           {failed ? (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surfaceSunken }}>
               <CanineMinigameAvatar t={t} posture="calm_sphinx_on_mat" />
@@ -44,7 +45,8 @@ export function LessonVideoCard({ t, block, renderPlayer }: { t: Translate; bloc
               {renderPlayer({ uri: embed, attempt, onLoaded: () => setState((s) => browserNext(s, 'loaded')), onError: () => setState((s) => browserNext(s, 'error')) })}
               {state === 'loading' && (
                 <View pointerEvents="none" style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center' }}>
-                  <Text className="font-display text-body" style={{ color: color.surface }}>{t('media.video.loading')}</Text>
+                  {/* cream on the dark player in both palettes */}
+                  <Text className="font-display text-body" style={{ color: color.onInfo }}>{t('media.video.loading')}</Text>
                 </View>
               )}
             </>

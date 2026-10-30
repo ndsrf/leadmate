@@ -5,7 +5,7 @@ import { Button } from '../Overlays';
 import { Migas } from '../ui/art';
 import { Badge, Panel, Raised } from '../ui/components';
 import { handlePress } from '../ui/press';
-import { color, theme } from '../ui/theme';
+import { theme, usePalette } from '../ui/theme';
 import { Screen } from './Screen';
 
 type Benefit = 'worlds' | 'guides' | 'more';
@@ -16,7 +16,8 @@ const BENEFITS: readonly { id: Benefit; text: TextKey }[] = [
 ];
 
 function BenefitIcon({ id }: { id: Benefit }) {
-  const ink = { stroke: color.ink, strokeWidth: 2.4, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const };
+  const color = usePalette();
+  const ink = { stroke: color.outline, strokeWidth: 2.4, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const };
   return (
     <Svg width={28} height={28} viewBox="0 0 28 28" aria-hidden>
       {id === 'worlds' && (
@@ -43,6 +44,7 @@ function BenefitIcon({ id }: { id: Benefit }) {
 
 /** The close control; it does what "Maybe later" does. */
 function CloseButton({ label, onPress }: { label: string; onPress: () => void }) {
+  const color = usePalette();
   return (
     <Pressable onPress={() => handlePress(onPress)} accessibilityRole="button" accessibilityLabel={label} style={{ alignSelf: 'flex-end', width: theme.size.touchMin, height: theme.size.touchMin, alignItems: 'center', justifyContent: 'center' }}>
       <Raised fill={color.surface} radius={theme.radius.pill} offset={2} faceStyle={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}>
@@ -56,6 +58,7 @@ function CloseButton({ label, onPress }: { label: string; onPress: () => void })
 
 /** A stub: Start trial, Maybe later and the close control all continue and nothing is locked either way. No price is shown. */
 export function PaywallScreen({ t, onStartTrial, onLater }: { t: Translate; onStartTrial: () => void; onLater: () => void }) {
+  const color = usePalette();
   return (
     <Screen header={<CloseButton label={t('paywall.close')} onPress={onLater} />}>
       <Raised fill={color.sky} radius={theme.radius.lg} offset={theme.depth.sm.x} className="mb-4" faceStyle={{ alignItems: 'center', paddingVertical: theme.space[3] }}>

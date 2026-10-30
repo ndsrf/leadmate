@@ -3,7 +3,7 @@ import { WebView } from 'react-native-webview';
 import type { Translate } from '../../i18n';
 import { isAllowedVideoHost } from './media';
 import { LessonVideoCard, type VideoBlock } from './LessonVideoCard';
-import { color } from './theme';
+import { usePalette } from './theme';
 import { usePauseMediaInBackground, type WebViewHandle } from './usePauseMediaInBackground';
 
 /**
@@ -11,6 +11,7 @@ import { usePauseMediaInBackground, type WebViewHandle } from './usePauseMediaIn
  * pauses when the app goes to the background.
  */
 export function LessonVideo({ t, block }: { t: Translate; block: VideoBlock }) {
+  const color = usePalette();
   const player = useRef<WebViewHandle>(null);
   usePauseMediaInBackground(player);
   return (
@@ -22,7 +23,7 @@ export function LessonVideo({ t, block }: { t: Translate; block: VideoBlock }) {
           key={attempt}
           ref={player}
           source={{ uri }}
-          style={{ flex: 1, backgroundColor: color.ink }}
+          style={{ flex: 1, backgroundColor: color.outline }}
           originWhitelist={['https://www.youtube-nocookie.com']}
           onShouldStartLoadWithRequest={(request) => isAllowedVideoHost(request.url) || request.url === 'about:blank'}
           allowsInlineMediaPlayback

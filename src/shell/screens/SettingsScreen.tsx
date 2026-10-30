@@ -9,11 +9,11 @@ import { setTriggerLevel, type CheckpointSeconds, type DogRecord } from '../dogR
 import { shouldShowResetSection } from '../reset';
 import { Button } from '../Overlays';
 import { LeadLine } from '../ui/art';
-import { Choice, Panel, TextField, Toggle } from '../ui/components';
+import { Choice, Panel, PaletteRoot, TextField, Toggle } from '../ui/components';
 import { CUSTOM_CUE_MS, resolveCue, VOICE_PACKS, type Language } from '../voice';
 import type { Account } from '../sync/useAccount';
 import { AccountSection } from './AccountScreens';
-import type { UiSettings } from '../ui/uiSettings';
+import { APPEARANCES, type UiSettings } from '../ui/uiSettings';
 import { renameDog } from '../onboarding/intro';
 import { DOG_COAT_NAMES } from '../onboarding/look';
 import { cleanDogName, DOG_NAME_MAX } from '../onboarding/name';
@@ -40,6 +40,20 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <Text className="mb-1 font-display text-title text-ink">{title}</Text>
       {children}
     </Panel>
+  );
+}
+
+/** The Appearance choice: System, Light or Dark, kept on this device only. */
+export function AppearanceSection({ t, ui }: { t: Translate; ui: { settings: UiSettings; change: (patch: Partial<UiSettings>) => void } }) {
+  return (
+    <Section title={t('settings.appearance')}>
+      <View className="flex-row flex-wrap">
+        {APPEARANCES.map((appearance) => (
+          <Choice key={appearance} label={t(`settings.appearance.${appearance}`)} selected={ui.settings.appearance === appearance} onPress={() => ui.change({ appearance })} />
+        ))}
+      </View>
+      <Text className="mt-2 text-caption text-inkMuted">{t('settings.appearance.help')}</Text>
+    </Section>
   );
 }
 
@@ -182,6 +196,8 @@ export function SettingsScreen({
         <Text className="mt-2 text-caption text-inkMuted">{t('settings.feedback.help')}</Text>
       </Section>
 
+      <AppearanceSection t={t} ui={ui} />
+
       <Section title={t('settings.voicePack')}>
         <View className="flex-row flex-wrap">
           {VOICE_PACKS.map((pack) => (
@@ -227,7 +243,8 @@ export function SettingsScreen({
           onRequestClose={() => setShowResetModal(false)}
         >
           <SafeAreaProvider>
-          <SafeAreaView className="flex-1 items-center justify-center bg-ink/70 p-4">
+          <PaletteRoot className="flex-1">
+          <SafeAreaView className="flex-1 items-center justify-center bg-outline/70 p-4">
             <Panel className="w-full max-w-sm">
               <Text className="font-display text-title text-dangerText">{t('settings.reset.confirmTitle')}</Text>
               <Text className="mt-3 text-body text-inkMuted">{t('settings.reset.confirmBody')}</Text>
@@ -244,6 +261,7 @@ export function SettingsScreen({
               </View>
             </Panel>
           </SafeAreaView>
+          </PaletteRoot>
           </SafeAreaProvider>
         </Modal>
       )}

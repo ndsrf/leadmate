@@ -5,8 +5,9 @@ import Svg, { Path } from 'react-native-svg';
 import type { Translate } from '../../i18n';
 import { Button } from '../Overlays';
 import { LeadLine, MeadowBackdrop, Migas } from '../ui/art';
-import { Raised } from '../ui/components';
-import { color, theme } from '../ui/theme';
+import { LightRegion, Raised } from '../ui/components';
+// The Splash stays Light whatever the Appearance (a dark Splash is a follow-up).
+import { lightColor as color, theme } from '../ui/theme';
 import { useMotion } from '../ui/useMotion';
 import { useLive } from '../ui/useAppActive';
 
@@ -34,7 +35,7 @@ function LoaderLead({ animate }: { animate: boolean }) {
   return (
     <Svg width={72} height={24} viewBox="0 0 160 50" aria-hidden>
       <Path d={LOADER_PATH} fill="none" stroke={color.edge} strokeWidth={7} strokeLinecap="round" />
-      <AnimatedPath d={LOADER_PATH} fill="none" stroke={color.ink} strokeWidth={7} strokeLinecap="round" strokeDasharray="200" animatedProps={props} />
+      <AnimatedPath d={LOADER_PATH} fill="none" stroke={color.outline} strokeWidth={7} strokeLinecap="round" strokeDasharray="200" animatedProps={props} />
     </Svg>
   );
 }
@@ -57,35 +58,37 @@ export function SplashScreen({ t, onShown, actions }: { t: Translate; onShown?: 
 
   return (
     <Animated.View entering={entering} exiting={exiting} pointerEvents={actions ? 'box-none' : 'none'} onLayout={onShown} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: color.sky }}>
-      <MeadowBackdrop width={width} height={height} />
-      <View className="items-center" style={{ position: 'absolute', left: 0, right: 0, top: titleTop }}>
-        <Text className="font-display text-ink" style={{ fontSize: 62, lineHeight: 68 }} accessibilityRole="header">
-          {t('app.title')}
-        </Text>
-        <LeadLine width={Math.min(310, width - 80)} className="mt-1" />
-      </View>
-      <View className="items-center justify-center" style={{ position: 'absolute', left: 0, right: 0, top: slotTop, bottom: slotBottom }}>
-        <Migas width={migasWidth} />
-      </View>
-      {actions ? (
-        <View className="items-center px-6" style={{ position: 'absolute', left: 0, right: 0, bottom: 40 }}>
-          <View style={{ width: '100%', maxWidth: 360 }}>
-            <Button label={t('welcome.start')} onPress={actions.onStart} />
-            {actions.onLogIn && (
-              <Pressable onPress={actions.onLogIn} accessibilityRole="link" className="mt-1 items-center justify-center" style={{ minHeight: 44 }}>
-                <Text className="text-body text-ink underline">{t('welcome.haveAccount')}</Text>
-              </Pressable>
-            )}
+      <LightRegion pointerEvents="box-none" style={{ flex: 1 }}>
+        <MeadowBackdrop width={width} height={height} />
+        <View className="items-center" style={{ position: 'absolute', left: 0, right: 0, top: titleTop }}>
+          <Text className="font-display text-ink" style={{ fontSize: 62, lineHeight: 68 }} accessibilityRole="header">
+            {t('app.title')}
+          </Text>
+          <LeadLine width={Math.min(310, width - 80)} className="mt-1" />
+        </View>
+        <View className="items-center justify-center" style={{ position: 'absolute', left: 0, right: 0, top: slotTop, bottom: slotBottom }}>
+          <Migas width={migasWidth} />
+        </View>
+        {actions ? (
+          <View className="items-center px-6" style={{ position: 'absolute', left: 0, right: 0, bottom: 40 }}>
+            <View style={{ width: '100%', maxWidth: 360 }}>
+              <Button label={t('welcome.start')} onPress={actions.onStart} />
+              {actions.onLogIn && (
+                <Pressable onPress={actions.onLogIn} accessibilityRole="link" className="mt-1 items-center justify-center" style={{ minHeight: 44 }}>
+                  <Text className="text-body text-ink underline">{t('welcome.haveAccount')}</Text>
+                </Pressable>
+              )}
+            </View>
           </View>
-        </View>
-      ) : (
-        <View className="items-center" style={{ position: 'absolute', left: 0, right: 0, bottom: 56 }}>
-          <Raised fill={color.surface} radius={theme.radius.pill} offset={theme.depth.sm.x} faceStyle={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingVertical: 10 }}>
-            <LoaderLead animate={!reduced} />
-            <Text className="font-display text-body text-ink">{t('splash.tagline')}</Text>
-          </Raised>
-        </View>
-      )}
+        ) : (
+          <View className="items-center" style={{ position: 'absolute', left: 0, right: 0, bottom: 56 }}>
+            <Raised fill={color.surface} radius={theme.radius.pill} offset={theme.depth.sm.x} faceStyle={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingVertical: 10 }}>
+              <LoaderLead animate={!reduced} />
+              <Text className="font-display text-body text-ink">{t('splash.tagline')}</Text>
+            </Raised>
+          </View>
+        )}
+      </LightRegion>
     </Animated.View>
   );
 }

@@ -3,9 +3,9 @@ import { Modal, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import type { Translate } from '../../i18n';
 import { Button } from '../Overlays';
-import { Panel } from './components';
+import { Panel, PaletteRoot } from './components';
 import { browserNext, isWebUrl, type BrowserState } from './media';
-import { color } from './theme';
+import { usePalette } from './theme';
 import { usePauseMediaInBackground, type WebViewHandle } from './usePauseMediaInBackground';
 
 /**
@@ -14,6 +14,7 @@ import { usePauseMediaInBackground, type WebViewHandle } from './usePauseMediaIn
  * the page pauses when the app goes to the background.
  */
 export function InAppBrowserModal({ t, url, onClose }: { t: Translate; url: string; onClose: () => void }) {
+  const color = usePalette();
   const [state, setState] = useState<BrowserState>(isWebUrl(url) ? 'loading' : 'offline');
   const [attempt, setAttempt] = useState(0);
   const openable = isWebUrl(url);
@@ -21,7 +22,7 @@ export function InAppBrowserModal({ t, url, onClose }: { t: Translate; url: stri
   usePauseMediaInBackground(page);
   return (
     <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View className="flex-1 bg-bg p-4">
+      <PaletteRoot className="flex-1 bg-bg p-4">
         <View className="mb-3 flex-row items-center justify-between">
           <Text className="font-display text-title text-ink">{t('browser.title')}</Text>
           <Button label={t('browser.close')} tone="secondary" onPress={onClose} />
@@ -50,7 +51,7 @@ export function InAppBrowserModal({ t, url, onClose }: { t: Translate; url: stri
             onHttpError={() => setState((s) => browserNext(s, 'error'))}
           />
         )}
-      </View>
+      </PaletteRoot>
     </Modal>
   );
 }

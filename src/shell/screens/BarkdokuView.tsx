@@ -14,17 +14,25 @@ import { Button } from '../Overlays';
 import {
   computeMetrics,
   createPuzzle,
+  elapsedMs,
+  formatClock,
+  pausePuzzle,
   type PuzzleEvent,
+  puzzleSummary,
   resetPuzzle,
+  resumePuzzle,
+  targetSecondsFor,
   toggleCell,
 } from '../puzzle/engine';
 import { generateBoard } from '../puzzle/generator';
 import {
   type BarkdokuBoard,
   type BarkdokuMetrics,
+  type BarkdokuState,
   type CellCoord,
   type ConflictMarker,
   PAPER_MEADOW_PALETTE,
+  type PuzzleSummary,
 } from '../puzzle/types';
 import {
   getDogCoords,
@@ -33,8 +41,11 @@ import {
 } from '../puzzle/validator';
 import { newSeed } from '../../sim/rng';
 import { BreedArt } from '../ui/BreedArt';
+import { Badge, StarRow } from '../ui/components';
 import { feedback } from '../ui/feedback';
-import { color, theme } from '../ui/theme';
+import { useAppActive } from '../ui/useAppActive';
+import { useTicker } from '../ui/useTicker';
+import { theme, usePalette } from '../ui/theme';
 import { Screen } from './Screen';
 
 /** Dog head silhouette for region tracker when not yet satisfied. */
@@ -45,6 +56,7 @@ export function DogHeadSilhouette({
   color: string;
   size?: number;
 }) {
+  const color = usePalette();
   return (
     <Svg width={size} height={size} viewBox="0 0 32 32" aria-hidden={true}>
       <Path d="M7 11 L10 4 L14 10 Z" fill={fillColor} />
@@ -113,6 +125,7 @@ export function ZoneTracker({
 
 /** Compact inline banner with 3 diagrammatic cards illustrating the core rules. */
 export function RuleBanner({ t }: { t: Translate }) {
+  const color = usePalette();
   return (
     <View
       className="mb-3 rounded-2xl border border-edge bg-surface p-2.5 shadow-sm"
@@ -187,6 +200,7 @@ export function RuleBanner({ t }: { t: Translate }) {
 
 /** Visual Shield bold white 'X' icon. */
 function VisualShield({ size }: { size: number }) {
+  const color = usePalette();
   const iconSize = Math.max(16, size * 0.55);
   return (
     <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" testID="visual-shield-icon">
@@ -256,6 +270,8 @@ function conflictMessage(t: Translate, conflict: ConflictMarker): string {
 
 /** Handling points a mistake costs: none earns 3 stars, one 2 and more 1, as the puzzle's own rating does. */
 const MISTAKE_COST = 200;
+/** Missing the Target Time caps the score below 3 stars, as the puzzle's own rating does (ADR 0014). */
+const OVER_TARGET_CAP = 800;
 
 /** A Barkdoku run as a Node result: the Debrief metrics and the handling score (0-1000) the stars come from. */
 export function barkdokuResult(metrics: BarkdokuMetrics): { metrics: { timing: number; attention: number; tension: number }; handlingScore: number } {
@@ -265,8 +281,71 @@ export function barkdokuResult(metrics: BarkdokuMetrics): { metrics: { timing: n
       attention: Math.max(0, 1 - metrics.mistakes * 0.33),
       tension: metrics.treatsLeft / 3,
     },
-    handlingScore: metrics.solved ? Math.max(0, 1000 - metrics.mistakes * MISTAKE_COST) : 0,
+    handlingScore: metrics.solved ? Math.min(metrics.withinTarget ? 1000 : OVER_TARGET_CAP, Math.max(0, 1000 - metrics.mistakes * MISTAKE_COST)) : 0,
   };
+}
+
+/** What the clock shows at `now`: the Solve Time, the Target Time line and whether it was missed. */
+export function clockFace(t: Translate, state: BarkdokuState, now: number): { time: string; target?: string; over: boolean; label: string } {
+  const seconds = Math.floor(elapsedMs(state, now) / 1000);
+  const time = formatClock(seconds);
+  const target = targetSecondsFor(state.board);
+  if (target === undefined) return { time, over: false, label: t('minigame.barkdoku.clockLabel').replace('{time}', time) };
+  const targetTime = formatClock(target);
+  return {
+    time,
+    target: t('minigame.barkdoku.target').replace('{time}', targetTime),
+    over: seconds > target,
+    label: t('minigame.barkdoku.clockLabelTarget').replace('{time}', time).replace('{target}', targetTime),
+  };
+}
+
+/** The Solve Time clock; it re-renders only when the shown second changes, and only while running and in the foreground. */
+function PuzzleClock({ t, state }: { t: Translate; state: BarkdokuState }) {
+  const [, setSecond] = useState(0);
+  useTicker(state.runningSince !== null, 250, () => setSecond(Math.floor(elapsedMs(state, Date.now()) / 1000)));
+  const face = clockFace(t, state, Date.now());
+  return (
+    <View className="items-end" testID="puzzle-clock" accessibilityLabel={face.label}>
+      <Text className={`font-display text-body font-bold ${face.over ? 'text-dangerText' : 'text-ink'}`} style={{ fontVariant: ['tabular-nums'] }}>
+        {face.time}
+      </Text>
+      {face.target && <Text className="text-[10px] text-inkMuted">{face.target}</Text>}
+    </View>
+  );
+}
+
+/** The solved card: the Solve Time, and outside practice the Stars and the Target Time verdict. */
+export function SolvedCard({ t, metrics, practice = false, onContinue }: { t: Translate; metrics: BarkdokuMetrics; practice?: boolean; onContinue: () => void }) {
+  const time = formatClock(metrics.durationSeconds);
+  const timeLine =
+    metrics.targetSeconds === undefined
+      ? t('minigame.barkdoku.yourTime').replace('{time}', time)
+      : t('minigame.barkdoku.yourTimeTarget').replace('{time}', time).replace('{target}', formatClock(metrics.targetSeconds));
+  return (
+    <View testID="victory-card" className="mt-3 rounded-2xl border border-brand/50 bg-brand/10 p-4 items-center">
+      <Text className="text-h3 font-bold text-brandText mb-1">{t('minigame.barkdoku.solvedTitle')}</Text>
+      <Text className="text-center text-xs text-inkMuted mb-2">{t('minigame.barkdoku.solvedBody')}</Text>
+      <Text testID="solve-time" className="text-center font-bold text-body text-ink">{timeLine}</Text>
+      {practice ? (
+        <Text testID="practice-kept" className="mt-1 text-center text-xs text-inkMuted">{t('minigame.barkdoku.practiceKept')}</Text>
+      ) : (
+        <>
+          {metrics.targetSeconds !== undefined && (
+            <Text testID={metrics.withinTarget ? 'target-met' : 'target-missed'} className={`mt-1 text-center text-xs ${metrics.withinTarget ? 'font-bold text-brandText' : 'text-inkMuted'}`}>
+              {t(metrics.withinTarget ? 'minigame.barkdoku.targetMet' : 'minigame.barkdoku.targetMissed')}
+            </Text>
+          )}
+          <View className="mt-2">
+            <StarRow stars={metrics.stars} label={`${metrics.stars} ${t('map.starsOf3')}`} />
+          </View>
+        </>
+      )}
+      <View className="mt-3">
+        <Button label={t('results.continue')} onPress={onContinue} />
+      </View>
+    </View>
+  );
 }
 
 export interface BarkdokuViewProps {
@@ -274,13 +353,15 @@ export interface BarkdokuViewProps {
   board?: BarkdokuBoard;
   breed?: BreedId;
   coat?: DogCoat;
-  onFinish?: (metrics: BarkdokuMetrics) => void;
+  /** A replay of a Daily Barkdoku already solved today: marked, unrated, and saved by no one. */
+  practice?: boolean;
+  onFinish?: (metrics: BarkdokuMetrics, summary: PuzzleSummary) => void;
   onExit?: () => void;
 }
 
 /**
- * Barkdoku ("Zona de Calma") Interactive View.
- * Flat pastel Paper Meadow grid with 3-state cell toggle, treat lives HUD,
+ * Barkdoku Interactive View.
+ * Flat pastel Paper Meadow grid with 3-state cell toggle, treat lives HUD, Solve Time clock,
  * upper zone tracker, and canine posture conflict feedback.
  */
 export function BarkdokuView({
@@ -288,9 +369,11 @@ export function BarkdokuView({
   board: boardProp,
   breed = 'mestizo',
   coat = 'golden',
+  practice = false,
   onFinish,
   onExit,
 }: BarkdokuViewProps) {
+  const color = usePalette();
   // Without a board, each mount deals a fresh 4x4 so replays never repeat.
   const [board] = useState(() => boardProp ?? generateBoard(4, newSeed()));
   // The last tap's event rides along with the state so rapid taps chain through the updater.
@@ -308,6 +391,15 @@ export function BarkdokuView({
   const boardPixelSize = cellSize * board.size + (board.size - 1) * 4;
 
   const dogs = useMemo(() => getDogCoords(state.grid), [state.grid]);
+
+  // The clock counts foreground time only.
+  const active = useAppActive();
+  useEffect(() => {
+    setGame((prev) => {
+      const next = active ? resumePuzzle(prev.state, Date.now()) : pausePuzzle(prev.state, Date.now());
+      return next === prev.state ? prev : { ...prev, state: next };
+    });
+  }, [active]);
 
   useEffect(() => {
     const { event } = game;
@@ -339,7 +431,7 @@ export function BarkdokuView({
   const handleComplete = () => {
     const metrics = computeMetrics(state);
     if (onFinish) {
-      onFinish(metrics);
+      onFinish(metrics, puzzleSummary(board, metrics));
     }
   };
 
@@ -356,38 +448,44 @@ export function BarkdokuView({
     <Screen>
       {/* Header: Treats Lives & Level Info */}
       <View className="mb-2 flex-row items-center justify-between">
-        <View>
-          <Text className="text-body font-bold text-ink">
-            {board.name ?? t('minigame.barkdoku.title')}
-          </Text>
+        <View className="shrink">
+          <View className="flex-row items-center" style={{ gap: theme.space[2] }}>
+            <Text className="text-body font-bold text-ink">
+              {board.name ?? t('minigame.barkdoku.title')}
+            </Text>
+            {practice && <Badge label={t('minigame.barkdoku.practice')} tone="info" />}
+          </View>
           <Text className="text-xs text-inkMuted">
             {`${board.size}x${board.size} • ${dogs.length}/${board.size} `}
             {t('minigame.barkdoku.dogs')}
           </Text>
         </View>
 
-        {/* Treat Lives HUD */}
-        <View className="flex-row items-center gap-1.5" testID="treat-lives-hud">
-          {[0, 1, 2].map((i) => {
-            const active = i < state.treats;
-            const treatStatus = active
-              ? t('minigame.barkdoku.active')
-              : t('minigame.barkdoku.lost');
-            return (
-              <View
-                key={i}
-                accessibilityLabel={`${t('minigame.barkdoku.treat')} ${i + 1} ${treatStatus}`}
-                testID={`treat-pip-${i}-${active ? 'active' : 'inactive'}`}
-              >
-                <Svg width={24} height={24} viewBox="0 0 24 24">
-                  <Path
-                    d="M17 5a3 3 0 0 1 2.8 4 3 3 0 0 1-1.2 5.8A3 3 0 0 1 17 19H7a3 3 0 0 1-1.6-4.2A3 3 0 0 1 4.2 9 3 3 0 0 1 7 5h10z"
-                    fill={active ? color.accent : color.edge}
-                  />
-                </Svg>
-              </View>
-            );
-          })}
+        <View className="items-end" style={{ gap: theme.space[1] }}>
+          {/* Treat Lives HUD */}
+          <View className="flex-row items-center gap-1.5" testID="treat-lives-hud">
+            {[0, 1, 2].map((i) => {
+              const active = i < state.treats;
+              const treatStatus = active
+                ? t('minigame.barkdoku.active')
+                : t('minigame.barkdoku.lost');
+              return (
+                <View
+                  key={i}
+                  accessibilityLabel={`${t('minigame.barkdoku.treat')} ${i + 1} ${treatStatus}`}
+                  testID={`treat-pip-${i}-${active ? 'active' : 'inactive'}`}
+                >
+                  <Svg width={24} height={24} viewBox="0 0 24 24">
+                    <Path
+                      d="M17 5a3 3 0 0 1 2.8 4 3 3 0 0 1-1.2 5.8A3 3 0 0 1 17 19H7a3 3 0 0 1-1.6-4.2A3 3 0 0 1 4.2 9 3 3 0 0 1 7 5h10z"
+                      fill={active ? color.accent : color.edge}
+                    />
+                  </Svg>
+                </View>
+              );
+            })}
+          </View>
+          <PuzzleClock t={t} state={state} />
         </View>
       </View>
 
@@ -526,21 +624,7 @@ export function BarkdokuView({
 
       {/* Win State Overlay Card */}
       {state.status === 'solved' && (
-        <View
-          testID="victory-card"
-          className="mt-3 rounded-2xl border border-brand/50 bg-brand/10 p-4 items-center"
-        >
-          <Text className="text-h3 font-bold text-brandText mb-1">
-            {t('minigame.barkdoku.solvedTitle')}
-          </Text>
-          <Text className="text-center text-xs text-inkMuted mb-3">
-            {t('minigame.barkdoku.solvedBody')}
-          </Text>
-          <Button
-            label={t('results.continue')}
-            onPress={handleComplete}
-          />
-        </View>
+        <SolvedCard t={t} metrics={computeMetrics(state)} practice={practice} onContinue={handleComplete} />
       )}
 
       {/* Failure State Overlay Card */}

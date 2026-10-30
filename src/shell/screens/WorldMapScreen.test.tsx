@@ -1,16 +1,20 @@
+const mockPressables: any[] = [];
+
 jest.mock('react-native', () => {
   const React = require('react');
   return {
     View: (props: any) => React.createElement('div', props, props.children),
     Text: (props: any) => React.createElement('span', props, props.children),
-    Pressable: (props: any) =>
-      React.createElement(
+    Pressable: (props: any) => {
+      mockPressables.push(props);
+      return React.createElement(
         'button',
         props,
         typeof props.children === 'function'
           ? props.children({ pressed: false })
           : props.children,
-      ),
+      );
+    },
     ScrollView: (props: any) => React.createElement('div', props, props.children),
     AppState: {
       currentState: 'active',
@@ -62,16 +66,16 @@ import React from 'react';
 // @ts-ignore
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createTranslator, es } from '../../i18n';
-import { WorldMapScreen } from './WorldMapScreen';
+import { BarkdokuChip, WorldMapScreen } from './WorldMapScreen';
 import { NO_STREAK } from '../streak';
 import { progressOf } from '../world';
 
-describe('WorldMapScreen - Zona de Calma Integration (Task 4.1)', () => {
+describe('WorldMapScreen - Daily Barkdoku chip', () => {
   const t = createTranslator(es);
   const mockOnBarkdoku = jest.fn();
   const mockOnDaily = jest.fn();
 
-  it('renders map header with Zona de Calma daily chip', () => {
+  it('renders map header with the Guaudoku daily chip', () => {
     const markup = renderToStaticMarkup(
       <WorldMapScreen
         t={t}
@@ -195,5 +199,65 @@ describe('WorldMapScreen - Trail Scenery Integration (Task 4.2 & 4.3)', () => {
     expect(HouseLandmark).toBeDefined();
     const markup = renderToStaticMarkup(<HouseLandmark />);
     expect(markup).toContain('top-landmark-1');
+  });
+});
+
+describe('WorldMapScreen - Settings gear', () => {
+  const t = createTranslator(es);
+
+  it('shows Settings as a labelled gear button with no visible text, and opens Settings', () => {
+    const onSettings = jest.fn();
+    mockPressables.length = 0;
+    const markup = renderToStaticMarkup(
+      <WorldMapScreen
+        t={t}
+        progress={progressOf([])}
+        stars={{}}
+        now={new Date('2026-10-28T09:00:00')}
+        streak={NO_STREAK}
+        today="2026-10-28"
+        dailyBest={undefined}
+        rustyPrompt={false}
+        rusty={false}
+        skippedWarmup={false}
+        onWarmup={() => {}}
+        onSkipWarmup={() => {}}
+        onDaily={() => {}}
+        onBarkdoku={() => {}}
+        onOpenStop={() => {}}
+        onSettings={onSettings}
+      />
+    );
+
+    expect(markup).not.toContain(`>${es['map.settings']}<`);
+    const gear = mockPressables.filter((p) => p.accessibilityLabel === es['map.settings']);
+    expect(gear).toHaveLength(1);
+    expect(gear[0].accessibilityRole).toBe('button');
+    gear[0].onPress();
+    expect(onSettings).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('BarkdokuChip', () => {
+  const t = createTranslator(es);
+  const chip = (solve?: { seconds: number; at: string; targetSeconds?: number }) => renderToStaticMarkup(<BarkdokuChip t={t} solve={solve} onPress={() => {}} />);
+
+  it('shows a highlighted new state before the first solve', () => {
+    const html = chip();
+    expect(html).toContain('Guaudoku');
+    expect(html).toContain(es['map.dailyNew']);
+  });
+
+  it('shows the Daily Solve Time against the target, marked when met', () => {
+    const html = chip({ seconds: 102, at: '2026-10-28T09:00:00.000Z', targetSeconds: 120 });
+    expect(html).toContain('1:42 / 2:00 ✓');
+    expect(html).toContain('Tiempo 1:42, objetivo 2:00. ¡Objetivo cumplido!');
+  });
+
+  it('leaves the mark off when over the target', () => {
+    const html = chip({ seconds: 150, at: '2026-10-28T09:00:00.000Z', targetSeconds: 120 });
+    expect(html).toContain('2:30 / 2:00');
+    expect(html).not.toContain('✓');
+    expect(html).not.toContain(es['map.dailyNew']);
   });
 });

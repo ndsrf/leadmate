@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import Svg, { Circle, Ellipse, G, Line, Path, Rect } from 'react-native-svg';
-import { color } from './theme';
+import { lightColor as color } from './theme';
 import { ROW_HEIGHT } from './mapLayout';
 
 export interface WorldSceneryPalette {

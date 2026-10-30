@@ -7,6 +7,7 @@ jest.mock('react-native', () => {
     ScrollView: (props: any) => React.createElement('div', props, props.children),
     Dimensions: { get: () => ({ width: 390, height: 844 }) },
     useWindowDimensions: () => ({ width: 390, height: 844 }),
+    AppState: { currentState: 'active', addEventListener: () => ({ remove: () => {} }) },
   };
 });
 
@@ -60,10 +61,13 @@ import { starsFor, type Stars } from '../stars';
 import {
   barkdokuResult,
   BarkdokuView,
+  clockFace,
   DogHeadSilhouette,
+  SolvedCard,
   RuleBanner,
   ZoneTracker,
 } from './BarkdokuView';
+import { createPuzzle, pausePuzzle, ratePuzzle, resumePuzzle, toggleCell } from '../puzzle/engine';
 import type { BarkdokuBoard } from '../puzzle/types';
 import { configureFeedback } from '../ui/feedback';
 
@@ -153,11 +157,9 @@ describe('Barkdoku UI & Canine Visuals', () => {
 
   describe('RuleBanner (Task 2.3)', () => {
     it('renders the 3 mini-cards for territory, line of sight, and personal space', () => {
-      const banner = RuleBanner({ t });
-      expect(banner).toBeDefined();
-      expect(banner.props.testID).toBe('rule-banner');
-      const cards = banner.props.children.props.children;
-      expect(cards.length).toBe(3);
+      const markup = renderToStaticMarkup(<RuleBanner t={t} />);
+      expect(markup).toContain('rule-banner');
+      for (const key of ['ruleZoneTitle', 'ruleSightTitle', 'ruleBubbleTitle'] as const) expect(markup).toContain(t(`minigame.barkdoku.${key}`));
     });
   });
 
@@ -230,12 +232,118 @@ describe('Barkdoku UI & Canine Visuals', () => {
   });
 });
 
+describe('Solve Time clock', () => {
+  const t = createTranslator(es);
+  const board5: BarkdokuBoard = {
+    id: 'clock-5x5',
+    size: 5,
+    difficulty: 'easy',
+    regions: [[0, 0, 1, 1, 1], [0, 0, 1, 2, 2], [3, 3, 3, 2, 2], [3, 4, 4, 4, 2], [3, 4, 4, 4, 4]],
+    solution: [],
+  };
+
+  it('reads 0:00 until the first tap, whatever the time spent reading the rules', () => {
+    expect(clockFace(t, createPuzzle(board5), 30000)).toMatchObject({ time: '0:00', target: 'Objetivo 2:00', over: false });
+  });
+
+  it('runs from the first tap and names the target for screen readers', () => {
+    const state = toggleCell(createPuzzle(board5), { row: 0, col: 0 }, 1000).state;
+    const face = clockFace(t, state, 76000);
+    expect(face.time).toBe('1:15');
+    expect(face.label).toBe('Tiempo 1:15, objetivo 2:00');
+  });
+
+  it('changes tone past the target', () => {
+    const state = toggleCell(createPuzzle(board5), { row: 0, col: 0 }, 0).state;
+    expect(clockFace(t, state, 120000).over).toBe(false);
+    expect(clockFace(t, state, 121000).over).toBe(true);
+  });
+
+  it('leaves background time out', () => {
+    let state = toggleCell(createPuzzle(board5), { row: 0, col: 0 }, 0).state;
+    state = resumePuzzle(pausePuzzle(state, 10000), 310000);
+    expect(clockFace(t, state, 315000).time).toBe('0:15');
+  });
+
+  it('shows no target on a tutorial board', () => {
+    const face = clockFace(t, createPuzzle({ ...board5, difficulty: 'tutorial' }), 0);
+    expect(face.target).toBeUndefined();
+    expect(face.label).toBe('Tiempo 0:00');
+  });
+
+  it('renders on the board next to the treats', () => {
+    const markup = renderToStaticMarkup(<BarkdokuView t={t} board={board5} />);
+    expect(markup).toContain('puzzle-clock');
+    expect(markup).toContain('Objetivo 2:00');
+    expect(markup).not.toContain('Práctica');
+  });
+
+  it('marks a practice board', () => {
+    expect(renderToStaticMarkup(<BarkdokuView t={t} board={board5} practice />)).toContain('Práctica');
+  });
+});
+
+describe('SolvedCard', () => {
+  const t = createTranslator(es);
+  const metrics = (over: Partial<Parameters<typeof SolvedCard>[0]['metrics']> = {}) => ({
+    solved: true,
+    mistakes: 0,
+    treatsLeft: 3,
+    durationSeconds: 102,
+    targetSeconds: 120,
+    withinTarget: true,
+    stars: 3 as Stars,
+    ...over,
+  });
+  const card = (m: ReturnType<typeof metrics>, practice = false) => renderToStaticMarkup(<SolvedCard t={t} metrics={m} practice={practice} onContinue={() => {}} />);
+
+  it('shows the time, the target, the target-met mark and the stars', () => {
+    const html = card(metrics());
+    expect(html).toContain('Tu tiempo: 1:42 · objetivo 2:00');
+    expect(html).toContain('target-met');
+    expect(html).toContain('3 de 3 estrellas');
+  });
+
+  it('words a missed target encouragingly, without the mark', () => {
+    const html = card(metrics({ durationSeconds: 150, withinTarget: false, stars: 2 }));
+    expect(html).toContain('target-missed');
+    expect(html).not.toContain('target-met');
+    expect(html).toContain('Con práctica');
+  });
+
+  it('shows only the time on a tutorial board', () => {
+    const html = card(metrics({ targetSeconds: undefined }));
+    expect(html).toContain('Tu tiempo: 1:42');
+    expect(html).not.toContain('objetivo');
+    expect(html).not.toContain('target-');
+  });
+
+  it('in practice shows the time with no stars or target mark', () => {
+    const html = card(metrics(), true);
+    expect(html).toContain('Tu tiempo: 1:42');
+    expect(html).toContain('practice-kept');
+    expect(html).not.toContain('estrellas');
+    expect(html).not.toContain('target-met');
+  });
+});
+
 describe('barkdokuResult', () => {
-  it('scores a run so its stars match the puzzle rating', () => {
+  it('scores a run so its stars match the puzzle rating, within, over or without a target', () => {
     for (const solved of [true, false]) {
       for (const mistakes of [0, 1, 2, 3]) {
-        const metrics = { solved, mistakes, treatsLeft: Math.max(0, 3 - mistakes), durationSeconds: 30, stars: (!solved ? 1 : mistakes === 0 ? 3 : mistakes === 1 ? 2 : 1) as Stars };
-        expect(starsFor(barkdokuResult(metrics).handlingScore)).toBe(metrics.stars);
+        for (const target of ['within', 'over', 'none'] as const) {
+          const withinTarget = target !== 'over';
+          const metrics = {
+            solved,
+            mistakes,
+            treatsLeft: Math.max(0, 3 - mistakes),
+            durationSeconds: target === 'over' ? 200 : 30,
+            ...(target === 'none' ? {} : { targetSeconds: 120 }),
+            withinTarget,
+            stars: (solved ? ratePuzzle(mistakes, withinTarget) : 1) as Stars,
+          };
+          expect(starsFor(barkdokuResult(metrics).handlingScore)).toBe(metrics.stars);
+        }
       }
     }
   });

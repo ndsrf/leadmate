@@ -6,10 +6,11 @@ import { Badge, Raised } from './components';
 import { CanineMinigameAvatar } from './CanineMinigameAvatar';
 import { LessonArt, isLessonArt } from './lessonArt';
 import { lessonImageKind } from './media';
-import { color, theme } from './theme';
+import { theme, usePalette } from './theme';
 
 /** A Lesson image: bundled art or a remote address; offline, broken or unknown falls back to the themed placeholder. */
 export function LessonImage({ t, block }: { t: Translate; block: Extract<LessonBlock, { type: 'image' }> }) {
+  const color = usePalette();
   const [failed, setFailed] = useState(false);
   const kind = lessonImageKind(block.art, isLessonArt(block.art), failed);
   return (

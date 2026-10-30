@@ -43,3 +43,12 @@ describe('Primer and media text', () => {
     }
   });
 });
+
+describe('Barkdoku name', () => {
+  it('is Guaudoku in Spanish and never Zona de Calma', () => {
+    expect(es['minigame.barkdoku.title']).toBe('Guaudoku');
+    expect(es['map.barkdoku.daily']).toBe('Guaudoku');
+    expect(es['minigame.barkdoku.solvedTitle']).toBe('¡Guaudoku resuelto!');
+    for (const value of Object.values(es)) expect(value).not.toMatch(/zona de calma/i);
+  });
+});

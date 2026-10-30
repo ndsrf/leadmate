@@ -1,19 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Pressable, Text, TextInput, View, type TextInputProps, type ViewStyle } from 'react-native';
+import { Pressable, Text, TextInput, View, type TextInputProps, type ViewProps, type ViewStyle } from 'react-native';
+import Svg, { Circle, Rect } from 'react-native-svg';
 import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { vars } from 'nativewind';
 import { handlePress } from './press';
 import { useMotion } from './useMotion';
 import { badgeColors, buttonStyle, choiceStyle, padStyle, progressWidth, starSlots, touchTarget, type BadgeTone, type ButtonVariant } from './styles';
-import { color, theme } from './theme';
+import { PaletteProvider, paletteVariables, theme, usePalette, usePaletteScheme, type ColorScheme } from './theme';
 
 /**
- * The one depth primitive: an ink-outlined face over a solid ink shadow that sits `offset` points
+ * The one depth primitive: an outlined face over a solid outline-coloured shadow that sits `offset` points
  * down and right. Pressing moves the face `shift` points toward the shadow (set instantly, so it
  * is also the reduced-motion form); keyboard focus draws a ring offset from the control.
  */
 export function Raised({
   fill,
-  edge = color.ink,
+  edge,
   radius = theme.radius.md,
   offset = theme.depth.rest.x,
   shift = 0,
@@ -37,11 +39,12 @@ export function Raised({
   faceStyle?: ViewStyle;
   children?: React.ReactNode;
 }) {
+  const color = usePalette();
   const ring = theme.depth.focusRing;
-  const faceBase: ViewStyle = { backgroundColor: fill ?? undefined, borderColor: edge, borderWidth, borderRadius: radius };
+  const faceBase: ViewStyle = { backgroundColor: fill ?? undefined, borderColor: edge ?? color.outline, borderWidth, borderRadius: radius };
   return (
     <View className={className} style={{ paddingRight: offset, paddingBottom: offset }}>
-      {offset > 0 && <View pointerEvents="none" style={{ position: 'absolute', left: offset, top: offset, right: 0, bottom: 0, backgroundColor: color.ink, borderRadius: radius }} />}
+      {offset > 0 && <View pointerEvents="none" style={{ position: 'absolute', left: offset, top: offset, right: 0, bottom: 0, backgroundColor: color.outline, borderRadius: radius }} />}
       {focused && (
         <View
           pointerEvents="none"
@@ -71,6 +74,30 @@ function TravelFace({ shift, style, children }: { shift: number; style: ViewStyl
   return <Animated.View style={[style, moved]}>{children}</Animated.View>;
 }
 
+const SCHEME_VARS = { light: vars(paletteVariables('light')), dark: vars(paletteVariables('dark')) };
+
+/**
+ * A view that sets the NativeWind colour variables of `scheme` (the active one by default) for its subtree. The app
+ * root wraps everything in one; a React Native `Modal` mounts a new root the variables do not reach, so its content
+ * needs its own.
+ */
+export function PaletteRoot({ scheme, style, ...props }: ViewProps & { className?: string; scheme?: ColorScheme }) {
+  const active = usePaletteScheme();
+  return <View {...props} style={[SCHEME_VARS[scheme ?? active], style]} />;
+}
+
+/**
+ * A view drawn in the Light palette whatever the Appearance, for both classes and `usePalette()`: the Light-only
+ * regions (a running Stage and its overlays, the Splash) wrap their root in it.
+ */
+export function LightRegion(props: ViewProps & { className?: string }) {
+  return (
+    <PaletteProvider scheme="light">
+      <PaletteRoot {...props} scheme="light" />
+    </PaletteProvider>
+  );
+}
+
 /** Track keyboard or switch focus so a control can show its ring. */
 export function useFocus() {
   const [focused, setFocused] = useState(false);
@@ -94,6 +121,7 @@ export function GameButton({
   /** What a screen reader announces, when it must say more than the label. */
   accessibilityLabel?: string;
 }) {
+  const color = usePalette();
   const focus = useFocus();
   return (
     <Pressable
@@ -107,7 +135,7 @@ export function GameButton({
       className={className}
     >
       {({ pressed }) => {
-        const s = buttonStyle(variant, { pressed, disabled });
+        const s = buttonStyle(color, variant, { pressed, disabled });
         return (
           <Raised fill={s.fill} edge={s.edge} radius={s.borderRadius} offset={s.shadowOffset} shift={s.travel} focused={focus.focused} pressable
             faceStyle={{ minHeight: s.minHeight, minWidth: s.minWidth, paddingHorizontal: theme.space[5], paddingVertical: theme.space[2], alignItems: 'center', justifyContent: 'center' }}>
@@ -121,12 +149,13 @@ export function GameButton({
   );
 }
 
-const PANEL_FILLS = { surface: color.surface, info: color.infoSoft, warn: color.accentSoft } as const;
+const PANEL_FILLS = { surface: 'surface', info: 'infoSoft', warn: 'accentSoft' } as const;
 
-/** A paper card: ink outline on a short solid shadow. */
+/** A paper card: outline on a short solid shadow. */
 export function Panel({ children, tone = 'surface', className = '' }: { children: React.ReactNode; tone?: keyof typeof PANEL_FILLS; className?: string }) {
+  const color = usePalette();
   return (
-    <Raised fill={PANEL_FILLS[tone]} radius={theme.radius.lg} offset={theme.depth.sm.x} className={className} faceStyle={{ padding: theme.space[4] }}>
+    <Raised fill={color[PANEL_FILLS[tone]]} radius={theme.radius.lg} offset={theme.depth.sm.x} className={className} faceStyle={{ padding: theme.space[4] }}>
       {children}
     </Raised>
   );
@@ -150,20 +179,21 @@ export function ProgressBar({
    */
   runDown?: { live: boolean };
 }) {
+  const color = usePalette();
   const { reduced } = useMotion();
   const pct = progressWidth(value, max);
   const capped = pct >= 1 && pct <= 99;
   return (
     <View
       className={`overflow-hidden rounded-game-pill bg-surfaceSunken ${className}`}
-      style={{ height: 14, borderWidth: theme.border.ink, borderColor: color.ink }}
+      style={{ height: 14, borderWidth: theme.border.ink, borderColor: color.outline }}
       accessibilityRole="progressbar"
       accessibilityValue={{ min: 0, max, now: Math.max(0, Math.min(max, value)) }}
     >
       {runDown && !reduced ? (
         <RunDownFill start={pct} max={max} live={runDown.live} tone={tone} />
       ) : (
-        <View style={{ width: `${pct}%`, height: '100%', backgroundColor: color[tone], borderRightWidth: capped ? theme.border.ink : 0, borderRightColor: color.ink }} />
+        <View style={{ width: `${pct}%`, height: '100%', backgroundColor: color[tone], borderRightWidth: capped ? theme.border.ink : 0, borderRightColor: color.outline }} />
       )}
     </View>
   );
@@ -171,6 +201,7 @@ export function ProgressBar({
 
 /** The fill of a running-down ProgressBar: from `start` percent to 0, at `max` seconds for the full bar. */
 function RunDownFill({ start, max, live, tone }: { start: number; max: number; live: boolean; tone: 'brand' | 'accent' }) {
+  const color = usePalette();
   const pct = useSharedValue(start);
   useEffect(() => {
     if (!live) return void cancelAnimation(pct); // keeps where it is, and goes on from there
@@ -178,12 +209,12 @@ function RunDownFill({ start, max, live, tone }: { start: number; max: number; l
     return () => cancelAnimation(pct);
   }, [live, max, pct]);
   const style = useAnimatedStyle(() => ({ width: `${pct.value}%`, borderRightWidth: pct.value >= 1 && pct.value <= 99 ? theme.border.ink : 0 }));
-  return <Animated.View style={[{ height: '100%', backgroundColor: color[tone], borderRightColor: color.ink }, style]} />;
+  return <Animated.View style={[{ height: '100%', backgroundColor: color[tone], borderRightColor: color.outline }, style]} />;
 }
 
 /** A small pill label. */
 export function Badge({ label, tone = 'quiet' }: { label: string; tone?: BadgeTone }) {
-  const c = badgeColors(tone);
+  const c = badgeColors(usePalette(), tone);
   return (
     <View className="self-start rounded-game-pill px-2.5 py-0.5" style={{ backgroundColor: c.fill }}>
       <Text className="font-display text-caption" style={{ color: c.label }}>
@@ -209,13 +240,14 @@ export function Chip({
   onPress?: () => void;
   accessibilityLabel?: string;
 }) {
+  const color = usePalette();
   const focus = useFocus();
   const face = (shift: number) => (
     <Raised fill={highlight ? color.accent : color.surface} radius={theme.radius.pill} offset={theme.depth.sm.x} shift={shift} focused={focus.focused} pressable={onPress !== undefined} faceStyle={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: theme.space[3], minHeight: theme.size.touchMin - 8 }}>
       {icon}
       <View className="shrink">
-        {label !== undefined && <Text className="text-caption text-inkMuted">{label}</Text>}
-        {value !== undefined && <Text className="font-display text-button text-ink">{value}</Text>}
+        {label !== undefined && <Text className={`text-caption ${highlight ? 'text-onAccent' : 'text-inkMuted'}`}>{label}</Text>}
+        {value !== undefined && <Text className={`font-display text-button ${highlight ? 'text-onAccent' : 'text-ink'}`}>{value}</Text>}
       </View>
     </Raised>
   );
@@ -236,8 +268,49 @@ export function Chip({
   );
 }
 
+/** A round, icon-only Chip: same face height and depth as `Chip`, the label only for screen readers. */
+export function IconChip({ icon, onPress, accessibilityLabel }: { icon: React.ReactNode; onPress: () => void; accessibilityLabel: string }) {
+  const color = usePalette();
+  const focus = useFocus();
+  const size = theme.size.touchMin - 8;
+  const target = touchTarget(size);
+  return (
+    <Pressable
+      onPress={() => handlePress(onPress)}
+      onFocus={focus.onFocus}
+      onBlur={focus.onBlur}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      hitSlop={target.hitSlop}
+      style={{ minHeight: theme.size.touchMin, justifyContent: 'center' }}
+    >
+      {({ pressed }) => (
+        <Raised fill={color.surface} radius={theme.radius.pill} offset={theme.depth.sm.x} shift={pressed ? theme.depth.pressed.translate - 1 : 0} focused={focus.focused} pressable faceStyle={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+          {icon}
+        </Raised>
+      )}
+    </Pressable>
+  );
+}
+
+/** A settings gear drawn in ink, decorative: the control around it carries the label. */
+export function GearGlyph({ size = 20 }: { size?: number }) {
+  const color = usePalette();
+  const teeth = Array.from({ length: 8 }, (_, i) => i * 45);
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
+      {teeth.map((deg) => (
+        <Rect key={deg} x={10} y={1.5} width={4} height={5} rx={1} fill={color.ink} transform={`rotate(${deg} 12 12)`} />
+      ))}
+      <Circle cx={12} cy={12} r={7} fill={color.ink} />
+      <Circle cx={12} cy={12} r={3} fill={color.surface} />
+    </Svg>
+  );
+}
+
 /** Three star slots, filled up to `stars`; the label names the rating for screen readers (colour is never the only signal: empty stars are outlined). */
 export function StarRow({ stars, size = 20, label }: { stars: number; size?: number; label?: string }) {
+  const color = usePalette();
   return (
     <View className="flex-row" accessibilityLabel={label}>
       {starSlots(stars).map((filled, i) => (
@@ -252,7 +325,7 @@ export function StarRow({ stars, size = 20, label }: { stars: number; size?: num
 /** A selectable pill for a short list of choices (at least 44 points tall); the chosen one is brand green with a short shadow. */
 export function Choice({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   const focus = useFocus();
-  const c = choiceStyle(selected);
+  const c = choiceStyle(usePalette(), selected);
   return (
     <Pressable
       onPress={() => handlePress(onPress)}
@@ -274,6 +347,7 @@ export function Choice({ label, selected, onPress }: { label: string; selected: 
 
 /** A full-width answer card. */
 export function OptionCard({ label, onPress }: { label: string; onPress: () => void }) {
+  const color = usePalette();
   const focus = useFocus();
   return (
     <Pressable onPress={() => handlePress(onPress)} onFocus={focus.onFocus} onBlur={focus.onBlur} accessibilityRole="button" className="mb-3" style={{ minHeight: theme.size.touchMin }}>
@@ -286,8 +360,9 @@ export function OptionCard({ label, onPress }: { label: string; onPress: () => v
   );
 }
 
-/** An on/off switch: a pill track with a round thumb, both ink-outlined (60 by 34, inside a 44 point target). */
+/** An on/off switch: a pill track with a round thumb, both outlined (60 by 34, inside a 44 point target). */
 export function Toggle({ value, onChange, label }: { value: boolean; onChange: (next: boolean) => void; label: string }) {
+  const color = usePalette();
   const focus = useFocus();
   return (
     <Pressable
@@ -300,14 +375,15 @@ export function Toggle({ value, onChange, label }: { value: boolean; onChange: (
       style={{ minHeight: theme.size.touchMin, minWidth: theme.size.touchMin, justifyContent: 'center' }}
     >
       <Raised fill={value ? color.brand : color.surfaceSunken} radius={theme.radius.pill} offset={2} focused={focus.focused} faceStyle={{ width: 60, height: 34, justifyContent: 'center' }}>
-        <View style={{ position: 'absolute', top: 1.5, left: value ? 27 : 1.5, width: 25, height: 25, borderRadius: theme.radius.pill, backgroundColor: color.surface, borderWidth: theme.border.ink, borderColor: color.ink }} />
+        <View style={{ position: 'absolute', top: 1.5, left: value ? 27 : 1.5, width: 25, height: 25, borderRadius: theme.radius.pill, backgroundColor: color.surface, borderWidth: theme.border.ink, borderColor: color.outline }} />
       </Raised>
     </Pressable>
   );
 }
 
-/** A single-line text input with a visible label above it; the field is an ink-outlined paper box with a focus ring. */
+/** A single-line text input with a visible label above it; the field is an outlined paper box with a focus ring. */
 export function TextField({ label, ...input }: { label?: string } & TextInputProps) {
+  const color = usePalette();
   const focus = useFocus();
   const ring = theme.depth.focusRing;
   return (
@@ -327,7 +403,7 @@ export function TextField({ label, ...input }: { label?: string } & TextInputPro
             input.onBlur?.(e);
           }}
           placeholderTextColor={color.inkMuted}
-          style={[{ minHeight: 52, borderWidth: theme.border.ink, borderColor: color.ink, borderRadius: theme.radius.md - 2, backgroundColor: color.surface, paddingHorizontal: 14, fontSize: 16, color: color.ink }, input.style]}
+          style={[{ minHeight: 52, borderWidth: theme.border.ink, borderColor: color.outline, borderRadius: theme.radius.md - 2, backgroundColor: color.surface, paddingHorizontal: 14, fontSize: 16, color: color.ink }, input.style]}
         />
       </View>
     </View>
@@ -336,10 +412,11 @@ export function TextField({ label, ...input }: { label?: string } & TextInputPro
 
 /** A big touch pad for a minigame; it reacts on press-in and plays no feedback of its own, so timing is untouched. */
 export function Pad({ label, onPressIn, onPressOut, fill = 'brand' }: { label: string; onPressIn?: () => void; onPressOut?: () => void; fill?: 'brand' | 'quiet' }) {
+  const color = usePalette();
   return (
     <Pressable onPressIn={onPressIn} onPressOut={onPressOut} accessibilityRole="button">
       {({ pressed }) => {
-        const p = padStyle(fill, pressed);
+        const p = padStyle(color, fill, pressed);
         return (
           <Raised fill={p.fill} radius={theme.radius.lg} offset={p.shadowOffset} shift={p.travel} pressable faceStyle={{ height: 160 - p.shadowOffset, alignItems: 'center', justifyContent: 'center' }}>
             <Text className="font-display text-displayM" style={{ color: p.label }}>

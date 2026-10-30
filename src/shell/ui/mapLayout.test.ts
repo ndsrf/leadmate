@@ -3,7 +3,7 @@ import { NODES } from '../nodes/content';
 import { connector, connectorVisual, KIND_GLYPH, labelOnRight, labelWidth, NODE_SIZE, nodeCenterX, nodeVisual, ROW_HEIGHT, rowExtent, stretchFlag } from './mapLayout';
 import { mapModel } from '../mapModel';
 import { progressOf } from '../world';
-import { theme } from './theme';
+import { lightColor, theme } from './theme';
 
 describe('World Map layout', () => {
   it('zig-zags and repeats', () => {
@@ -33,24 +33,24 @@ describe('World Map layout', () => {
   });
 
   it('distinguishes solid completed trail from dashed upcoming trail', () => {
-    expect(connectorVisual('done', 'done').kind).toBe('solid');
-    expect(connectorVisual('done', 'next').kind).toBe('dashed');
-    expect(connectorVisual('next', 'open').kind).toBe('dashed');
-    expect(connectorVisual('locked', 'locked').kind).toBe('dashed');
+    expect(connectorVisual(lightColor, 'done', 'done').kind).toBe('solid');
+    expect(connectorVisual(lightColor, 'done', 'next').kind).toBe('dashed');
+    expect(connectorVisual(lightColor, 'next', 'open').kind).toBe('dashed');
+    expect(connectorVisual(lightColor, 'locked', 'locked').kind).toBe('dashed');
   });
 
   it('gives next-up node an attention ring and enlarged scale', () => {
-    const next = nodeVisual('next');
+    const next = nodeVisual(lightColor, 'next');
     expect(next.ring).toBe(true);
     expect(next.scale).toBeGreaterThan(1);
     expect(next.glyph).toBe('paw');
 
-    const open = nodeVisual('open');
+    const open = nodeVisual(lightColor, 'open');
     expect(open.ring).toBe(false);
     expect(open.scale).toBe(1);
     expect(open.glyph).toBe('paw');
 
-    const done = nodeVisual('done');
+    const done = nodeVisual(lightColor, 'done');
     expect(done.glyph).toBe('check');
   });
 
@@ -74,17 +74,17 @@ describe('World Map layout', () => {
   it('draws each Stop kind with its own glyph when open or next-up', () => {
     expect(KIND_GLYPH).toEqual({ theory: 'book', 'how-to-play': 'controller', node: 'paw', mission: 'flag' });
     for (const kind of ['theory', 'how-to-play', 'node', 'mission'] as const) {
-      expect(nodeVisual('open', kind).glyph).toBe(KIND_GLYPH[kind]);
-      expect(nodeVisual('next', kind).glyph).toBe(KIND_GLYPH[kind]);
+      expect(nodeVisual(lightColor, 'open', kind).glyph).toBe(KIND_GLYPH[kind]);
+      expect(nodeVisual(lightColor, 'next', kind).glyph).toBe(KIND_GLYPH[kind]);
     }
     expect(new Set(Object.values(KIND_GLYPH)).size).toBe(4);
   });
 
   it('draws a waiting Mission with a moon, and an optional Lesson with a dashed edge', () => {
-    expect(nodeVisual('waiting', 'mission')).toMatchObject({ glyph: 'moon', ring: false });
-    expect(nodeVisual('owed', 'mission')).toMatchObject({ glyph: 'hourglass', ring: false });
-    expect(nodeVisual('open', 'theory', true).dashed).toBe(true);
-    expect(nodeVisual('open', 'theory').dashed).toBe(false);
+    expect(nodeVisual(lightColor, 'waiting', 'mission')).toMatchObject({ glyph: 'moon', ring: false });
+    expect(nodeVisual(lightColor, 'owed', 'mission')).toMatchObject({ glyph: 'hourglass', ring: false });
+    expect(nodeVisual(lightColor, 'open', 'theory', true).dashed).toBe(true);
+    expect(nodeVisual(lightColor, 'open', 'theory').dashed).toBe(false);
   });
 
   it('flags the end of each Stretch at its Mission with "Tramo N"', () => {

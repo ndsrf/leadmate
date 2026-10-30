@@ -1,17 +1,17 @@
 import type { ActivityEvent, ActivityKind } from './activity';
-import type { DogRecord } from './dogRecord';
+import type { DailyBarkdokuSolve, DogRecord } from './dogRecord';
 import { isOwed, type MissionState } from './missions/mission';
 import { dayDiff, isDateString, localDateString, type DiaryOutcome, type WalkDiaryEntry } from './streak';
 
 /**
  * The Diary screen's model: everything the record knows about each calendar day, gathered from the
- * Activity Log, the Walk Diary, the Daily best scores and the onboarding dates. Pure; dates are local
+ * Activity Log, the Walk Diary, the Daily best scores, the Daily Solve Times and the onboarding dates. Pure; dates are local
  * `YYYY-MM-DD`.
  */
 
 /** A kind of mark a calendar day can carry. */
 export type DayMark = ActivityKind | 'walk';
-export const DAY_MARKS: readonly DayMark[] = ['node', 'daily', 'lesson', 'walk', 'skip', 'first-stage'];
+export const DAY_MARKS: readonly DayMark[] = ['node', 'daily', 'barkdoku', 'lesson', 'walk', 'skip', 'first-stage'];
 
 export interface DiaryDay {
   date: string;
@@ -21,6 +21,8 @@ export interface DiaryDay {
   walks: WalkDiaryEntry[];
   /** Best Daily Stage score of the day, if one was played. */
   dailyBest?: number;
+  /** The first solve of the day's Daily Barkdoku, if solved; kept by the record, so it outlives the log. */
+  dailyBarkdoku?: DailyBarkdokuSolve;
   /** The day the free trial started. */
   trialStarted: boolean;
 }
@@ -46,6 +48,7 @@ export function diaryDays(record: DogRecord): DiaryDay[] {
   for (const event of record.activityLog) day(event.date).events.push(event);
   for (const walk of record.walkDiary) day(walk.date).walks.push(walk);
   for (const [date, score] of Object.entries(record.dailyBest)) if (isDateString(date)) day(date).dailyBest = score;
+  for (const [date, solve] of Object.entries(record.dailyBarkdoku)) if (isDateString(date)) day(date).dailyBarkdoku = solve;
   const trial = localDateOf(record.onboarding.trialStartedAt);
   if (trial) day(trial).trialStarted = true;
   // a first Stage played before the log existed still shows on its day
@@ -63,6 +66,7 @@ export function dayMarks(day: DiaryDay): DayMark[] {
   const kinds = new Set<DayMark>(day.events.map((e) => e.kind));
   if (day.walks.length > 0) kinds.add('walk');
   if (day.dailyBest !== undefined) kinds.add('daily');
+  if (day.dailyBarkdoku !== undefined) kinds.add('barkdoku');
   return DAY_MARKS.filter((k) => kinds.has(k));
 }
 
@@ -87,6 +91,8 @@ export interface DiaryTotals {
   activeDays: number;
   nodeRuns: number;
   dailyRuns: number;
+  /** Dates whose Daily Barkdoku was solved, counted from the record so a trimmed or doubled log does not skew it. */
+  barkdokuSolves: number;
   lessonsRead: number;
   /** Day Skips used. */
   skips: number;
@@ -101,7 +107,7 @@ export interface DiaryTotals {
 
 export function diaryTotals(days: readonly DiaryDay[], missions: Readonly<Record<string, MissionState>> = {}): DiaryTotals {
   const owed = Object.values(missions).filter((m) => isOwed(m)).length;
-  const totals: DiaryTotals = { activeDays: 0, nodeRuns: 0, dailyRuns: 0, lessonsRead: 0, skips: 0, owed, walks: { completed: 0, struggled: 0, skipped: 0 }, bestScore: null, since: null };
+  const totals: DiaryTotals = { activeDays: 0, nodeRuns: 0, dailyRuns: 0, barkdokuSolves: 0, lessonsRead: 0, skips: 0, owed, walks: { completed: 0, struggled: 0, skipped: 0 }, bestScore: null, since: null };
   for (const day of days) {
     if (isActiveDay(day)) {
       totals.activeDays++;
@@ -115,6 +121,7 @@ export function diaryTotals(days: readonly DiaryDay[], missions: Readonly<Record
       if (e.stage) totals.bestScore = Math.max(totals.bestScore ?? 0, e.stage.score);
     }
     for (const w of day.walks) totals.walks[w.outcome]++;
+    if (day.dailyBarkdoku !== undefined) totals.barkdokuSolves++;
     if (day.dailyBest !== undefined) totals.bestScore = Math.max(totals.bestScore ?? 0, day.dailyBest);
   }
   return totals;

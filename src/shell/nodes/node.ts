@@ -5,6 +5,7 @@ import { activityAt, addActivity, stageSummary } from '../activity';
 import { bestStars, starsFor } from '../stars';
 import { applyActivity, applyStage, updateMission, type CheckpointSeconds, type DogRecord } from '../dogRecord';
 import { missionOfStop } from '../world';
+import type { PuzzleSummary } from '../puzzle/types';
 
 /** What a Debrief can say the user is weakest at; every exercise targets one of these. */
 export type Metric = 'tension' | 'timing' | 'poste' | 'attention';
@@ -74,8 +75,8 @@ export function isAvailable(node: NodeDef, completed: readonly string[]): boolea
 
 export type NodeResult =
   | { kind: 'stage'; payload: SimulationDebriefPayload }
-  /** `handlingScore` (0-1000) is set by an action Minigame, which earns 1 to 3 stars from it; the Poste practice has none. */
-  | { kind: 'minigame'; metrics: Partial<Record<Metric, number>>; handlingScore?: number };
+  /** `handlingScore` (0-1000) is set by an action Minigame, which earns 1 to 3 stars from it; the Poste practice has none. A Barkdoku adds its solved board. */
+  | { kind: 'minigame'; metrics: Partial<Record<Metric, number>>; handlingScore?: number; puzzle?: PuzzleSummary };
 
 /** How well the user did on each metric, 0 (worst) to 1; a metric the run gave no evidence for is absent. */
 export function metricScores(result: NodeResult): Partial<Record<Metric, number>> {
@@ -189,7 +190,7 @@ export function onDebrief(record: DogRecord, run: NodeRun, now: Date): DogRecord
     kind: 'node',
     id: run.node.id,
     stars: earned,
-    ...(result.kind === 'stage' ? { stage: stageSummary(result.payload) } : { metrics: { ...result.metrics } }),
+    ...(result.kind === 'stage' ? { stage: stageSummary(result.payload) } : { metrics: { ...result.metrics }, ...(result.puzzle ? { puzzle: result.puzzle } : {}) }),
     ...(run.node.exercises.length > 0 ? { exercise: pickExercise(run.node, result).key } : {}),
   });
   const logged = { ...graded, completedNodes, stars, activityLog: addActivity(graded.activityLog, entry) };

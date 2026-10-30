@@ -1,10 +1,10 @@
 import { HUD_AROUSAL, HUD_BORDER, HUD_COLOR, HUD_COLOR_NUM, HUD_CSS_VARS, HUD_DEPTH, HUD_PRIMARY_BUTTON, HUD_TENSION } from '../../../bundle/src/tokens.generated';
 import { buttonStyle } from './styles';
-import { color, theme } from './theme';
+import { lightColor as color, theme } from './theme';
 
 describe('Stage HUD uses the shell tokens', () => {
   it('draws the primary button with the same fill, edge, label colour, radius and depth', () => {
-    const shell = buttonStyle('primary');
+    const shell = buttonStyle(color, 'primary');
     expect(HUD_PRIMARY_BUTTON.fill).toBe(shell.fill);
     expect(HUD_PRIMARY_BUTTON.edge).toBe(shell.edge);
     expect(HUD_PRIMARY_BUTTON.label).toBe(shell.label);

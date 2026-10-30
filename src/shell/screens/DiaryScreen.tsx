@@ -2,31 +2,34 @@ import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { es, type TextKey, type Translate } from '../../i18n';
 import type { ActivityEvent, MinigameMetrics, StageSummary } from '../activity';
-import { closedSkipDate, dayMarks, diaryDays, diaryTotals, monthGrid, monthOf, shiftMonth, streakDates, timeOf, weekdayOf, type DayMark, type DiaryDay, type Month } from '../diary';
+import { closedSkipDate, DAY_MARKS, dayMarks, diaryDays, diaryTotals, monthGrid, monthOf, shiftMonth, streakDates, timeOf, weekdayOf, type DayMark, type DiaryDay, type Month } from '../diary';
 import type { DogRecord } from '../dogRecord';
 import { LESSONS } from '../lessons/content';
 import { findMission } from '../missions/content';
 import type { MissionState } from '../missions/mission';
 import { findNode } from '../nodes/content';
+import { solveTimeText } from '../puzzle/engine';
+import type { PuzzleSummary } from '../puzzle/types';
 import { Button } from '../Overlays';
 import { diarySubject, shownStreak, type DiaryOutcome, type WalkDiaryEntry } from '../streak';
 import { Badge, Choice, Panel, StarRow } from '../ui/components';
 import { handlePress } from '../ui/press';
 import type { BadgeTone } from '../ui/styles';
-import { color, theme } from '../ui/theme';
+import { theme, usePalette, type ColorToken } from '../ui/theme';
 import { worldOfNode } from '../world';
 import { Flame } from './WorldMapScreen';
 import { Screen } from './Screen';
 
 type View_ = 'calendar' | 'events';
 
-const MARK_COLOR: Record<DayMark, string> = {
-  node: color.brand,
-  daily: color.accent,
-  lesson: color.info,
-  walk: color.coral,
-  skip: color.accentSoft,
-  'first-stage': color.sintonia,
+const MARK_COLOR: Record<DayMark, ColorToken> = {
+  node: 'brand',
+  daily: 'accent',
+  barkdoku: 'sky',
+  lesson: 'info',
+  walk: 'coral',
+  skip: 'accentSoft',
+  'first-stage': 'sintonia',
 };
 
 const OUTCOME_TONE: Record<DiaryOutcome, BadgeTone> = { completed: 'brand', struggled: 'warn', skipped: 'quiet' };
@@ -63,7 +66,8 @@ function walkTitle(t: Translate, walk: WalkDiaryEntry): string {
 
 /** A coloured dot for a kind of mark; the legend and the day text name it, so colour is never the only signal. */
 function Dot({ mark, size = 8 }: { mark: DayMark; size?: number }) {
-  return <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: MARK_COLOR[mark], borderWidth: 1.5, borderColor: color.ink }} />;
+  const color = usePalette();
+  return <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: color[MARK_COLOR[mark]], borderWidth: 1.5, borderColor: color.outline }} />;
 }
 
 /** One figure in a two-column grid: a small label over a bold value. */
@@ -109,8 +113,28 @@ function MetricStats({ t, metrics }: { t: Translate; metrics: MinigameMetrics })
   );
 }
 
+function PuzzleStats({ t, puzzle }: { t: Translate; puzzle: PuzzleSummary }) {
+  return (
+    <View className="mt-1 flex-row flex-wrap">
+      <Stat label={t('diary.event.time')} value={solveTimeText(puzzle.durationSeconds, puzzle.targetSeconds)} />
+      <Stat label={t('diary.event.mistakes')} value={String(puzzle.mistakes)} />
+    </View>
+  );
+}
+
+function RunStars({ t, stars }: { t: Translate; stars: ActivityEvent['stars'] }) {
+  if (stars === undefined) return null;
+  return (
+    <View className="flex-row items-center" style={{ gap: theme.space[2] }}>
+      <StarRow stars={stars} size={18} label={`${stars} ${t('map.starsOf3')}`} />
+      <Text className="text-caption text-inkMuted">{t('diary.event.stars')}</Text>
+    </View>
+  );
+}
+
 /** One line of a day: a time and a coloured mark on the left, what happened on the right. */
 function Entry({ time, mark, children }: { time?: string; mark: DayMark | null; children: React.ReactNode }) {
+  const color = usePalette();
   return (
     <View className="flex-row py-3" style={{ borderTopWidth: 2, borderStyle: 'dashed', borderColor: color.edge, gap: theme.space[3] }}>
       <View className="items-center" style={{ width: 44, gap: theme.space[1] }}>
@@ -127,6 +151,7 @@ function EventEntry({ t, event }: { t: Translate; event: ActivityEvent }) {
   const details = (
     <>
       {event.stage && <StageStats t={t} stage={event.stage} />}
+      {event.puzzle && <PuzzleStats t={t} puzzle={event.puzzle} />}
       {event.metrics && <MetricStats t={t} metrics={event.metrics} />}
       {event.exercise && event.exercise in es && (
         <View className="mt-2">
@@ -146,12 +171,16 @@ function EventEntry({ t, event }: { t: Translate; event: ActivityEvent }) {
           {world && <Text className="text-caption text-inkMuted">{t(world.title)}</Text>}
         </View>
         <Text className="mt-1 font-display text-body text-ink">{nodeTitle(t, event.id)}</Text>
-        {event.stars !== undefined && (
-          <View className="flex-row items-center" style={{ gap: theme.space[2] }}>
-            <StarRow stars={event.stars} size={18} label={`${event.stars} ${t('map.starsOf3')}`} />
-            <Text className="text-caption text-inkMuted">{t('diary.event.stars')}</Text>
-          </View>
-        )}
+        <RunStars t={t} stars={event.stars} />
+        {details}
+      </Entry>
+    );
+  }
+  if (event.kind === 'barkdoku') {
+    return (
+      <Entry time={time} mark="barkdoku">
+        <Text className="font-display text-body text-ink">{event.puzzle ? fill(t('diary.event.barkdoku'), { board: `${event.puzzle.size}×${event.puzzle.size}` }) : t('diary.mark.barkdoku')}</Text>
+        <RunStars t={t} stars={event.stars} />
         {details}
       </Entry>
     );
@@ -263,6 +292,12 @@ function DayCard({ t, day, date, today, inStreak, missions }: { t: Translate; da
               {!loggedDaily && <Text className="text-caption text-inkMuted">{t('diary.event.noDetails')}</Text>}
             </Entry>
           )}
+          {day.dailyBarkdoku !== undefined && (
+            <Entry mark="barkdoku">
+              <Text className="text-caption text-inkMuted">{t('diary.event.dailySolveTime')}</Text>
+              <Text className="font-display text-title text-ink">{solveTimeText(day.dailyBarkdoku.seconds, day.dailyBarkdoku.targetSeconds)}</Text>
+            </Entry>
+          )}
         </View>
       )}
     </Panel>
@@ -282,6 +317,7 @@ function Totals({ t, record, days, today }: { t: Translate; record: DogRecord; d
         <Stat label={t('diary.totals.bestScore')} value={totals.bestScore === null ? '-' : `${totals.bestScore} ${t('results.scoreOutOf')}`} />
         <Stat label={t('diary.totals.nodeRuns')} value={String(totals.nodeRuns)} />
         <Stat label={t('diary.totals.dailyRuns')} value={String(totals.dailyRuns)} />
+        <Stat label={t('diary.totals.barkdokuSolves')} value={String(totals.barkdokuSolves)} />
         <Stat label={t('diary.totals.lessonsRead')} value={String(totals.lessonsRead)} />
         <Stat label={t('diary.totals.walks')} value={walks === 0 ? '0' : `${walks} (${totals.walks.completed} ✓)`} />
         <Stat label={t('diary.totals.skips')} value={String(totals.skips)} />
@@ -295,7 +331,7 @@ function Totals({ t, record, days, today }: { t: Translate; record: DogRecord; d
 function Legend({ t }: { t: Translate }) {
   return (
     <View className="mt-3 flex-row flex-wrap" style={{ gap: theme.space[3] }}>
-      {(['node', 'daily', 'lesson', 'walk', 'skip', 'first-stage'] as const).map((m) => (
+      {DAY_MARKS.map((m) => (
         <View key={m} className="flex-row items-center" style={{ gap: 4 }}>
           <Dot mark={m} />
           <Text className="text-caption text-inkMuted">{t(`diary.mark.${m}`)}</Text>
@@ -306,13 +342,14 @@ function Legend({ t }: { t: Translate }) {
 }
 
 function MonthNavButton({ label, glyph, onPress }: { label: string; glyph: string; onPress: () => void }) {
+  const color = usePalette();
   return (
     <Pressable
       onPress={() => handlePress(onPress)}
       accessibilityRole="button"
       accessibilityLabel={label}
       className="items-center justify-center rounded-game-pill bg-surface"
-      style={{ width: theme.size.touchMin, height: theme.size.touchMin, borderWidth: theme.border.ink, borderColor: color.ink }}
+      style={{ width: theme.size.touchMin, height: theme.size.touchMin, borderWidth: theme.border.ink, borderColor: color.outline }}
     >
       <Text className="font-display text-title text-ink">{glyph}</Text>
     </Pressable>
@@ -338,6 +375,7 @@ function Calendar({
   selected: string;
   onSelect: (date: string) => void;
 }) {
+  const color = usePalette();
   const weeks = monthGrid(month);
   const title = capitalized(fill(t('diary.monthYear'), { month: monthName(t, month.month), year: month.year }));
   const hasAny = weeks.some((w) => w.some((d) => d !== null && byDate.has(d)));
@@ -388,7 +426,7 @@ function Calendar({
                     borderRadius: theme.radius.sm,
                     backgroundColor: isSelected ? color.brand : active ? color.accentSoft : undefined,
                     borderWidth: isToday || isSelected ? theme.border.ink : active ? 1.5 : 0,
-                    borderColor: isToday && !isSelected ? color.focus : color.ink,
+                    borderColor: isToday && !isSelected ? color.focus : color.outline,
                     gap: 2,
                   }}
                 >
