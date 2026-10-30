@@ -238,6 +238,56 @@ describe('WorldMapScreen - Settings gear', () => {
   });
 });
 
+describe('WorldMapScreen - Map Header', () => {
+  const t = createTranslator(es);
+
+  const renderHeader = () => {
+    mockPressables.length = 0;
+    renderToStaticMarkup(
+      <WorldMapScreen
+        t={t}
+        progress={progressOf([])}
+        stars={{}}
+        now={new Date('2026-10-28T09:00:00')}
+        streak={NO_STREAK}
+        today="2026-10-28"
+        dailyBest={undefined}
+        rustyPrompt={false}
+        rusty={false}
+        skippedWarmup={false}
+        onWarmup={() => {}}
+        onSkipWarmup={() => {}}
+        onDaily={() => {}}
+        onBarkdoku={() => {}}
+        onOpenStop={() => {}}
+        onSettings={() => {}}
+        onLibrary={() => {}}
+        onDiary={() => {}}
+      />
+    );
+    return mockPressables.map((p) => String(p.accessibilityLabel ?? ''));
+  };
+
+  it('shows Streak, Library, gear, Daily and Guaudoku in that order with nothing between them', () => {
+    const labels = renderHeader();
+    const start = labels.findIndex((l) => l.startsWith(es['streak.flame']));
+    expect(start).toBeGreaterThanOrEqual(0);
+    expect(labels[start]).toContain(es['diary.chip']);
+    expect(labels[start + 1]).toBe(es['library.chip']);
+    expect(labels[start + 2]).toBe(es['map.settings']);
+    expect(labels[start + 3]).toBe(es['daily.title']);
+    expect(labels[start + 4].startsWith(es['map.barkdoku.daily'])).toBe(true);
+  });
+
+  it('has no Diario chip: only the Streak chip mentions the Diary', () => {
+    const labels = renderHeader();
+    expect(labels.filter((l) => l === es['diary.chip'])).toHaveLength(0);
+    const diary = labels.filter((l) => l.includes(es['diary.chip']));
+    expect(diary).toHaveLength(1);
+    expect(diary[0].startsWith(es['streak.flame'])).toBe(true);
+  });
+});
+
 describe('BarkdokuChip', () => {
   const t = createTranslator(es);
   const chip = (solve?: { seconds: number; at: string; targetSeconds?: number }) => renderToStaticMarkup(<BarkdokuChip t={t} solve={solve} onPress={() => {}} />);

@@ -2,7 +2,7 @@ import './global.css';
 import * as ExpoSplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, useColorScheme, View } from 'react-native';
+import { AppState, BackHandler, useColorScheme, View } from 'react-native';
 import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Fredoka_600SemiBold } from '@expo-google-fonts/fredoka';
@@ -72,7 +72,7 @@ import { resolveScenario } from './src/shell/sync/configs';
 import { useAccount } from './src/shell/sync/useAccount';
 import { AccountBanner, AuthScreen, ChooseDogScreen, RegisterPrompt } from './src/shell/screens/AccountScreens';
 import { resolveCue, type Language } from './src/shell/voice';
-import { isReadyToLeaveSplash, routeFor } from './src/shell/navigation';
+import { backAction, isReadyToLeaveSplash, routeFor, type BackActionParams } from './src/shell/navigation';
 import { resetProgress } from './src/shell/reset';
 
 // Hold native splash on cold start until ready
@@ -219,6 +219,11 @@ export default function App() {
   }, [stageRun]);
 
   const send = useCallback((message: ShellMessage) => sim.current?.post(message), []);
+
+  const resume = useCallback(() => {
+    setPaused(false);
+    send({ type: 'resume' });
+  }, [send]);
 
   /** Starts a Stage with the Dog's snapshot; waits for the bundle if it is still loading. */
   const startStage = useCallback(
@@ -566,6 +571,27 @@ export default function App() {
     }
   };
 
+  // system back runs the closure the current screen registers for its own back, close or done; none consumes the press
+  const screenBack = useRef<(() => void) | null>(null);
+  screenBack.current = null;
+  const withBack = <T extends () => void>(fn: T): T => {
+    screenBack.current = fn;
+    return fn;
+  };
+  const backInput = useRef<BackActionParams | null>(null);
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      const input = backInput.current;
+      if (!input) return false;
+      const action = backAction(input);
+      if (action === 'pause') send({ type: 'pause' });
+      else if (action === 'resume') resume();
+      else if (action === 'screen') screenBack.current?.();
+      return action !== 'exit';
+    });
+    return () => sub.remove();
+  }, [send, resume]);
+
   // the map with an optional overlay over it; Settings, the Library and Lessons keep the map mounted underneath, so it is where it was on return
   const mapWith = (overlay: 'settings' | React.ReactNode) => {
     if (!record) return null;
@@ -620,7 +646,7 @@ export default function App() {
             language={LANGUAGE}
             record={record}
             update={update}
-            onClose={() => setSettingsOpen(false)}
+            onClose={withBack(() => setSettingsOpen(false))}
             account={account}
             onLogIn={() => setFlow({ name: 'auth', mode: 'login', returnTo: 'settings' })}
             ui={ui}
@@ -634,6 +660,7 @@ export default function App() {
   };
 
   let screen: React.ReactNode = null;
+  let choosingDog = false;
   if (route.name === 'splash') {
     screen = <SplashScreen t={t} onShown={hideNativeSplash} />;
   } else if (route.name === 'funnel') {
@@ -662,7 +689,7 @@ export default function App() {
           t={t}
           run={introRun}
           onNext={() => setIntroRun((r) => (r ? advance(r, { type: 'next' }) : null))}
-          onExit={() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: 'plan' } }))}
+          onExit={withBack(() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: 'plan' } })))}
         />
       );
     } else if (introRun?.step === 'checkpoint') {
@@ -704,12 +731,14 @@ export default function App() {
     }
   } else if (route.name === 'paywall') {
     if (account.choice && account.signedIn && record) {
+      choosingDog = true;
       screen = <ChooseDogScreen t={t} local={record} cloud={migrateRecord(account.choice[0].record)} onChoose={account.chooseDog} />;
     } else if (record) {
       screen = <PaywallScreen t={t} onStartTrial={() => update((r) => passPaywall(r, true, new Date()))} onLater={() => update((r) => passPaywall(r, false, new Date()))} />;
     }
   } else if (route.name === 'map' || route.name === 'settings') {
     if (account.choice && account.signedIn && record) {
+      choosingDog = true;
       screen = <ChooseDogScreen t={t} local={record} cloud={migrateRecord(account.choice[0].record)} onChoose={account.chooseDog} />;
     } else if (record) {
       screen = mapWith(route.name === 'settings' ? 'settings' : null);
@@ -726,14 +755,14 @@ export default function App() {
           seenFixes={record.seenFixes}
           onOpen={(lesson) => setFlow({ name: 'lesson', id: lesson.id, returnTo: 'library' })}
           onOpenFix={(entry) => setFlow({ name: 'mission', id: entry.mission.id, view: 'fix', fixId: entry.fix.id, returnTo: 'library' })}
-          onBack={goHome}
+          onBack={withBack(goHome)}
         />,
       );
     } else if (f.name === 'diary' && record) {
-      screen = mapWith(<DiaryScreen t={t} record={record} today={todayString()} onBack={goHome} />);
+      screen = mapWith(<DiaryScreen t={t} record={record} today={todayString()} onBack={withBack(goHome)} />);
     } else if (f.name === 'lesson' && record) {
       const lesson = findLesson(f.id);
-      const back = () => (f.returnTo === 'map' ? goHome() : setFlow({ name: 'library' }));
+      const back = withBack(() => (f.returnTo === 'map' ? goHome() : setFlow({ name: 'library' })));
       screen = mapWith(
         lesson ? (
           <LessonScreen
@@ -763,14 +792,14 @@ export default function App() {
               update((r) => updateMission(r, mission.id, (m) => startMission(m, new Date())));
               goHome();
             }}
-            onClose={goHome}
+            onClose={withBack(goHome)}
           />
         );
       else if ((f.view === 'waiting' || f.view === 'checkin') && state) {
         const accept = () => update((r) => updateMission(r, mission.id, acceptEasier));
         screen =
           f.view === 'checkin' ? (
-            <MissionCheckInScreen t={t} mission={mission} state={state} onAnswer={(outcome) => answerMission(mission.id, outcome)} onAcceptEasier={accept} onClose={goHome} />
+            <MissionCheckInScreen t={t} mission={mission} state={state} onAnswer={(outcome) => answerMission(mission.id, outcome)} onAcceptEasier={accept} onClose={withBack(goHome)} />
           ) : (
             <MissionWaitingScreen
               t={t}
@@ -779,11 +808,11 @@ export default function App() {
               now={new Date()}
               onAcceptEasier={accept}
               onSkip={canSkipDay(mission.id, progressAt(record, new Date()), new Date()) ? () => skipMission(mission.id) : undefined}
-              onClose={goHome}
+              onClose={withBack(goHome)}
             />
           );
       } else if (f.view === 'problem')
-        screen = <MissionProblemScreen t={t} mission={mission} onPick={(problemId) => answerMission(mission.id, 'struggled', problemId)} onBack={() => setFlow({ ...f, view: 'checkin' })} />;
+        screen = <MissionProblemScreen t={t} mission={mission} onPick={(problemId) => answerMission(mission.id, 'struggled', problemId)} onBack={withBack(() => setFlow({ ...f, view: 'checkin' }))} />;
       else if (f.view === 'fix' && f.fixId) {
         const found = findFix(f.fixId);
         screen = found ? (
@@ -795,11 +824,11 @@ export default function App() {
             canMoveOn={!!state && f.returnTo !== 'library' && canMoveOn(state)}
             onPractise={() => openStop(found.fix.practise)}
             onMoveOn={() => moveOnMission(mission.id)}
-            onDone={close}
+            onDone={withBack(close)}
           />
         ) : null;
       } else if (f.view === 'passed')
-        screen = <MissionPassedScreen t={t} mission={mission} celebrations={celebrations?.id === `mission:${mission.id}` ? celebrations.list : []} onDone={goHome} />;
+        screen = <MissionPassedScreen t={t} mission={mission} celebrations={celebrations?.id === `mission:${mission.id}` ? celebrations.list : []} onDone={withBack(goHome)} />;
     } else if (f.name === 'daily') {
       if (f.result) {
         screen = (
@@ -809,9 +838,12 @@ export default function App() {
             completion={f.result.completion}
             celebrations={f.result.celebrations}
             onReplay={() => setFlow({ ...f, attempt: f.attempt + 1, result: null })}
-            onDone={goHome}
+            onDone={withBack(goHome)}
           />
         );
+      } else {
+        // the Daily Stage: system back pauses it; this runs only if it failed to load
+        withBack(goHome);
       }
     } else if (f.name === 'paywall') {
       screen = (
@@ -826,11 +858,14 @@ export default function App() {
             if (f.then && !done) setFlow({ name: 'mission', id: f.then.skipMission, view: missionEntry(f.then.skipMission) });
             else goHome();
           }}
-          onLater={() => (f.then ? setFlow({ name: 'mission', id: f.then.skipMission, view: missionEntry(f.then.skipMission) }) : goHome())}
+          onLater={withBack(() => (f.then ? setFlow({ name: 'mission', id: f.then.skipMission, view: missionEntry(f.then.skipMission) }) : goHome()))}
         />
       );
+    } else if (f.name === 'warmup') {
+      // the warm-up Stage: system back pauses it; this runs only if it failed to load
+      withBack(goHome);
     } else if (f.name === 'register') {
-      screen = <RegisterPrompt t={t} onCreate={() => setFlow({ name: 'auth', mode: 'signup', returnTo: 'map' })} onNotNow={goHome} />;
+      screen = <RegisterPrompt t={t} onCreate={() => setFlow({ name: 'auth', mode: 'signup', returnTo: 'map' })} onNotNow={withBack(goHome)} />;
     } else if (f.name === 'puzzle' && record) {
       // The board is pinned to the date the puzzle was opened, so playing past midnight keeps it. Once the date's
       // board is solved, replays are practice and save nothing (ADR 0014).
@@ -850,14 +885,14 @@ export default function App() {
             }
             goHome();
           }}
-          onExit={goHome}
+          onExit={withBack(goHome)}
         />
       );
     } else if (f.name === 'auth') {
-      screen = account.auth ? <AuthScreen t={t} auth={account.auth} initial={f.mode} onDone={onAuthDone} onBack={onAuthDone} /> : null;
+      screen = account.auth ? <AuthScreen t={t} auth={account.auth} initial={f.mode} onDone={onAuthDone} onBack={withBack(onAuthDone)} /> : null;
     } else if (f.name === 'node' && record) {
       const { run } = f;
-      if (run.step === 'primer') screen = <PrimerScreen t={t} run={run} onNext={() => act({ type: 'next' })} onExit={goHome} />;
+      if (run.step === 'primer') screen = <PrimerScreen t={t} run={run} onNext={() => act({ type: 'next' })} onExit={withBack(goHome)} />;
       else if (run.step === 'checkpoint')
         screen = <CheckpointScreen t={t} run={run} setting={record.checkpointSeconds} onAnswer={(option) => act({ type: 'answer', option })} onTimeout={() => act({ type: 'timeout' })} />;
       else if (run.step === 'simulation' && run.node.mode === 'minigame') {
@@ -881,11 +916,14 @@ export default function App() {
                 const r = barkdokuResult(metrics);
                 finish(r.metrics, r.handlingScore, summary);
               }}
-              onExit={goHome}
+              onExit={withBack(goHome)}
             />
           ) : (
             <PosteMinigameView key={`minigame-${f.attempt}`} t={t} coat={record.coat} onFinish={(metrics) => finish(metrics)} />
           );
+      } else if (run.step === 'simulation') {
+        // the Node's Stage: system back pauses it; this runs only if it failed to load
+        withBack(goHome);
       } else if (run.step === 'debrief') {
         screen = (
           <DebriefScreen
@@ -897,17 +935,19 @@ export default function App() {
             celebrations={celebrations?.id === `${run.node.id}:${f.attempt}` ? celebrations.list : []}
             onPosteLink={() => startNodeRun(POSTE_PRACTICE)}
             onPlayAgain={() => setFlow({ ...f, run: { ...run, step: 'simulation', result: null }, attempt: f.attempt + 1 })}
-            onDone={() => {
+            onDone={withBack(() => {
               // the Debrief of a Stretch's last Node opens its Mission brief
               const next = missionAfterDebrief(run.node.id, progressAt(record, new Date()), new Date());
               if (next) setFlow({ name: 'mission', id: next, view: 'brief' });
               else goHome();
-            }}
+            })}
           />
         );
       }
     }
   }
+
+  backInput.current = { route, playingStage, paused, bundle, hasScreenBack: screenBack.current !== null, payoff: route.name === 'taste' && tastePayoff, choosingDog };
 
   return (
     <SafeAreaProvider>
@@ -932,16 +972,11 @@ export default function App() {
           {playingStage && paused && (
             <ResumeOverlay
               t={t}
-              onResume={() => {
-                setPaused(false);
-                send({ type: 'resume' });
-              }}
+              onResume={resume}
               onExit={() => {
-                if (route.name === 'taste' || route.name === 'first-stage') {
-                  // the funnel cannot be left from a Stage; Exit just carries on
-                  setPaused(false);
-                  send({ type: 'resume' });
-                } else goHome();
+                // the funnel cannot be left from a Stage; Exit just carries on
+                if (route.name === 'taste' || route.name === 'first-stage') resume();
+                else goHome();
               }}
             />
           )}

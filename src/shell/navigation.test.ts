@@ -2,7 +2,7 @@ import { ONBOARDING_STEPS } from './onboarding/flow';
 import { canSkipDay, missionAfterDebrief, missionEntryOf, missionEntryView, missionForDebrief } from './missions/missionView';
 import type { MissionState } from './missions/mission';
 import { findWorld, isLastMissionOfWorld, progressOf, stopsOf } from './world';
-import { isReadyToLeaveSplash, routeFor } from './navigation';
+import { backAction, isReadyToLeaveSplash, routeFor, type BackActionParams } from './navigation';
 
 describe('routeFor', () => {
   it('returns splash until ready', () => {
@@ -295,5 +295,41 @@ describe('Mission flows', () => {
     const flow = { name: 'mission', id: 'mission-harness', view: 'checkin' };
     expect(routeFor({ ready: true, onboardingStep: 'done', flow })).toEqual({ name: 'flow', flow });
     expect(routeFor({ ready: true, onboardingStep: 'welcome', flow })).toEqual({ name: 'funnel', step: 'welcome' });
+  });
+});
+
+describe('backAction', () => {
+  const base: BackActionParams = { route: { name: 'map' }, playingStage: false, paused: false, bundle: 'ready', hasScreenBack: false };
+  const stage: BackActionParams = { ...base, route: { name: 'flow', flow: { name: 'node' } }, playingStage: true, hasScreenBack: true };
+
+  it('leaves a Stage that failed to load through its back closure, or consumes the press without one', () => {
+    expect(backAction({ ...stage, bundle: 'error' })).toBe('screen');
+    expect(backAction({ ...stage, route: { name: 'taste' }, bundle: 'error', hasScreenBack: false })).toBe('consume');
+  });
+
+  it('consumes the press on the taste payoff and on Choose Dog', () => {
+    expect(backAction({ ...stage, route: { name: 'taste' }, hasScreenBack: false, payoff: true })).toBe('consume');
+    expect(backAction({ ...base, choosingDog: true })).toBe('consume');
+  });
+
+  it('pauses a running Stage and resumes a paused one', () => {
+    expect(backAction(stage)).toBe('pause');
+    expect(backAction({ ...stage, paused: true })).toBe('resume');
+  });
+
+  it('consumes the press while the Stage is loading', () => {
+    expect(backAction({ ...stage, bundle: 'loading' })).toBe('consume');
+  });
+
+  it('leaves the app on the splash, the bare map, a funnel step and the onboarding paywall', () => {
+    expect(backAction({ ...base, route: { name: 'splash' } })).toBe('exit');
+    expect(backAction(base)).toBe('exit');
+    expect(backAction({ ...base, route: { name: 'funnel', step: 'setup' } })).toBe('exit');
+    expect(backAction({ ...base, route: { name: 'paywall' } })).toBe('exit');
+  });
+
+  it("runs a flow's own back closure, and consumes the press when it has none", () => {
+    expect(backAction({ ...base, route: { name: 'flow', flow: { name: 'diary' } }, hasScreenBack: true })).toBe('screen');
+    expect(backAction({ ...base, route: { name: 'flow', flow: { name: 'node' } } })).toBe('consume');
   });
 });

@@ -140,6 +140,10 @@ _Avoid_: Best Solve Time, best time, record
 The 5-second timed quiz between the Theory Primer and the Interactive Simulation.
 _Avoid_: Quiz, test
 
+**Pause Menu**:
+The menu shown over a paused Stage, offering Resume and Exit.
+_Avoid_: Resume overlay, pause screen
+
 **Arousal**:
 How worked up the Dog is during a Stage, from 0 to 100. It rises near Distractors and during Rigid Pull, and it starts at 0 each Stage.
 _Avoid_: Excitement, stress
@@ -262,7 +266,7 @@ The fixed strip at the top of the World Map that stays in view while the trail s
 _Avoid_: Top menu, top bar, toolbar
 
 **Status Chip**:
-A raised, pill-shaped entry in the Map Header that shows a status or opens a section, such as the Streak, the Daily Stage, the Library or the Diary.
+A raised, pill-shaped entry in the Map Header that shows a status or opens a section, such as the Streak, the Daily Stage, the Daily Barkdoku or the Library. The Streak chip is the way into the Diary.
 _Avoid_: Tab, menu item, pill
 
 **Star**:

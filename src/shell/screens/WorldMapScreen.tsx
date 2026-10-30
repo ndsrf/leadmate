@@ -880,13 +880,16 @@ export function WorldMapScreen({
 
   const header = (
     <View>
-      <View className="flex-row items-center justify-between" style={{ gap: theme.space[2] }}>
-        <View className="shrink">
-          <StreakChip t={t} status={streakStatus(streak, today)} onPress={onDiary} />
-        </View>
+      <View className="flex-row flex-wrap items-center" style={{ gap: theme.space[2] }}>
+        <StreakChip t={t} status={streakStatus(streak, today)} onPress={onDiary} />
+        <Chip
+          label={libraryToday ? t('library.chipToday') : undefined}
+          value={t('library.chip')}
+          icon={libraryToday ? <View className="mr-2 h-3 w-3 rounded-game-pill bg-accent" style={{ borderWidth: 2, borderColor: color.outline }} /> : undefined}
+          onPress={onLibrary}
+          accessibilityLabel={libraryToday ? `${t('library.chip')}. ${t('library.chipToday')}` : t('library.chip')}
+        />
         <IconChip icon={<GearGlyph />} onPress={onSettings} accessibilityLabel={t('map.settings')} />
-      </View>
-      <View className="mt-2 flex-row flex-wrap items-center" style={{ gap: theme.space[2] }}>
         <Chip
           label={t('daily.title')}
           value={dailyBest === undefined ? t('map.dailyNew') : `${dailyBest} ${t('results.scoreOutOf')}`}
@@ -895,14 +898,6 @@ export function WorldMapScreen({
           accessibilityLabel={t('daily.title')}
         />
         <BarkdokuChip t={t} solve={barkdokuToday} onPress={onBarkdoku} />
-        <Chip
-          label={libraryToday ? t('library.chipToday') : undefined}
-          value={t('library.chip')}
-          icon={libraryToday ? <View className="mr-2 h-3 w-3 rounded-game-pill bg-accent" style={{ borderWidth: 2, borderColor: color.outline }} /> : undefined}
-          onPress={onLibrary}
-          accessibilityLabel={libraryToday ? `${t('library.chip')}. ${t('library.chipToday')}` : t('library.chip')}
-        />
-        <Chip value={t('diary.chip')} onPress={onDiary} accessibilityLabel={t('diary.chip')} />
       </View>
       {lockNote && (
         <Panel className="mt-2">

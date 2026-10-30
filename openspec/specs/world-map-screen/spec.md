@@ -80,7 +80,7 @@ The system SHALL show each Stop as exactly one of locked, open, next-up, waiting
 - **THEN** the system names what is still missing (the earlier Stops of its Stretch, or the Mission that must be passed first) and does not open the Stop
 
 ### Requirement: Persistent status chips
-The system SHALL keep the Streak, the Daily Stage and the Settings entry visible at the top of the World Map while the map scrolls. The Settings entry SHALL be a compact, icon-only gear button pinned to the top-right corner of the Map Header, on the first line beside the Streak chip, with the other Status Chips wrapping across the full width below. It SHALL keep at least the minimum touch target and SHALL expose the localized Settings name to screen readers.
+The system SHALL keep the Streak, the Daily Stage and the Settings entry visible at the top of the World Map while the map scrolls. The Map Header SHALL show its entries as a single row that wraps, in this order: the Streak chip, the Library entry, the Settings entry, the Daily Stage chip, the Daily Barkdoku chip. The Settings entry SHALL be a compact, icon-only gear button. It SHALL keep at least the minimum touch target and SHALL expose the localized Settings name to screen readers.
 
 #### Scenario: Scrolled map
 - **WHEN** the user has scrolled down the map
@@ -90,13 +90,17 @@ The system SHALL keep the Streak, the Daily Stage and the Settings entry visible
 - **WHEN** today's Daily Stage has not been played
 - **THEN** its chip shows a highlighted "new" state, and after it is played shows the day's best score
 
+#### Scenario: Header order
+- **WHEN** the World Map header is shown
+- **THEN** its entries appear in reading order as Streak ("X días seguidos"), Biblioteca, the Settings gear, El Paseo del Día, Guaudoku, and no other entry sits between them
+
 #### Scenario: Settings as a gear
 - **WHEN** the World Map header is shown
-- **THEN** the Settings entry shows a gear icon with no visible text, at the top-right corner of the header, with a face no taller than the Status Chips
+- **THEN** the Settings entry shows a gear icon with no visible text, between the Library entry and the Daily Stage chip, with a face no taller than the Status Chips
 
 #### Scenario: Gear stays put when chips wrap
-- **WHEN** the Status Chips do not fit on one line
-- **THEN** they wrap across the full width below the Streak chip and the gear, and the gear stays at the top-right corner
+- **WHEN** the header entries do not fit on one line
+- **THEN** they wrap onto further lines in the same order, the gear keeping its place after the Library entry and before the Daily Stage chip, with nothing clipped
 
 #### Scenario: Settings gear is accessible
 - **WHEN** a screen reader focuses the gear
@@ -211,11 +215,15 @@ Pressing an available Stop SHALL open it by kind: a Lesson Stop opens the Lesson
 - **THEN** the Lesson is marked read, the user returns to the World Map and the next Stop becomes next-up
 
 ### Requirement: Diary entry
-The Streak chip at the top of the World Map SHALL open the Diary. The system SHALL NOT show a separate Diary chip. The Streak chip's accessible label SHALL say that it opens the Diary.
+The Streak chip at the top of the World Map SHALL open the Diary. The system SHALL NOT show a separate Diary chip or any other "Diario" button in the Map Header. The Streak chip's accessible label SHALL say that it opens the Diary.
 
 #### Scenario: Open from the Streak chip
 - **WHEN** the user taps the Streak chip, whether or not a Streak is running
 - **THEN** the Diary opens over the map
+
+#### Scenario: No Diario chip
+- **WHEN** the World Map header is shown
+- **THEN** no chip labelled "Diario" is present, and the Streak chip is the only header entry that opens the Diary
 
 #### Scenario: Entry visible while scrolled
 - **WHEN** the user has scrolled down the map
