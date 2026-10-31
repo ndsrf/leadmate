@@ -5,6 +5,7 @@ module.exports = {
   testMatch: ['**/*.test.ts', '**/*.test.tsx'],
   moduleNameMapper: {
     '^nativewind$': '<rootDir>/test/nativewind.ts',
+    '^react-native-purchases$': '<rootDir>/test/purchasesStub.ts',
     // a bundled image is an opaque asset id, as Metro resolves it
     '\\.png$': '<rootDir>/jest.assetStub.js',
   },

@@ -9,7 +9,7 @@ import { setTriggerLevel, type CheckpointSeconds, type DogRecord } from '../dogR
 import { shouldShowResetSection } from '../reset';
 import { Button } from '../Overlays';
 import { LeadLine } from '../ui/art';
-import { Choice, Panel, PaletteRoot, TextField, Toggle } from '../ui/components';
+import { Badge, Choice, Panel, PaletteRoot, TextField, Toggle } from '../ui/components';
 import { CUSTOM_CUE_MS, resolveCue, VOICE_PACKS, type Language } from '../voice';
 import type { Account } from '../sync/useAccount';
 import { AccountSection } from './AccountScreens';
@@ -18,6 +18,8 @@ import { renameDog } from '../onboarding/intro';
 import { DOG_COAT_NAMES } from '../onboarding/look';
 import { cleanDogName, DOG_NAME_MAX } from '../onboarding/name';
 import { Screen } from './Screen';
+import { isPlus, applyBillingSubscription } from '../plus';
+import { getBillingService, type BillingService } from '../billing';
 
 const CHECKPOINT_OPTIONS: { value: CheckpointSeconds; key: 'settings.checkpoint.5' | 'settings.checkpoint.10' | 'settings.checkpoint.off' }[] = [
   { value: 5, key: 'settings.checkpoint.5' },
@@ -83,6 +85,7 @@ export function SettingsScreen({
   onLogIn,
   ui,
   onReset,
+  billingService,
 }: {
   t: Translate;
   language: Language;
@@ -94,12 +97,36 @@ export function SettingsScreen({
   /** This device's UI sounds and haptics (never part of the Dog's record). */
   ui: { settings: UiSettings; change: (patch: Partial<UiSettings>) => void };
   onReset: () => void;
+  billingService?: BillingService;
 }) {
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [recording, setRecording] = useState<RecordState>('idle');
   const [showResetModal, setShowResetModal] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreFeedback, setRestoreFeedback] = useState<string | null>(null);
   const hasCustom = Boolean(record.customCues[language]);
   const canRecord = Platform.OS !== 'web';
+
+  const billing = billingService ?? getBillingService();
+  const plus = isPlus(record, new Date());
+
+  const handleRestorePurchases = async () => {
+    setRestoring(true);
+    setRestoreFeedback(null);
+    try {
+      const res = await billing.restorePurchases();
+      if (res.success && res.isPlus) {
+        update((r) => applyBillingSubscription(r, { isPlus: true, expiresAt: null }, new Date()));
+        setRestoreFeedback(t('paywall.restoreSuccess'));
+      } else {
+        setRestoreFeedback(t('paywall.restoreNotFound'));
+      }
+    } catch (err: any) {
+      setRestoreFeedback(err?.message ?? t('paywall.error'));
+    } finally {
+      setRestoring(false);
+    }
+  };
 
   const recordCue = async () => {
     const permission = await requestRecordingPermissionsAsync();
@@ -223,6 +250,19 @@ export function SettingsScreen({
         {canRecord && <Button label={recording === 'recording' ? t('settings.customCue.recording') : t('settings.customCue.record')} onPress={() => recording !== 'recording' && recordCue()} />}
         {hasCustom && <Button label={t('settings.customCue.play')} tone="secondary" onPress={() => playResolvedCue(resolveCue(record, language))} />}
         {hasCustom && <Button label={t('settings.customCue.remove')} tone="secondary" onPress={removeCue} />}
+      </Section>
+
+      <Section title={t('settings.subscription')}>
+        <View className="mb-3 flex-row items-center justify-between">
+          <Text className="text-body text-ink">{t('settings.subscription.status')}</Text>
+          <Badge label={plus ? t('settings.subscription.active') : t('settings.subscription.free')} tone={plus ? 'accent' : 'quiet'} />
+        </View>
+        {restoreFeedback && (
+          <Panel tone="info" className="mb-2">
+            <Text className="text-body text-ink">{restoreFeedback}</Text>
+          </Panel>
+        )}
+        <Button label={t('settings.subscription.restore')} tone="secondary" onPress={handleRestorePurchases} disabled={restoring} />
       </Section>
 
       <AccountSection t={t} account={account} onLogIn={onLogIn} onForget={account.forgetAccount} />

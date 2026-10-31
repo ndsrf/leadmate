@@ -1,6 +1,19 @@
 import { newDogRecord, updateMission, type DogRecord } from './dogRecord';
 import { isOwed, startMission } from './missions/mission';
-import { canStartTrial, computeTrialRecap, isPlus, plusEndsAt, progressAt, startTrialThen, subscribeThen, trialDaysRemaining, trialState, TRIAL_DAYS } from './plus';
+import {
+  applyBillingSubscription,
+  canStartTrial,
+  computeTrialRecap,
+  isPlus,
+  plusEndsAt,
+  progressAt,
+  resolvePendingPlus,
+  startTrialThen,
+  subscribeThen,
+  trialDaysRemaining,
+  trialState,
+  TRIAL_DAYS,
+} from './plus';
 
 const withTrial = (trialStartedAt: string | null, mockSubscribed?: boolean): DogRecord => {
   const r = newDogRecord();
@@ -68,6 +81,47 @@ describe('isPlus', () => {
     const noTrialRecord = withTrial(null, true);
     expect(isPlus(noTrialRecord, start)).toBe(true);
   });
+
+  it('evaluates cached billing entitlement with and without expiration', () => {
+    const expiredTrial = withTrial(start.toISOString());
+    const afterTrial = new Date(start.getTime() + 10 * 86_400_000);
+
+    // Trial is expired, no billing
+    expect(isPlus(expiredTrial, afterTrial)).toBe(false);
+
+    // Active subscription without explicit expiration
+    const subscribedNoExpiry = {
+      ...expiredTrial,
+      billing: {
+        isSubscribed: true,
+        expiresAt: null,
+        lastVerifiedAt: afterTrial.toISOString(),
+      },
+    };
+    expect(isPlus(subscribedNoExpiry, afterTrial)).toBe(true);
+
+    // Active subscription with future expiration
+    const subscribedFuture = {
+      ...expiredTrial,
+      billing: {
+        isSubscribed: true,
+        expiresAt: new Date(afterTrial.getTime() + 86_400_000).toISOString(),
+        lastVerifiedAt: afterTrial.toISOString(),
+      },
+    };
+    expect(isPlus(subscribedFuture, afterTrial)).toBe(true);
+
+    // Expired subscription
+    const subscribedPast = {
+      ...expiredTrial,
+      billing: {
+        isSubscribed: true,
+        expiresAt: new Date(afterTrial.getTime() - 1000).toISOString(),
+        lastVerifiedAt: afterTrial.toISOString(),
+      },
+    };
+    expect(isPlus(subscribedPast, afterTrial)).toBe(false);
+  });
 });
 
 describe('a Day Skip held by the paywall', () => {
@@ -118,6 +172,28 @@ describe('a Day Skip held by the paywall', () => {
     expect(afterVideo.onboarding.mockSubscribed).toBe(true);
     expect(isPlus(afterVideo, now)).toBe(true);
   });
+
+  it('supports resolvePendingPlus to apply pending skip action', () => {
+    const record = waiting(start.toISOString());
+    const resolved = resolvePendingPlus(record, { kind: 'skip', missionId: 'mission-harness' }, now);
+    expect(isOwed(resolved.missions['mission-harness'])).toBe(true);
+  });
+
+  it('supports applyBillingSubscription to update billing state on record', () => {
+    const record = newDogRecord();
+    const updated = applyBillingSubscription(
+      record,
+      { isPlus: true, expiresAt: '2027-01-01T00:00:00.000Z', tier: 'annual' },
+      now,
+    );
+    expect(updated.billing).toEqual({
+      isSubscribed: true,
+      expiresAt: '2027-01-01T00:00:00.000Z',
+      lastVerifiedAt: now.toISOString(),
+      tier: 'annual',
+    });
+    expect(isPlus(updated, now)).toBe(true);
+  });
 });
 
 describe('progress as the trail reads it', () => {
@@ -132,6 +208,17 @@ describe('progress as the trail reads it', () => {
     expect(plusEndsAt(withTrial(start.toISOString()), new Date(2026, 4, 5))).toEqual(new Date(start.getTime() + 7 * 86_400_000));
     expect(plusEndsAt(withTrial(start.toISOString()), new Date(2026, 4, 12))).toBeNull();
     expect(plusEndsAt(withTrial(null), start)).toBeNull();
+
+    const billingExpiry = new Date('2027-01-01T00:00:00.000Z');
+    const billed = {
+      ...withTrial(null),
+      billing: {
+        isSubscribed: true,
+        expiresAt: billingExpiry.toISOString(),
+        lastVerifiedAt: '2026-10-31T00:00:00.000Z',
+      },
+    };
+    expect(plusEndsAt(billed, new Date(2026, 4, 5))).toEqual(billingExpiry);
   });
 
   it('can start the trial only when none was started or it is still running', () => {
@@ -159,5 +246,20 @@ describe('computeTrialRecap', () => {
     const stats = computeTrialRecap(record, mockLessons);
     expect(stats.videosWatched).toBe(1);
     expect(stats.skipsUsed).toBe(2);
+  });
+
+  it('correctly calculates active streak days during trial', () => {
+    const mockLessons: any[] = [];
+    const record = newDogRecord();
+    record.onboarding.trialStartedAt = '2026-05-01T10:00:00Z';
+    record.activityLog = [
+      // Within trial (2026-05-01 to 2026-05-08)
+      { kind: 'node', id: 'n1', date: '2026-05-02', at: '2026-05-02T10:00:00Z' },
+      { kind: 'daily', id: 'd1', date: '2026-05-03', at: '2026-05-03T10:00:00Z' },
+      // Outside trial
+      { kind: 'node', id: 'n2', date: '2026-05-15', at: '2026-05-15T10:00:00Z' },
+    ];
+    const stats = computeTrialRecap(record, mockLessons);
+    expect(stats.activeStreakDays).toBe(2);
   });
 });

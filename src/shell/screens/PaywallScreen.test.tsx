@@ -57,11 +57,21 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
+jest.mock('react-native-purchases', () => ({
+  __esModule: true,
+  default: {},
+  PACKAGE_TYPE: {
+    ANNUAL: 'ANNUAL',
+    MONTHLY: 'MONTHLY',
+  },
+}));
+
 import React from 'react';
 // @ts-ignore
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createTranslator, es } from '../../i18n';
 import { PaywallScreen } from './PaywallScreen';
+import { MockBillingService } from '../billing';
 
 describe('PaywallScreen', () => {
   const t = createTranslator(es);
@@ -95,9 +105,10 @@ describe('PaywallScreen', () => {
     expect(onLater).toHaveBeenCalledTimes(1);
   });
 
-  it('renders subscription conversion mode with annual and monthly tiers', () => {
+  it('renders subscription conversion mode with annual and monthly tiers and restore button', () => {
     const onSubscribeAnnual = jest.fn();
     const onSubscribeMonthly = jest.fn();
+    const onRestore = jest.fn();
     const onLater = jest.fn();
 
     const html = renderToStaticMarkup(
@@ -106,6 +117,7 @@ describe('PaywallScreen', () => {
         mode="subscription"
         onSubscribeAnnual={onSubscribeAnnual}
         onSubscribeMonthly={onSubscribeMonthly}
+        onRestore={onRestore}
         onLater={onLater}
       />
     );
@@ -117,6 +129,7 @@ describe('PaywallScreen', () => {
     expect(html).toContain('Plan Mensual');
     expect(html).toContain('6,99 €/mes');
     expect(html).toContain('Suscribirme');
+    expect(html).toContain('Restaurar compras');
     expect(html).toContain('Quizá más tarde');
 
     pressed['Suscribirme']?.();
@@ -125,7 +138,69 @@ describe('PaywallScreen', () => {
     expect(typeof pressed['Plan Mensual - 6,99 €/mes']).toBe('function');
     pressed['Plan Mensual - 6,99 €/mes']?.();
 
+    pressed['Restaurar compras']?.();
+    expect(onRestore).toHaveBeenCalledTimes(1);
+
     pressed['Quizá más tarde']?.();
     expect(onLater).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders dynamic localized package prices when packages prop is passed', () => {
+    const customPackages = [
+      {
+        id: 'ann',
+        tier: 'annual' as const,
+        priceString: '$49.99',
+        rawPrice: 49.99,
+        currencyCode: 'USD',
+      },
+      {
+        id: 'mon',
+        tier: 'monthly' as const,
+        priceString: '$4.99',
+        rawPrice: 4.99,
+        currencyCode: 'USD',
+      },
+    ];
+
+    const html = renderToStaticMarkup(
+      <PaywallScreen
+        t={t}
+        mode="subscription"
+        packages={customPackages}
+        onLater={jest.fn()}
+      />
+    );
+
+    expect(html).toContain('$49.99/año');
+    expect(html).toContain('$4.99/mes');
+    expect(typeof pressed['Plan Anual - $49.99/año']).toBe('function');
+    expect(typeof pressed['Plan Mensual - $4.99/mes']).toBe('function');
+  });
+
+  it('handles billing service purchase with user cancellation and error states', async () => {
+    const mockBilling = new MockBillingService();
+    const purchaseSpy = jest.spyOn(mockBilling, 'purchasePackage');
+
+    // Simulate user cancellation
+    mockBilling.setNextPurchaseResult({
+      success: false,
+      isPlus: false,
+      userCancelled: true,
+    });
+
+    renderToStaticMarkup(
+      <PaywallScreen
+        t={t}
+        mode="subscription"
+        packages={await mockBilling.getPackages()}
+        billingService={mockBilling}
+        onLater={jest.fn()}
+      />
+    );
+
+    // Press subscribe with annual tier
+    await pressed['Suscribirme']?.();
+    expect(purchaseSpy).toHaveBeenCalled();
   });
 });

@@ -39,7 +39,8 @@ import { findFix, findMission } from './src/shell/missions/content';
 import { acceptEasier, canMoveOn, fixFor, moveOn, startMission } from './src/shell/missions/mission';
 import type { DiaryOutcome } from './src/shell/streak';
 import { canSkipDay, missionAfterDebrief, missionEntryOf, missionForDebrief } from './src/shell/missions/missionView';
-import { canStartTrial, computeTrialRecap, isPlus, progressAt, startTrialThen, subscribeThen, trialState, type PendingPlusAction } from './src/shell/plus';
+import { getBillingService } from './src/shell/billing';
+import { applyBillingSubscription, canStartTrial, computeTrialRecap, isPlus, pendingSkipMission, progressAt, startTrialThen, subscribeThen, trialState, type PendingPlusAction } from './src/shell/plus';
 import { FixScreen, MissionBriefScreen, MissionCheckInScreen, MissionPassedScreen, MissionProblemScreen, MissionWaitingScreen } from './src/shell/screens/MissionScreens';
 import type { Stop } from './src/shell/world';
 import { lessonDay, markLessonRead, todaysLesson } from './src/shell/lessons/lesson';
@@ -142,6 +143,7 @@ export default function App() {
   const [bundle, setBundle] = useState<'loading' | 'ready' | 'error'>('loading');
   const [paused, setPaused] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [trialModalOpen, setTrialModalOpen] = useState(false);
   const [flow, setFlow] = useState<Flow | null>(null);
   const [hint, setHint] = useState<HintId | null>(null);
   // the approaching-dog warning: where the dog comes from on screen, while it is shown
@@ -182,13 +184,16 @@ export default function App() {
     }
   }, [splashReady, record, fontsLoaded, fontTimedOut, minSplashElapsed]);
 
-  const now = new Date();
-  const needsRecap =
-    !!record &&
-    record.onboarding.step === 'done' &&
-    !record.onboarding.mockSubscribed &&
-    trialState(record, now) === 'expired' &&
-    !record.onboarding.trialRecapSeenAt;
+  // Value Recap on cold start: decided once when the record is first loaded, never mid-session
+  const coldStartNeedsRecap = useRef<boolean | null>(null);
+  if (record && coldStartNeedsRecap.current === null) {
+    coldStartNeedsRecap.current =
+      record.onboarding.step === 'done' &&
+      !record.onboarding.mockSubscribed &&
+      trialState(record, new Date()) === 'expired' &&
+      !record.onboarding.trialRecapSeenAt;
+  }
+  const needsRecap = Boolean(coldStartNeedsRecap.current && !record?.onboarding.trialRecapSeenAt);
 
   const route = routeFor({
     ready: splashReady,
@@ -434,6 +439,18 @@ export default function App() {
 
   useEffect(() => {
     prepareAudio(false);
+    const billing = getBillingService();
+    billing
+      .initialize()
+      .then(async () => {
+        try {
+          const entitlement = await billing.checkEntitlements();
+          if (recordRef.current) {
+            update((r) => applyBillingSubscription(r, entitlement, new Date()));
+          }
+        } catch {}
+      })
+      .catch(() => {});
   }, []);
 
   // a bundle that never reports ready counts as a load failure
@@ -522,7 +539,7 @@ export default function App() {
     if (!r) return;
     const now = new Date();
     if (!isPlus(r, now)) {
-      setFlow({ name: 'paywall', then: { skipMission: id } });
+      setFlow({ name: 'paywall', then: { kind: 'skip', missionId: id } });
       return;
     }
     update((rec) => applyDaySkip(rec, id, now));
@@ -633,6 +650,9 @@ export default function App() {
           breed={record.breed}
           coat={record.coat}
           onPaywall={() => setFlow({ name: 'paywall' })}
+          trialModalOpen={trialModalOpen}
+          onOpenTrialModal={() => setTrialModalOpen(true)}
+          onCloseTrialModal={withBack(() => setTrialModalOpen(false))}
           covered={overlay !== null}
           banner={
             account.signedIn && account.sync.paused === 'verify' ? (
@@ -744,11 +764,32 @@ export default function App() {
       choosingDog = true;
       screen = <ChooseDogScreen t={t} local={record} cloud={migrateRecord(account.choice[0].record)} onChoose={account.chooseDog} />;
     } else if (record) {
-      screen = <PaywallScreen t={t} onStartTrial={() => update((r) => passPaywall(r, true, new Date()))} onLater={() => update((r) => passPaywall(r, false, new Date()))} />;
+      const onRestore = async () => {
+        const at = new Date();
+        const billing = getBillingService();
+        try {
+          const res = await billing.restorePurchases();
+          if (res.success && res.isPlus) {
+            const entitlement = await billing.checkEntitlements();
+            update((r) => {
+              const withBilling = applyBillingSubscription(r, entitlement, at);
+              return passPaywall(withBilling, true, at);
+            });
+          }
+        } catch {}
+      };
+      screen = (
+        <PaywallScreen
+          t={t}
+          onStartTrial={() => update((r) => passPaywall(r, true, new Date()))}
+          onRestore={onRestore}
+          onLater={() => update((r) => passPaywall(r, false, new Date()))}
+        />
+      );
     }
   } else if (route.name === 'recap') {
     if (record) {
-      const { videosWatched, skipsUsed } = computeTrialRecap(record, LESSONS);
+      const { activeStreakDays, videosWatched, skipsUsed } = computeTrialRecap(record, LESSONS);
       const onDismissRecap = () => {
         update((r) => ({
           ...r,
@@ -758,31 +799,75 @@ export default function App() {
           },
         }));
       };
-      const onSubscribe = () => {
+      const onSubscribe = async () => {
         const at = new Date();
-        update((r) =>
-          subscribeThen(
-            {
-              ...r,
-              onboarding: {
-                ...r.onboarding,
-                trialRecapSeenAt: at.toISOString(),
+        const billing = getBillingService();
+        try {
+          const entitlement = await billing.checkEntitlements();
+          update((r) => {
+            const withBilling = applyBillingSubscription(
+              {
+                ...r,
+                onboarding: {
+                  ...r.onboarding,
+                  trialRecapSeenAt: at.toISOString(),
+                },
               },
-            },
-            undefined,
-            at,
-          ),
-        );
+              entitlement,
+              at,
+            );
+            return subscribeThen(withBilling, undefined, at);
+          });
+        } catch {
+          update((r) =>
+            subscribeThen(
+              {
+                ...r,
+                onboarding: {
+                  ...r.onboarding,
+                  trialRecapSeenAt: at.toISOString(),
+                },
+              },
+              undefined,
+              at,
+            ),
+          );
+        }
+      };
+      const onRestore = async () => {
+        const at = new Date();
+        const billing = getBillingService();
+        try {
+          const res = await billing.restorePurchases();
+          if (res.success && res.isPlus) {
+            const entitlement = await billing.checkEntitlements();
+            update((r) => {
+              const withBilling = applyBillingSubscription(
+                {
+                  ...r,
+                  onboarding: {
+                    ...r.onboarding,
+                    trialRecapSeenAt: at.toISOString(),
+                  },
+                },
+                entitlement,
+                at,
+              );
+              return subscribeThen(withBilling, undefined, at);
+            });
+          }
+        } catch {}
       };
       screen = (
         <ValueRecapScreen
           t={t}
           dogName={record.name}
-          streakDays={record.streak.current}
+          streakDays={activeStreakDays}
           videosWatched={videosWatched}
           skipsUsed={skipsUsed}
           onSubscribeAnnual={onSubscribe}
           onSubscribeMonthly={onSubscribe}
+          onRestore={onRestore}
           onContinueFree={withBack(onDismissRecap)}
         />
       );
@@ -916,18 +1001,46 @@ export default function App() {
           setFlow({ name: 'lesson', id: action.lessonId, returnTo, autoPlayVideo: unlocked });
           return;
         }
-        const missionId = 'skipMission' in action ? action.skipMission : action.missionId;
-        if (unlocked) {
-          mapScroll.current = undefined;
-          goHome();
+        const missionId = pendingSkipMission(action);
+        if (missionId) {
+          if (unlocked) {
+            mapScroll.current = undefined;
+            goHome();
+          } else {
+            setFlow({ name: 'mission', id: missionId, view: missionEntry(missionId) });
+          }
         } else {
-          setFlow({ name: 'mission', id: missionId, view: missionEntry(missionId) });
+          goHome();
         }
       };
-      const onSubscribe = () => {
+      const onSubscribe = async () => {
         const at = new Date();
-        update((r) => subscribeThen(r, f.then, at));
+        const billing = getBillingService();
+        try {
+          const entitlement = await billing.checkEntitlements();
+          update((r) => {
+            const withBilling = applyBillingSubscription(r, entitlement, at);
+            return subscribeThen(withBilling, f.then, at);
+          });
+        } catch {
+          update((r) => subscribeThen(r, f.then, at));
+        }
         resolvePendingPlus(f.then, true);
+      };
+      const onRestore = async () => {
+        const at = new Date();
+        const billing = getBillingService();
+        try {
+          const res = await billing.restorePurchases();
+          if (res.success && res.isPlus) {
+            const entitlement = await billing.checkEntitlements();
+            update((r) => {
+              const withBilling = applyBillingSubscription(r, entitlement, at);
+              return subscribeThen(withBilling, f.then, at);
+            });
+            resolvePendingPlus(f.then, true);
+          }
+        } catch {}
       };
       screen = (
         <PaywallScreen
@@ -941,6 +1054,7 @@ export default function App() {
           }}
           onSubscribeAnnual={onSubscribe}
           onSubscribeMonthly={onSubscribe}
+          onRestore={onRestore}
           onLater={withBack(() => resolvePendingPlus(f.then, false))}
         />
       );

@@ -32,7 +32,7 @@ The system SHALL keep the Streak, the Library entry, the Plus chip, the Settings
 ## ADDED Requirements
 
 ### Requirement: Plus chip lifecycle states
-The Plus chip in the Map Header SHALL adapt its appearance and behavior to the user's trial status. For an unstarted trial, it SHALL display "7 días gratis" and open the paywall with bypass. During an active trial, it SHALL display "Plus" with the remaining days and open the trial status modal. For an expired trial, it SHALL display "Pasar a Plus" and open the conversion screen.
+The Plus chip in the Map Header SHALL adapt its appearance and behavior to the user's trial status. For an unstarted trial, it SHALL display "7 días gratis" and open the paywall with bypass. During an active trial, it SHALL display "Plus" with the remaining days and open the trial status modal. For an expired trial, it SHALL display "Pasar a Plus" and open the conversion screen. For an active subscription, it SHALL display "Plus" with "Activo" and open the membership status modal.
 
 #### Scenario: Free user sees trial offer chip
 - **WHEN** the user has not started the trial
@@ -45,6 +45,10 @@ The Plus chip in the Map Header SHALL adapt its appearance and behavior to the u
 #### Scenario: Expired trial user sees upgrade prompt
 - **WHEN** the user's 7-day trial has expired
 - **THEN** the Plus chip displays "Pasar a Plus", and tapping it opens the conversion screen
+
+#### Scenario: Subscribed user sees active membership chip
+- **WHEN** the user has an active Plus subscription
+- **THEN** the Plus chip displays "Plus · Activo", and tapping it opens the trial status modal
 
 ### Requirement: Active trial status modal
 The system SHALL provide a modal sheet when tapping the active Plus chip that recaps the user's active LeadMate Plus benefits (unlocked technique videos, unlimited Day Skips, upcoming Plus Worlds) and remaining trial days, dismissed via a single button without leaving the World Map.

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 import type { DogRecord, KeyValueStore } from '../dogRecord';
+import { getBillingService, type BillingService } from '../billing';
 import { supabaseAuth, type AuthApi } from './auth';
 import { followAppState } from './autoRefresh';
 import { getClient } from './client';
@@ -34,6 +35,19 @@ export interface Account {
   forgetAccount: () => void;
   /** Detaches sync pairing and clears reminder counters on reset. */
   resetSync: () => void;
+}
+
+export function syncAuthWithBilling(
+  isSignedIn: boolean,
+  userId: string | null | undefined,
+  billing: BillingService,
+): Promise<void> {
+  if (isSignedIn && userId) {
+    return billing.logIn(userId);
+  } else if (!isSignedIn) {
+    return billing.logOut();
+  }
+  return Promise.resolve();
 }
 
 /**
@@ -84,7 +98,14 @@ export function useAccount(store: KeyValueStore, record: DogRecord | null, repla
     };
   }, [store, client]);
 
-  useEffect(() => (auth ? auth.watch(setSignedIn) : undefined), [auth]);
+  useEffect(() => {
+    if (!auth) return;
+    const billing = getBillingService();
+    return auth.watch((isSignedIn, userId) => {
+      setSignedIn(isSignedIn);
+      syncAuthWithBilling(isSignedIn, userId, billing).catch(() => {});
+    });
+  }, [auth]);
 
   // no token refresh timer in the background (iOS and Android)
   useEffect(() => (client ? followAppState(client.auth, Platform.OS, AppState) : undefined), [client]);

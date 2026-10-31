@@ -246,8 +246,20 @@ A World designated as part of LeadMate Plus, requiring Plus membership in additi
 _Avoid_: Premium chapter, paid zone
 
 **Plus membership**:
-Whether the user has LeadMate Plus right now, granted either during an active Trial or via an active subscription tier.
+Whether the user has LeadMate Plus right now, granted either during an active Trial or via a verified store Subscription Tier.
 _Avoid_: Plus subscription, premium, entitlement
+
+**Subscription Tier**:
+An auto-renewing billing plan (Annual or Monthly) that grants continuous Plus membership.
+_Avoid_: Billing plan, membership package, subscription option
+
+**Store Offering**:
+The set of localized Subscription Tiers and pricing packages retrieved dynamically from the Apple App Store or Google Play Store.
+_Avoid_: Product list, catalog, store inventory
+
+**Restore Purchases**:
+The action of re-validating native app store receipts to re-establish Plus membership on a new or reset device.
+_Avoid_: Recover license, sync receipt, refresh subscription
 
 **Trial**:
 The 7-day period starting from when the user first opts into LeadMate Plus, granting temporary Plus membership at no cost.

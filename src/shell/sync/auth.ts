@@ -40,7 +40,7 @@ export interface AuthApi {
   /** Deletes the account and its cloud rows through the `delete-account` function, then signs out. Local data stays. */
   deleteAccount(): Promise<AuthResult>;
   /** Calls back with whether a session exists now and on every change; returns the unsubscribe. */
-  watch(onChange: (signedIn: boolean) => void): () => void;
+  watch(onChange: (signedIn: boolean, userId?: string | null) => void): () => void;
 }
 
 export function supabaseAuth(client: SupabaseClient): AuthApi {
@@ -56,8 +56,8 @@ export function supabaseAuth(client: SupabaseClient): AuthApi {
       return guard(() => client.auth.signOut({ scope: 'local' }));
     },
     watch(onChange) {
-      client.auth.getSession().then(({ data }) => onChange(Boolean(data.session)));
-      const { data } = client.auth.onAuthStateChange((_event, session) => onChange(Boolean(session)));
+      client.auth.getSession().then(({ data }) => onChange(Boolean(data.session), data.session?.user?.id ?? null));
+      const { data } = client.auth.onAuthStateChange((_event, session) => onChange(Boolean(session), session?.user?.id ?? null));
       return () => data.subscription.unsubscribe();
     },
   };

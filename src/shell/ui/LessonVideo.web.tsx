@@ -1,12 +1,13 @@
 import { createElement } from 'react';
 import type { Translate } from '../../i18n';
 import { LessonVideoCard, type VideoBlock } from './LessonVideoCard';
-import type { TrialState } from '../plus';
+import type { TrialState, VideoGatingProps } from '../plus';
 
 /** Web: the embed plays in an iframe that is created only after the tap. */
 export function LessonVideo({
   t,
   block,
+  gating,
   isPlus,
   trialState,
   onUnlock,
@@ -14,19 +15,18 @@ export function LessonVideo({
 }: {
   t: Translate;
   block: VideoBlock;
+  gating?: VideoGatingProps;
   isPlus?: boolean;
   trialState?: TrialState;
   onUnlock?: () => void;
   autoPlay?: boolean;
 }) {
+  const videoGating: VideoGatingProps = gating ?? { isPlus, trialState, onUnlock, autoPlay };
   return (
     <LessonVideoCard
       t={t}
       block={block}
-      isPlus={isPlus}
-      trialState={trialState}
-      onUnlock={onUnlock}
-      autoPlay={autoPlay}
+      gating={videoGating}
       renderPlayer={({ uri, attempt, onLoaded, onError }) =>
         createElement('iframe', {
           key: attempt,

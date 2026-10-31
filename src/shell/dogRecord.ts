@@ -86,6 +86,15 @@ export interface DogRecord {
   legacyNodes: string[];
   /** Dated log of what the user did, oldest first, for the Diary; nothing reads progress from it. */
   activityLog: ActivityEvent[];
+  /** Verified subscription entitlements from store billing, cached for offline continuity. */
+  billing?: BillingRecordState;
+}
+
+export interface BillingRecordState {
+  isSubscribed: boolean;
+  expiresAt: string | null;
+  lastVerifiedAt: string;
+  tier?: 'annual' | 'monthly';
 }
 
 /** The first solve of a date's Daily Barkdoku. */
@@ -244,6 +253,21 @@ function readOnboarding(raw: unknown, version: unknown): OnboardingState {
   return out;
 }
 
+function readBilling(raw: unknown): BillingRecordState | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const b = raw as Record<string, unknown>;
+  if (typeof b.isSubscribed !== 'boolean') return undefined;
+  const expiresAt = typeof b.expiresAt === 'string' && !Number.isNaN(Date.parse(b.expiresAt)) ? b.expiresAt : null;
+  const lastVerifiedAt = typeof b.lastVerifiedAt === 'string' && !Number.isNaN(Date.parse(b.lastVerifiedAt)) ? b.lastVerifiedAt : new Date(0).toISOString();
+  const tier = b.tier === 'annual' || b.tier === 'monthly' ? b.tier : undefined;
+  return {
+    isSubscribed: b.isSubscribed,
+    expiresAt,
+    lastVerifiedAt,
+    ...(tier ? { tier } : {}),
+  };
+}
+
 /** Reads a stored value of any known version into the current shape; anything unreadable gets defaults. */
 export function migrateRecord(raw: unknown): DogRecord {
   const base = newDogRecord();
@@ -261,6 +285,7 @@ export function migrateRecord(raw: unknown): DogRecord {
   const checkpoint = r.checkpointSeconds;
   const completedNodes = strings(r.completedNodes);
   const beforeMissions = typeof r.version !== 'number' || r.version < 7;
+  const billing = readBilling(r.billing);
   return {
     version: RECORD_VERSION,
     attributes,
@@ -291,6 +316,7 @@ export function migrateRecord(raw: unknown): DogRecord {
     seenFixes: readSeenFixes(r.seenFixes),
     legacyNodes: beforeMissions ? [...completedNodes] : strings(r.legacyNodes),
     activityLog: readActivityLog(r.activityLog),
+    ...(billing ? { billing } : {}),
   };
 }
 

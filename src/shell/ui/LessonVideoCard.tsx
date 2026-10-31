@@ -9,7 +9,7 @@ import { browserNext, videoEmbedUrl, videoWatchUrl, type BrowserState } from './
 import { CanineMinigameAvatar } from './CanineMinigameAvatar';
 import { handlePress } from './press';
 import { theme, usePalette } from './theme';
-import type { TrialState } from '../plus';
+import type { TrialState, VideoGatingProps } from '../plus';
 
 export type VideoBlock = Extract<LessonBlock, { type: 'video' }>;
 
@@ -24,19 +24,25 @@ export function LessonVideoCard({
   t,
   block,
   renderPlayer,
-  isPlus = false,
-  trialState = 'unstarted',
-  onUnlock,
-  autoPlay = false,
+  gating,
+  isPlus: propIsPlus,
+  trialState: propTrialState,
+  onUnlock: propOnUnlock,
+  autoPlay: propAutoPlay,
 }: {
   t: Translate;
   block: VideoBlock;
   renderPlayer: PlayerRenderer;
+  gating?: VideoGatingProps;
   isPlus?: boolean;
   trialState?: TrialState;
   onUnlock?: () => void;
   autoPlay?: boolean;
 }) {
+  const isPlus = gating?.isPlus ?? propIsPlus ?? false;
+  const trialState = gating?.trialState ?? propTrialState ?? 'unstarted';
+  const onUnlock = gating?.onUnlock ?? propOnUnlock;
+  const autoPlay = gating?.autoPlay ?? propAutoPlay ?? false;
   const color = usePalette();
   const [started, setStarted] = useState(isPlus && autoPlay);
   const [state, setState] = useState<BrowserState>('loading');

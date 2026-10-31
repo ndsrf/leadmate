@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import type { Translate, TextKey } from '../../i18n';
@@ -8,6 +8,7 @@ import { Badge, Panel, Raised } from '../ui/components';
 import { handlePress } from '../ui/press';
 import { theme, usePalette } from '../ui/theme';
 import { Screen } from './Screen';
+import { getBillingService, type BillingPackage, type BillingService } from '../billing';
 
 type Benefit = 'worlds' | 'guides' | 'more';
 const BENEFITS: readonly { id: Benefit; text: TextKey }[] = [
@@ -60,9 +61,12 @@ function CloseButton({ label, onPress }: { label: string; onPress: () => void })
 export interface PaywallScreenProps {
   t: Translate;
   mode?: 'trial' | 'subscription';
+  packages?: BillingPackage[];
+  billingService?: BillingService;
   onStartTrial?: () => void;
   onSubscribeAnnual?: () => void;
   onSubscribeMonthly?: () => void;
+  onRestore?: () => (Promise<void>) | void;
   onLater: () => void;
 }
 
@@ -73,60 +77,67 @@ export function PlanTierCards({
   selectedPlan,
   onSelectPlan,
   t,
+  annualPrice,
+  monthlyPrice,
 }: {
   selectedPlan: 'annual' | 'monthly';
   onSelectPlan: (plan: 'annual' | 'monthly') => void;
   t: Translate;
+  annualPrice?: string;
+  monthlyPrice?: string;
 }) {
   const color = usePalette();
+  const tiers: Array<{
+    id: 'annual' | 'monthly';
+    label: string;
+    price: string;
+    badge?: string;
+  }> = [
+    {
+      id: 'annual',
+      label: t('paywall.plan.annual'),
+      price: annualPrice ?? t('paywall.plan.annualPrice'),
+      badge: t('paywall.plan.annualBadge'),
+    },
+    {
+      id: 'monthly',
+      label: t('paywall.plan.monthly'),
+      price: monthlyPrice ?? t('paywall.plan.monthlyPrice'),
+    },
+  ];
+
   return (
     <View className="my-3 gap-3">
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${t('paywall.plan.annual')} - ${t('paywall.plan.annualPrice')}`}
-        onPress={() => onSelectPlan('annual')}
-      >
-        <Raised
-          fill={selectedPlan === 'annual' ? color.accentSoft : color.surface}
-          radius={theme.radius.lg}
-          offset={theme.depth.sm.x}
-          faceStyle={{
-            padding: theme.space[3],
-            borderWidth: selectedPlan === 'annual' ? 2 : 1,
-            borderColor: selectedPlan === 'annual' ? color.accent : color.edge,
-          }}
-        >
-          <View className="flex-row items-center justify-between">
-            <View className="gap-1">
-              <Text className="font-display text-title text-ink">{t('paywall.plan.annual')}</Text>
-              <Badge label={t('paywall.plan.annualBadge')} tone="accent" />
-            </View>
-            <Text className="font-display text-title text-ink">{t('paywall.plan.annualPrice')}</Text>
-          </View>
-        </Raised>
-      </Pressable>
-
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${t('paywall.plan.monthly')} - ${t('paywall.plan.monthlyPrice')}`}
-        onPress={() => onSelectPlan('monthly')}
-      >
-        <Raised
-          fill={selectedPlan === 'monthly' ? color.accentSoft : color.surface}
-          radius={theme.radius.lg}
-          offset={theme.depth.sm.x}
-          faceStyle={{
-            padding: theme.space[3],
-            borderWidth: selectedPlan === 'monthly' ? 2 : 1,
-            borderColor: selectedPlan === 'monthly' ? color.accent : color.edge,
-          }}
-        >
-          <View className="flex-row items-center justify-between">
-            <Text className="font-display text-title text-ink">{t('paywall.plan.monthly')}</Text>
-            <Text className="font-display text-title text-ink">{t('paywall.plan.monthlyPrice')}</Text>
-          </View>
-        </Raised>
-      </Pressable>
+      {tiers.map((tier) => {
+        const isSelected = selectedPlan === tier.id;
+        return (
+          <Pressable
+            key={tier.id}
+            accessibilityRole="button"
+            accessibilityLabel={`${tier.label} - ${tier.price}`}
+            onPress={() => onSelectPlan(tier.id)}
+          >
+            <Raised
+              fill={isSelected ? color.accentSoft : color.surface}
+              radius={theme.radius.lg}
+              offset={theme.depth.sm.x}
+              faceStyle={{
+                padding: theme.space[3],
+                borderWidth: isSelected ? 2 : 1,
+                borderColor: isSelected ? color.accent : color.edge,
+              }}
+            >
+              <View className="flex-row items-center justify-between">
+                <View className="gap-1">
+                  <Text className="font-display text-title text-ink">{tier.label}</Text>
+                  {tier.badge && <Badge label={tier.badge} tone="accent" />}
+                </View>
+                <Text className="font-display text-title text-ink">{tier.price}</Text>
+              </View>
+            </Raised>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -138,13 +149,104 @@ export function PlanTierCards({
 export function PaywallScreen({
   t,
   mode = 'trial',
+  packages,
+  billingService,
   onStartTrial,
   onSubscribeAnnual,
   onSubscribeMonthly,
+  onRestore,
   onLater,
 }: PaywallScreenProps) {
   const color = usePalette();
   const [selectedPlan, setSelectedPlan] = useState<'annual' | 'monthly'>('annual');
+  const [packagesList, setPackagesList] = useState<BillingPackage[]>(packages ?? []);
+  const [error, setError] = useState<string | null>(null);
+  const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const billing = billingService ?? getBillingService();
+
+  useEffect(() => {
+    if (packages) {
+      setPackagesList(packages);
+      return;
+    }
+    billing.getPackages().then(setPackagesList).catch(() => {});
+  }, [packages, billing]);
+
+  const annualPkg = packagesList.find((p) => p.tier === 'annual');
+  const monthlyPkg = packagesList.find((p) => p.tier === 'monthly');
+
+  const annualPrice = annualPkg
+    ? annualPkg.priceString.includes('/')
+      ? annualPkg.priceString
+      : `${annualPkg.priceString}/año`
+    : undefined;
+
+  const monthlyPrice = monthlyPkg
+    ? monthlyPkg.priceString.includes('/')
+      ? monthlyPkg.priceString
+      : `${monthlyPkg.priceString}/mes`
+    : undefined;
+
+  const handleSubscribe = async () => {
+    setError(null);
+    setRestoreMessage(null);
+
+    const targetPkg = selectedPlan === 'annual' ? annualPkg : monthlyPkg;
+    if (targetPkg) {
+      setBusy(true);
+      try {
+        const result = await billing.purchasePackage(targetPkg);
+        if (result.userCancelled) {
+          return;
+        }
+        if (!result.success || !result.isPlus) {
+          setError(result.error ?? t('paywall.error'));
+          return;
+        }
+      } catch (err: any) {
+        if (!err?.userCancelled) {
+          setError(err?.message ?? t('paywall.error'));
+        }
+        return;
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    if (selectedPlan === 'annual' && onSubscribeAnnual) {
+      await onSubscribeAnnual();
+      return;
+    }
+    if (selectedPlan === 'monthly' && onSubscribeMonthly) {
+      await onSubscribeMonthly();
+      return;
+    }
+  };
+
+  const handleRestore = async () => {
+    setError(null);
+    setRestoreMessage(null);
+    if (onRestore) {
+      onRestore();
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const result = await billing.restorePurchases();
+      if (result.success && result.isPlus) {
+        setRestoreMessage(t('paywall.restoreSuccess'));
+      } else {
+        setRestoreMessage(t('paywall.restoreNotFound'));
+      }
+    } catch (err: any) {
+      setError(err?.message ?? t('paywall.error'));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   if (mode === 'subscription') {
     return (
@@ -167,16 +269,44 @@ export function PaywallScreen({
           </View>
         ))}
 
-        <PlanTierCards selectedPlan={selectedPlan} onSelectPlan={setSelectedPlan} t={t} />
+        <PlanTierCards
+          selectedPlan={selectedPlan}
+          onSelectPlan={setSelectedPlan}
+          t={t}
+          annualPrice={annualPrice}
+          monthlyPrice={monthlyPrice}
+        />
+
+        {error && (
+          <Panel tone="warn" className="mb-2">
+            <Text className="text-body text-ink">{error}</Text>
+          </Panel>
+        )}
+
+        {restoreMessage && (
+          <Panel tone="info" className="mb-2">
+            <Text className="text-body text-ink">{restoreMessage}</Text>
+          </Panel>
+        )}
 
         <Button
           label={t('paywall.plan.subscribe')}
-          onPress={() => {
-            if (selectedPlan === 'annual') onSubscribeAnnual?.();
-            else onSubscribeMonthly?.();
-          }}
+          disabled={busy}
+          onPress={handleSubscribe}
         />
         <Button label={t('paywall.later')} tone="quiet" onPress={onLater} />
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('paywall.restore')}
+          onPress={handleRestore}
+          disabled={busy}
+          style={{ alignSelf: 'center', paddingVertical: theme.space[2] }}
+        >
+          <Text className="text-body text-ink font-body underline">
+            {t('paywall.restore')}
+          </Text>
+        </Pressable>
       </Screen>
     );
   }
@@ -203,6 +333,19 @@ export function PaywallScreen({
       </Panel>
       <Button label={t('paywall.start')} onPress={() => onStartTrial?.()} />
       <Button label={t('paywall.later')} tone="quiet" onPress={onLater} />
+      {onRestore && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('paywall.restore')}
+          onPress={handleRestore}
+          disabled={busy}
+          style={{ alignSelf: 'center', paddingVertical: theme.space[2] }}
+        >
+          <Text className="text-body text-ink font-body underline">
+            {t('paywall.restore')}
+          </Text>
+        </Pressable>
+      )}
     </Screen>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BackHandler, Pressable, Text, View, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
+import { Pressable, Text, View, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useLive } from '../ui/useAppActive';
 import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
@@ -73,6 +73,10 @@ export interface WorldMapProps {
   onPaywall?: () => void;
   /** Another screen (Settings, the Library, a Lesson) is shown over the map: its looping animation stands still. */
   covered?: boolean;
+  /** Whether the LeadMate Plus active trial status modal is open. */
+  trialModalOpen?: boolean;
+  onOpenTrialModal?: () => void;
+  onCloseTrialModal?: () => void;
 }
 
 /** A flame drawn from two rotated drops, so it needs no emoji font; grey when there is no Streak to show. */
@@ -884,18 +888,16 @@ export function TrialStatusModal({
           {isSubscribed ? t('trialModal.subtitleSubscribed') : t('trialModal.subtitle')}
         </Text>
         <View className="my-2 gap-2">
-          <View className="flex-row items-center gap-2">
-            <Text className="font-display text-body text-accent">✓</Text>
-            <Text className="text-body text-ink">{t('trialModal.perk.videos')}</Text>
-          </View>
-          <View className="flex-row items-center gap-2">
-            <Text className="font-display text-body text-accent">✓</Text>
-            <Text className="text-body text-ink">{t('trialModal.perk.skips')}</Text>
-          </View>
-          <View className="flex-row items-center gap-2">
-            <Text className="font-display text-body text-accent">✓</Text>
-            <Text className="text-body text-ink">{t('trialModal.perk.worlds')}</Text>
-          </View>
+          {([
+            { key: 'videos', text: t('trialModal.perk.videos') },
+            { key: 'skips', text: t('trialModal.perk.skips') },
+            { key: 'worlds', text: t('trialModal.perk.worlds') },
+          ] as const).map((perk) => (
+            <View key={perk.key} className="flex-row items-center gap-2">
+              <Text className="font-display text-body text-accent">✓</Text>
+              <Text className="text-body text-ink">{perk.text}</Text>
+            </View>
+          ))}
         </View>
         <Button label={t('trialModal.dismiss')} onPress={onDismiss} />
       </View>
@@ -932,6 +934,9 @@ export function WorldMapScreen({
   coat,
   onPaywall = () => {},
   covered = false,
+  trialModalOpen,
+  onOpenTrialModal,
+  onCloseTrialModal,
 }: WorldMapProps) {
   const color = usePalette();
   const motion = useMotion();
@@ -943,20 +948,14 @@ export function WorldMapScreen({
   const isSubscribed = !!membership?.onboarding.mockSubscribed;
   const state = membership ? trialState(membership, at) : 'unstarted';
   const days = membership ? trialDaysRemaining(membership, at) : 0;
-  const [trialModalOpen, setTrialModalOpen] = useState(false);
-
-  useEffect(() => {
-    if (!trialModalOpen) return;
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      setTrialModalOpen(false);
-      return true;
-    });
-    return () => sub.remove();
-  }, [trialModalOpen]);
+  const [internalModalOpen, setInternalModalOpen] = useState(false);
+  const isTrialModalOpen = trialModalOpen ?? internalModalOpen;
+  const openTrialModal = onOpenTrialModal ?? (() => setInternalModalOpen(true));
+  const closeTrialModal = onCloseTrialModal ?? (() => setInternalModalOpen(false));
 
   const handlePlusPress = () => {
     if (state === 'active' || isSubscribed) {
-      setTrialModalOpen(true);
+      openTrialModal();
     } else {
       onPaywall();
     }
@@ -1078,12 +1077,12 @@ export function WorldMapScreen({
           />
         ))}
       </View>
-      {trialModalOpen && (
+      {isTrialModalOpen && (
         <TrialStatusModal
           t={t}
           daysRemaining={days}
           isSubscribed={isSubscribed}
-          onDismiss={() => setTrialModalOpen(false)}
+          onDismiss={closeTrialModal}
         />
       )}
     </Screen>

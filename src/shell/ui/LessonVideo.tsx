@@ -5,7 +5,7 @@ import { isAllowedVideoHost } from './media';
 import { LessonVideoCard, type VideoBlock } from './LessonVideoCard';
 import { usePalette } from './theme';
 import { usePauseMediaInBackground, type WebViewHandle } from './usePauseMediaInBackground';
-import type { TrialState } from '../plus';
+import type { TrialState, VideoGatingProps } from '../plus';
 
 /**
  * Native: the embed plays in a WebView that loads only after the tap and never leaves the allow-listed host. It
@@ -14,6 +14,7 @@ import type { TrialState } from '../plus';
 export function LessonVideo({
   t,
   block,
+  gating,
   isPlus,
   trialState,
   onUnlock,
@@ -21,6 +22,7 @@ export function LessonVideo({
 }: {
   t: Translate;
   block: VideoBlock;
+  gating?: VideoGatingProps;
   isPlus?: boolean;
   trialState?: TrialState;
   onUnlock?: () => void;
@@ -29,14 +31,12 @@ export function LessonVideo({
   const color = usePalette();
   const player = useRef<WebViewHandle>(null);
   usePauseMediaInBackground(player);
+  const videoGating: VideoGatingProps = gating ?? { isPlus, trialState, onUnlock, autoPlay };
   return (
     <LessonVideoCard
       t={t}
       block={block}
-      isPlus={isPlus}
-      trialState={trialState}
-      onUnlock={onUnlock}
-      autoPlay={autoPlay}
+      gating={videoGating}
       renderPlayer={({ uri, attempt, onLoaded, onError }) => (
         <WebView
           key={attempt}

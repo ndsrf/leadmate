@@ -218,6 +218,34 @@ describe('Dog record: version 3', () => {
     expect(invalid.onboarding.trialRecapSeenAt).toBeUndefined();
   });
 
+  it('migrates and preserves optional billing state', () => {
+    const withoutBilling = migrateRecord({});
+    expect(withoutBilling.billing).toBeUndefined();
+
+    const valid = migrateRecord({
+      billing: {
+        isSubscribed: true,
+        expiresAt: '2027-01-01T00:00:00.000Z',
+        lastVerifiedAt: '2026-10-31T12:00:00.000Z',
+        tier: 'annual',
+      },
+    });
+    expect(valid.billing).toEqual({
+      isSubscribed: true,
+      expiresAt: '2027-01-01T00:00:00.000Z',
+      lastVerifiedAt: '2026-10-31T12:00:00.000Z',
+      tier: 'annual',
+    });
+
+    const invalid = migrateRecord({
+      billing: {
+        isSubscribed: 'yes',
+        expiresAt: 'not-a-date',
+      },
+    });
+    expect(invalid.billing).toBeUndefined();
+  });
+
   it('keeps the onboarding state across a restart', async () => {
     const store = memoryStore();
     const r = { ...newDogRecord(), weights: { dogKg: 20, handlerKg: 70 }, onboarding: { ...newDogRecord().onboarding, step: 'diagnostic' as const }, updatedAt: '2026-05-01T10:00:00.000Z' };

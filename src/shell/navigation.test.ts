@@ -312,6 +312,14 @@ describe('Mission flows', () => {
     expect(routeFor({ ready: true, onboardingStep: 'done', flow })).toEqual({ name: 'flow', flow });
     expect(routeFor({ ready: true, onboardingStep: 'welcome', flow })).toEqual({ name: 'funnel', step: 'welcome' });
   });
+
+  it('routes paywall flow with pending actions over the map', () => {
+    const videoFlow = { name: 'paywall', then: { kind: 'video' as const, lessonId: 'l1', returnTo: 'library' as const } };
+    expect(routeFor({ ready: true, onboardingStep: 'done', flow: videoFlow })).toEqual({ name: 'flow', flow: videoFlow });
+
+    const skipFlow = { name: 'paywall', then: { kind: 'skip' as const, missionId: 'mission-harness' } };
+    expect(routeFor({ ready: true, onboardingStep: 'done', flow: skipFlow })).toEqual({ name: 'flow', flow: skipFlow });
+  });
 });
 
 describe('backAction', () => {

@@ -15,7 +15,7 @@ jest.mock('react-native', () => {
     Text: (props: any) => React.createElement('span', props, props.children),
     Pressable: (props: any) => {
       const body = typeof props.children === 'function' ? props.children({ pressed: false }) : props.children;
-      const t = text(body);
+      const t = props.accessibilityLabel || text(body);
       if (t && props.onPress) pressed[t] = props.onPress;
       return React.createElement('button', props, body);
     },
@@ -57,18 +57,33 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
+jest.mock('react-native-purchases', () => ({
+  __esModule: true,
+  default: {},
+  PACKAGE_TYPE: {
+    ANNUAL: 'ANNUAL',
+    MONTHLY: 'MONTHLY',
+  },
+}));
+
 import React from 'react';
 // @ts-ignore
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createTranslator, es } from '../../i18n';
 import { ValueRecapScreen } from './ValueRecapScreen';
+import { MockBillingService } from '../billing';
 
 describe('ValueRecapScreen', () => {
   const t = createTranslator(es);
 
-  it('renders dog name, streak days, videos watched, day skips, tiers, and bypass button', () => {
+  beforeEach(() => {
+    for (const k of Object.keys(pressed)) delete pressed[k];
+  });
+
+  it('renders dog name, streak days, videos watched, day skips, tiers, restore and bypass button', () => {
     let continuedFree = false;
     let subscribedAnnual = false;
+    let restored = false;
     const markup = renderToStaticMarkup(
       <ValueRecapScreen
         t={t}
@@ -80,6 +95,9 @@ describe('ValueRecapScreen', () => {
           subscribedAnnual = true;
         }}
         onSubscribeMonthly={() => {}}
+        onRestore={() => {
+          restored = true;
+        }}
         onContinueFree={() => {
           continuedFree = true;
         }}
@@ -94,11 +112,40 @@ describe('ValueRecapScreen', () => {
     expect(markup).toContain('6,99 €/mes');
     expect(markup).toContain('Continuar con la versión gratuita');
     expect(markup).toContain('Suscribirme');
+    expect(markup).toContain('Restaurar compras');
 
     pressed['Continuar con la versión gratuita']?.();
     expect(continuedFree).toBe(true);
 
     pressed['Suscribirme']?.();
     expect(subscribedAnnual).toBe(true);
+
+    pressed['Restaurar compras']?.();
+    expect(restored).toBe(true);
+  });
+
+  it('triggers purchases and restorations via BillingService', async () => {
+    const mockBilling = new MockBillingService();
+    const purchaseSpy = jest.spyOn(mockBilling, 'purchasePackage');
+    const restoreSpy = jest.spyOn(mockBilling, 'restorePurchases');
+
+    renderToStaticMarkup(
+      <ValueRecapScreen
+        t={t}
+        dogName="Max"
+        streakDays={7}
+        videosWatched={2}
+        skipsUsed={1}
+        packages={await mockBilling.getPackages()}
+        billingService={mockBilling}
+        onContinueFree={jest.fn()}
+      />,
+    );
+
+    await pressed['Suscribirme']?.();
+    expect(purchaseSpy).toHaveBeenCalled();
+
+    await pressed['Restaurar compras']?.();
+    expect(restoreSpy).toHaveBeenCalled();
   });
 });

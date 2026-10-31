@@ -11,7 +11,7 @@ import { LessonBlockView } from '../ui/LessonBlocks';
 import { handlePress } from '../ui/press';
 import { theme } from '../ui/theme';
 import { Screen } from './Screen';
-import type { TrialState } from '../plus';
+import type { TrialState, VideoGatingProps } from '../plus';
 
 /**
  * The Theory Library: every Lesson in order with its place (day or trail Stretch), kind, reading time and read
@@ -107,6 +107,7 @@ function Item({
   t,
   item,
   onDone,
+  videoGating,
   isPlus,
   trialState,
   onUnlockVideo,
@@ -115,6 +116,7 @@ function Item({
   t: Translate;
   item: LessonItem;
   onDone: () => void;
+  videoGating?: VideoGatingProps;
   isPlus?: boolean;
   trialState?: TrialState;
   onUnlockVideo?: () => void;
@@ -125,10 +127,7 @@ function Item({
       <LessonBlockView
         t={t}
         block={item}
-        isPlus={isPlus}
-        trialState={trialState}
-        onUnlockVideo={onUnlockVideo}
-        autoPlayVideo={autoPlayVideo}
+        videoGating={videoGating ?? { isPlus, trialState, onUnlock: onUnlockVideo, autoPlay: autoPlayVideo }}
       />
     );
   }
@@ -150,6 +149,7 @@ export function LessonScreen({
   onDone,
   onBack,
   backLabel = t('lesson.back'),
+  videoGating,
   isPlus,
   trialState,
   onUnlockVideo,
@@ -160,12 +160,14 @@ export function LessonScreen({
   onDone: () => void;
   onBack: () => void;
   backLabel?: string;
+  videoGating?: VideoGatingProps;
   isPlus?: boolean;
   trialState?: TrialState;
   onUnlockVideo?: () => void;
   autoPlayVideo?: boolean;
 }) {
   const [progress, setProgress] = useState(0);
+  const gating: VideoGatingProps = videoGating ?? { isPlus, trialState, onUnlock: onUnlockVideo, autoPlay: autoPlayVideo };
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
     setProgress(readingProgress(contentOffset.y, contentSize.height, layoutMeasurement.height));
@@ -195,10 +197,7 @@ export function LessonScreen({
           t={t}
           item={item}
           onDone={onDone}
-          isPlus={isPlus}
-          trialState={trialState}
-          onUnlockVideo={onUnlockVideo}
-          autoPlayVideo={autoPlayVideo}
+          videoGating={gating}
         />
       ))}
     </Screen>
