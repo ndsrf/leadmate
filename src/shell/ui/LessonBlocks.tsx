@@ -6,9 +6,24 @@ import { LessonImage, LessonPicture } from './LessonImage';
 import { LessonVideo } from './LessonVideo';
 import { Panel, Raised } from './components';
 import { theme, usePalette } from './theme';
+import type { TrialState } from '../plus';
 
 /** One Lesson-style block: a heading, text, a tip, an image, a video, steps, an example, a do / don't or takeaways. Lessons and Fixes are drawn with it. */
-export function LessonBlockView({ t, block }: { t: Translate; block: LessonBlock }) {
+export function LessonBlockView({
+  t,
+  block,
+  isPlus,
+  trialState,
+  onUnlockVideo,
+  autoPlayVideo,
+}: {
+  t: Translate;
+  block: LessonBlock;
+  isPlus?: boolean;
+  trialState?: TrialState;
+  onUnlockVideo?: () => void;
+  autoPlayVideo?: boolean;
+}) {
   const color = usePalette();
   switch (block.type) {
     case 'heading':
@@ -25,7 +40,16 @@ export function LessonBlockView({ t, block }: { t: Translate; block: LessonBlock
     case 'image':
       return <LessonImage t={t} block={block} />;
     case 'video':
-      return <LessonVideo t={t} block={block} />;
+      return (
+        <LessonVideo
+          t={t}
+          block={block}
+          isPlus={isPlus}
+          trialState={trialState}
+          onUnlock={onUnlockVideo}
+          autoPlay={autoPlayVideo}
+        />
+      );
     case 'steps':
       return (
         <View className="mt-4" accessibilityRole="list">
@@ -103,11 +127,33 @@ function CompareCard({ t, side, good }: { t: Translate; side: CompareSide; good:
 }
 
 /** Blocks in declared order, in a single column. */
-export function LessonBlocks({ t, blocks }: { t: Translate; blocks: readonly LessonBlock[] }) {
+export function LessonBlocks({
+  t,
+  blocks,
+  isPlus,
+  trialState,
+  onUnlockVideo,
+  autoPlayVideo,
+}: {
+  t: Translate;
+  blocks: readonly LessonBlock[];
+  isPlus?: boolean;
+  trialState?: TrialState;
+  onUnlockVideo?: () => void;
+  autoPlayVideo?: boolean;
+}) {
   return (
     <>
       {blocks.map((block, i) => (
-        <LessonBlockView key={i} t={t} block={block} />
+        <LessonBlockView
+          key={i}
+          t={t}
+          block={block}
+          isPlus={isPlus}
+          trialState={trialState}
+          onUnlockVideo={onUnlockVideo}
+          autoPlayVideo={autoPlayVideo}
+        />
       ))}
     </>
   );

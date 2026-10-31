@@ -6,6 +6,7 @@ export type Route<F = unknown> =
   | { name: 'taste' }
   | { name: 'first-stage' }
   | { name: 'paywall' }
+  | { name: 'recap' }
   | { name: 'map' }
   | { name: 'settings' }
   | { name: 'flow'; flow: F };
@@ -17,6 +18,8 @@ export interface RouteForParams<F = unknown> {
   /** The active flow is an account flow (login or registration), the only kind that may overlay the funnel. */
   accountFlow?: boolean;
   settingsOpen?: boolean;
+  /** Whether the user has just expired their trial and has not yet seen the Value Recap. */
+  needsRecap?: boolean;
 }
 
 /**
@@ -28,7 +31,8 @@ export interface RouteForParams<F = unknown> {
  * 2. Funnel steps ('welcome', 'dog', 'setup', 'diagnostic', 'plan'), the 'taste' and
  *    'first-stage' Stages and the 'paywall' win over any leftover flow/settings. The one exception is
  *    an account flow (login from 'welcome', registration at 'paywall'), which shows over its step.
- * 4. Active flow (node, daily, warmup, auth, register) over map/settings.
+ * 3. Active flow (node, daily, warmup, auth, register) over map/settings/recap.
+ * 4. Value Recap on cold start / launch if trial expired and recap not yet seen.
  * 5. Settings screen if opened.
  * 6. Default: World Map.
  */
@@ -38,6 +42,7 @@ export function routeFor<F = unknown>({
   flow,
   accountFlow = false,
   settingsOpen = false,
+  needsRecap = false,
 }: RouteForParams<F>): Route<F> {
   if (!ready) {
     return { name: 'splash' };
@@ -52,6 +57,9 @@ export function routeFor<F = unknown>({
   }
   if (flow != null) {
     return { name: 'flow', flow };
+  }
+  if (needsRecap) {
+    return { name: 'recap' };
   }
   if (settingsOpen) {
     return { name: 'settings' };
@@ -111,6 +119,6 @@ export function backAction({ route, playingStage, paused, bundle, hasScreenBack,
   if (playingStage && bundle === 'loading') return 'consume';
   if (playingStage) return 'pause';
   if (hasScreenBack) return 'screen';
-  if (route.name === 'splash' || route.name === 'map' || route.name === 'funnel' || route.name === 'paywall') return 'exit';
+  if (route.name === 'splash' || route.name === 'map' || route.name === 'funnel' || route.name === 'paywall' || route.name === 'recap') return 'exit';
   return 'consume';
 }

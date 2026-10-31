@@ -196,6 +196,28 @@ describe('Dog record: version 3', () => {
     expect(r.updatedAt).toBe(new Date(0).toISOString());
   });
 
+  it('migrates and keeps mockSubscribed and trialRecapSeenAt on onboarding', () => {
+    const valid = migrateRecord({
+      onboarding: {
+        step: 'done',
+        mockSubscribed: true,
+        trialRecapSeenAt: '2026-10-30T10:00:00.000Z',
+      },
+    });
+    expect(valid.onboarding.mockSubscribed).toBe(true);
+    expect(valid.onboarding.trialRecapSeenAt).toBe('2026-10-30T10:00:00.000Z');
+
+    const invalid = migrateRecord({
+      onboarding: {
+        step: 'done',
+        mockSubscribed: 'yes',
+        trialRecapSeenAt: 'invalid-date',
+      },
+    });
+    expect(invalid.onboarding.mockSubscribed).toBeUndefined();
+    expect(invalid.onboarding.trialRecapSeenAt).toBeUndefined();
+  });
+
   it('keeps the onboarding state across a restart', async () => {
     const store = memoryStore();
     const r = { ...newDogRecord(), weights: { dogKg: 20, handlerKg: 70 }, onboarding: { ...newDogRecord().onboarding, step: 'diagnostic' as const }, updatedAt: '2026-05-01T10:00:00.000Z' };

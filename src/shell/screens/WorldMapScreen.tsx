@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, Text, View, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
+import { BackHandler, Pressable, Text, View, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useLive } from '../ui/useAppActive';
 import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
@@ -12,8 +12,8 @@ import type { DailyBarkdokuSolve } from '../dogRecord';
 import { formatClock, solveTimeText } from '../puzzle/engine';
 import type { Progress, Stop } from '../world';
 import type { DogRecord } from '../dogRecord';
-import { isPlus, plusEndsAt } from '../plus';
-import { Button } from '../Overlays';
+import { isPlus, plusEndsAt, trialDaysRemaining, trialState, type TrialState } from '../plus';
+import { Backdrop, Button } from '../Overlays';
 import { Badge, Chip, GearGlyph, IconChip, LightRegion, Panel, ProgressBar, Raised, StarRow } from '../ui/components';
 import { WorldSceneryBackground, HouseLandmark } from '../ui/WorldSceneryBackground';
 export { HouseLandmark };
@@ -791,6 +791,118 @@ export function BarkdokuChip({ t, solve, onPress }: { t: Translate; solve?: Dail
   return <Chip label={name} value={solveTimeText(solve.seconds, solve.targetSeconds)} onPress={onPress} accessibilityLabel={`${name}. ${spoken}${met ? `. ${t('minigame.barkdoku.targetMet')}` : ''}`} />;
 }
 
+/**
+ * Header Plus chip: adapts appearance to the user's trial lifecycle:
+ * - 'unstarted': offers the 7-day trial ('7 días gratis')
+ * - 'active': shows remaining days ('Plus · X d')
+ * - 'expired': prompts conversion ('Pasar a Plus')
+ */
+export function PlusChip({
+  t,
+  state,
+  daysRemaining,
+  isSubscribed = false,
+  onPress,
+}: {
+  t: Translate;
+  state: TrialState;
+  daysRemaining?: number;
+  isSubscribed?: boolean;
+  onPress: () => void;
+}) {
+  if (isSubscribed) {
+    return (
+      <Chip
+        label={t('map.plus.chip')}
+        value={t('map.plus.subscribed')}
+        highlight
+        onPress={onPress}
+        accessibilityLabel={`${t('map.plus.chip')} · ${t('map.plus.subscribed')}`}
+      />
+    );
+  }
+  if (state === 'unstarted') {
+    return (
+      <Chip
+        label={t('map.plus.chip')}
+        value={t('paywall.badge')}
+        highlight
+        onPress={onPress}
+        accessibilityLabel={`${t('map.plus.chip')}. ${t('paywall.badge')}`}
+      />
+    );
+  }
+  if (state === 'active') {
+    const days = daysRemaining ?? 7;
+    const value = `${days} d`;
+    return (
+      <Chip
+        label={t('map.plus.chip')}
+        value={value}
+        highlight
+        onPress={onPress}
+        accessibilityLabel={`${t('map.plus.chip')} · ${value}`}
+      />
+    );
+  }
+  return (
+    <Chip
+      label={t('map.plus.chip')}
+      value={t('map.plus.expired')}
+      highlight
+      onPress={onPress}
+      accessibilityLabel={`${t('map.plus.chip')}. ${t('map.plus.expired')}`}
+    />
+  );
+}
+
+/**
+ * Modal sheet recapping active LeadMate Plus trial perks and remaining duration.
+ */
+export function TrialStatusModal({
+  t,
+  daysRemaining,
+  isSubscribed = false,
+  onDismiss,
+}: {
+  t: Translate;
+  daysRemaining: number;
+  isSubscribed?: boolean;
+  onDismiss: () => void;
+}) {
+  return (
+    <Backdrop>
+      <View className="gap-3">
+        <View className="flex-row items-center justify-between">
+          <Badge label={t('plus.label')} tone="accent" />
+          <Text className="font-display text-caption text-inkMuted">
+            {isSubscribed ? t('map.plus.subscribed') : t('trialModal.days').replace('{count}', String(daysRemaining))}
+          </Text>
+        </View>
+        <Text className="font-display text-title text-ink">{t('trialModal.title')}</Text>
+        <Text className="text-body text-inkMuted">
+          {isSubscribed ? t('trialModal.subtitleSubscribed') : t('trialModal.subtitle')}
+        </Text>
+        <View className="my-2 gap-2">
+          <View className="flex-row items-center gap-2">
+            <Text className="font-display text-body text-accent">✓</Text>
+            <Text className="text-body text-ink">{t('trialModal.perk.videos')}</Text>
+          </View>
+          <View className="flex-row items-center gap-2">
+            <Text className="font-display text-body text-accent">✓</Text>
+            <Text className="text-body text-ink">{t('trialModal.perk.skips')}</Text>
+          </View>
+          <View className="flex-row items-center gap-2">
+            <Text className="font-display text-body text-accent">✓</Text>
+            <Text className="text-body text-ink">{t('trialModal.perk.worlds')}</Text>
+          </View>
+        </View>
+        <Button label={t('trialModal.dismiss')} onPress={onDismiss} />
+      </View>
+    </Backdrop>
+  );
+}
+
 export function WorldMapScreen({
   t,
   progress,
@@ -828,6 +940,28 @@ export function WorldMapScreen({
   const clock = useMapClock(live, progress.missions, plusEnd);
   const at = now ?? clock;
   const plus = !!membership && isPlus(membership, at);
+  const isSubscribed = !!membership?.onboarding.mockSubscribed;
+  const state = membership ? trialState(membership, at) : 'unstarted';
+  const days = membership ? trialDaysRemaining(membership, at) : 0;
+  const [trialModalOpen, setTrialModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!trialModalOpen) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      setTrialModalOpen(false);
+      return true;
+    });
+    return () => sub.remove();
+  }, [trialModalOpen]);
+
+  const handlePlusPress = () => {
+    if (state === 'active' || isSubscribed) {
+      setTrialModalOpen(true);
+    } else {
+      onPaywall();
+    }
+  };
+
   const model = useMemo(() => mapModel(plus ? { ...progress, plus } : progress, stars, at), [progress, plus, stars, at]);
   const scroll = useRef<ScrollViewInstance>(null);
   const [width, setWidth] = useState(theme.size.readableWidth);
@@ -889,6 +1023,7 @@ export function WorldMapScreen({
           onPress={onLibrary}
           accessibilityLabel={libraryToday ? `${t('library.chip')}. ${t('library.chipToday')}` : t('library.chip')}
         />
+        <PlusChip t={t} state={state} daysRemaining={days} isSubscribed={isSubscribed} onPress={handlePlusPress} />
         <IconChip icon={<GearGlyph />} onPress={onSettings} accessibilityLabel={t('map.settings')} />
         <Chip
           label={t('daily.title')}
@@ -943,6 +1078,14 @@ export function WorldMapScreen({
           />
         ))}
       </View>
+      {trialModalOpen && (
+        <TrialStatusModal
+          t={t}
+          daysRemaining={days}
+          isSubscribed={isSubscribed}
+          onDismiss={() => setTrialModalOpen(false)}
+        />
+      )}
     </Screen>
   );
 }

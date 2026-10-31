@@ -5,12 +5,27 @@ import { isAllowedVideoHost } from './media';
 import { LessonVideoCard, type VideoBlock } from './LessonVideoCard';
 import { usePalette } from './theme';
 import { usePauseMediaInBackground, type WebViewHandle } from './usePauseMediaInBackground';
+import type { TrialState } from '../plus';
 
 /**
  * Native: the embed plays in a WebView that loads only after the tap and never leaves the allow-listed host. It
  * pauses when the app goes to the background.
  */
-export function LessonVideo({ t, block }: { t: Translate; block: VideoBlock }) {
+export function LessonVideo({
+  t,
+  block,
+  isPlus,
+  trialState,
+  onUnlock,
+  autoPlay,
+}: {
+  t: Translate;
+  block: VideoBlock;
+  isPlus?: boolean;
+  trialState?: TrialState;
+  onUnlock?: () => void;
+  autoPlay?: boolean;
+}) {
   const color = usePalette();
   const player = useRef<WebViewHandle>(null);
   usePauseMediaInBackground(player);
@@ -18,6 +33,10 @@ export function LessonVideo({ t, block }: { t: Translate; block: VideoBlock }) {
     <LessonVideoCard
       t={t}
       block={block}
+      isPlus={isPlus}
+      trialState={trialState}
+      onUnlock={onUnlock}
+      autoPlay={autoPlay}
       renderPlayer={({ uri, attempt, onLoaded, onError }) => (
         <WebView
           key={attempt}

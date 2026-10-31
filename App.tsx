@@ -39,7 +39,7 @@ import { findFix, findMission } from './src/shell/missions/content';
 import { acceptEasier, canMoveOn, fixFor, moveOn, startMission } from './src/shell/missions/mission';
 import type { DiaryOutcome } from './src/shell/streak';
 import { canSkipDay, missionAfterDebrief, missionEntryOf, missionForDebrief } from './src/shell/missions/missionView';
-import { canStartTrial, isPlus, progressAt, startTrialThen, type PendingPlusAction } from './src/shell/plus';
+import { canStartTrial, computeTrialRecap, isPlus, progressAt, startTrialThen, subscribeThen, trialState, type PendingPlusAction } from './src/shell/plus';
 import { FixScreen, MissionBriefScreen, MissionCheckInScreen, MissionPassedScreen, MissionProblemScreen, MissionWaitingScreen } from './src/shell/screens/MissionScreens';
 import type { Stop } from './src/shell/world';
 import { lessonDay, markLessonRead, todaysLesson } from './src/shell/lessons/lesson';
@@ -50,6 +50,7 @@ import { PosteMinigameView } from './src/shell/screens/PosteMinigameView';
 import { ReadDogView } from './src/shell/screens/ReadDogView';
 import { DiagnosticView } from './src/shell/screens/DiagnosticView';
 import { PaywallScreen } from './src/shell/screens/PaywallScreen';
+import { ValueRecapScreen } from './src/shell/screens/ValueRecapScreen';
 import { PlanScreen } from './src/shell/screens/PlanScreen';
 import { DogLookScreen, PayoffOverlay } from './src/shell/screens/IntroScreens';
 import { SetupScreen } from './src/shell/screens/SetupScreen';
@@ -88,7 +89,7 @@ type Flow =
   | { name: 'library' }
   | { name: 'diary' }
   /** A Lesson from the Library, or from its Stop on the map; Done and Back return there. */
-  | { name: 'lesson'; id: string; returnTo: 'map' | 'library' }
+  | { name: 'lesson'; id: string; returnTo: 'map' | 'library'; autoPlayVideo?: boolean }
   /** A Mission Stop's screens; a Fix opened from "Tus ajustes" returns to the Library. */
   | { name: 'mission'; id: string; view: MissionView; fixId?: string; returnTo?: 'map' | 'library' }
   /** The paywall from the map, or from a Plus-only action (`then`) that "Empezar prueba" completes. */
@@ -181,12 +182,21 @@ export default function App() {
     }
   }, [splashReady, record, fontsLoaded, fontTimedOut, minSplashElapsed]);
 
+  const now = new Date();
+  const needsRecap =
+    !!record &&
+    record.onboarding.step === 'done' &&
+    !record.onboarding.mockSubscribed &&
+    trialState(record, now) === 'expired' &&
+    !record.onboarding.trialRecapSeenAt;
+
   const route = routeFor({
     ready: splashReady,
     onboardingStep: record?.onboarding.step,
     flow,
     accountFlow: flow?.name === 'auth' || flow?.name === 'register',
     settingsOpen,
+    needsRecap,
   });
   const routeRef = useRef(route);
   routeRef.current = route;
@@ -736,6 +746,47 @@ export default function App() {
     } else if (record) {
       screen = <PaywallScreen t={t} onStartTrial={() => update((r) => passPaywall(r, true, new Date()))} onLater={() => update((r) => passPaywall(r, false, new Date()))} />;
     }
+  } else if (route.name === 'recap') {
+    if (record) {
+      const { videosWatched, skipsUsed } = computeTrialRecap(record, LESSONS);
+      const onDismissRecap = () => {
+        update((r) => ({
+          ...r,
+          onboarding: {
+            ...r.onboarding,
+            trialRecapSeenAt: new Date().toISOString(),
+          },
+        }));
+      };
+      const onSubscribe = () => {
+        const at = new Date();
+        update((r) =>
+          subscribeThen(
+            {
+              ...r,
+              onboarding: {
+                ...r.onboarding,
+                trialRecapSeenAt: at.toISOString(),
+              },
+            },
+            undefined,
+            at,
+          ),
+        );
+      };
+      screen = (
+        <ValueRecapScreen
+          t={t}
+          dogName={record.name}
+          streakDays={record.streak.current}
+          videosWatched={videosWatched}
+          skipsUsed={skipsUsed}
+          onSubscribeAnnual={onSubscribe}
+          onSubscribeMonthly={onSubscribe}
+          onContinueFree={withBack(onDismissRecap)}
+        />
+      );
+    }
   } else if (route.name === 'map' || route.name === 'settings') {
     if (account.choice && account.signedIn && record) {
       choosingDog = true;
@@ -762,6 +813,9 @@ export default function App() {
       screen = mapWith(<DiaryScreen t={t} record={record} today={todayString()} onBack={withBack(goHome)} />);
     } else if (f.name === 'lesson' && record) {
       const lesson = findLesson(f.id);
+      const now = new Date();
+      const plus = isPlus(record, now);
+      const state = trialState(record, now);
       const back = withBack(() => (f.returnTo === 'map' ? goHome() : setFlow({ name: 'library' })));
       screen = mapWith(
         lesson ? (
@@ -769,6 +823,10 @@ export default function App() {
             t={t}
             lesson={lesson}
             backLabel={t(f.returnTo === 'map' ? 'lesson.backToMap' : 'lesson.back')}
+            isPlus={plus}
+            trialState={state}
+            autoPlayVideo={f.autoPlayVideo}
+            onUnlockVideo={() => setFlow({ name: 'paywall', then: { kind: 'video', lessonId: lesson.id, returnTo: f.returnTo } })}
             onDone={() => {
               update((r) => markLessonRead(r, lesson.id, new Date()));
               back();
@@ -846,19 +904,44 @@ export default function App() {
         withBack(goHome);
       }
     } else if (f.name === 'paywall') {
+      const now = new Date();
+      const expired = record ? trialState(record, now) === 'expired' : false;
+      const resolvePendingPlus = (action: PendingPlusAction | undefined, unlocked: boolean) => {
+        if (!action) {
+          goHome();
+          return;
+        }
+        if ('kind' in action && action.kind === 'video') {
+          const returnTo = action.returnTo ?? 'map';
+          setFlow({ name: 'lesson', id: action.lessonId, returnTo, autoPlayVideo: unlocked });
+          return;
+        }
+        const missionId = 'skipMission' in action ? action.skipMission : action.missionId;
+        if (unlocked) {
+          mapScroll.current = undefined;
+          goHome();
+        } else {
+          setFlow({ name: 'mission', id: missionId, view: missionEntry(missionId) });
+        }
+      };
+      const onSubscribe = () => {
+        const at = new Date();
+        update((r) => subscribeThen(r, f.then, at));
+        resolvePendingPlus(f.then, true);
+      };
       screen = (
         <PaywallScreen
           t={t}
+          mode={expired ? 'subscription' : 'trial'}
           onStartTrial={() => {
             const now = new Date();
-            // a trial that already ended does not restart, so the held skip is not done: back to its Mission
             const done = !!f.then && !!recordRef.current && canStartTrial(recordRef.current, now);
             update((r) => startTrialThen(r, f.then, now));
-            if (done) mapScroll.current = undefined;
-            if (f.then && !done) setFlow({ name: 'mission', id: f.then.skipMission, view: missionEntry(f.then.skipMission) });
-            else goHome();
+            resolvePendingPlus(f.then, done);
           }}
-          onLater={withBack(() => (f.then ? setFlow({ name: 'mission', id: f.then.skipMission, view: missionEntry(f.then.skipMission) }) : goHome()))}
+          onSubscribeAnnual={onSubscribe}
+          onSubscribeMonthly={onSubscribe}
+          onLater={withBack(() => resolvePendingPlus(f.then, false))}
         />
       );
     } else if (f.name === 'warmup') {

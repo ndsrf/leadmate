@@ -113,6 +113,8 @@ export interface OnboardingState {
   diagnosticLatency: number | null;
   /** Node ids of the Walk Plan shown on the card. */
   plan: string[];
+  mockSubscribed?: boolean;
+  trialRecapSeenAt?: string;
 }
 
 export const NEW_ONBOARDING: OnboardingState = { step: 'welcome', firstStageCompletedAt: null, trialStartedAt: null, diagnosticLatency: null, plan: [] };
@@ -228,13 +230,18 @@ function readOnboarding(raw: unknown, version: unknown): OnboardingState {
   if (old && step === 'paywall') step = 'first-stage';
   // before version 5 the first Stage came after the paywall: one who has played it has seen everything
   else if (old && step === 'first-stage' && completedAt) step = 'done';
-  return {
+  const out: OnboardingState = {
     step,
     firstStageCompletedAt: completedAt,
     trialStartedAt: strOrNull(r.trialStartedAt),
     diagnosticLatency: kg(r.diagnosticLatency),
     plan: strings(r.plan),
   };
+  if (typeof r.mockSubscribed === 'boolean') out.mockSubscribed = r.mockSubscribed;
+  if (typeof r.trialRecapSeenAt === 'string' && !Number.isNaN(Date.parse(r.trialRecapSeenAt))) {
+    out.trialRecapSeenAt = r.trialRecapSeenAt;
+  }
+  return out;
 }
 
 /** Reads a stored value of any known version into the current shape; anything unreadable gets defaults. */

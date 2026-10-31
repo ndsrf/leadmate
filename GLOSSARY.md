@@ -246,8 +246,20 @@ A World designated as part of LeadMate Plus, requiring Plus membership in additi
 _Avoid_: Premium chapter, paid zone
 
 **Plus membership**:
-Whether the user has LeadMate Plus right now. It is the one thing every Plus feature checks; for now it means a free trial started in the last 7 days.
+Whether the user has LeadMate Plus right now, granted either during an active Trial or via an active subscription tier.
 _Avoid_: Plus subscription, premium, entitlement
+
+**Trial**:
+The 7-day period starting from when the user first opts into LeadMate Plus, granting temporary Plus membership at no cost.
+_Avoid_: Free trial, demo, test period
+
+**Paywall**:
+The screen presenting LeadMate Plus access and benefits. Before starting a Trial, it offers the 7-day Trial; after Trial expiry, it presents subscription pricing tiers.
+_Avoid_: Upsell screen, checkout, store
+
+**Value Recap**:
+The one-time summary screen presented on the first app launch after the Trial expires, celebrating achievements during the trial and presenting full subscription options alongside the free tier bypass.
+_Avoid_: Expiration modal, exit survey, renewal screen
 
 **Preview World**:
 An upcoming World shown on the World Map as a curriculum roadmap preview with topic summaries and node counts, but without playable simulation stages yet.

@@ -70,6 +70,22 @@ describe('routeFor', () => {
     });
   });
 
+  it('routes to recap when needsRecap is true on cold start past onboarding', () => {
+    expect(routeFor({ ready: true, onboardingStep: 'done', needsRecap: true, flow: null })).toEqual({
+      name: 'recap',
+    });
+    expect(routeFor({ ready: true, onboardingStep: 'setup', needsRecap: true, flow: null })).toEqual({
+      name: 'funnel',
+      step: 'setup',
+    });
+    // Active flow is not preempted mid-session by recap
+    const activeFlow = { name: 'warmup' };
+    expect(routeFor({ ready: true, onboardingStep: 'done', needsRecap: true, flow: activeFlow })).toEqual({
+      name: 'flow',
+      flow: activeFlow,
+    });
+  });
+
   it('map is default when ready and past onboarding', () => {
     expect(routeFor({ ready: true, onboardingStep: 'done', flow: null, settingsOpen: false })).toEqual({
       name: 'map',
@@ -326,6 +342,8 @@ describe('backAction', () => {
     expect(backAction(base)).toBe('exit');
     expect(backAction({ ...base, route: { name: 'funnel', step: 'setup' } })).toBe('exit');
     expect(backAction({ ...base, route: { name: 'paywall' } })).toBe('exit');
+    expect(backAction({ ...base, route: { name: 'recap' } })).toBe('exit');
+    expect(backAction({ ...base, route: { name: 'recap' }, hasScreenBack: true })).toBe('screen');
   });
 
   it("runs a flow's own back closure, and consumes the press when it has none", () => {
