@@ -6,7 +6,7 @@ Decides whether the user currently has LeadMate Plus, so features reserved for P
 ## Requirements
 
 ### Requirement: Active free trial counts as Plus
-The system SHALL treat the user as a LeadMate Plus member from the moment they start the free trial until 7 days after it, measured from the recorded trial start. Before a trial start, and after the 7 days, the user SHALL be a free user. There is no paid subscription yet.
+The system SHALL treat the user as a LeadMate Plus member from the moment they start the free trial until 7 days after it, measured from the recorded trial start. Before a trial start, and after the 7 days, the user SHALL be a free user unless an active subscription is present.
 
 #### Scenario: Trial started today
 - **WHEN** the user tapped "Empezar prueba" today
@@ -107,9 +107,16 @@ When a user starts the trial or subscribes from a Plus-only feature trigger, the
 - **THEN** the user returns to the Lesson with the video remaining locked
 
 ### Requirement: Mock subscription confers Plus membership
-The system SHALL consider the user as possessing LeadMate Plus when either an active trial is in progress or a subscription has been recorded in onboarding state (`mockSubscribed`).
+The system SHALL consider the user as possessing LeadMate Plus when either an active trial is in progress or an active subscription entitlement has been verified via the billing service (or recorded in mock development mode).
 
 #### Scenario: Subscribing after trial expiry
-- **WHEN** a user with an expired trial selects a subscription plan
+- **WHEN** a user with an expired trial completes a subscription purchase
 - **THEN** the user receives Plus membership and access to all Plus features
+
+### Requirement: Restore purchases grants Plus
+When a user restores purchases and has an active store subscription entitlement, the system SHALL immediately grant LeadMate Plus membership.
+
+#### Scenario: Restoring valid subscription from paywall
+- **WHEN** a user with an expired trial restores an active store subscription
+- **THEN** the user immediately becomes Plus and gated features unlock
 
