@@ -56,8 +56,28 @@ const STAGES = [
  */
 const APPS = [
   {
+    name: 'howto-choose-action-1',
+    node: 'Lección. Mundo 1 · Un perro, no un peluche',
+    ready: '[role=button][aria-label^="Ignorar."]',
+    // the caption naming what the Dog does
+    act: async () => ({ ring: 'text=/Pide que lo cojas|Subido al sofá|Tumbado y relajado/', from: 'text=/Pide que lo cojas|Subido al sofá|Tumbado y relajado/' }),
+    arrow: 'left',
+  },
+  {
+    name: 'howto-choose-action-2',
+    node: 'Lección. Mundo 1 · Un perro, no un peluche',
+    ready: '[role=button][aria-label^="Ignorar."]',
+    // the action that fits the beat on show
+    act: async (page) => {
+      const state = await page.locator('text=/Pide que lo cojas|Subido al sofá|Tumbado y relajado/').first().textContent();
+      const action = /cojas/i.test(state) ? 'Ignorar' : /sofá/i.test(state) ? 'A su cama' : 'Marcar';
+      return { ring: `[role=button][aria-label^="${action}."]`, from: 'text=/Pide que lo cojas|Subido al sofá|Tumbado y relajado/' };
+    },
+    arrow: 'up',
+  },
+  {
     name: 'howto-tap-hold-1',
-    node: 'Lección. Mundo 1 · El ritual del arnés',
+    node: 'Lección. Mundo 2 · El ritual del arnés',
     // the action that fits the beat on show, as the minigame's own hints say
     act: async (page) => {
       const state = await page.locator('text=/Olfatea|Salta|Sentado|Tumbado|ladra|puerta|inquieto/i').first().textContent();
@@ -204,6 +224,8 @@ if (apps.length > 0) {
   const ids = (file, fn) => [...new Set([...readFileSync(join(ROOT, file), 'utf8').matchAll(new RegExp(`${fn}\\('([^']+)'`, 'g'))].map((m) => m[1]))];
   const sim = await browser.newPage();
   await sim.goto(simUrl);
+  // dogRecord.ts reaches the trail content, which reads process.env (set by Expo, absent in a plain page)
+  await sim.evaluate(() => { globalThis.process ??= { env: {} }; });
   const record = JSON.parse(await sim.evaluate(async (src) => JSON.stringify((await import(src)).newDogRecord()), `${SRC}shell/dogRecord.ts`));
   await sim.close();
   Object.assign(record, {
@@ -221,7 +243,8 @@ if (apps.length > 0) {
       await page.goto(appUrl);
       await page.click(`[aria-label^="${c.node}"]`, { timeout: 60000 });
       // Primer, Checkpoint (any answer will do) and the minigame's start button
-      for (let k = 0; k < 12 && !(await page.$('[role=button][aria-label^="Esperar."], [role=button]:has-text("Mantén pulsado")')); k++) {
+      const ready = c.ready ?? '[role=button][aria-label^="Esperar."], [role=button]:has-text("Mantén pulsado")';
+      for (let k = 0; k < 12 && !(await page.$(ready)); k++) {
         await page.waitForTimeout(800);
         const next = await page.$('[role=button]:has-text("Siguiente"), [role=button]:has-text("Empezar")');
         if (next) await next.click();

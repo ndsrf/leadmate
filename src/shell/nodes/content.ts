@@ -3,7 +3,7 @@ import type { Metric, NodeDef, PrimerCardDef } from './node';
 import { BLIND_CORNER, ELEVATOR_LOBBY, HALLWAY, LEAVE_IT_INTRO, PARK_JOGGER, PARK_MIX, SCOOTER_CROSSING, SLACK_U, URBAN_MIX } from './scenarios';
 
 /** Slugs of the Nodes whose texts follow the `node.<slug>.*` pattern (see the catalog). */
-type Slug = 'harness' | 'doorbell' | 'corner' | 'u' | 'leaveit' | 'scooter' | 'urban' | 'jogger' | 'park' | 'barkdoku';
+type Slug = 'dogasdog' | 'homerest' | 'calmfirst' | 'harness' | 'doorbell' | 'corner' | 'u' | 'leaveit' | 'scooter' | 'urban' | 'jogger' | 'park' | 'barkdoku';
 
 /** Where the web-hosted full guides live (EXPO_PUBLIC_TUTORIAL_BASE); unset, the cards show no guide button. */
 const TUTORIAL_BASE = (process.env.EXPO_PUBLIC_TUTORIAL_BASE ?? '').replace(/\/+$/, '');
@@ -96,7 +96,33 @@ export const WALK_DISTRACTION: NodeDef = {
   prerequisites: ['poste-practice'],
 };
 
-// -- World 1: Home & Thresholds ------------------------------------------------------------------
+// -- Basics World: a dog is a dog ------------------------------------------------------------------
+
+export const DOG_AS_DOG_NODE = textNode('dogasdog', 'dog-as-dog', {
+  mode: 'minigame',
+  primer: recapPrimer('dogasdog', { controls: true, art: 'theory-dog-as-dog-1' }),
+  simulation: { minigame: 'dog-as-dog' },
+  exercises: [{ metric: 'timing', n: 1 }, { metric: 'tension', n: 2 }],
+  prerequisites: [],
+});
+
+export const HOME_REST_NODE = textNode('homerest', 'home-rest', {
+  mode: 'minigame',
+  primer: recapPrimer('homerest', { art: 'theory-home-rest-2' }),
+  simulation: { minigame: 'home-rest' },
+  exercises: [{ metric: 'timing', n: 1 }, { metric: 'tension', n: 2 }],
+  prerequisites: [DOG_AS_DOG_NODE.id],
+});
+
+export const CALM_FIRST_NODE = textNode('calmfirst', 'calm-first', {
+  mode: 'minigame',
+  primer: recapPrimer('calmfirst', { art: 'theory-calm-first-1' }),
+  simulation: { minigame: 'calm-first' },
+  exercises: [{ metric: 'timing', n: 1 }, { metric: 'tension', n: 2 }],
+  prerequisites: [HOME_REST_NODE.id],
+});
+
+// -- Home & Thresholds ------------------------------------------------------------------
 
 export const HARNESS_RITUAL_NODE = textNode('harness', 'harness-ritual', {
   mode: 'minigame',
@@ -187,6 +213,9 @@ export const PARK_MIX_NODE = textNode('park', 'park-mix', {
 });
 
 export const NODES: readonly NodeDef[] = [
+  DOG_AS_DOG_NODE,
+  HOME_REST_NODE,
+  CALM_FIRST_NODE,
   HARNESS_RITUAL_NODE,
   DOORBELL_MAT_NODE,
   POSTE_PRACTICE,

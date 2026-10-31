@@ -1,4 +1,4 @@
-import { acceptEasier, activeTarget, canCheckIn, canMoveOn, checkIn, checkInOpensAt, isOwed, moveOn, NEW_MISSION, offerEasier, opensAtMidnight, readMissions, skipDay, startMission, todaysAttempt, type MissionState } from './mission';
+import { acceptEasier, activeTarget, briefTitle, checkInQuestion, canCheckIn, canMoveOn, checkIn, checkInOpensAt, isOwed, moveOn, NEW_MISSION, offerEasier, opensAtMidnight, readMissions, skipDay, startMission, todaysAttempt, type MissionState } from './mission';
 import { TEST_MISSION } from './testMission';
 
 /** Local time on May 2026. */
@@ -160,5 +160,14 @@ describe('Day Skip', () => {
     const skipped = skipDay(s, may(1, 10));
     expect(readMissions(JSON.parse(JSON.stringify({ m: skipped }))).m.skippedAt).toBe(skipped.skippedAt);
     expect(readMissions({ m: { ...s, skippedAt: 'nope' } }).m.skippedAt).toBeUndefined();
+  });
+});
+
+describe('home Missions', () => {
+  it('ask how it went at home, and keep the walk question for other Missions', () => {
+    expect(checkInQuestion({ place: 'home' })).toBe('mission.checkin.question.home');
+    expect(checkInQuestion(TEST_MISSION)).toBe('mission.checkin.question');
+    expect(briefTitle({ place: 'home' })).toBe('mission.brief.title.home');
+    expect(briefTitle(TEST_MISSION)).toBe('mission.brief.title');
   });
 });

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-calm-first.image.2.caption" data-alt="trail.theory-calm-first.image.2.alt">
+  <!-- scene: Migas lies down calm; you crouch and give the treat -->
+  <use href="#backdrop-indoor"/>
+  <g transform="translate(110 300) scale(1.2)">
+    <use href="#person-crouch"/>
+    <use href="#dog-down" transform="translate(300 0) scale(-1 1)"/>
+    <use href="#treat" transform="translate(118 -40)"/>
+  </g>
+  <use href="#heart" transform="translate(420 140)"/>
+</svg>

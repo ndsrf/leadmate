@@ -1,6 +1,6 @@
 import { es } from '../../i18n';
-import { CORRECT_ACTION, type DogState } from '../nodes/readDog';
-import { atDoor, CANINE_POSTURES, DOG_VIEW, emotePoint, holdPosture, COAT_PALETTE, COLLAR_POINT, handlerHand, leashPath, postureSpec, quantizeTension, READABLE_POSTURES, tensionTone, wrongReaction } from './canine';
+import { correctAction, type DogState } from '../nodes/readDog';
+import { atDoor, livingRoomSpot, sendsAway, CANINE_POSTURES, DOG_VIEW, emotePoint, holdPosture, COAT_PALETTE, COLLAR_POINT, handlerHand, leashPath, postureSpec, quantizeTension, READABLE_POSTURES, tensionTone, wrongReaction } from './canine';
 
 describe('canine postures', () => {
   it('describes every posture with a spoken label from the catalog', () => {
@@ -32,7 +32,8 @@ describe('readable Dog states', () => {
         const x = postureSpec(a);
         const y = postureSpec(b);
         expect(x.leanDeg !== y.leanDeg || x.height !== y.height).toBe(true);
-        const other = x.tail !== y.tail || x.earsUp !== y.earsUp || x.mouthOpen !== y.mouthOpen || x.eyes !== y.eyes || x.emote !== y.emote;
+        // the emote bubble does not count: the body must tell them apart
+        const other = x.tail !== y.tail || x.earsUp !== y.earsUp || x.mouthOpen !== y.mouthOpen || x.eyes !== y.eyes;
         expect(other).toBe(true);
       }
     }
@@ -54,7 +55,7 @@ describe('readable Dog states', () => {
   });
 
   it('has a different correct action for the aroused, distracted, attentive and relaxed Dog', () => {
-    const right = (s: DogState) => CORRECT_ACTION[s];
+    const right = (s: DogState) => correctAction('harness', s);
     expect(new Set([right('jumping'), right('sniffing'), right('sitting_attentive'), right('relaxed_lying')]).size).toBe(4);
   });
 });
@@ -137,5 +138,49 @@ describe('canine drawing data', () => {
 
   it('has a coat palette for every Dog coat', () => {
     expect(Object.keys(COAT_PALETTE).sort()).toEqual(['black', 'chocolate', 'cream', 'golden', 'grey', 'red', 'white']);
+  });
+});
+
+describe('Basics Dog states', () => {
+  it('reads every state of every scene, each with its own caption', () => {
+    for (const state of ['begging_lift', 'on_furniture', 'nudging_attention', 'toy_indoors', 'resting', 'barking_nonstop', 'zoomies'] as const) {
+      expect(READABLE_POSTURES).toContain(state);
+      expect(es[postureSpec(state).cue]).toBeTruthy();
+      expect(es[postureSpec(state).label]).toBeTruthy();
+    }
+    expect(new Set(READABLE_POSTURES.map((p) => postureSpec(p).cue)).size).toBe(READABLE_POSTURES.length);
+  });
+
+  it('draws resting curled up asleep, unlike lying relaxed', () => {
+    expect(postureSpec('resting').height).toBeLessThan(postureSpec('relaxed_lying').height);
+    expect(postureSpec('resting').tail).toBe('curled');
+    expect(postureSpec('resting').eyes).toBe('closed');
+  });
+
+  it('draws barking nonstop facing the user with its own emote, unlike barking at the door', () => {
+    expect(postureSpec('barking_nonstop').leanDeg).not.toBe(postureSpec('alert_barking').leanDeg);
+    expect(postureSpec('barking_nonstop').eyes).not.toBe(postureSpec('alert_barking').eyes);
+    expect(postureSpec('barking_nonstop').emote).toBe('bark');
+  });
+
+  it('places the Dog on the sofa, in its bed or on the floor of the living room', () => {
+    expect(livingRoomSpot('on_furniture')).toBe('sofa');
+    expect(livingRoomSpot('relaxed_lying')).toBe('bed');
+    expect(livingRoomSpot('resting')).toBe('bed');
+    expect(livingRoomSpot('nudging_attention')).toBe('floor');
+  });
+
+  it('sends the Dog off only with Send away and Send to bed', () => {
+    expect(sendsAway('send-away')).toBe(true);
+    expect(sendsAway('send-bed')).toBe(true);
+    expect(sendsAway('cuddle')).toBe(false);
+    expect(sendsAway(null)).toBe(false);
+  });
+
+  it('gets more excited after a Cuddle, and ignores a Cue while barking nonstop or racing around', () => {
+    expect(wrongReaction('begging_lift', 'cuddle')).toBe('jumping');
+    expect(wrongReaction('on_furniture', 'cuddle')).toBe('jumping');
+    expect(wrongReaction('barking_nonstop', 'cue')).toBe('barking_nonstop');
+    expect(wrongReaction('zoomies', 'cue')).toBe('zoomies');
   });
 });

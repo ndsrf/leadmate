@@ -2,7 +2,7 @@ import { Text, View } from 'react-native';
 import type { TextKey, Translate } from '../../i18n';
 import type { Celebration } from '../celebrations';
 import { clockTime, stopTitle } from '../mapText';
-import { activeTarget, checkInOpensAt, offerEasier, opensAtMidnight, OTHER_PROBLEM, todaysAttempt, type Fix, type MissionDef, type MissionState } from '../missions/mission';
+import { activeTarget, briefTitle, checkInQuestion, checkInOpensAt, offerEasier, opensAtMidnight, OTHER_PROBLEM, todaysAttempt, type Fix, type MissionDef, type MissionState } from '../missions/mission';
 import type { DiaryOutcome } from '../streak';
 import { Button } from '../Overlays';
 import { Badge, OptionCard, Panel } from '../ui/components';
@@ -66,7 +66,7 @@ function EasierOffer({ t, onAccept }: { t: Translate; onAccept: () => void }) {
 export function MissionBriefScreen({ t, mission, state, onStart, onClose }: { t: Translate; mission: MissionDef; state: MissionState | undefined; onStart: () => void; onClose: () => void }) {
   return (
     <Screen>
-      <MissionHeading t={t} mission={mission} heading="mission.brief.title" />
+      <MissionHeading t={t} mission={mission} heading={briefTitle(mission)} />
       <TargetPanel t={t} mission={mission} state={state} />
       {state?.focus && (
         <Panel className="mb-3">
@@ -120,7 +120,7 @@ export function MissionCheckInScreen({ t, mission, state, onAnswer, onAcceptEasi
       <MissionHeading t={t} mission={mission} heading="mission.checkin.title" />
       {offerEasier(state) && <EasierOffer t={t} onAccept={onAcceptEasier} />}
       <TargetPanel t={t} mission={mission} state={state} />
-      <Text className="text-body text-ink">{t('mission.checkin.question')}</Text>
+      <Text className="text-body text-ink">{t(checkInQuestion(mission))}</Text>
       <WalkDiaryBar t={t} chosen={null} onChoose={onAnswer} />
       <Button label={t('mission.back')} tone="secondary" onPress={onClose} />
     </Screen>

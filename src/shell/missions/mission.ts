@@ -37,10 +37,22 @@ export interface MissionDef {
   problems: MissionProblem[];
   /** The Fix for "Otra cosa", and the easier target offered after three skips. */
   generalFix: Fix;
+  /** Where the target is practised: `home` for a Mission done at home, absent for one on a walk. */
+  place?: 'home';
 }
 
 /** The problem id of "Otra cosa": it leads to the general Fix. */
 export const OTHER_PROBLEM = 'other';
+
+/** The check-in question of a Mission: how it went at home for a home Mission, on the walk otherwise. */
+export function checkInQuestion(mission: Pick<MissionDef, 'place'>): 'mission.checkin.question' | 'mission.checkin.question.home' {
+  return mission.place === 'home' ? 'mission.checkin.question.home' : 'mission.checkin.question';
+}
+
+/** The brief's heading: "Tu misión en casa" for a home Mission, "Tu misión de paseo" otherwise. */
+export function briefTitle(mission: Pick<MissionDef, 'place'>): 'mission.brief.title' | 'mission.brief.title.home' {
+  return mission.place === 'home' ? 'mission.brief.title.home' : 'mission.brief.title';
+}
 
 export interface MissionAttempt {
   /** Local calendar date of the answer. */

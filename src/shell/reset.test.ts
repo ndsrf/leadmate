@@ -2,7 +2,9 @@ jest.mock('expo-audio', () => ({}));
 jest.mock('expo-file-system', () => ({}));
 jest.mock('./audio', () => ({ deleteRecording: jest.fn() }));
 
-import { loadDogRecord, newDogRecord, migrateRecord, touch, type DogRecord, type KeyValueStore } from './dogRecord';
+import { loadDogRecord, newDogRecord, migrateRecord, RECORD_KEY, touch, type DogRecord, type KeyValueStore } from './dogRecord';
+import * as celebrations from './celebrations';
+import { currentWorld, findWorld, isWorldComplete } from './world';
 import { createResetRecord, resetProgress, shouldShowResetSection } from './reset';
 import { loadSyncState, SYNC_KEY, type SyncState } from './sync/state';
 import { migrateOnRegister, runSync } from './sync/sync';
@@ -66,7 +68,7 @@ describe('resetProgress', () => {
   const now = new Date('2026-06-16T12:00:00.000Z');
 
   const populatedRecord: DogRecord = {
-    version: 7,
+    version: 8,
     attributes: { reconnectionLatency: 0.8, reactivityThreshold: 0.7, followChance: 0.9, checkInFrequency: 0.8 },
     triggerProfile: { dog: 2, child: 1, bicycle: 0, skateboard: 3, food: 1, other: 0 },
     calmCounts: { dog: 4 },
@@ -289,5 +291,29 @@ describe('resetProgress', () => {
     expect(uploadedRecord.completedNodes).toEqual([]);
     expect(uploadedRecord.streak.current).toBe(0);
     expect(newAccountSyncState.dogId).toBe(newAccountRemote.dogs[0].dogId);
+  });
+});
+
+describe('the Basics World and Reset Progress', () => {
+  const basics = findWorld('basics')!;
+  const progress = (r: DogRecord) => ({ completedNodes: r.completedNodes, readLessons: r.readLessons, missions: r.missions, legacyNodes: r.legacyNodes });
+
+  it('starts a reset Dog on the Basics World, not complete, even after it was marked complete by the update', () => {
+    const updated = migrateRecord({ version: 7, completedNodes: ['harness-ritual'], updatedAt: '2026-05-01T08:00:00.000Z' });
+    expect(isWorldComplete(basics, progress(updated))).toBe(true);
+    const reset = createResetRecord(updated, new Date('2026-05-02T08:00:00.000Z'));
+    expect(isWorldComplete(basics, progress(reset))).toBe(false);
+    expect(currentWorld(progress(reset)).id).toBe('basics');
+    // a reset record is version 8, so loading it again never marks the Basics World
+    expect(isWorldComplete(basics, progress(migrateRecord(JSON.parse(JSON.stringify(reset)))))).toBe(false);
+  });
+
+  it('never runs a celebration while loading or migrating a record', async () => {
+    const spy = jest.spyOn(celebrations, 'celebrationsFor');
+    const raw = JSON.stringify({ version: 7, completedNodes: ['harness-ritual', 'doorbell-mat', 'poste-practice'], readLessons: ['theory-harness'] });
+    migrateRecord(JSON.parse(raw));
+    await loadDogRecord(createMemoryStore({ [RECORD_KEY]: raw }));
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
   });
 });

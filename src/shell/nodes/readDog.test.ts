@@ -1,11 +1,12 @@
-import { buildScript, CORRECT_ACTION, currentState, harnessOn, newReadDog, READ_DOG, readDogHandlingScore, readDogMetrics, SCENE_ACTIONS, stepReadDog, type ReadDogAction, type ReadDogRun, type ReadDogScene } from './readDog';
+import { BASICS_SCENES, buildScript, correctAction, CORRECT_ACTION, currentState, harnessOn, hintKey, readDogSceneOf, newReadDog, READ_DOG, readDogHandlingScore, readDogMetrics, SCENE_ACTIONS, stepReadDog, type ReadDogAction, type ReadDogRun, type ReadDogScene } from './readDog';
 import { es } from '../../i18n';
 import { starsFor } from '../stars';
 
-const SCENES: ReadDogScene[] = ['harness', 'doorbell'];
+const SCENES: ReadDogScene[] = ['harness', 'doorbell', 'affection', 'rest', 'calm'];
+const BASICS: ReadDogScene[] = ['affection', 'rest', 'calm'];
 
-const right = (run: ReadDogRun) => stepReadDog(run, 0.05, CORRECT_ACTION[currentState(run)]);
-const wrongFor = (run: ReadDogRun): ReadDogAction => SCENE_ACTIONS[run.scene].find((a) => a !== CORRECT_ACTION[currentState(run)])!;
+const right = (run: ReadDogRun) => stepReadDog(run, 0.05, correctAction(run.scene, currentState(run))!);
+const wrongFor = (run: ReadDogRun): ReadDogAction => SCENE_ACTIONS[run.scene].find((a) => a !== correctAction(run.scene, currentState(run)))!;
 const wrong = (run: ReadDogRun) => stepReadDog(run, 0.05, wrongFor(run));
 const timeOut = (run: ReadDogRun) => stepReadDog(run, READ_DOG.decisionSeconds + 0.1, null);
 
@@ -33,7 +34,7 @@ describe('Read the Dog scripts', () => {
       for (let seed = 0; seed < 40; seed++) {
         const script = buildScript(scene, seed);
         expect(script[script.length - 1]).toBe('relaxed_lying');
-        expect(CORRECT_ACTION[script[script.length - 1]]).toBe('marker');
+        expect(correctAction(scene, script[script.length - 1])).toBe('marker');
       }
     }
   });
@@ -48,8 +49,8 @@ describe('Read the Dog scripts', () => {
 
   it('makes each of the four actions of a scene right for at least one state, so no button is right every time', () => {
     for (const scene of SCENES) {
-      const needed = new Set(buildScripts(scene).flatMap((script) => script.map((s) => CORRECT_ACTION[s])));
-      for (const action of SCENE_ACTIONS[scene]) expect(needed.has(action)).toBe(true);
+      const needed = new Set(buildScripts(scene).flatMap((script) => script.map((s) => correctAction(scene, s))));
+      for (const action of SCENE_ACTIONS[scene].filter((a) => a !== 'cuddle')) expect(needed.has(action)).toBe(true);
       expect(SCENE_ACTIONS[scene]).toHaveLength(4);
     }
   });
@@ -63,8 +64,56 @@ describe('Read the Dog scripts', () => {
 
   it('only scripts states whose right action the scene offers', () => {
     for (const scene of SCENES) {
-      for (const script of buildScripts(scene)) for (const state of script) expect(SCENE_ACTIONS[scene]).toContain(CORRECT_ACTION[state]);
+      for (const script of buildScripts(scene)) for (const state of script) expect(SCENE_ACTIONS[scene]).toContain(correctAction(scene, state));
     }
+  });
+});
+
+describe('per-scene rules', () => {
+  it('keeps the Harness Ritual and Doorbell Mat tables unchanged', () => {
+    expect(CORRECT_ACTION.harness).toEqual({ jumping: 'wait', sniffing: 'cue', sitting_attentive: 'harness', relaxed_lying: 'marker' });
+    expect(CORRECT_ACTION.doorbell).toEqual({ alert_barking: 'mat', staring_door: 'mat', sniffing: 'cue', unsettled_on_mat: 'wait', relaxed_lying: 'marker' });
+  });
+
+  it('has the Basics scenes\u2019 actions and state tables from the spec', () => {
+    expect(SCENE_ACTIONS.affection).toEqual(['ignore', 'send-bed', 'marker', 'cuddle']);
+    expect(SCENE_ACTIONS.rest).toEqual(['ignore', 'send-away', 'marker', 'go-outside']);
+    expect(SCENE_ACTIONS.calm).toEqual(['wait', 'send-away', 'marker', 'cue']);
+    expect(CORRECT_ACTION.affection).toEqual({ begging_lift: 'ignore', on_furniture: 'send-bed', relaxed_lying: 'marker' });
+    expect(CORRECT_ACTION.rest).toEqual({ nudging_attention: 'send-away', toy_indoors: 'go-outside', resting: 'ignore', relaxed_lying: 'marker' });
+    expect(CORRECT_ACTION.calm).toEqual({ barking_nonstop: 'wait', zoomies: 'send-away', sitting_attentive: 'cue', relaxed_lying: 'marker' });
+  });
+
+  it('reads the same state differently by scene', () => {
+    expect(correctAction('harness', 'sitting_attentive')).toBe('harness');
+    expect(correctAction('calm', 'sitting_attentive')).toBe('cue');
+  });
+
+  it('never makes Cuddle right', () => {
+    for (const scene of SCENES) expect(Object.values(CORRECT_ACTION[scene])).not.toContain('cuddle');
+  });
+
+  it('gives each Basics scene four beats ending calm, with an order that changes by seed', () => {
+    for (const scene of BASICS) {
+      expect(READ_DOG.beats[scene]).toBe(4);
+      const scripts = buildScripts(scene);
+      for (const script of scripts) {
+        expect(script).toHaveLength(4);
+        expect(script[3]).toBe('relaxed_lying');
+        for (const state of script) expect(correctAction(scene, state)).toBeDefined();
+      }
+      expect(new Set(scripts.map((x) => x.join())).size).toBeGreaterThan(1);
+    }
+  });
+
+  it('counts Cuddle as a mistake on every beat of Dog as a dog', () => {
+    let run = newReadDog('affection', 5);
+    while (!run.done) {
+      const next = stepReadDog(run, 0.05, 'cuddle');
+      expect(next.last?.kind === 'wrong' || next.last?.kind === 'failed').toBe(true);
+      run = next;
+    }
+    expect(run.outcomes.every((o) => o === 'failed')).toBe(true);
   });
 });
 
@@ -132,7 +181,7 @@ describe('stepReadDog', () => {
 
   it('puts the harness on the Dog only once Put on harness was right', () => {
     let run = newReadDog('harness', 2);
-    while (CORRECT_ACTION[currentState(run)] !== 'harness') {
+    while (correctAction(run.scene, currentState(run)) !== 'harness') {
       expect(harnessOn(run)).toBe(false);
       run = right(run);
     }
@@ -208,6 +257,54 @@ describe('read the Dog text', () => {
   });
 
   it('has a hint for every Dog state, shown after a wrong choice', () => {
-    for (const state of Object.keys(CORRECT_ACTION) as (keyof typeof CORRECT_ACTION)[]) expect(es[`minigame.hint.${state}`]).toBeTruthy();
+    for (const scene of ['harness', 'doorbell'] as const) {
+      for (const state of Object.keys(CORRECT_ACTION[scene])) expect((es as Record<string, string>)[`minigame.hint.${state}`]).toBeTruthy();
+    }
+  });
+});
+
+describe('Basics scenes results and hints', () => {
+  it('reports a perfect Basics run as timing 1 and tension 1, and lowers tension with more mistakes', () => {
+    for (const scene of BASICS_SCENES) {
+      const perfect = play(scene);
+      expect(readDogMetrics(perfect)).toEqual({ timing: 1, tension: 1 });
+      expect(readDogHandlingScore(perfect)).toBe(1000);
+      const few = readDogMetrics(play(scene, { 0: 'wrong-once' })).tension;
+      const many = readDogMetrics(play(scene, { 0: 'wrong-twice', 1: 'wrong-twice' })).tension;
+      expect(few).toBeLessThan(1);
+      expect(many).toBeLessThan(few);
+    }
+  });
+
+  it('runs the three Basics Minigames on their scenes', () => {
+    expect(readDogSceneOf('dog-as-dog')).toBe('affection');
+    expect(readDogSceneOf('home-rest')).toBe('rest');
+    expect(readDogSceneOf('calm-first')).toBe('calm');
+    expect(readDogSceneOf('harness-ritual')).toBe('harness');
+    expect(readDogSceneOf('poste-hold')).toBeUndefined();
+  });
+
+  it('has a catalog hint for every state and choice of every scene, and none tells the user to touch the Dog', () => {
+    const touch = /\b(pega|pegar|golpe|patada|empuj|zarande|cachete|agarr|sujeta)/i;
+    for (const scene of SCENES) {
+      for (const state of Object.keys(CORRECT_ACTION[scene]) as (keyof (typeof CORRECT_ACTION)[typeof scene])[]) {
+        for (const action of [null, ...SCENE_ACTIONS[scene]]) {
+          const text = es[hintKey(scene, state as never, action)];
+          expect(text).toBeTruthy();
+          expect(text).not.toMatch(touch);
+        }
+      }
+    }
+  });
+
+  it('says a Cuddle treats the Dog like a toy, and a Cue to an over-aroused Dog cannot teach yet', () => {
+    expect(es[hintKey('affection', 'begging_lift', 'cuddle')]).toContain('peluche');
+    expect(es[hintKey('calm', 'barking_nonstop', 'cue')]).toContain('así no puede aprender todavía');
+    expect(es[hintKey('calm', 'zoomies', 'cue')]).toContain('así no puede aprender todavía');
+    expect(hintKey('calm', 'relaxed_lying', 'cue')).toBe('minigame.calm.hint.marker');
+  });
+
+  it('has help text for every scene', () => {
+    for (const scene of SCENES) expect((es as Record<string, string>)[`minigame.${scene}.help`]).toBeTruthy();
   });
 });

@@ -1,9 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { createTranslator, es, type Translate } from '../../i18n';
+import { createTranslator, es, type TextKey, type Translate } from '../../i18n';
+import { findMission } from '../missions/content';
+import { findNode } from '../nodes/content';
+import { primerCardOf } from '../nodes/node';
+import { BASICS_SCENES, CORRECT_ACTION, hintKey, SCENE_ACTIONS, type DogState } from '../nodes/readDog';
+import { findWorld, stopsOf } from '../world';
 import { lineTextKey, parseAnimationTimeline, type AnimationTimeline } from './animationTimeline';
 import { isAnimationKey } from '../ui/media';
-import { firstWeekLessons, theoryLesson, TRAIL_LESSONS } from './content';
+import { findLesson, firstWeekLessons, theoryLesson, TRAIL_LESSONS } from './content';
 import { countWords, lessonArtNames, lessonTextKeys, type LessonDef } from './lesson';
 import { LESSON_ART } from './lessonArtRegistry';
 import { LESSON_MEDIA } from './lessonMedia';
@@ -122,5 +127,44 @@ describe('the conformance check', () => {
   it('rejects a Lesson over 700 words', () => {
     const lesson = theoryLesson('long', { keys: 'x', images: ['a', 'b'], steps: 3, takeaways: 2 });
     expect(problems(lesson, (() => words(60)) as Translate, art)).toContainEqual(expect.stringMatching(/words$/));
+  });
+});
+
+describe('World 1 teaches no physical correction', () => {
+  /** Words for hitting, kicking, shoving or scruffing a Dog; World 1 text must not contain them. */
+  const BANNED = /(pegar|golpe|patada|empujar|zarandear|cachete)/i;
+  const stops = stopsOf(findWorld('basics')!);
+  const lessonKeys = stops.flatMap((s) => (s.kind === 'lesson' ? [findLesson(s.id)!.title, ...lessonTextKeys(findLesson(s.id)!.blocks)] : []));
+  const missionKeys = stops.flatMap((s) => {
+    if (s.kind !== 'mission') return [];
+    const m = findMission(s.id)!;
+    const fixes = [...m.problems.map((p) => p.fix), m.generalFix];
+    return [m.title, m.target, m.successSign, ...m.problems.map((p) => p.label), ...fixes.flatMap((f) => [...lessonTextKeys(f.blocks), f.easierTarget])];
+  });
+  const nodeKeys = stops.flatMap((s) => {
+    if (s.kind !== 'node') return [];
+    const n = findNode(s.id)!;
+    return [n.title, ...n.primerCards.map((c) => primerCardOf(c).text), ...n.checkpoint.flatMap((q) => [q.question, q.explanation, ...q.options.map((o) => o.text)]), ...n.exercises.map((e) => e.key)];
+  });
+  const hintKeys = BASICS_SCENES.flatMap((scene) =>
+    (Object.keys(CORRECT_ACTION[scene]) as DogState[]).flatMap((state) => [null, ...SCENE_ACTIONS[scene]].map((action) => hintKey(scene, state, action))),
+  );
+  const actionKeys = BASICS_SCENES.flatMap((scene) => SCENE_ACTIONS[scene].flatMap((a) => [`minigame.action.${a}`, `minigame.actionHint.${a}`] as TextKey[]));
+
+  it('covers every Lesson, Node, Minigame hint, Mission and Fix of World 1', () => {
+    expect(lessonKeys.length).toBeGreaterThan(50);
+    expect(missionKeys.length).toBeGreaterThan(60);
+    expect(new Set(hintKeys).size).toBeGreaterThan(10);
+  });
+
+  it('never names hitting, kicking, shoving or scruffing', () => {
+    const t = createTranslator();
+    const found = [...new Set([...lessonKeys, ...missionKeys, ...nodeKeys, ...hintKeys, ...actionKeys])].filter((key) => BANNED.test(t(key))).map((key) => `${key}: ${t(key)}`);
+    expect(found).toEqual([]);
+  });
+
+  it('catches a banned word when one slips in', () => {
+    expect(BANNED.test('Dale un cachete si salta')).toBe(true);
+    expect(BANNED.test('Camina con calma hacia su espacio, sin tocarlo')).toBe(false);
   });
 });

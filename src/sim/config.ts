@@ -138,7 +138,7 @@ export const DOG_COAT_NAMES = ['golden', 'black', 'chocolate', 'cream', 'white',
 export type DogCoat = (typeof DOG_COAT_NAMES)[number];
 
 export interface ScenarioConfig {
-  /** World the Stage belongs to, 1 to 4; Go Sniff exists from World 2. */
+  /** World the Stage belongs to, 1 to 5; Worlds 1 and 2 are static, and Go Sniff exists from World 3. */
   world: number;
   theme: SceneryTheme;
   fixedStep: number;
@@ -207,7 +207,7 @@ export interface ScenarioConfig {
 }
 
 export const defaultScenario: ScenarioConfig = {
-  world: 2,
+  world: 3,
   theme: 'quiet_suburb',
   fixedStep: 1 / 60,
   leashLength: 2,

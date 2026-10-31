@@ -2,6 +2,7 @@ import { ONBOARDING_STEPS } from './onboarding/flow';
 import { canSkipDay, missionAfterDebrief, missionEntryOf, missionEntryView, missionForDebrief } from './missions/missionView';
 import type { MissionState } from './missions/mission';
 import { findWorld, isLastMissionOfWorld, progressOf, stopsOf } from './world';
+import { withBasicsDone } from './testProgress';
 import { backAction, isReadyToLeaveSplash, routeFor, type BackActionParams } from './navigation';
 
 describe('routeFor', () => {
@@ -234,7 +235,7 @@ describe('Library and Lesson flows', () => {
 
 describe('Mission flows', () => {
   const at = (h: number, day = 2) => new Date(2026, 4, day, h);
-  const stretch1 = progressOf(['harness-ritual'], { readLessons: ['theory-harness', 'howto-tap-hold'] });
+  const stretch1 = withBasicsDone(progressOf(['harness-ritual'], { readLessons: ['theory-harness', 'howto-tap-hold'] }));
   const started: MissionState = { target: 'full', skipRun: 0, attempts: [], startedAt: at(9, 1).toISOString() };
 
   it('opens the Mission brief when the Debrief of a Stretch\'s last Node is closed', () => {
@@ -242,8 +243,8 @@ describe('Mission flows', () => {
   });
 
   it('returns to the map after a Node that is not last, or when the Mission is started or passed', () => {
-    expect(missionAfterDebrief('harness-ritual', { ...stretch1, missions: { 'mission-harness': started } }, at(9))).toBeNull();
-    expect(missionAfterDebrief('harness-ritual', { ...stretch1, missions: { 'mission-harness': { ...started, passedOn: '2026-05-02' } } }, at(9))).toBeNull();
+    expect(missionAfterDebrief('harness-ritual', { ...stretch1, missions: { ...stretch1.missions, 'mission-harness': started } }, at(9))).toBeNull();
+    expect(missionAfterDebrief('harness-ritual', { ...stretch1, missions: { ...stretch1.missions, 'mission-harness': { ...started, passedOn: '2026-05-02' } } }, at(9))).toBeNull();
     expect(missionAfterDebrief('intro-node', stretch1, at(9))).toBeNull();
   });
 
@@ -266,11 +267,11 @@ describe('Mission flows', () => {
   });
 
   it('offers a Day Skip only on a waiting Mission that is not owed', () => {
-    const waiting = { ...stretch1, missions: { 'mission-harness': started } };
+    const waiting = { ...stretch1, missions: { ...stretch1.missions, 'mission-harness': started } };
     expect(canSkipDay('mission-harness', waiting, at(20, 1))).toBe(true);
     expect(canSkipDay('mission-harness', stretch1, at(20, 1))).toBe(false);
     expect(canSkipDay('mission-harness', waiting, at(9, 2))).toBe(false);
-    const owed = { ...stretch1, missions: { 'mission-harness': { ...started, skippedAt: at(20, 1).toISOString() } } };
+    const owed = { ...stretch1, missions: { ...stretch1.missions, 'mission-harness': { ...started, skippedAt: at(20, 1).toISOString() } } };
     expect(canSkipDay('mission-harness', owed, at(21, 1))).toBe(false);
   });
 

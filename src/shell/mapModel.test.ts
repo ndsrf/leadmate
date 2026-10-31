@@ -1,9 +1,12 @@
 import { migrateRecord } from './dogRecord';
-import { mapModel, nextMapChange, type MapModel, type MapStop } from './mapModel';
+import { mapModel as realMapModel, nextMapChange, type MapModel, type MapStop } from './mapModel';
+import { withBasicsDone } from './testProgress';
 import type { MissionState } from './missions/mission';
 import { progressOf, stopsOf, WORLDS, type Progress, type WorldDef } from './world';
 
 const at = (h: number, day = 2, m = 0) => new Date(2026, 4, day, h, m);
+/** The map of a Dog past the Basics World: these tests are about Home & Thresholds and the Worlds after it. */
+const mapModel = (p: Parameters<typeof realMapModel>[0], stars: Parameters<typeof realMapModel>[1], now: Date) => realMapModel(withBasicsDone(p), stars, now);
 const find = (m: MapModel, id: string): MapStop => m.worlds.flatMap((w) => w.stops).find((s) => s.stop.id === id)!;
 const stateOf = (m: MapModel, id: string) => find(m, id).state;
 const started = (startedAt: Date, over: Partial<MissionState> = {}): MissionState => ({ target: 'full', skipRun: 0, attempts: [], startedAt: startedAt.toISOString(), ...over });
@@ -18,6 +21,13 @@ const allDone = (worlds: readonly WorldDef[]): Progress => {
 };
 
 describe('mapModel over Stops', () => {
+  it('opens a fresh Dog on the Basics World, with "Tiene nombre" next-up and Home locked', () => {
+    const m = realMapModel(progressOf([]), {}, at(9));
+    expect(m.nextUp).toEqual({ worldId: 'basics', stop: { kind: 'lesson', id: 'theory-named-behaviours' }, stopKind: 'theory' });
+    expect(m.worlds.map((w) => [w.world.id, w.unlocked]).slice(0, 2)).toEqual([['basics', true], ['home', false]]);
+    expect(m.worlds[1].unlockRequirement).toMatchObject({ worldTitle: 'world.basics.title', worldNumber: 1 });
+  });
+
   it('opens the first theory Lesson as next-up on a fresh Dog and locks the rest of the Stretch', () => {
     const m = mapModel(progressOf([]), {}, at(9));
     expect(m.nextUp).toEqual({ worldId: 'home', stop: { kind: 'lesson', id: 'theory-harness' }, stopKind: 'theory' });
@@ -27,14 +37,14 @@ describe('mapModel over Stops', () => {
   });
 
   it('gives every Stop its kind and Stretch', () => {
-    const stops = mapModel(progressOf([]), {}, at(9)).worlds[0].stops;
+    const stops = mapModel(progressOf([]), {}, at(9)).worlds[1].stops;
     expect(stops.map((s) => s.kind)).toEqual(['theory', 'how-to-play', 'node', 'mission', 'theory', 'node', 'mission', 'theory', 'node', 'mission']);
     expect(stops.map((s) => s.stretch)).toEqual([0, 0, 0, 0, 1, 1, 1, 2, 2, 2]);
   });
 
   it('counts done and total in Stops', () => {
     const m = mapModel(stretch1, { 'harness-ritual': 2 }, at(9));
-    expect(m.worlds[0]).toMatchObject({ done: 3, total: 10 });
+    expect(m.worlds[1]).toMatchObject({ done: 3, total: 10 });
     expect(find(m, 'harness-ritual')).toMatchObject({ state: 'done', stars: 2 });
     expect(find(m, 'theory-harness').stars).toBeUndefined();
   });
@@ -77,18 +87,18 @@ describe('mapModel over Stops', () => {
 
   it('opens World 2 for a returning user who finished World 1', () => {
     const m = mapModel(migrateRecord({ version: 6, completedNodes: ['harness-ritual', 'doorbell-mat', 'poste-practice'] }), {}, at(9));
-    expect(m.worlds[1].unlocked).toBe(true);
-    expect(m.worlds[0].done).toBe(m.worlds[0].total);
+    expect(m.worlds[2].unlocked).toBe(true);
+    expect(m.worlds[1].done).toBe(m.worlds[1].total);
     expect(m.nextUp).toMatchObject({ worldId: 'sidewalk', stop: { id: 'theory-loose-leash' } });
   });
 
   it('names the last missing Stop of the previous World in the unlock banner', () => {
-    const all = allDone(WORLDS.slice(0, 1));
+    const all = allDone(WORLDS.slice(0, 2));
     const waiting = { ...all, missions: { ...all.missions, 'mission-poste': started(at(9, 1)) } };
-    const sidewalk = mapModel(waiting, {}, at(20, 1)).worlds[1];
+    const sidewalk = mapModel(waiting, {}, at(20, 1)).worlds[2];
     expect(sidewalk.unlocked).toBe(false);
-    expect(sidewalk.unlockRequirement).toEqual({ worldTitle: 'world.1.title', lastStopTitle: 'mission.poste.title' });
-    expect(mapModel(progressOf([]), {}, at(9)).worlds[1].unlockRequirement?.lastStopTitle).toBeUndefined();
+    expect(sidewalk.unlockRequirement).toEqual({ worldTitle: 'world.home.title', worldNumber: 2, lastStopTitle: 'mission.poste.title' });
+    expect(mapModel(progressOf([]), {}, at(9)).worlds[2].unlockRequirement?.lastStopTitle).toBeUndefined();
   });
 
   it('keeps preview Worlds with their planned count and no Stops', () => {
@@ -105,7 +115,7 @@ describe('mapModel over Stops', () => {
 
   it('gives every Stop exactly one state, and at most one next-up', () => {
     const states = new Set(['locked', 'open', 'next', 'waiting', 'owed', 'done']);
-    for (const p of [progressOf([]), stretch1, { ...stretch1, missions: { 'mission-harness': started(at(9, 1)) } }, allDone(WORLDS.slice(0, 2))]) {
+    for (const p of [progressOf([]), stretch1, { ...stretch1, missions: { 'mission-harness': started(at(9, 1)) } }, allDone(WORLDS.slice(0, 3))]) {
       const stops = mapModel(p, {}, at(20, 1)).worlds.flatMap((w) => w.stops);
       for (const s of stops) expect(states.has(s.state)).toBe(true);
       expect(stops.filter((s) => s.state === 'next').length).toBeLessThanOrEqual(1);
@@ -125,9 +135,9 @@ describe('mapModel with Owed Missions', () => {
   });
 
   it('does not count an owed Mission as done', () => {
-    const all = allDone(WORLDS.slice(0, 1));
+    const all = allDone(WORLDS.slice(0, 2));
     const m = mapModel({ ...all, missions: { ...all.missions, 'mission-doorbell': owed(at(9, 1)) } }, {}, at(20, 1));
-    expect(m.worlds[0]).toMatchObject({ done: 9, total: 10 });
+    expect(m.worlds[1]).toMatchObject({ done: 9, total: 10 });
   });
 
   it('keeps the first open Stop next-up while an owed check-in is due', () => {
@@ -137,7 +147,7 @@ describe('mapModel with Owed Missions', () => {
   });
 
   it('makes the first due owed Mission next-up when nothing else is open', () => {
-    const all = allDone(WORLDS.slice(0, 1));
+    const all = allDone(WORLDS.slice(0, 2));
     const p = { ...all, missions: { ...all.missions, 'mission-harness': owed(at(9, 1)), 'mission-doorbell': owed(at(9, 1)), 'mission-poste': started(at(9, 2)) } };
     const m = mapModel(p, {}, at(10, 2));
     expect(find(m, 'mission-harness')).toMatchObject({ state: 'next', owed: true, checkInDue: true });
@@ -146,7 +156,7 @@ describe('mapModel with Owed Missions', () => {
   });
 
   it('rests the Dog at an owed Mission when nothing is open or waiting', () => {
-    const all = allDone(WORLDS.slice(0, 1));
+    const all = allDone(WORLDS.slice(0, 2));
     const m = mapModel({ ...all, missions: { ...all.missions, 'mission-doorbell': owed(at(9, 2)) } }, {}, at(10, 2));
     expect(m.nextUp).toBeNull();
     expect(m.waitingAt).toEqual({ worldId: 'home', stop: { kind: 'mission', id: 'mission-doorbell' } });
@@ -154,19 +164,19 @@ describe('mapModel with Owed Missions', () => {
   });
 
   it('lists the owed Missions of a World for the panel, and none once they are passed', () => {
-    const all = allDone(WORLDS.slice(0, 1));
+    const all = allDone(WORLDS.slice(0, 2));
     const p = { ...all, missions: { ...all.missions, 'mission-harness': owed(at(9, 1)), 'mission-doorbell': owed(at(9, 2)) } };
-    const home = mapModel(p, {}, at(20, 2)).worlds[0];
+    const home = mapModel(p, {}, at(20, 2)).worlds[1];
     expect(home.owed.map((s) => [s.stop.id, s.checkInDue ?? false, s.opensTomorrow ?? false])).toEqual([['mission-harness', true, false], ['mission-doorbell', false, true]]);
-    expect(mapModel(all, {}, at(20, 2)).worlds[0].owed).toEqual([]);
+    expect(mapModel(all, {}, at(20, 2)).worlds[1].owed).toEqual([]);
   });
 
   it('names the owed Missions in the next World\'s unlock banner', () => {
-    const all = allDone(WORLDS.slice(0, 1));
+    const all = allDone(WORLDS.slice(0, 2));
     const p = { ...all, missions: { ...all.missions, 'mission-harness': owed(at(9, 1)), 'mission-doorbell': owed(at(9, 1)) } };
-    const sidewalk = mapModel(p, {}, at(20, 1)).worlds[1];
+    const sidewalk = mapModel(p, {}, at(20, 1)).worlds[2];
     expect(sidewalk.unlocked).toBe(false);
-    expect(sidewalk.unlockRequirement).toEqual({ worldTitle: 'world.1.title', owedCount: 2 });
+    expect(sidewalk.unlockRequirement).toEqual({ worldTitle: 'world.home.title', worldNumber: 2, owedCount: 2 });
   });
 
   it('opens a Plus World only for a Plus member', () => {

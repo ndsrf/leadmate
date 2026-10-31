@@ -1,7 +1,8 @@
 import React from 'react';
 import { View } from 'react-native';
 import Svg, { Circle, Ellipse, G, Line, Path, Rect } from 'react-native-svg';
-import { lightColor as color } from './theme';
+import { findWorld, WORLDS } from '../world';
+import { lightColor as color, theme } from './theme';
 import { ROW_HEIGHT } from './mapLayout';
 
 export interface WorldSceneryPalette {
@@ -20,6 +21,32 @@ const absoluteFill = {
   bottom: 0,
 };
 
+/** The scenery sets drawn for playable Worlds, named after the World that owns each one. */
+export type SceneryId = 'basics' | 'home' | 'sidewalk' | 'urban' | 'park';
+const SCENERIES: readonly SceneryId[] = ['basics', 'home', 'sidewalk', 'urban', 'park'];
+/** The sets a World without its own scenery cycles through, by its index in the trail. */
+const FALLBACK_CYCLE: readonly SceneryId[] = ['home', 'sidewalk', 'urban', 'park'];
+
+const indexOfWorld = (worldId: string) => Math.max(0, WORLDS.findIndex((w) => w.id === worldId));
+
+/** Which scenery a World is drawn with: its own when it has one, otherwise a cycle by its place in the trail. */
+export function sceneryOf(worldId: string): SceneryId {
+  return (SCENERIES as readonly string[]).includes(worldId) ? (worldId as SceneryId) : FALLBACK_CYCLE[indexOfWorld(worldId) % FALLBACK_CYCLE.length];
+}
+
+/** The silhouettes drawn behind an expanded preview World. */
+export type PreviewSceneryId = 'recall' | 'cafe' | 'trails' | 'crowds';
+const PREVIEW_SCENERIES: readonly PreviewSceneryId[] = ['recall', 'cafe', 'trails', 'crowds'];
+
+export function previewSceneryOf(worldId: string): PreviewSceneryId {
+  return (PREVIEW_SCENERIES as readonly string[]).includes(worldId) ? (worldId as PreviewSceneryId) : PREVIEW_SCENERIES[indexOfWorld(worldId) % PREVIEW_SCENERIES.length];
+}
+
+/** A World's theme palette, chosen by the World and never by its number. */
+export function worldPalette(worldId: string): WorldSceneryPalette {
+  return theme.world[sceneryOf(worldId)];
+}
+
 /** Offset from the top of the card to the beginning of the interactive path. */
 export const TOP_LANDMARK_HEIGHT = 48;
 export const TOP_LANDMARK_GAP = 12;
@@ -30,7 +57,39 @@ export const PATH_TOP_OFFSET = CARD_PADDING_TOP + TOP_LANDMARK_HEIGHT + TOP_LAND
 // Standardized Top Landmarks (48px height)
 // ---------------------------------------------------------------------------
 
-/** Standardized 48px Top Landmark entrance for World 1 (Home & Thresholds). Absorbs HouseLandmark. */
+/** Standardized 48px Top Landmark entrance for the Basics World: the Dog's own bed with a bone. */
+export function BasicsTopLandmark({ palette }: { palette?: WorldSceneryPalette }) {
+  const ink = color.ink;
+  const accent = palette?.accent ?? color.brand;
+  const soft = palette?.soft ?? color.accentSoft;
+
+  return (
+    <View
+      testID="top-landmark-basics"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      aria-hidden={true}
+      style={{ width: 60, height: TOP_LANDMARK_HEIGHT, alignItems: 'center', justifyContent: 'center' }}
+    >
+      <Svg width={60} height={TOP_LANDMARK_HEIGHT} viewBox="0 0 60 48" aria-hidden>
+        {/* Bed rim */}
+        <Path d="M4 34 Q4 16 30 16 Q56 16 56 34 Q56 44 30 44 Q4 44 4 34 Z" fill={accent} stroke={ink} strokeWidth={2.4} strokeLinejoin="round" />
+        {/* Cushion */}
+        <Ellipse cx={30} cy={34} rx={19} ry={7} fill={soft} stroke={ink} strokeWidth={1.8} />
+        {/* Bone */}
+        <Rect x={22} y={31} width={16} height={4} rx={2} fill={color.surface} stroke={ink} strokeWidth={1.2} />
+        <Circle cx={22} cy={31} r={2.4} fill={color.surface} stroke={ink} strokeWidth={1.2} />
+        <Circle cx={22} cy={35} r={2.4} fill={color.surface} stroke={ink} strokeWidth={1.2} />
+        <Circle cx={38} cy={31} r={2.4} fill={color.surface} stroke={ink} strokeWidth={1.2} />
+        <Circle cx={38} cy={35} r={2.4} fill={color.surface} stroke={ink} strokeWidth={1.2} />
+        {/* Resting "z" */}
+        <Path d="M44 4 h6 l-6 7 h6" fill="none" stroke={ink} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+      </Svg>
+    </View>
+  );
+}
+
+/** Standardized 48px Top Landmark entrance for Home & Thresholds. Absorbs HouseLandmark. */
 export function HomeTopLandmark({ palette }: { palette?: WorldSceneryPalette }) {
   const ink = color.ink;
   const accent = palette?.accent ?? color.coral;
@@ -39,7 +98,7 @@ export function HomeTopLandmark({ palette }: { palette?: WorldSceneryPalette }) 
 
   return (
     <View
-      testID="top-landmark-1"
+      testID="top-landmark-home"
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       aria-hidden={true}
@@ -72,7 +131,7 @@ export function SidewalkTopLandmark({ palette }: { palette?: WorldSceneryPalette
 
   return (
     <View
-      testID="top-landmark-2"
+      testID="top-landmark-sidewalk"
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       aria-hidden={true}
@@ -107,7 +166,7 @@ export function UrbanTopLandmark({ palette }: { palette?: WorldSceneryPalette })
 
   return (
     <View
-      testID="top-landmark-3"
+      testID="top-landmark-urban"
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       aria-hidden={true}
@@ -139,7 +198,7 @@ export function ParkTopLandmark({ palette }: { palette?: WorldSceneryPalette }) 
 
   return (
     <View
-      testID="top-landmark-4"
+      testID="top-landmark-park"
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       aria-hidden={true}
@@ -180,31 +239,30 @@ export function HouseLandmark({ palette }: { palette?: WorldSceneryPalette } = {
   );
 }
 
-/** Dispatches the standardized 48px Top Landmark entrance based on worldNumber (1-4). */
+/** Dispatches the standardized 48px Top Landmark entrance by World id. */
 export function TopLandmark({
-  worldNumber,
+  worldId,
   palette,
 }: {
-  worldNumber: number;
+  worldId: string;
   palette?: WorldSceneryPalette;
 }) {
   let content: React.ReactNode = null;
-  const num = ((worldNumber - 1) % 4) + 1;
-  switch (num) {
-    case 1:
+  switch (sceneryOf(worldId)) {
+    case 'basics':
+      content = <BasicsTopLandmark palette={palette} />;
+      break;
+    case 'home':
       content = <HomeTopLandmark palette={palette} />;
       break;
-    case 2:
+    case 'sidewalk':
       content = <SidewalkTopLandmark palette={palette} />;
       break;
-    case 3:
+    case 'urban':
       content = <UrbanTopLandmark palette={palette} />;
       break;
-    case 4:
+    case 'park':
       content = <ParkTopLandmark palette={palette} />;
-      break;
-    default:
-      content = <HomeTopLandmark palette={palette} />;
       break;
   }
 
@@ -226,15 +284,63 @@ export function TopLandmark({
 // Enriched Full-Height Environmental Backdrops (Active Worlds)
 // ---------------------------------------------------------------------------
 
-/** World 1 (Home): Cozy domestic wallpaper, arched windows, framed art, wainscoting, and hearth flooring */
-export function World1EnvironmentalBackdrop({ palette }: { palette: WorldSceneryPalette }) {
+/** Basics World: a calm living room with a plain wall, a garden window, a sofa line and a round rug. */
+export function BasicsEnvironmentalBackdrop({ palette }: { palette: WorldSceneryPalette }) {
+  const soft = palette.soft ?? color.accentSoft;
+  const deep = palette.deep ?? color.brandDeep;
+  const accent = palette.accent ?? color.brand;
+  const ink = color.ink;
+
+  return (
+    <View testID="environmental-backdrop-basics" style={absoluteFill}>
+      <Svg width="100%" height="100%" viewBox="0 0 380 800" preserveAspectRatio="none" aria-hidden>
+        {/* Wall */}
+        <Rect x={0} y={0} width={380} height={540} fill={palette.sky} />
+        {/* Soft wall panels */}
+        <Rect x={24} y={60} width={150} height={200} rx={6} fill="none" stroke={deep} strokeWidth={1.2} opacity={0.18} />
+        <Rect x={206} y={60} width={150} height={200} rx={6} fill="none" stroke={deep} strokeWidth={1.2} opacity={0.18} />
+        <Rect x={24} y={300} width={150} height={200} rx={6} fill="none" stroke={deep} strokeWidth={1.2} opacity={0.18} />
+        <Rect x={206} y={300} width={150} height={200} rx={6} fill="none" stroke={deep} strokeWidth={1.2} opacity={0.18} />
+        {/* Ceiling line */}
+        <Rect x={0} y={0} width={380} height={12} fill={color.surface} opacity={0.7} />
+        {/* Garden window, top right */}
+        <G opacity={0.8}>
+          <Rect x={300} y={90} width={56} height={70} rx={3} fill={color.sky} stroke={ink} strokeWidth={2} />
+          <Path d="M300 146 Q328 132 356 146 V160 H300 Z" fill={color.brand} />
+          <Line x1={328} y1={90} x2={328} y2={160} stroke={color.surface} strokeWidth={2} />
+          <Line x1={300} y1={125} x2={356} y2={125} stroke={color.surface} strokeWidth={2} />
+        </G>
+        {/* Floor lamp, top left */}
+        <G opacity={0.55}>
+          <Line x1={40} y1={110} x2={40} y2={200} stroke={ink} strokeWidth={2} />
+          <Path d="M26 110 h28 l-6 -18 h-16 z" fill={soft} stroke={ink} strokeWidth={1.5} />
+          <Ellipse cx={40} cy={202} rx={10} ry={3} fill={ink} opacity={0.4} />
+        </G>
+        {/* Skirting board */}
+        <Rect x={0} y={530} width={380} height={10} fill={color.surface} opacity={0.75} />
+        <Line x1={0} y1={540} x2={380} y2={540} stroke={deep} strokeWidth={1.5} opacity={0.35} />
+        {/* Wooden floor */}
+        <Rect x={0} y={540} width={380} height={260} fill={palette.ground} opacity={0.45} />
+        <Line x1={0} y1={600} x2={380} y2={600} stroke={deep} strokeWidth={1} opacity={0.15} />
+        <Line x1={0} y1={660} x2={380} y2={660} stroke={deep} strokeWidth={1} opacity={0.15} />
+        <Line x1={0} y1={720} x2={380} y2={720} stroke={deep} strokeWidth={1} opacity={0.15} />
+        {/* Round rug */}
+        <Ellipse cx={190} cy={680} rx={150} ry={56} fill={accent} opacity={0.22} />
+        <Ellipse cx={190} cy={680} rx={120} ry={42} fill="none" stroke={soft} strokeWidth={3} opacity={0.5} />
+      </Svg>
+    </View>
+  );
+}
+
+/** Home & Thresholds: Cozy domestic wallpaper, arched windows, framed art, wainscoting, and hearth flooring */
+export function HomeEnvironmentalBackdrop({ palette }: { palette: WorldSceneryPalette }) {
   const soft = palette.soft ?? color.accentSoft;
   const deep = palette.deep ?? color.coral;
   const accent = palette.accent ?? color.coral;
   const ink = color.ink;
 
   return (
-    <View testID="environmental-backdrop-1" style={absoluteFill}>
+    <View testID="environmental-backdrop-home" style={absoluteFill}>
       <Svg width="100%" height="100%" viewBox="0 0 380 800" preserveAspectRatio="none" aria-hidden>
         {/* 1. Upper wall fill */}
         <Rect x={0} y={0} width={380} height={520} fill={palette.sky} />
@@ -417,7 +523,7 @@ export function World1EnvironmentalBackdrop({ palette }: { palette: WorldScenery
 }
 
 /** World 2 (The Quiet Sidewalk): Suburban neighborhood cottages, picket fences, mailboxes, trees, and paved sidewalk */
-export function World2EnvironmentalBackdrop({ palette }: { palette: WorldSceneryPalette }) {
+export function SidewalkEnvironmentalBackdrop({ palette }: { palette: WorldSceneryPalette }) {
   const soft = palette.soft ?? color.accentSoft;
   const ground = palette.ground;
   const deep = palette.deep ?? color.brandDeep;
@@ -425,7 +531,7 @@ export function World2EnvironmentalBackdrop({ palette }: { palette: WorldScenery
   const ink = color.ink;
 
   return (
-    <View testID="environmental-backdrop-2" style={absoluteFill}>
+    <View testID="environmental-backdrop-sidewalk" style={absoluteFill}>
       <Svg width="100%" height="100%" viewBox="0 0 380 800" preserveAspectRatio="none" aria-hidden>
         {/* 1. Sky background */}
         <Rect x={0} y={0} width={380} height={800} fill={palette.sky} />
@@ -571,14 +677,14 @@ export function World2EnvironmentalBackdrop({ palette }: { palette: WorldScenery
 }
 
 /** World 3 (Urban Navigations): Layered high-rise skyline, brownstones, fire escapes, storefronts, and crosswalk street */
-export function World3EnvironmentalBackdrop({ palette }: { palette: WorldSceneryPalette }) {
+export function UrbanEnvironmentalBackdrop({ palette }: { palette: WorldSceneryPalette }) {
   const soft = palette.soft ?? color.infoSoft;
   const deep = palette.deep ?? color.edge;
   const accent = palette.accent ?? color.coral;
   const ink = color.ink;
 
   return (
-    <View testID="environmental-backdrop-3" style={absoluteFill}>
+    <View testID="environmental-backdrop-urban" style={absoluteFill}>
       <Svg width="100%" height="100%" viewBox="0 0 380 800" preserveAspectRatio="none" aria-hidden>
         {/* 1. City sky background */}
         <Rect x={0} y={0} width={380} height={800} fill={palette.sky} />
@@ -719,7 +825,7 @@ export function World3EnvironmentalBackdrop({ palette }: { palette: WorldScenery
 }
 
 /** World 4 (Fast Wheels & High Arousal): Sunny park hills, radiating sun, kites, duck pond, agility hurdles, and meadow flora */
-export function World4EnvironmentalBackdrop({ palette }: { palette: WorldSceneryPalette }) {
+export function ParkEnvironmentalBackdrop({ palette }: { palette: WorldSceneryPalette }) {
   const ground = palette.ground;
   const accent = palette.accent ?? color.brand;
   const soft = palette.soft ?? color.accent;
@@ -727,7 +833,7 @@ export function World4EnvironmentalBackdrop({ palette }: { palette: WorldScenery
   const ink = color.ink;
 
   return (
-    <View testID="environmental-backdrop-4" style={absoluteFill}>
+    <View testID="environmental-backdrop-park" style={absoluteFill}>
       <Svg width="100%" height="100%" viewBox="0 0 380 800" preserveAspectRatio="none" aria-hidden>
         {/* 1. Warm park sky */}
         <Rect x={0} y={0} width={380} height={800} fill={palette.sky} />
@@ -860,31 +966,30 @@ export function World4EnvironmentalBackdrop({ palette }: { palette: WorldScenery
   );
 }
 
-/** Dispatches the full-height environmental backdrop for active worlds (1-4). */
+/** Dispatches the full-height environmental backdrop of an active World by its id. */
 export function FullHeightEnvironmentalBackdrop({
-  worldNumber,
+  worldId,
   palette,
 }: {
-  worldNumber: number;
+  worldId: string;
   palette: WorldSceneryPalette;
 }) {
-  const num = ((worldNumber - 1) % 4) + 1;
   let content: React.ReactNode = null;
-  switch (num) {
-    case 1:
-      content = <World1EnvironmentalBackdrop palette={palette} />;
+  switch (sceneryOf(worldId)) {
+    case 'basics':
+      content = <BasicsEnvironmentalBackdrop palette={palette} />;
       break;
-    case 2:
-      content = <World2EnvironmentalBackdrop palette={palette} />;
+    case 'home':
+      content = <HomeEnvironmentalBackdrop palette={palette} />;
       break;
-    case 3:
-      content = <World3EnvironmentalBackdrop palette={palette} />;
+    case 'sidewalk':
+      content = <SidewalkEnvironmentalBackdrop palette={palette} />;
       break;
-    case 4:
-      content = <World4EnvironmentalBackdrop palette={palette} />;
+    case 'urban':
+      content = <UrbanEnvironmentalBackdrop palette={palette} />;
       break;
-    default:
-      content = <World1EnvironmentalBackdrop palette={palette} />;
+    case 'park':
+      content = <ParkEnvironmentalBackdrop palette={palette} />;
       break;
   }
 
@@ -899,7 +1004,71 @@ export function FullHeightEnvironmentalBackdrop({
 // Margin Scenery Motifs & Enriched Vector Craft (Active Worlds)
 // ---------------------------------------------------------------------------
 
-function World1MarginMotifs({
+/** Basics World margins: a sofa and the Dog's bed, alternating with the garden door and a house plant. */
+function BasicsMarginMotifs({
+  palette,
+  rowIndex = 1,
+}: {
+  palette: WorldSceneryPalette;
+  rowIndex?: number;
+}) {
+  const ink = color.ink;
+  const accent = palette.accent ?? color.brand;
+  const soft = palette.soft ?? color.accentSoft;
+  const deep = palette.deep ?? color.brandDeep;
+
+  if (rowIndex % 4 === 3) {
+    return (
+      <>
+        {/* Left gutter: garden door with glass panes */}
+        <View testID="basics-garden-door" style={{ position: 'absolute', left: 8, top: 10, width: 46, height: 80 }}>
+          <Svg width={46} height={80} viewBox="0 0 46 80" aria-hidden>
+            <Rect x={4} y={4} width={38} height={72} rx={2} fill={color.surface} stroke={ink} strokeWidth={1.8} />
+            <Rect x={9} y={9} width={12} height={26} fill={color.sky} stroke={ink} strokeWidth={1.2} />
+            <Rect x={25} y={9} width={12} height={26} fill={color.sky} stroke={ink} strokeWidth={1.2} />
+            <Path d="M9 30 Q15 24 21 30 V35 H9 Z" fill={color.brand} />
+            <Path d="M25 30 Q31 24 37 30 V35 H25 Z" fill={color.brand} />
+            <Rect x={9} y={40} width={28} height={30} rx={1} fill={soft} stroke={ink} strokeWidth={1.2} />
+            <Circle cx={34} cy={46} r={2} fill={deep} />
+          </Svg>
+        </View>
+        {/* Right gutter: potted plant */}
+        <View style={{ position: 'absolute', right: 10, top: 18, width: 40, height: 70 }}>
+          <Svg width={40} height={70} viewBox="0 0 40 70" aria-hidden>
+            <Path d="M20 44 Q6 30 10 14 Q20 26 20 44 Z" fill={color.brand} stroke={ink} strokeWidth={1.2} />
+            <Path d="M20 44 Q34 30 30 12 Q20 26 20 44 Z" fill={color.brand} stroke={ink} strokeWidth={1.2} />
+            <Path d="M10 44 h20 l-3 22 h-14 z" fill={accent} stroke={ink} strokeWidth={1.5} />
+          </Svg>
+        </View>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {/* Left gutter: sofa */}
+      <View testID="basics-sofa" style={{ position: 'absolute', left: 6, top: 30, width: 58, height: 50 }}>
+        <Svg width={58} height={50} viewBox="0 0 58 50" aria-hidden>
+          <Rect x={8} y={6} width={42} height={22} rx={6} fill={accent} stroke={ink} strokeWidth={1.8} />
+          <Rect x={2} y={20} width={54} height={20} rx={6} fill={accent} stroke={ink} strokeWidth={1.8} />
+          <Rect x={10} y={22} width={18} height={10} rx={3} fill={soft} stroke={ink} strokeWidth={1.2} />
+          <Rect x={30} y={22} width={18} height={10} rx={3} fill={soft} stroke={ink} strokeWidth={1.2} />
+          <Line x1={8} y1={40} x2={8} y2={46} stroke={ink} strokeWidth={2} />
+          <Line x1={50} y1={40} x2={50} y2={46} stroke={ink} strokeWidth={2} />
+        </Svg>
+      </View>
+      {/* Right gutter: the Dog's bed */}
+      <View testID="basics-dog-bed" style={{ position: 'absolute', right: 6, top: 44, width: 56, height: 36 }}>
+        <Svg width={56} height={36} viewBox="0 0 56 36" aria-hidden>
+          <Path d="M3 22 Q3 6 28 6 Q53 6 53 22 Q53 32 28 32 Q3 32 3 22 Z" fill={deep} stroke={ink} strokeWidth={1.8} />
+          <Ellipse cx={28} cy={22} rx={18} ry={6} fill={soft} stroke={ink} strokeWidth={1.2} />
+        </Svg>
+      </View>
+    </>
+  );
+}
+
+function HomeMarginMotifs({
   palette,
   rowIndex = 1,
 }: {
@@ -976,7 +1145,7 @@ function World1MarginMotifs({
   );
 }
 
-function World2MarginMotifs({
+function SidewalkMarginMotifs({
   palette,
   rowIndex = 1,
 }: {
@@ -1048,7 +1217,7 @@ function World2MarginMotifs({
   );
 }
 
-function World3MarginMotifs({
+function UrbanMarginMotifs({
   palette,
   rowIndex = 1,
 }: {
@@ -1124,7 +1293,7 @@ function World3MarginMotifs({
   );
 }
 
-function World4MarginMotifs({
+function ParkMarginMotifs({
   palette,
   rowIndex = 1,
 }: {
@@ -1196,28 +1365,27 @@ function World4MarginMotifs({
   );
 }
 
-/** Dispatches thematic margin scenery for active worlds. */
+/** Dispatches thematic margin scenery of an active World by its id. */
 export function MarginSceneryMotif({
-  worldNumber,
+  worldId,
   palette,
   rowIndex = 1,
 }: {
-  worldNumber: number;
+  worldId: string;
   palette: WorldSceneryPalette;
   rowIndex?: number;
 }) {
-  const num = ((worldNumber - 1) % 4) + 1;
-  switch (num) {
-    case 1:
-      return <World1MarginMotifs palette={palette} rowIndex={rowIndex} />;
-    case 2:
-      return <World2MarginMotifs palette={palette} rowIndex={rowIndex} />;
-    case 3:
-      return <World3MarginMotifs palette={palette} rowIndex={rowIndex} />;
-    case 4:
-      return <World4MarginMotifs palette={palette} rowIndex={rowIndex} />;
-    default:
-      return <World1MarginMotifs palette={palette} rowIndex={rowIndex} />;
+  switch (sceneryOf(worldId)) {
+    case 'basics':
+      return <BasicsMarginMotifs palette={palette} rowIndex={rowIndex} />;
+    case 'home':
+      return <HomeMarginMotifs palette={palette} rowIndex={rowIndex} />;
+    case 'sidewalk':
+      return <SidewalkMarginMotifs palette={palette} rowIndex={rowIndex} />;
+    case 'urban':
+      return <UrbanMarginMotifs palette={palette} rowIndex={rowIndex} />;
+    case 'park':
+      return <ParkMarginMotifs palette={palette} rowIndex={rowIndex} />;
   }
 }
 
@@ -1226,19 +1394,20 @@ export function MarginSceneryMotif({
 // ---------------------------------------------------------------------------
 
 export function PreviewBackdropSilhouette({
-  worldNumber,
+  worldId,
   palette,
 }: {
-  worldNumber: number;
+  worldId: string;
   palette: WorldSceneryPalette;
 }) {
   const ink = color.ink;
+  const kind = previewSceneryOf(worldId);
 
   // Recall meadow (World 5): Twilight hills, starry sky, fireflies
-  if (worldNumber === 5) {
+  if (kind === 'recall') {
     return (
       <View
-        testID="preview-silhouette-5"
+        testID="preview-silhouette-recall"
         style={{ ...absoluteFill, alignItems: 'center', justifyContent: 'flex-end', opacity: 0.75 }}
       >
         <Svg width="100%" height={140} viewBox="0 0 320 140" preserveAspectRatio="none" aria-hidden>
@@ -1263,10 +1432,10 @@ export function PreviewBackdropSilhouette({
   }
 
   // Cafe terrace (World 6): Bistro terrace with strung lights, parasol umbrellas, and tables
-  if (worldNumber === 6) {
+  if (kind === 'cafe') {
     return (
       <View
-        testID="preview-silhouette-6"
+        testID="preview-silhouette-cafe"
         style={{ ...absoluteFill, alignItems: 'center', justifyContent: 'flex-end', opacity: 0.75 }}
       >
         <Svg width="100%" height={140} viewBox="0 0 320 140" preserveAspectRatio="none" aria-hidden>
@@ -1290,10 +1459,10 @@ export function PreviewBackdropSilhouette({
   }
 
   // Hiking ridge (World 7): Alpine ridge with sharp mountain peaks and pine trees
-  if (worldNumber === 7) {
+  if (kind === 'trails') {
     return (
       <View
-        testID="preview-silhouette-7"
+        testID="preview-silhouette-trails"
         style={{ ...absoluteFill, alignItems: 'center', justifyContent: 'flex-end', opacity: 0.75 }}
       >
         <Svg width="100%" height={140} viewBox="0 0 320 140" preserveAspectRatio="none" aria-hidden>
@@ -1318,7 +1487,7 @@ export function PreviewBackdropSilhouette({
   // Crowds plaza (World 8): Municipal town hall clock tower, festival bunting, and tiered fountain
   return (
     <View
-      testID="preview-silhouette-8"
+      testID="preview-silhouette-crowds"
       style={{ ...absoluteFill, alignItems: 'center', justifyContent: 'flex-end', opacity: 0.75 }}
     >
       <Svg width="100%" height={140} viewBox="0 0 320 140" preserveAspectRatio="none" aria-hidden>
@@ -1343,8 +1512,7 @@ export function PreviewBackdropSilhouette({
 // ---------------------------------------------------------------------------
 
 export interface WorldSceneryBackgroundProps {
-  worldId?: string;
-  worldNumber: number;
+  worldId: string;
   palette: WorldSceneryPalette;
   stopCount?: number;
   isExpandedPreview?: boolean;
@@ -1356,12 +1524,12 @@ export interface WorldSceneryBackgroundProps {
  * paper-cut margin motifs at middle-row intervals, and subtle silhouettes for expanded preview worlds.
  */
 export function WorldSceneryBackground({
-  worldNumber,
+  worldId,
   palette,
   stopCount = 0,
   isExpandedPreview = false,
 }: WorldSceneryBackgroundProps) {
-  const isPreview = isExpandedPreview || (worldNumber >= 5 && stopCount === 0);
+  const isPreview = isExpandedPreview || (findWorld(worldId)?.preview === true && stopCount === 0);
 
   // Middle-row gutter intervals (index % 2 === 1) guaranteed outside the node clearance corridor
   const middleRowIndices: number[] = [];
@@ -1375,7 +1543,7 @@ export function WorldSceneryBackground({
     <>
       {/* 1. Top Landmark in-flow entrance for active worlds (1-4) */}
       {!isPreview && (
-        <TopLandmark worldNumber={worldNumber} palette={palette} />
+        <TopLandmark worldId={worldId} palette={palette} />
       )}
 
       {/* 2. Absolute decorative backdrop layers */}
@@ -1389,7 +1557,7 @@ export function WorldSceneryBackground({
       >
         {/* Full-height environmental backdrop for active worlds (1-4) */}
         {!isPreview && (
-          <FullHeightEnvironmentalBackdrop worldNumber={worldNumber} palette={palette} />
+          <FullHeightEnvironmentalBackdrop worldId={worldId} palette={palette} />
         )}
 
         {/* Bottom ground strip */}
@@ -1408,7 +1576,7 @@ export function WorldSceneryBackground({
         {/* Preview world subtle silhouette (Worlds 5-8) */}
         {isPreview && (
           <View testID="preview-silhouette" style={absoluteFill}>
-            <PreviewBackdropSilhouette worldNumber={worldNumber} palette={palette} />
+            <PreviewBackdropSilhouette worldId={worldId} palette={palette} />
           </View>
         )}
 
@@ -1427,7 +1595,7 @@ export function WorldSceneryBackground({
                   height: ROW_HEIGHT,
                 }}
               >
-                <MarginSceneryMotif worldNumber={worldNumber} palette={palette} rowIndex={rowIndex} />
+                <MarginSceneryMotif worldId={worldId} palette={palette} rowIndex={rowIndex} />
               </View>
             ))}
           </View>

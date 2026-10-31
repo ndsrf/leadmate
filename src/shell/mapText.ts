@@ -3,7 +3,7 @@ import { findLesson } from './lessons/content';
 import { findMission } from './missions/content';
 import { findNode } from './nodes/content';
 import type { MapStop, MapWorld } from './mapModel';
-import type { Stop } from './world';
+import { worldTitle, type Stop } from './world';
 
 export function stopTitle(stop: Stop): TextKey | undefined {
   switch (stop.kind) {
@@ -90,12 +90,14 @@ export function worldUnlockBanner(entry: MapWorld, t: Translate): string {
   }
   const owed = entry.unlockRequirement?.owedCount;
   if (owed) {
-    const world = t(entry.unlockRequirement!.worldTitle);
+    const req = entry.unlockRequirement!;
+    const world = worldTitle({ title: req.worldTitle, worldNumber: req.worldNumber }, t);
     return owed === 1 ? t('world.unlockOwed').replace('{world}', world) : t('world.unlockOwedMany').replace('{count}', String(owed)).replace('{world}', world);
   }
   if (entry.unlockRequirement?.lastStopTitle) {
     const stop = t(entry.unlockRequirement.lastStopTitle);
-    const world = t(entry.unlockRequirement.worldTitle);
+    const req = entry.unlockRequirement;
+    const world = worldTitle({ title: req.worldTitle, worldNumber: req.worldNumber }, t);
     return t('world.unlockRequirement').replace('{node}', stop).replace('{world}', world);
   }
   return t('world.unlockGeneric');

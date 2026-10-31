@@ -16,7 +16,14 @@ export type CaninePosture =
   | 'sitting_attentive'
   | 'staring_door'
   | 'unsettled_on_mat'
-  | 'relaxed_lying';
+  | 'relaxed_lying'
+  | 'begging_lift'
+  | 'on_furniture'
+  | 'nudging_attention'
+  | 'toy_indoors'
+  | 'resting'
+  | 'barking_nonstop'
+  | 'zoomies';
 
 export const CANINE_POSTURES: readonly CaninePosture[] = [
   'standing_waiting',
@@ -32,21 +39,32 @@ export const CANINE_POSTURES: readonly CaninePosture[] = [
   'staring_door',
   'unsettled_on_mat',
   'relaxed_lying',
+  'begging_lift',
+  'on_furniture',
+  'nudging_attention',
+  'toy_indoors',
+  'resting',
+  'barking_nonstop',
+  'zoomies',
 ];
 
 /** The postures the user reads in the action Minigames; they must tell apart at a glance. */
-export const READABLE_POSTURES: readonly DogState[] = ['jumping', 'alert_barking', 'staring_door', 'sniffing', 'sitting_attentive', 'unsettled_on_mat', 'relaxed_lying'];
+export const READABLE_POSTURES: readonly DogState[] = [
+  'jumping', 'alert_barking', 'staring_door', 'sniffing', 'sitting_attentive', 'unsettled_on_mat', 'relaxed_lying',
+  'begging_lift', 'on_furniture', 'nudging_attention', 'toy_indoors', 'resting', 'barking_nonstop', 'zoomies',
+];
 
 export type Eyes = 'open' | 'wide' | 'closed';
 /** The bubble beside the head; the caption always names the same state in words. */
-export type Emote = 'alert' | 'distracted' | 'love' | 'sleepy' | 'none';
+export type Emote = 'alert' | 'distracted' | 'love' | 'sleepy' | 'please' | 'bark' | 'toy' | 'zoom' | 'none';
 
 export interface PostureSpec {
   /** Body tilt in degrees, positive leaning forward (towards the right-hand side). */
   leanDeg: number;
   /** 1 is standing at full height, lower is lying down, above 1 is in the air. */
   height: number;
-  tail: 'up' | 'wag' | 'down';
+  /** `curled` wraps round the body of a Dog asleep in its bed. */
+  tail: 'up' | 'wag' | 'down' | 'curled';
   earsUp: boolean;
   mouthOpen: boolean;
   eyes: Eyes;
@@ -71,6 +89,13 @@ const SPECS: Record<CaninePosture, PostureSpec> = {
   staring_door: { leanDeg: 6, height: 1, tail: 'up', earsUp: true, mouthOpen: false, eyes: 'wide', emote: 'alert', label: 'minigame.dog.staring_door', cue: 'minigame.cue.staring_door' },
   unsettled_on_mat: { leanDeg: 3, height: 0.9, tail: 'wag', earsUp: false, mouthOpen: false, eyes: 'wide', emote: 'alert', label: 'minigame.dog.unsettled_on_mat', cue: 'minigame.cue.unsettled_on_mat' },
   relaxed_lying: { leanDeg: 0, height: 0.5, tail: 'down', earsUp: false, mouthOpen: false, eyes: 'closed', emote: 'sleepy', label: 'minigame.dog.relaxed_lying', cue: 'minigame.cue.relaxed_lying' },
+  begging_lift: { leanDeg: -18, height: 1.2, tail: 'wag', earsUp: false, mouthOpen: true, eyes: 'open', emote: 'please', label: 'minigame.dog.begging_lift', cue: 'minigame.cue.begging_lift' },
+  on_furniture: { leanDeg: 0, height: 0.65, tail: 'wag', earsUp: true, mouthOpen: false, eyes: 'open', emote: 'none', label: 'minigame.dog.on_furniture', cue: 'minigame.cue.on_furniture' },
+  nudging_attention: { leanDeg: 14, height: 0.95, tail: 'up', earsUp: false, mouthOpen: false, eyes: 'open', emote: 'love', label: 'minigame.dog.nudging_attention', cue: 'minigame.cue.nudging_attention' },
+  toy_indoors: { leanDeg: 4, height: 1.05, tail: 'wag', earsUp: true, mouthOpen: true, eyes: 'open', emote: 'toy', label: 'minigame.dog.toy_indoors', cue: 'minigame.cue.toy_indoors' },
+  resting: { leanDeg: 0, height: 0.4, tail: 'curled', earsUp: false, mouthOpen: false, eyes: 'closed', emote: 'sleepy', label: 'minigame.dog.resting', cue: 'minigame.cue.resting' },
+  barking_nonstop: { leanDeg: -4, height: 1, tail: 'up', earsUp: true, mouthOpen: true, eyes: 'open', emote: 'bark', label: 'minigame.dog.barking_nonstop', cue: 'minigame.cue.barking_nonstop' },
+  zoomies: { leanDeg: 20, height: 0.85, tail: 'up', earsUp: false, mouthOpen: true, eyes: 'wide', emote: 'zoom', label: 'minigame.dog.zoomies', cue: 'minigame.cue.zoomies' },
 };
 
 export function postureSpec(posture: CaninePosture): PostureSpec {
@@ -81,11 +106,12 @@ export function postureSpec(posture: CaninePosture): PostureSpec {
 export const AGITATION_SECONDS = 1.2;
 
 /** States in which the Dog is aroused: a wrong action leaves it so instead of changing its posture. */
-const AROUSED: readonly DogState[] = ['jumping', 'alert_barking', 'staring_door'];
+const AROUSED: readonly DogState[] = ['jumping', 'alert_barking', 'staring_door', 'barking_nonstop', 'zoomies'];
 
 /**
  * How the Dog answers a wrong action for `AGITATION_SECONDS`: a harness is refused (the Dog backs away
- * to stand), an aroused Dog stays aroused, and any other Dog jumps up.
+ * to stand), an aroused Dog stays aroused (so a Cue to a Dog barking nonstop is ignored), and any other
+ * Dog jumps up (a Cuddle makes it more excited).
  */
 export function wrongReaction(state: DogState, action: ReadDogAction | null): CaninePosture {
   if (action === 'harness') return 'standing_waiting';
@@ -95,6 +121,17 @@ export function wrongReaction(state: DogState, action: ReadDogAction | null): Ca
 /** Whether the Dog stands at the door in the Doorbell scene; every other posture is on or near its mat. */
 export function atDoor(posture: CaninePosture): boolean {
   return posture === 'standing_waiting' || posture === 'alert_barking' || posture === 'staring_door';
+}
+
+/** Where the Dog is in the living room of the Basics scenes: up on the sofa, in its own bed, or on the floor. */
+export function livingRoomSpot(posture: CaninePosture): 'sofa' | 'bed' | 'floor' {
+  if (posture === 'on_furniture') return 'sofa';
+  return posture === 'relaxed_lying' || posture === 'resting' ? 'bed' : 'floor';
+}
+
+/** The actions that send the Dog off by walking calmly into its space, never touching it. */
+export function sendsAway(action: ReadDogAction | null): boolean {
+  return action === 'send-away' || action === 'send-bed';
 }
 
 /**
@@ -128,6 +165,13 @@ export const COLLAR_POINT: Record<CaninePosture, { x: number; y: number }> = {
   staring_door: { x: 112, y: 48 },
   unsettled_on_mat: { x: 108, y: 55 },
   relaxed_lying: { x: 106, y: 80 },
+  begging_lift: { x: 100, y: 30 },
+  on_furniture: { x: 106, y: 66 },
+  nudging_attention: { x: 116, y: 62 },
+  toy_indoors: { x: 110, y: 48 },
+  resting: { x: 100, y: 84 },
+  barking_nonstop: { x: 110, y: 46 },
+  zoomies: { x: 118, y: 62 },
 };
 
 /** Where an emote bubble sits, in `DOG_VIEW` units: the top-right corner, clear of the head, and higher for a Dog that stands taller. */

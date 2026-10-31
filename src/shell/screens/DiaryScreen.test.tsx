@@ -72,7 +72,7 @@ describe('DiaryScreen: Daily Barkdoku', () => {
     };
     const record = onDebrief(newDogRecord(), run, morning);
     const html = renderToStaticMarkup(<DiaryScreen t={t} record={record} today={today} onBack={() => {}} />);
-    expect(html).toContain('Mundo 3 · Guaudoku');
+    expect(html).toContain('Mundo 4 · Guaudoku');
     expect(html).toContain('3:10');
   });
 });

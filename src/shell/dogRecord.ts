@@ -18,12 +18,13 @@ import { DEFAULT_BREED, isBreed, type BreedId } from './onboarding/breeds';
 import { cleanDogName } from './onboarding/name';
 import { nextPosture, updateLearning, updateTriggerProfile } from './learning';
 import { isOnboardingStep, type OnboardingStep } from './onboarding/flow';
+import { findWorld, stopsOf } from './world';
 import { activityAt, addActivity, readActivityLog, type ActivityEvent } from './activity';
 import type { PuzzleSummary } from './puzzle/types';
 import { addDiaryEntry, DIARY_OUTCOMES, isDateString, localDateString, markActive, NO_STREAK, type DiaryOutcome, type StreakRecord, type WalkDiaryEntry } from './streak';
 import { checkIn, fixFor, readMissions, readSeenFixes, skipDay, NEW_MISSION, type MissionDef, type MissionState, type SeenFix } from './missions/mission';
 
-export const RECORD_VERSION = 7;
+export const RECORD_VERSION = 8;
 export const RECORD_KEY = 'leadmate.dog';
 
 /** Seconds of the Checkpoint timer; 0 turns it off. */
@@ -238,6 +239,27 @@ function readOnboarding(raw: unknown, version: unknown): OnboardingState {
 }
 
 /** Reads a stored value of any known version into the current shape; anything unreadable gets defaults. */
+/** The World every record from before version 8 with progress gets marked complete in (the Basics World). */
+export const SKIPPED_WORLD = 'basics';
+
+/**
+ * Marks the Basics World complete on a record from before version 8 that already has progress (a finished first
+ * Stage, a completed Node, a read Lesson or a started Mission): its Lessons read, its Nodes completed and each of its
+ * Missions passed on `today`, unless it already has state. No stars, activity, streak or Diary change, so no
+ * celebration follows. A record without progress is left as it is: its user plays the World.
+ */
+export function skipBasicsWorld(record: DogRecord, version: unknown, today: string): DogRecord {
+  if (typeof version === 'number' && version >= 8) return record;
+  const progress = record.onboarding.firstStageCompletedAt !== null || record.completedNodes.length > 0 || record.readLessons.length > 0 || Object.keys(record.missions).length > 0;
+  const world = findWorld(SKIPPED_WORLD);
+  if (!progress || !world) return record;
+  const stops = stopsOf(world);
+  const union = (have: readonly string[], kind: 'lesson' | 'node') => [...new Set([...have, ...stops.filter((s) => s.kind === kind).map((s) => s.id)])];
+  const missions = { ...record.missions };
+  for (const s of stops) if (s.kind === 'mission' && !missions[s.id]) missions[s.id] = { ...NEW_MISSION, passedOn: today };
+  return { ...record, readLessons: union(record.readLessons, 'lesson'), completedNodes: union(record.completedNodes, 'node'), missions };
+}
+
 export function migrateRecord(raw: unknown): DogRecord {
   const base = newDogRecord();
   if (!raw || typeof raw !== 'object') return base;
@@ -254,7 +276,7 @@ export function migrateRecord(raw: unknown): DogRecord {
   const checkpoint = r.checkpointSeconds;
   const completedNodes = strings(r.completedNodes);
   const beforeMissions = typeof r.version !== 'number' || r.version < 7;
-  return {
+  return skipBasicsWorld({
     version: RECORD_VERSION,
     attributes,
     triggerProfile: profile,
@@ -284,7 +306,7 @@ export function migrateRecord(raw: unknown): DogRecord {
     seenFixes: readSeenFixes(r.seenFixes),
     legacyNodes: beforeMissions ? [...completedNodes] : strings(r.legacyNodes),
     activityLog: readActivityLog(r.activityLog),
-  };
+  }, r.version, localDateString(new Date()));
 }
 
 /**

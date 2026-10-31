@@ -27,6 +27,7 @@ import { completeDaily, dateSeed, generateDailyStage, todayString, warmupAfterDa
 import { CoachMarksOverlay, DogWarningOverlay, ErrorOverlay, HintOverlay, LoadingOverlay, ResumeOverlay } from './src/shell/Overlays';
 import { findNode, POSTE_PRACTICE } from './src/shell/nodes/content';
 import { withPull } from './src/shell/nodes/scenarios';
+import { readDogSceneOf } from './src/shell/nodes/readDog';
 import { advance, onDebrief, shouldShowPosteLink, startNode, type Metric, type NodeAction, type NodeDef, type NodeRun } from './src/shell/nodes/node';
 import { DailyResultScreen } from './src/shell/screens/DailyResultScreen';
 import { DiaryScreen } from './src/shell/screens/DiaryScreen';
@@ -904,8 +905,8 @@ export default function App() {
         screen =
           minigame === 'doorbell-mat' ? (
             <DoorbellMatView key={`minigame-${f.attempt}`} t={t} coat={record.coat} seed={seed} onCue={playCue} onFinish={(r) => finish(r.metrics, r.handlingScore)} />
-          ) : minigame === 'harness-ritual' ? (
-            <ReadDogView key={`minigame-${f.attempt}`} t={t} scene="harness" coat={record.coat} seed={seed} onCue={playCue} onFinish={(r) => finish(r.metrics, r.handlingScore)} />
+          ) : readDogSceneOf(minigame) ? (
+            <ReadDogView key={`minigame-${f.attempt}`} t={t} scene={readDogSceneOf(minigame)!} coat={record.coat} seed={seed} onCue={playCue} onFinish={(r) => finish(r.metrics, r.handlingScore)} />
           ) : minigame === 'barkdoku' ? (
             <BarkdokuView
               key={`minigame-${f.attempt}`}

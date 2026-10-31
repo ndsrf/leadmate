@@ -343,7 +343,9 @@ describe('Go Sniff', () => {
     expect(isGoSniffAvailable(s)).toBe(false);
   });
 
-  it('never activates in World 1', () => {
+  it('never activates in the static Worlds 1 and 2', () => {
+    const two = offered({ world: 2 });
+    expect(isGoSniffAvailable(two)).toBe(false);
     const s = offered({ world: 1 });
     expect(isGoSniffAvailable(s)).toBe(false);
     const events = tick(s, sniff);

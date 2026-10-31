@@ -5,8 +5,8 @@ import { lessonTextKeys } from '../lessons/lesson';
 const fixes = MISSIONS.flatMap((m) => [...m.problems.map((p) => p.fix), m.generalFix]);
 
 describe('Mission content', () => {
-  it('has 11 Missions with unique ids, and Fixes with unique ids', () => {
-    expect(MISSIONS).toHaveLength(11);
+  it('has 14 Missions with unique ids, and Fixes with unique ids', () => {
+    expect(MISSIONS).toHaveLength(14);
     expect(new Set(MISSIONS.map((m) => m.id)).size).toBe(MISSIONS.length);
     expect(new Set(fixes.map((f) => f.id)).size).toBe(fixes.length);
   });
@@ -49,5 +49,31 @@ describe('Mission content', () => {
     expect(es[harness.problem]).toBe('Se excita al ver el arnés');
     expect(es[findFix('fix-harness-general')!.problem]).toBe('Otra cosa');
     expect(findFix('nope')).toBeUndefined();
+  });
+});
+
+describe('Basics home Missions', () => {
+  it('are done at home with the reps and problems of the design', () => {
+    const shape = (id: string) => {
+      const m = MISSIONS.find((x) => x.id === id)!;
+      return { place: m.place, reps: m.reps, problems: m.problems.map((p) => p.id) };
+    };
+    expect(shape('mission-dog-as-dog')).toEqual({ place: 'home', reps: 1, problems: ['cries', 'family', 'bed'] });
+    expect(shape('mission-home-rest')).toEqual({ place: 'home', reps: 3, problems: ['insists', 'barks', 'comesback'] });
+    expect(shape('mission-calm-first')).toEqual({ place: 'home', reps: 2, problems: ['neverstops', 'escalates', 'givein'] });
+    expect(MISSIONS.filter((m) => m.place === 'home').map((m) => m.id)).toEqual(['mission-dog-as-dog', 'mission-home-rest', 'mission-calm-first']);
+  });
+
+  it('word the brief and success for home, never for a walk', () => {
+    for (const m of MISSIONS.filter((x) => x.place === 'home')) {
+      for (const key of [m.title, m.target, m.successSign]) expect(es[key]).not.toMatch(/paseo|correa|acera/i);
+    }
+  });
+
+  it('asks calmly to send the Dog away three times with no eye contact, words or touch, and the Dog goes to rest', () => {
+    const m = MISSIONS.find((x) => x.id === 'mission-home-rest')!;
+    expect(m.reps).toBe(3);
+    expect(es[m.target]).toMatch(/sin mirarle, hablarle ni tocarlo/);
+    expect(es[m.successSign]).toMatch(/descansar a su cama por su cuenta/);
   });
 });

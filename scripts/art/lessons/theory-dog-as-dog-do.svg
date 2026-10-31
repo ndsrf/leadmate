@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-dog-as-dog.do" data-alt="trail.theory-dog-as-dog.do">
+  <!-- do: on the floor, crouched at its height, a calm stroke on the chest -->
+  <use href="#backdrop-indoor"/>
+  <g transform="translate(110 300) scale(1.2)">
+    <use href="#person-crouch"/>
+    <use href="#dog-sit" transform="translate(160 0) scale(-1 1)"/>
+  </g>
+  <use href="#heart" transform="translate(330 120) scale(1.2)"/>
+  <use href="#badge-check" transform="translate(570 70) scale(1.5)"/>
+</svg>

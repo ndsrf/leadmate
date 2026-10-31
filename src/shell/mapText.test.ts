@@ -1,6 +1,7 @@
 import { createTranslator } from '../i18n';
 import { lockMessage, owedItemLabel, stopAccessibilityLabel, stopBadge, stopMarks, waitingLabel, worldUnlockBanner, worldWalkSubtitle } from './mapText';
-import { mapModel, type MapModel } from './mapModel';
+import { mapModel as realMapModel, type MapModel } from './mapModel';
+import { withBasicsDone } from './testProgress';
 import { migrateRecord } from './dogRecord';
 import type { MissionState } from './missions/mission';
 import { nodeVisual } from './ui/mapLayout';
@@ -9,6 +10,8 @@ import { progressOf } from './world';
 
 const t = createTranslator();
 const at = (h: number, day = 2, m = 0) => new Date(2026, 4, day, h, m);
+/** The map of a Dog past the Basics World: these tests are about Home & Thresholds and the Worlds after it. */
+const mapModel = (p: Parameters<typeof realMapModel>[0], stars: Parameters<typeof realMapModel>[1], now: Date) => realMapModel(withBasicsDone(p), stars, now);
 const find = (m: MapModel, id: string) => m.worlds.flatMap((w) => w.stops).find((s) => s.stop.id === id)!;
 const started = (d: Date): MissionState => ({ target: 'full', skipRun: 0, attempts: [], startedAt: d.toISOString() });
 const stretch1 = progressOf(['harness-ritual'], { readLessons: ['theory-harness', 'howto-tap-hold'] });
@@ -82,7 +85,7 @@ describe('Stop accessibility labels', () => {
 describe('World subtitles and unlock banners', () => {
   it('formats Stop progress and the preview planned count', () => {
     const m = mapModel(stretch1, {}, at(9));
-    expect(worldWalkSubtitle(m.worlds[0], t)).toBe('3 de 10 paradas');
+    expect(worldWalkSubtitle(m.worlds[1], t)).toBe('3 de 10 paradas');
     expect(worldWalkSubtitle(m.worlds.find((w) => w.world.id === 'recall')!, t)).toBe('4 paradas planificadas');
   });
 
@@ -90,7 +93,7 @@ describe('World subtitles and unlock banners', () => {
     const m = mapModel(migrateRecord({ version: 7, completedNodes: ['harness-ritual', 'doorbell-mat', 'poste-practice'], readLessons: ['theory-harness', 'howto-tap-hold', 'theory-doorbell', 'theory-poste'], missions: { 'mission-harness': { target: 'full', skipRun: 0, attempts: [], passedOn: '2026-05-01' }, 'mission-doorbell': { target: 'full', skipRun: 0, attempts: [], passedOn: '2026-05-01' } } }), {}, at(9));
     const sidewalk = m.worlds.find((w) => w.world.id === 'sidewalk')!;
     expect(worldUnlockBanner(sidewalk, t)).toContain(t('mission.poste.title'));
-    expect(worldUnlockBanner(sidewalk, t)).toContain(t('world.1.title'));
+    expect(worldUnlockBanner(sidewalk, t)).toContain('Mundo 2 · Casa y umbrales');
   });
 
   it('formats the plus banner for plus worlds', () => {
@@ -116,16 +119,16 @@ describe('Owed Missions on the map', () => {
 
   it('lists each owed Mission in the panel with its check-in state', () => {
     const p = progressOf(world1.completedNodes, { readLessons: world1.readLessons, missions: { 'mission-harness': owed(at(9, 1)), 'mission-doorbell': owed(at(9, 2)), 'mission-poste': passed } });
-    const home = mapModel(p, {}, at(20, 2)).worlds[0];
+    const home = mapModel(p, {}, at(20, 2)).worlds[1];
     expect(home.owed.map((s) => owedItemLabel(s, t))).toEqual([`${t('mission.harness.title')} · ¿Cómo fue?`, `${t('mission.doorbell.title')} · Mañana`]);
   });
 
   it('says the owed Missions are what the next World is waiting for', () => {
     const one = progressOf(world1.completedNodes, { readLessons: world1.readLessons, missions: { 'mission-harness': passed, 'mission-doorbell': owed(at(9, 1)), 'mission-poste': passed } });
-    const banner = worldUnlockBanner(mapModel(one, {}, at(20, 1)).worlds[1], t);
-    expect(banner).toBe(t('world.unlockOwed').replace('{world}', t('world.1.title')));
+    const banner = worldUnlockBanner(mapModel(one, {}, at(20, 1)).worlds[2], t);
+    expect(banner).toBe(t('world.unlockOwed').replace('{world}', 'Mundo 2 · Casa y umbrales'));
     const two = { ...one, missions: { ...one.missions, 'mission-harness': owed(at(9, 1)) } };
-    expect(worldUnlockBanner(mapModel(two, {}, at(20, 1)).worlds[1], t)).toContain('2');
+    expect(worldUnlockBanner(mapModel(two, {}, at(20, 1)).worlds[2], t)).toContain('2');
   });
 });
 

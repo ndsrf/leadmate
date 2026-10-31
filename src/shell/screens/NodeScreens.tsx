@@ -14,6 +14,7 @@ import { createCountdown } from '../ui/countdown';
 import type { Celebration } from '../celebrations';
 import { starsFor, type Stars } from '../stars';
 import { checkpointLimit, pickExercise, primerCardOf, shuffledOrder, type CheckpointQuestion, type NodeRun } from '../nodes/node';
+import { readDogSceneOf } from '../nodes/readDog';
 import type { CheckpointSeconds } from '../dogRecord';
 import { DIARY_OUTCOMES, type DiaryOutcome } from '../streak';
 import { Screen } from './Screen';
@@ -243,8 +244,8 @@ function DebriefBody({
 }) {
   const exercise = pickExercise(run.node, result);
   const score = result.kind === 'stage' ? result.payload.handlingScore : result.handlingScore;
-  // the Harness Ritual and the Doorbell Mat report the share of right actions, not Postes or timed marks
-  const actionMinigame = run.node.simulation.minigame === 'harness-ritual' || run.node.simulation.minigame === 'doorbell-mat';
+  // the read-the-Dog Minigames report the share of right actions, not Postes or timed marks
+  const actionMinigame = readDogSceneOf(run.node.simulation.minigame) !== undefined;
   const earned = starsFor(score);
   const reveal = useReveal({ score, stars: earned });
   const { phase, scoreShown, starsShown } = reveal.state;

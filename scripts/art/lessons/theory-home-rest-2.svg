@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-home-rest.image.2.caption" data-alt="trail.theory-home-rest.image.2.alt">
+  <!-- scene: you walk calmly into Migas' space, arms down, no touch; Migas moves off towards its bed -->
+  <use href="#backdrop-indoor"/>
+  <g transform="translate(430 292)">
+    <path d="M0 0C0 -52 190 -52 190 0Q190 18 95 18Q0 18 0 0Z" fill="#4F7A9C" stroke="#1E2A3A" stroke-width="3.5"/>
+    <ellipse cx="95" cy="-6" rx="76" ry="14" fill="#FBE3AE" stroke="#1E2A3A" stroke-width="2.5"/>
+  </g>
+  <use href="#person-walk" transform="translate(90 296) scale(1.15)"/>
+  <use href="#dog-walk-calm" transform="translate(250 292)"/>
+  <use href="#arrow-ink" transform="translate(470 180)"/>
+</svg>

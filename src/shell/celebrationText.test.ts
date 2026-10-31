@@ -18,7 +18,7 @@ describe('celebrationText', () => {
   });
 
   it('names the World and the Node that unlocked', () => {
-    expect(celebrationText(all[2], t)).toContain(t('world.2.title'));
+    expect(celebrationText(all[2], t)).toContain(t('world.sidewalk.title'));
     expect(celebrationText(all[3], t)).toContain('timbre');
   });
 

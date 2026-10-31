@@ -201,6 +201,101 @@ function Pose({ posture, pal }: { posture: CaninePosture; pal: CoatPalette }) {
           <Head x={118} y={80} pal={pal} ears="down" mouth={false} eyes="closed" />
         </G>
       );
+    case 'begging_lift':
+      return (
+        <G>
+          {tail('M40 92 Q22 84 26 66')}
+          {leg(56, 96, 52, 99, pal.shade)}
+          <Ellipse cx={66} cy={64} rx={22} ry={34} fill={pal.fill} transform="rotate(18 66 64)" />
+          <Ellipse cx={60} cy={92} rx={20} ry={9} fill={pal.fill} />
+          {leg(70, 96, 74, 99, pal.fill)}
+          {leg(80, 40, 104, 26, pal.shade)}
+          {leg(84, 46, 110, 36, pal.fill)}
+          {neck(78, 36, 92, 22)}
+          <Collar x={100} y={30} />
+          <Head x={100} y={18} pal={pal} ears="down" mouth eyes="open" />
+        </G>
+      );
+    case 'on_furniture':
+      return (
+        <G>
+          {tail('M26 80 Q12 74 10 62')}
+          {leg(90, 84, 124, 86, pal.shade)}
+          <Ellipse cx={68} cy={76} rx={42} ry={15} fill={pal.fill} />
+          {leg(92, 82, 128, 84, pal.fill)}
+          {neck(98, 72, 112, 62)}
+          <Collar x={106} y={66} />
+          <Head x={116} y={58} pal={pal} ears="up" mouth={false} eyes="open" />
+        </G>
+      );
+    case 'nudging_attention':
+      return (
+        <G>
+          {tail('M33 56 Q18 44 22 26')}
+          {leg(50, 74, 48, 97, pal.shade)}
+          {leg(98, 76, 104, 97, pal.shade)}
+          <Ellipse cx={72} cy={64} rx={40} ry={20} fill={pal.fill} transform="rotate(10 72 64)" />
+          {leg(42, 74, 38, 97, pal.fill)}
+          {leg(90, 76, 98, 97, pal.fill)}
+          {neck(102, 64, 120, 62)}
+          <Collar x={116} y={62} />
+          <Head x={128} y={60} pal={pal} ears="down" mouth={false} eyes="open" />
+        </G>
+      );
+    case 'toy_indoors':
+      return (
+        <G>
+          {tail('M33 52 Q16 50 14 34')}
+          {leg(50, 74, 50, 97, pal.shade)}
+          {leg(98, 74, 98, 97, pal.shade)}
+          <Ellipse cx={72} cy={62} rx={40} ry={21} fill={pal.fill} />
+          {leg(42, 74, 42, 97, pal.fill)}
+          {leg(90, 74, 90, 97, pal.fill)}
+          {neck(100, 54, 118, 42)}
+          <Collar x={110} y={48} />
+          <Head x={120} y={38} pal={pal} ears="up" mouth eyes="open" />
+          <Circle cx={146} cy={52} r={7} fill={lightColor.danger} stroke={lightColor.ink} strokeWidth={1.5} />
+        </G>
+      );
+    case 'resting':
+      return (
+        <G>
+          <Ellipse cx={74} cy={88} rx={38} ry={14} fill={pal.fill} />
+          <Path d="M40 92 Q30 104 60 102 Q90 102 110 96" stroke={pal.shade} strokeWidth={7} strokeLinecap="round" fill="none" />
+          <Ellipse cx={60} cy={92} rx={18} ry={7} fill={pal.belly} />
+          {neck(96, 88, 104, 88)}
+          <Collar x={100} y={84} />
+          <Head x={104} y={86} pal={pal} ears="down" mouth={false} eyes="closed" />
+        </G>
+      );
+    case 'barking_nonstop':
+      return (
+        <G>
+          {tail('M33 54 Q16 46 20 24')}
+          {leg(50, 74, 50, 97, pal.shade)}
+          {leg(98, 74, 98, 97, pal.shade)}
+          <Ellipse cx={72} cy={62} rx={40} ry={21} fill={pal.fill} transform="rotate(-4 72 62)" />
+          {leg(42, 74, 42, 97, pal.fill)}
+          {leg(90, 74, 90, 97, pal.fill)}
+          {neck(100, 54, 116, 38)}
+          <Collar x={110} y={46} />
+          <Head x={118} y={34} pal={pal} ears="up" mouth eyes="open" />
+        </G>
+      );
+    case 'zoomies':
+      return (
+        <G>
+          {tail('M30 60 Q14 52 6 40')}
+          {leg(48, 74, 24, 84, pal.shade)}
+          {leg(96, 74, 124, 86, pal.shade)}
+          <Ellipse cx={72} cy={66} rx={44} ry={17} fill={pal.fill} transform="rotate(4 72 66)" />
+          {leg(42, 74, 18, 90, pal.fill)}
+          {leg(92, 74, 128, 80, pal.fill)}
+          {neck(104, 64, 124, 58)}
+          <Collar x={118} y={62} />
+          <Head x={130} y={56} pal={pal} ears="back" mouth eyes="wide" />
+        </G>
+      );
     case 'slack':
     case 'sitting_attentive':
       return (
@@ -234,6 +329,17 @@ function EmoteBubble({ emote, x, y }: { emote: Emote; x: number; y: number }) {
       )}
       {emote === 'distracted' && <Path d="M-6 0 Q-3 -4 0 0 T6 0" stroke={lightColor.info} strokeWidth={2} strokeLinecap="round" fill="none" />}
       {emote === 'love' && <Path d="M0 6 C-8 0 -6 -6 0 -2 C6 -6 8 0 0 6 Z" fill={lightColor.danger} />}
+      {emote === 'please' && (
+        <G fill={lightColor.inkMuted}>
+          <Ellipse cx={0} cy={2} rx={4} ry={3.4} />
+          <Circle cx={-4.5} cy={-3} r={1.8} />
+          <Circle cx={0} cy={-5} r={1.8} />
+          <Circle cx={4.5} cy={-3} r={1.8} />
+        </G>
+      )}
+      {emote === 'bark' && <Path d="M-6 -4 L-2 -4 M-6 0 L2 0 M-6 4 L6 4" stroke={lightColor.danger} strokeWidth={2.2} strokeLinecap="round" fill="none" />}
+      {emote === 'toy' && <Circle r={5} fill={lightColor.danger} stroke={lightColor.ink} strokeWidth={1.2} />}
+      {emote === 'zoom' && <Path d="M-7 -4 L5 -4 M-4 0 L7 0 M-7 4 L5 4" stroke={lightColor.info} strokeWidth={2.2} strokeLinecap="round" fill="none" />}
       {emote === 'sleepy' && <Path d="M-4 -4 L4 -4 L-4 4 L4 4" stroke={lightColor.inkMuted} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" />}
     </G>
   );
@@ -266,6 +372,9 @@ function useWobble(posture: CaninePosture) {
     if (posture === 'alert_barking') y.value = withRepeat(withSequence(withTiming(-5, { duration: 140 }), withTiming(0, { duration: 140 })), -1, false);
     if (posture === 'jumping') y.value = withRepeat(withSequence(withTiming(-9, { duration: 200 }), withTiming(0, { duration: 200 })), -1, false);
     if (posture === 'unsettled_on_mat') x.value = withRepeat(withSequence(withTiming(-3, { duration: 160 }), withTiming(3, { duration: 160 })), -1, true);
+    if (posture === 'barking_nonstop') y.value = withRepeat(withSequence(withTiming(-4, { duration: 110 }), withTiming(0, { duration: 110 })), -1, false);
+    if (posture === 'zoomies') x.value = withRepeat(withSequence(withTiming(-6, { duration: 120 }), withTiming(6, { duration: 120 })), -1, true);
+    if (posture === 'begging_lift') y.value = withRepeat(withSequence(withTiming(-3, { duration: 240 }), withTiming(0, { duration: 240 })), -1, false);
     if (posture === 'sniffing') x.value = withRepeat(withSequence(withTiming(-2, { duration: 260 }), withTiming(2, { duration: 260 })), -1, true);
     if (posture === 'straining') x.value = withRepeat(withSequence(withTiming(-2, { duration: 70 }), withTiming(2, { duration: 70 })), -1, true);
     return () => {
@@ -284,7 +393,7 @@ export function CanineMinigameAvatar({ t, posture, coat = 'golden', width = 150,
   return (
     <Animated.View accessible accessibilityRole="image" accessibilityLabel={`${t(postureSpec(posture).label)}${harness ? `. ${t('minigame.harnessOn')}` : ''}`} style={[{ width, height }, wobble]}>
       <Svg width={width} height={height} viewBox={`0 0 ${DOG_VIEW.w} ${DOG_VIEW.h}`} style={facing === 'left' ? { transform: [{ scaleX: -1 }] } : undefined}>
-        <Ellipse cx={72} cy={100} rx={posture === 'calm_sphinx_on_mat' || posture === 'relaxed_lying' ? 56 : posture === 'jumping' ? 34 : 46} ry={5} fill={lightColor.bg} opacity={0.35} />
+        <Ellipse cx={72} cy={100} rx={posture === 'calm_sphinx_on_mat' || posture === 'relaxed_lying' || posture === 'resting' || posture === 'on_furniture' ? 56 : posture === 'jumping' ? 34 : 46} ry={5} fill={lightColor.bg} opacity={0.35} />
         <Pose posture={posture} pal={pal} />
         {harness && <Harness posture={posture} />}
         <EmoteBubble emote={postureSpec(posture).emote} x={emotePoint(posture).x} y={emotePoint(posture).y} />

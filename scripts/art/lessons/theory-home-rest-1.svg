@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-home-rest.image.1.caption" data-alt="trail.theory-home-rest.image.1.alt">
+  <!-- concept: indoors Migas rests in its bed; outdoors Migas runs after a ball -->
+  <use href="#sky"/>
+  <use href="#ground-grass"/>
+  <rect x="0" y="0" width="320" height="360" fill="#F8E7D5"/>
+  <rect x="0" y="272" width="320" height="88" fill="#E4BC96" stroke="#1E2A3A" stroke-width="3"/>
+  <path d="M320 26V280" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="12 10" stroke-linecap="round"/>
+  <g transform="translate(60 292)">
+    <path d="M0 0C0 -52 210 -52 210 0Q210 18 105 18Q0 18 0 0Z" fill="#4F7A9C" stroke="#1E2A3A" stroke-width="3.5"/>
+    <ellipse cx="105" cy="-6" rx="84" ry="14" fill="#FBE3AE" stroke="#1E2A3A" stroke-width="2.5"/>
+    <use href="#dog-down" transform="translate(20 -8)"/>
+  </g>
+  <use href="#pause" transform="translate(160 110) scale(1.2)"/>
+  <use href="#tree" transform="translate(600 292) scale(0.6)"/>
+  <use href="#dog-walk" transform="translate(370 292)"/>
+  <use href="#motion" transform="translate(370 230) scale(0.8)"/>
+  <circle cx="586" cy="270" r="16" fill="#E8795C" stroke="#1E2A3A" stroke-width="3.5"/>
+</svg>

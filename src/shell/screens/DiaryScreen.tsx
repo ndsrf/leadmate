@@ -17,7 +17,7 @@ import { Badge, Choice, Panel, StarRow } from '../ui/components';
 import { handlePress } from '../ui/press';
 import type { BadgeTone } from '../ui/styles';
 import { theme, usePalette, type ColorToken } from '../ui/theme';
-import { worldOfNode } from '../world';
+import { worldOfNode, worldTitle } from '../world';
 import { Flame } from './WorldMapScreen';
 import { Screen } from './Screen';
 
@@ -169,7 +169,7 @@ function EventEntry({ t, event }: { t: Translate; event: ActivityEvent }) {
       <Entry time={time} mark="node">
         <View className="flex-row flex-wrap items-center" style={{ gap: theme.space[2] }}>
           <Badge label={t(node?.mode === 'minigame' ? 'diary.event.minigame' : 'diary.event.stage')} tone="brand" />
-          {world && <Text className="text-caption text-inkMuted">{t(world.title)}</Text>}
+          {world && <Text className="text-caption text-inkMuted">{worldTitle(world, t)}</Text>}
         </View>
         <Text className="mt-1 font-display text-body text-ink">{nodeTitle(t, event.id)}</Text>
         <RunStars t={t} stars={event.stars} />

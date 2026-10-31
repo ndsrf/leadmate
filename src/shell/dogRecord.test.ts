@@ -6,6 +6,8 @@ import { advance, onDebrief, startNode, type NodeRun } from './nodes/node';
 import { DOORBELL_MAT_NODE, POSTE_PRACTICE, WALK_DISTRACTION } from './nodes/content';
 import { startMission } from './missions/mission';
 import { TEST_MISSION } from './missions/testMission';
+import type { DogRecord } from './dogRecord';
+import { findWorld, isWorldComplete, stopsOf, stopStatus } from './world';
 
 function memoryStore(): KeyValueStore & { data: Map<string, string> } {
   const data = new Map<string, string>();
@@ -35,7 +37,7 @@ describe('Dog record', () => {
 
   it('is versioned and repairs unreadable fields', () => {
     const fixed = migrateRecord({ attributes: { followChance: 7, reactivityThreshold: 'x' }, triggerProfile: { child: 9, dog: 1 }, equipment: 'rope' });
-    expect(fixed.version).toBe(7);
+    expect(fixed.version).toBe(8);
     expect(fixed.attributes.followChance).toBe(1);
     expect(fixed.attributes.reactivityThreshold).toBe(DEFAULT_ATTRIBUTES.reactivityThreshold);
     expect(fixed.triggerProfile.child).toBe(2);
@@ -94,9 +96,9 @@ describe('Dog record: Walk Diary, Streak and Daily best', () => {
   it('migrates a version 1 record: keeps what it had and adds the new fields', () => {
     const v1 = { version: 1, attributes: { followChance: 0.9 }, completedNodes: ['poste-practice'], equipment: 'harness', posture: 1 };
     const r = migrateRecord(v1);
-    expect(r.version).toBe(7);
+    expect(r.version).toBe(8);
     expect(r.attributes.followChance).toBeCloseTo(0.9);
-    expect(r.completedNodes).toEqual(['poste-practice']);
+    expect(r.completedNodes).toEqual(['poste-practice', 'dog-as-dog', 'home-rest', 'calm-first']) // plus the Basics World, marked by the version 8 migration;
     expect(r.equipment).toBe('harness');
     expect(r.posture).toBe(1);
     expect(r.walkDiary).toEqual([]);
@@ -172,11 +174,11 @@ describe('Dog record: version 3', () => {
   it('migrates a version 2 record as an existing user who has finished onboarding', () => {
     const v2 = { version: 2, attributes: { followChance: 0.9 }, completedNodes: ['poste-practice'], streak: { current: 2, best: 3, lastActiveDate: '2026-05-01' } };
     const r = migrateRecord(v2);
-    expect(r.version).toBe(7);
+    expect(r.version).toBe(8);
     expect(r.onboarding.step).toBe('done');
     expect(r.weights).toEqual({ dogKg: null, handlerKg: null });
     expect(r.seenHints).toEqual([]);
-    expect(r.completedNodes).toEqual(['poste-practice']);
+    expect(r.completedNodes).toEqual(['poste-practice', 'dog-as-dog', 'home-rest', 'calm-first']) // plus the Basics World, marked by the version 8 migration;
     expect(r.streak.best).toBe(3);
   });
 
@@ -224,9 +226,9 @@ describe('stars on the record', () => {
   it('migrates an old record to an empty stars map', () => {
     const old = { version: 3, completedNodes: ['poste-practice'] };
     const r = migrateRecord(old);
-    expect(r.version).toBe(7);
+    expect(r.version).toBe(8);
     expect(r.stars).toEqual({});
-    expect(r.completedNodes).toEqual(['poste-practice']);
+    expect(r.completedNodes).toEqual(['poste-practice', 'dog-as-dog', 'home-rest', 'calm-first']) // plus the Basics World, marked by the version 8 migration;
   });
 
   it('ignores invalid star values', () => {
@@ -285,7 +287,7 @@ describe('Dog record: version 5 (names and the new funnel)', () => {
   it('loads an old record with an empty name', () => {
     const r = migrateRecord({ ...base, onboarding: { step: 'done' } });
     expect(r.name).toBe('');
-    expect(r.version).toBe(7);
+    expect(r.version).toBe(8);
   });
 
   it('keeps a stored name and repairs an unreadable one', () => {
@@ -359,7 +361,7 @@ describe('Dog record: version 6 (read Lessons)', () => {
   });
 
   it('keeps stored ids and drops non-strings', () => {
-    expect(migrateRecord({ version: 6, readLessons: ['a', 3, 'b'] }).readLessons).toEqual(['a', 'b']);
+    expect(migrateRecord({ version: 8, readLessons: ['a', 3, 'b'] }).readLessons).toEqual(['a', 'b']);
   });
 });
 
@@ -376,8 +378,9 @@ describe('Dog record: version 7 (Missions)', () => {
 
   it('migrates an older record: empty Missions and Fixes, and a snapshot of its completed Nodes', () => {
     const r = migrateRecord({ version: 6, completedNodes: ['harness-ritual', 'doorbell-mat'] });
-    expect(r.version).toBe(7);
-    expect(r.missions).toEqual({});
+    expect(r.version).toBe(8);
+    // only the Basics World's Missions, passed by the version 8 migration
+    expect(Object.keys(r.missions).sort()).toEqual(['mission-calm-first', 'mission-dog-as-dog', 'mission-home-rest']);
     expect(r.seenFixes).toEqual([]);
     expect(r.legacyNodes).toEqual(['harness-ritual', 'doorbell-mat']);
   });
@@ -536,5 +539,51 @@ describe('Dog record: Daily Barkdoku', () => {
     expect(Object.keys(r.dailyBarkdoku)).toEqual(['2026-10-28']);
     expect(r.streak.lastActiveDate).toBe('2026-10-29');
     expect(r.activityLog[0].date).toBe('2026-10-29');
+  });
+});
+
+describe('Dog record: version 8 (the Basics World)', () => {
+  const basics = findWorld('basics')!;
+  const home = findWorld('home')!;
+  const progress = (r: DogRecord) => ({ completedNodes: r.completedNodes, readLessons: r.readLessons, missions: r.missions, legacyNodes: r.legacyNodes });
+  const homeStops = (r: DogRecord) => stopsOf(home).map((s) => stopStatus(s, progress(r), new Date(2026, 4, 2, 9)).state);
+
+  it('marks the Basics World complete on a version 7 record with progress, leaving Home as it was', () => {
+    const raw = { version: 7, completedNodes: ['harness-ritual'], readLessons: ['theory-harness', 'howto-tap-hold'], activityLog: [] };
+    const plain = migrateRecord({ ...raw, version: 8 });
+    const r = migrateRecord(raw);
+    expect(isWorldComplete(basics, progress(r))).toBe(true);
+    // Home keeps its own progress: the harness Stretch done, its Mission next, the rest behind it
+    expect(homeStops(r).slice(0, 5)).toEqual(['done', 'done', 'done', 'open', 'locked']);
+    expect(r.completedNodes.filter((id) => !stopsOf(basics).some((s) => s.id === id))).toEqual(plain.completedNodes);
+    for (const s of stopsOf(basics).filter((x) => x.kind === 'mission')) expect(r.missions[s.id]).toMatchObject({ passedOn: expect.any(String), attempts: [] });
+    expect(r.stars).toEqual({});
+    expect(r.activityLog).toHaveLength(0);
+    expect(r.streak).toEqual(plain.streak);
+    expect(r.walkDiary).toEqual(plain.walkDiary);
+  });
+
+  it('counts a finished first Stage or a started Mission as progress', () => {
+    expect(isWorldComplete(basics, progress(migrateRecord({ version: 7, onboarding: { step: 'done', firstStageCompletedAt: '2026-05-01T08:00:00.000Z' } })))).toBe(true);
+    expect(isWorldComplete(basics, progress(migrateRecord({ version: 7, missions: { 'mission-harness': { target: 'full', skipRun: 0, attempts: [], startedAt: '2026-05-01T08:00:00.000Z' } } })))).toBe(true);
+  });
+
+  it('keeps a Basics Mission that already has state', () => {
+    const own = { target: 'full', skipRun: 0, attempts: [], startedAt: '2026-05-01T08:00:00.000Z' };
+    expect(migrateRecord({ version: 7, completedNodes: ['harness-ritual'], missions: { 'mission-home-rest': own } }).missions['mission-home-rest']).toEqual(own);
+  });
+
+  it('does not mark a version 7 record still in the funnel, nor a fresh version 8 record', () => {
+    const funnel = migrateRecord({ version: 7, onboarding: { step: 'diagnostic', firstStageCompletedAt: null } });
+    expect(isWorldComplete(basics, progress(funnel))).toBe(false);
+    expect(funnel.readLessons).toEqual([]);
+    expect(isWorldComplete(basics, progress(migrateRecord({ version: 8, completedNodes: ['harness-ritual'] })))).toBe(false);
+    expect(isWorldComplete(basics, progress(migrateRecord(newDogRecord())))).toBe(false);
+  });
+
+  it('keeps the activity log as it was', () => {
+    const log = [{ kind: 'node', id: 'harness-ritual', at: '2026-05-01T08:00:00.000Z', stars: 2 }];
+    const r = migrateRecord({ version: 7, completedNodes: ['harness-ritual'], activityLog: log });
+    expect(r.activityLog).toHaveLength(migrateRecord({ version: 8, completedNodes: ['harness-ritual'], activityLog: log }).activityLog.length);
   });
 });

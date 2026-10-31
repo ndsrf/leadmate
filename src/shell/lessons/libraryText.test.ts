@@ -17,15 +17,16 @@ describe('Library entries', () => {
 
   it('shows the suggested day of a first-week Lesson and the trail place of a trail Lesson', () => {
     expect(lessonPlaceLabel(FIRST_WEEK_LESSONS[2], t)).toBe('Día 3');
-    expect(lessonPlaceLabel(findLesson('howto-walking')!, t)).toBe('Mundo 2 · Tramo 1');
-    expect(lessonPlaceLabel(findLesson('theory-park-mix')!, t)).toBe('Mundo 4 · Tramo 2');
+    expect(lessonPlaceLabel(findLesson('howto-walking')!, t)).toBe('Mundo 3 · Tramo 1');
+    expect(lessonPlaceLabel(findLesson('theory-named-behaviours')!, t)).toBe('Mundo 1 · Tramo 1');
+    expect(lessonPlaceLabel(findLesson('theory-park-mix')!, t)).toBe('Mundo 5 · Tramo 2');
   });
 
   it('lists every Lesson with its place, kind, title, minutes and read state for a screen reader', () => {
     const entries = libraryEntries(LESSONS, ['howto-walking'], 3);
     expect(entries).toHaveLength(LESSONS.length);
     const walking = entries.find((e) => e.lesson.id === 'howto-walking')!;
-    expect(libraryEntryLabel(walking, t)).toBe(`Mundo 2 · Tramo 1. Cómo se juega. ${t('trail.howto-walking.title')}. ${readingMinutes(walking.lesson, t)} min. ${t('library.read')}.`);
+    expect(libraryEntryLabel(walking, t)).toBe(`Mundo 3 · Tramo 1. Cómo se juega. ${t('trail.howto-walking.title')}. ${readingMinutes(walking.lesson, t)} min. ${t('library.read')}.`);
   });
 });
 

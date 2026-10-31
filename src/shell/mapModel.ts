@@ -53,6 +53,7 @@ export interface MapWorld {
   preview: boolean;
   unlockRequirement?: {
     worldTitle: TextKey;
+    worldNumber: number;
     /** The previous World's one missing Stop, when only one is left and it is not owed. */
     lastStopTitle?: TextKey;
     /** How many Owed Missions of the previous World are still to close, when they are all that is missing. */
@@ -157,10 +158,10 @@ export function mapModel(progress: Progress, stars: Readonly<Record<string, Star
       if (prev) {
         const states = prev.stretches.flat().map((s) => ({ stop: s, state: stopStatus(s, progress, now, worlds, nodes).state }));
         const missing = states.filter((s) => s.state !== 'done');
-        if (missing.length > 0 && missing.every((s) => s.state === 'owed')) unlockRequirement = { worldTitle: prev.title, owedCount: missing.length };
+        if (missing.length > 0 && missing.every((s) => s.state === 'owed')) unlockRequirement = { worldTitle: prev.title, worldNumber: prev.worldNumber, owedCount: missing.length };
         else {
           const only = missing.length === 1 ? describe(missing[0].stop, nodes, lessons, missions) : undefined;
-          unlockRequirement = { worldTitle: prev.title, lastStopTitle: only?.title };
+          unlockRequirement = { worldTitle: prev.title, worldNumber: prev.worldNumber, lastStopTitle: only?.title };
         }
       }
     }

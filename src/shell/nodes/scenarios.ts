@@ -72,7 +72,7 @@ function stage(spec: StageSpec): ScenarioConfig {
   return { ...base, scenery: [...(spec.scenery ?? []), ...scatter] };
 }
 
-// -- World 1: Home & Thresholds (indoors) ---------------------------------------------------------
+// -- World 2: Home & Thresholds (indoors) ---------------------------------------------------------
 
 /** The scenario with the Handler's `pullStrength` set from the Dog's and Handler's weights (0.8 when not entered). */
 export function withPull<T extends Partial<ScenarioConfig>>(scenario: T, weights: Weights): T & { pullStrength: number } {
@@ -81,7 +81,7 @@ export function withPull<T extends Partial<ScenarioConfig>>(scenario: T, weights
 
 /** A narrow apartment hallway. */
 export const HALLWAY: ScenarioConfig = stage({
-  world: 1,
+  world: 2,
   theme: 'indoor_apartment',
   route: [p(0, 0), p(14, 0)],
   walls: [{ from: p(-1, -1.7), to: p(15, -1.7) }, { from: p(-1, 1.7), to: p(15, 1.7) }, { from: p(15, -1.7), to: p(15, 1.7) }],
@@ -94,7 +94,7 @@ export const HALLWAY: ScenarioConfig = stage({
 
 /** The building elevator and the landing in front of it. */
 export const ELEVATOR_LOBBY: ScenarioConfig = stage({
-  world: 1,
+  world: 2,
   theme: 'indoor_apartment',
   route: [p(0, 0), p(8, 0)],
   walls: box(-1.5, -2.2, 9.5, 2.2),
@@ -104,11 +104,11 @@ export const ELEVATOR_LOBBY: ScenarioConfig = stage({
   distractors: [{ ...defaultScenario.distractor, activateAfterMeters: 1e9 }],
 });
 
-// -- World 2: The Quiet Sidewalk ---------------------------------------------------------------------
+// -- World 3: The Quiet Sidewalk ---------------------------------------------------------------------
 
 /** A sidewalk that turns a corner around a building: whatever comes is hidden until the bend. */
 export const BLIND_CORNER: ScenarioConfig = stage({
-  world: 2,
+  world: 3,
   theme: 'quiet_suburb',
   route: [p(0, 0), p(30, 0), p(30, 32)],
   walls: [
@@ -124,7 +124,7 @@ export const BLIND_CORNER: ScenarioConfig = stage({
 
 /** A long sidewalk walked in gentle arcs; two passers-by, and a Go Sniff to ease the tension. */
 export const SLACK_U: ScenarioConfig = stage({
-  world: 2,
+  world: 3,
   theme: 'quiet_suburb',
   route: [p(0, 0), p(22, 0), p(22, 16), p(46, 16), p(46, 34)],
   walls: [{ from: p(-4, -5), to: p(27, -5) }, { from: p(27, -5), to: p(27, 11) }, { from: p(27, 11), to: p(51, 11) }, { from: p(51, 11), to: p(51, 39) }],
@@ -137,13 +137,13 @@ export const SLACK_U: ScenarioConfig = stage({
   ],
 });
 
-// -- World 3: Urban Navigations ----------------------------------------------------------------------
+// -- World 4: Urban Navigations ----------------------------------------------------------------------
 
 const PARKED = (x: number, y: number): SceneryItem => ({ type: 'parked_car', pos: p(x, y), visualShield: true, radius: 1.4 });
 
 /** Introduces "Leave It": food on the pavement, and only that button. */
 export const LEAVE_IT_INTRO: ScenarioConfig = stage({
-  world: 3,
+  world: 4,
   theme: 'urban_street',
   route: [p(0, 0), p(60, 0)],
   walls: [{ from: p(-4, -6), to: p(64, -6) }, { from: p(-4, 6), to: p(64, 6) }],
@@ -156,7 +156,7 @@ export const LEAVE_IT_INTRO: ScenarioConfig = stage({
 
 /** A scooter at 4.5 m/s comes out from behind a parked car; both Cues are on the HUD. */
 export const SCOOTER_CROSSING: ScenarioConfig = stage({
-  world: 3,
+  world: 4,
   theme: 'urban_street',
   route: [p(0, 0), p(70, 0)],
   walls: [{ from: p(-4, -7), to: p(74, -7) }, { from: p(-4, 7), to: p(74, 7) }],
@@ -169,7 +169,7 @@ export const SCOOTER_CROSSING: ScenarioConfig = stage({
 
 /** Everything at once: food, a scooter and a dog. Choose the Cue that fits. */
 export const URBAN_MIX: ScenarioConfig = stage({
-  world: 3,
+  world: 4,
   theme: 'urban_street',
   route: [p(0, 0), p(40, 0), p(40, 30), p(80, 30)],
   walls: [
@@ -191,7 +191,7 @@ export const URBAN_MIX: ScenarioConfig = stage({
   ],
 });
 
-// -- World 4: Fast Wheels & High Arousal ---------------------------------------------------------------
+// -- World 5: Fast Wheels & High Arousal ---------------------------------------------------------------
 
 const PARK_LEASH = 3;
 /** Scatter keeps this far from the route in the park: a leash length and a body. */
@@ -199,7 +199,7 @@ const PARK_CLEARANCE = PARK_LEASH + 0.6;
 
 /** An open park with a 3 m leash; a jogger shoots out of nowhere. */
 export const PARK_JOGGER: ScenarioConfig = stage({
-  world: 4,
+  world: 5,
   theme: 'open_park',
   route: [p(0, 0), p(50, 0), p(90, 20)],
   walls: [],
@@ -212,7 +212,7 @@ export const PARK_JOGGER: ScenarioConfig = stage({
 
 /** The busy park: a jogger, a bicycle, food on the path. Both Cues, 3 m leash. */
 export const PARK_MIX: ScenarioConfig = stage({
-  world: 4,
+  world: 5,
   theme: 'open_park',
   route: [p(0, 0), p(40, 0), p(70, 24), p(110, 24)],
   walls: [],

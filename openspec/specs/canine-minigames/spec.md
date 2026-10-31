@@ -93,7 +93,7 @@ The system SHALL draw the onboarding Diagnostic as one scene with vector art for
 - **THEN** the posture change is immediate with no animation and the Diagnostic works the same
 
 ### Requirement: Choose-the-action Minigames
-The system SHALL run the Harness Ritual and the Doorbell Mat as scenes of several beats. In each beat the Dog shows one readable state and the user SHALL pick one of four action buttons shown for that Minigame. The correct action depends on the Dog's state and changes from beat to beat within a scene.
+The system SHALL run the Harness Ritual, the Doorbell Mat and the three Basics scenes (Dog as a dog, Home rest and Calm first) as scenes of several beats. In each beat the Dog shows one readable state and the user SHALL pick one of four action buttons shown for that Minigame. The correct action depends on the Dog's state and changes from beat to beat within a scene.
 
 #### Scenario: Harness Ritual actions
 - **WHEN** the Harness Ritual is running
@@ -103,6 +103,18 @@ The system SHALL run the Harness Ritual and the Doorbell Mat as scenes of severa
 - **WHEN** the Doorbell Mat is running
 - **THEN** the buttons offered are Wait, Cue, Marker and Send to mat
 
+#### Scenario: Dog as a dog actions
+- **WHEN** the Dog as a dog scene is running
+- **THEN** the buttons offered are Ignore, Send to bed, Marker and Cuddle
+
+#### Scenario: Home rest actions
+- **WHEN** the Home rest scene is running
+- **THEN** the buttons offered are Ignore, Send away, Marker and Go outside
+
+#### Scenario: Calm first actions
+- **WHEN** the Calm first scene is running
+- **THEN** the buttons offered are Wait, Send away, Marker and Cue
+
 #### Scenario: Right action advances the scene
 - **WHEN** the user picks the action that fits the Dog's current state
 - **THEN** the Dog reacts well, the beat counts as correct and the scene moves to the next beat
@@ -110,6 +122,18 @@ The system SHALL run the Harness Ritual and the Doorbell Mat as scenes of severa
 #### Scenario: Wrong action is visible
 - **WHEN** the user picks an action that does not fit the Dog's current state
 - **THEN** the Dog reacts visibly (for example jumping or turning away), the beat counts as a mistake and a one-line hint names what to look for
+
+#### Scenario: Cuddle is never right
+- **WHEN** the user picks Cuddle in any beat
+- **THEN** the beat counts as a mistake, the Dog gets more excited, and the hint says that lifting, cuddling or kissing treats the Dog like a toy, not a dog
+
+#### Scenario: Send away without touching
+- **WHEN** the user picks Send away or Send to bed while the Dog is asking for attention
+- **THEN** the Handler walks calmly into the Dog's space without touching it, and the Dog moves off to its bed
+
+#### Scenario: Cue on an over-aroused Dog
+- **WHEN** the user picks Cue while the Dog is barking nonstop or racing around in the Calm first scene
+- **THEN** the Dog ignores the Cue, the beat counts as a mistake and the hint says a Dog in that state cannot learn yet
 
 #### Scenario: Cue plays the chosen Cue
 - **WHEN** the user picks Cue
@@ -133,7 +157,7 @@ The system SHALL run the Harness Ritual and the Doorbell Mat as scenes of severa
 
 #### Scenario: Scene length
 - **WHEN** a Harness Ritual scene runs
-- **THEN** it has four Action beats, and a Doorbell Mat scene has five, each with a decision window of about five seconds
+- **THEN** it has four Action beats, a Doorbell Mat scene has five and each Basics scene has four, each with a decision window of about five seconds
 
 #### Scenario: Help and hints
 - **WHEN** the user starts an action Minigame
@@ -148,7 +172,7 @@ The system SHALL run the Harness Ritual and the Doorbell Mat as scenes of severa
 - **THEN** the order of beats and the distractions in them can differ, while every scene ends with the Dog calm
 
 ### Requirement: Expressive Dog
-The system SHALL draw the Minigame Dog with distinct body language for each readable state, covering at least excited jumping, barking at the door, sniffing the floor, sitting and looking at the user, standing on the mat unsettled, and lying relaxed, with eyes, ears, tail and mouth changing per state, plus an emote bubble beside the head. Every state SHALL also be named in a short caption.
+The system SHALL draw the Minigame Dog with distinct body language for each readable state, covering at least excited jumping, barking at the door, sniffing the floor, sitting and looking at the user, standing on the mat unsettled, lying relaxed, pawing to be picked up, lying on the sofa or human bed, nudging the user for attention, carrying a toy indoors, barking nonstop and racing around (zoomies), with eyes, ears, tail and mouth changing per state, plus an emote bubble beside the head. Every state SHALL also be named in a short caption.
 
 #### Scenario: States look different
 - **WHEN** the Dog moves between any two readable states
@@ -163,7 +187,7 @@ The system SHALL draw the Minigame Dog with distinct body language for each read
 - **THEN** the Dog changes state without animation and the Minigame plays the same
 
 ### Requirement: Action Minigame result
-The system SHALL report an action Minigame to the Debrief with the same metric names as before (the Harness Ritual with `poste` and `tension`, the Doorbell Mat with `timing` and `tension`) and with a handling score for stars. The first SHALL be the share of correct beats and `tension` SHALL fall with the number of wrong choices.
+The system SHALL report an action Minigame to the Debrief with the same metric names as before (the Harness Ritual with `poste` and `tension`, the Doorbell Mat with `timing` and `tension`) and with a handling score for stars. Each Basics scene SHALL report `timing` and `tension`. The first metric SHALL be the share of correct beats and `tension` SHALL fall with the number of wrong choices.
 
 #### Scenario: Perfect run
 - **WHEN** every beat is answered correctly
@@ -172,3 +196,18 @@ The system SHALL report an action Minigame to the Debrief with the same metric n
 #### Scenario: Mistakes lower tension
 - **WHEN** the user makes wrong choices
 - **THEN** `tension` is lower than in a run with fewer wrong choices
+
+### Requirement: Basics scenes read the Dog at home
+Each Basics scene SHALL be set in a home living room with a sofa and the Dog's own bed. Each of its readable states SHALL map to exactly one correct action, defined once per scene.
+
+#### Scenario: Dog as a dog
+- **WHEN** the Dog as a dog scene shows the Dog pawing to be picked up, on the sofa or bed, or lying relaxed on its own bed
+- **THEN** the correct actions are Ignore, Send to bed and Marker respectively
+
+#### Scenario: Home rest
+- **WHEN** the Home rest scene shows the Dog nudging for attention, carrying a toy indoors, resting undisturbed, or lying on its bed after being sent there
+- **THEN** the correct actions are Send away, Go outside, Ignore and Marker respectively
+
+#### Scenario: Calm first
+- **WHEN** the Calm first scene shows the Dog barking nonstop, racing around indoors, sitting calm and attentive, or lying relaxed
+- **THEN** the correct actions are Wait, Send away, Cue and Marker respectively

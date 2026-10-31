@@ -158,8 +158,8 @@ describe('WorldMapScreen - Trail Scenery Integration (Task 4.2 & 4.3)', () => {
     // World 1 active block contains Trail Scenery, environmental backdrop, and World 1 landmark
     expect(markup).toContain('testID="world-scenery-background"');
     expect(markup).toContain('testID="environmental-backdrop"');
-    expect(markup).toContain('testID="environmental-backdrop-1"');
-    expect(markup).toContain('testID="top-landmark-1"');
+    expect(markup).toContain('testID="environmental-backdrop-home"');
+    expect(markup).toContain('testID="top-landmark-home"');
     // Middle row margin scenery
     expect(markup).toContain('testID="margin-scenery"');
     expect(markup).toContain('testID="margin-row-1"');
@@ -188,17 +188,17 @@ describe('WorldMapScreen - Trail Scenery Integration (Task 4.2 & 4.3)', () => {
     );
 
     // World 3 & World 4 are collapsed when progress is empty, so their Top Landmarks and backdrops are omitted
-    expect(markup).not.toContain('testID="top-landmark-3"');
-    expect(markup).not.toContain('testID="top-landmark-4"');
-    expect(markup).not.toContain('testID="environmental-backdrop-3"');
-    expect(markup).not.toContain('testID="environmental-backdrop-4"');
+    expect(markup).not.toContain('testID="top-landmark-urban"');
+    expect(markup).not.toContain('testID="top-landmark-park"');
+    expect(markup).not.toContain('testID="environmental-backdrop-urban"');
+    expect(markup).not.toContain('testID="environmental-backdrop-park"');
   });
 
   it('re-exports HouseLandmark for backward compatibility', () => {
     const { HouseLandmark } = require('./WorldMapScreen');
     expect(HouseLandmark).toBeDefined();
     const markup = renderToStaticMarkup(<HouseLandmark />);
-    expect(markup).toContain('top-landmark-1');
+    expect(markup).toContain('top-landmark-home');
   });
 });
 

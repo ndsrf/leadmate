@@ -51,7 +51,7 @@ export function LeadLine({ width = 220, className = '' }: { width?: number; clas
 /** Sky wash, a sun, two clouds and three paper hills with the road across them (viewBox 390 by 844), for the splash. */
 export function MeadowBackdrop({ width, height }: { width: number; height: number }) {
   const ink = lightColor.ink;
-  const w2 = theme.world.w2;
+  const w2 = theme.world.sidewalk;
   return (
     <Svg width={width} height={height} viewBox="0 0 390 844" preserveAspectRatio="xMidYMax slice" style={{ position: 'absolute', left: 0, top: 0 }} aria-hidden>
       <Rect width={390} height={844} fill={lightColor.sky} />

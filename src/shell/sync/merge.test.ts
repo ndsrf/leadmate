@@ -1,5 +1,6 @@
 import { activityAt } from '../activity';
-import { newDogRecord, type DogRecord } from '../dogRecord';
+import { migrateRecord, newDogRecord, type DogRecord } from '../dogRecord';
+import { findWorld, isWorldComplete } from '../world';
 import { isOwed, type MissionState } from '../missions/mission';
 import { resolve } from './merge';
 
@@ -175,5 +176,29 @@ describe('resolve Missions and Fixes', () => {
     const mission = { date: '2026-05-01', missionId: 'm', outcome: 'struggled', problemId: 'p' } as const;
     const merged = resolve(rec({ ...at('2026-05-03T00:00:00.000Z'), walkDiary: [old] }), rec({ walkDiary: [mission, { ...old, outcome: 'skipped' }] }));
     expect(merged.walkDiary).toEqual([old, mission]);
+  });
+});
+
+describe('the Basics World across an update', () => {
+  const basics = findWorld('basics')!;
+  const progress = (r: DogRecord) => ({ completedNodes: r.completedNodes, readLessons: r.readLessons, missions: r.missions, legacyNodes: r.legacyNodes });
+  // a copy the old app keeps uploading: version 7, Home in progress, no Basics World
+  const oldCopy = { version: 7, updatedAt: '2026-05-05T00:00:00.000Z', completedNodes: ['harness-ritual', 'doorbell-mat'], readLessons: ['theory-harness', 'howto-tap-hold'] };
+
+  it('keeps the Basics World complete when a migrated version 7 remote copy merges with a local version 8 copy', () => {
+    const local = migrateRecord({ ...oldCopy, updatedAt: '2026-05-04T00:00:00.000Z', completedNodes: ['harness-ritual'] });
+    expect(local.version).toBe(8);
+    expect(isWorldComplete(basics, progress(local))).toBe(true);
+    const remote = migrateRecord(oldCopy);
+    for (const merged of [resolve(local, remote), resolve(remote, local)]) {
+      expect(isWorldComplete(basics, progress(merged))).toBe(true);
+      expect(merged.completedNodes).toEqual(expect.arrayContaining(['harness-ritual', 'doorbell-mat']));
+    }
+  });
+
+  it('keeps it complete even when the local copy is a fresh version 8 record that never had the Basics World', () => {
+    const local = rec({ ...at('2026-05-01T00:00:00.000Z') });
+    const merged = resolve(local, migrateRecord(oldCopy));
+    expect(isWorldComplete(basics, progress(merged))).toBe(true);
   });
 });

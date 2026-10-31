@@ -225,6 +225,22 @@ _Avoid_: Sniff button, treat break
 A themed trail of Stops, grouped into Stretches, with distinct environment rules and mechanics.
 _Avoid_: Chapter, zone, campaign level
 
+**Basics World**:
+World 1, "Un perro es un perro": the indoor World before any leash work that teaches living with the Dog as a dog (its quirks have names, no humanising, home is for resting, calm before learning) through theory Lessons, static action Minigames and Home Missions. Records with progress from before it existed have it marked complete.
+_Avoid_: Prologue, World 0, tutorial world
+
+**Named behaviour**:
+A common dog behaviour owners often think is unique to their Dog, taught with its name, what it looks like, why it happens and a first step: the turtle (lying down fixed on an approaching dog, a warning sign rather than calm), zoomies, reacting to other dogs, redirected biting and nonstop barking.
+_Avoid_: Quirk, problem behaviour, vice
+
+**Send away**:
+The Handler walking calmly into the Dog's space, with no eye contact, words or touch, until the Dog moves off; "Send to bed" is the same, until it goes to its bed. Never a physical correction.
+_Avoid_: Push away, shoo, block
+
+**Home Mission**:
+A Mission whose target is practised at home rather than on a walk; its brief, check-in question and success sign are worded for home.
+_Avoid_: Indoor homework
+
 **Stop**:
 One point on a World's trail: a Lesson, a Node or a Mission.
 _Avoid_: Step, item, level

@@ -7,7 +7,7 @@ import type { DogCoat } from '../../sim/config';
 import type { BreedId } from '../onboarding/breeds';
 import { BreedArt } from './BreedArt';
 import { CanineMinigameAvatar } from './CanineMinigameAvatar';
-import { atDoor, COLLAR_POINT, DOG_VIEW, HANDLER_LEAN_DEG, HANDLER_PALETTE, HANDLER_PIVOT, handlerHand, leashPath, postureSpec, tensionTone, type CaninePosture } from './canine';
+import { atDoor, livingRoomSpot, COLLAR_POINT, DOG_VIEW, HANDLER_LEAN_DEG, HANDLER_PALETTE, HANDLER_PIVOT, handlerHand, leashPath, postureSpec, tensionTone, type CaninePosture } from './canine';
 import type { ReadDogAction } from '../nodes/readDog';
 import { Raised } from './components';
 import { buttonStyle } from './styles';
@@ -138,6 +138,94 @@ export function HarnessScene({ t, posture, harness, coat }: { t: Translate; post
       <View accessible={false} style={{ position: 'absolute', left: pctX(HARNESS_DOG_X), top: pctY(158 - GROUND_Y), width: pctX(DOG_W) }}>
         <CanineMinigameAvatar t={t} posture={posture} coat={coat} width={(width * DOG_W) / SCENE.w} harness={harness} />
       </View>
+    </Stage>
+  );
+}
+
+const LIVING_DOG_X = { floor: 62, sofa: 26, bed: 194 } as const;
+const LIVING_DOG_LIFT = { floor: 0, sofa: 30, bed: 6 } as const;
+/** How far the Handler steps towards the Dog to send it off, in scene units. */
+export const HANDLER_STEP = 46;
+
+/** The living room of the Basics scenes: a sofa on the left, the garden door at the back, the Dog's bed on the right, a rug. */
+function LivingRoomBackdrop() {
+  return (
+    <G>
+      <Rect x={0} y={0} width={SCENE.w} height={140} fill={lightColor.surfaceSunken} />
+      <Rect x={0} y={136} width={SCENE.w} height={6} fill={lightColor.surface} />
+      <Rect x={0} y={140} width={SCENE.w} height={50} fill={lightColor.edge} />
+      <Ellipse cx={150} cy={164} rx={110} ry={18} fill={theme.world.basics.accent} opacity={0.35} />
+      {/* garden door */}
+      <Rect x={232} y={22} width={62} height={116} rx={3} fill={lightColor.surface} stroke={lightColor.lockedText} strokeWidth={3} />
+      <Rect x={240} y={30} width={20} height={48} fill={lightColor.sky} />
+      <Rect x={266} y={30} width={20} height={48} fill={lightColor.sky} />
+      <Path d="M240 70 Q250 62 260 70 V78 H240 Z M266 70 Q276 62 286 70 V78 H266 Z" fill={lightColor.brand} />
+      <Circle cx={286} cy={96} r={3.5} fill={lightColor.accent} />
+      {/* sofa */}
+      <Rect x={8} y={74} width={112} height={40} rx={10} fill={theme.world.basics.deep} />
+      <Rect x={2} y={102} width={124} height={34} rx={10} fill={theme.world.basics.accent} />
+      <Rect x={14} y={104} width={48} height={16} rx={5} fill={theme.world.basics.soft} />
+      <Rect x={66} y={104} width={48} height={16} rx={5} fill={theme.world.basics.soft} />
+      <Rect x={10} y={134} width={6} height={10} fill={lightColor.lockedText} />
+      <Rect x={112} y={134} width={6} height={10} fill={lightColor.lockedText} />
+      {/* the Dog's bed */}
+      <Path d="M196 160 Q196 138 250 138 Q304 138 304 160 Q304 172 250 172 Q196 172 196 160 Z" fill={theme.world.basics.deep} />
+      <Ellipse cx={250} cy={160} rx={42} ry={9} fill={theme.world.basics.soft} />
+    </G>
+  );
+}
+
+/** The Handler of the living room, standing at the left edge; `x` moves the whole figure. */
+function LivingHandler() {
+  const skin = HANDLER_PALETTE;
+  return (
+    <Svg width="100%" height="100%" viewBox="0 0 60 190" aria-hidden>
+      <Line x1={26} y1={136} x2={23} y2={176} stroke={skin.trousers} strokeWidth={9} strokeLinecap="round" />
+      <Line x1={34} y1={136} x2={39} y2={176} stroke={skin.trousers} strokeWidth={9} strokeLinecap="round" />
+      <Ellipse cx={22} cy={178} rx={8} ry={3.5} fill={skin.shoes} />
+      <Ellipse cx={41} cy={178} rx={8} ry={3.5} fill={skin.shoes} />
+      <Rect x={18} y={84} width={24} height={56} rx={10} fill={skin.shirt} />
+      <Line x1={22} y1={92} x2={20} y2={130} stroke={skin.shirt} strokeWidth={7} strokeLinecap="round" />
+      <Line x1={38} y1={92} x2={40} y2={130} stroke={skin.shirt} strokeWidth={7} strokeLinecap="round" />
+      <Circle cx={30} cy={70} r={12} fill={skin.skin} />
+      <Path d="M18 69 Q18 54 30 54 Q42 54 42 69 Q36 62 30 62 Q24 62 18 69 Z" fill={skin.hair} />
+    </Svg>
+  );
+}
+
+/**
+ * The Basics scenes: a living room with a sofa, the garden door and the Dog's own bed. The Dog is on the sofa, in its
+ * bed or on the floor by its state, facing the Handler while on the floor. While `sending`, the Handler steps calmly towards the Dog, arms down and never
+ * touching it, and the Dog walks off to its bed. Under reduced motion both simply appear in place.
+ */
+export function LivingRoomScene({ t, posture, sending, coat }: { t: Translate; posture: CaninePosture; sending: boolean; coat: DogCoat }) {
+  const [width, setWidth] = useState(0);
+  const { reduced } = useMotion();
+  const spot = sending ? 'bed' : livingRoomSpot(posture);
+  const x = useSharedValue<number>(LIVING_DOG_X[spot]);
+  const lift = useSharedValue<number>(LIVING_DOG_LIFT[spot]);
+  const step = useSharedValue(0);
+  useEffect(() => {
+    const duration = reduced ? 0 : sending ? 1000 : 300;
+    x.value = withTiming(LIVING_DOG_X[spot], { duration });
+    lift.value = withTiming(LIVING_DOG_LIFT[spot], { duration });
+    step.value = withTiming(sending ? HANDLER_STEP : 0, { duration: reduced ? 0 : 600 });
+  }, [spot, sending, reduced, x, lift, step]);
+  const move = useAnimatedStyle(() => ({ transform: [{ translateX: (x.value / SCENE.w) * width }, { translateY: (-lift.value / SCENE.h) * ((width * SCENE.h) / SCENE.w) }] }));
+  const walk = useAnimatedStyle(() => ({ transform: [{ translateX: (step.value / SCENE.w) * width }] }));
+  return (
+    <Stage onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+      <Svg style={fill} viewBox={`0 0 ${SCENE.w} ${SCENE.h}`} accessibilityLabel={t(sending ? 'minigame.sendingAway' : 'minigame.livingRoom')}>
+        <LivingRoomBackdrop />
+      </Svg>
+      <View accessible={false} style={{ position: 'absolute', left: pctX(0), top: pctY(164 - GROUND_Y), width: pctX(DOG_W) }}>
+        <Animated.View style={move}>
+          <CanineMinigameAvatar t={t} posture={sending ? 'standing_waiting' : posture} coat={coat} width={(width * DOG_W) / SCENE.w} facing={spot === 'floor' ? 'left' : 'right'} />
+        </Animated.View>
+      </View>
+      <Animated.View accessible={false} pointerEvents="none" testID="living-handler" style={[{ position: 'absolute', left: pctX(-14), top: 0, width: pctX(60), height: '100%' }, walk]}>
+        <LivingHandler />
+      </Animated.View>
     </Stage>
   );
 }
@@ -346,6 +434,30 @@ function ButtonIcon({ icon, tint }: { icon: ActionIcon; tint: string }) {
           <Rect x={3} y={14} width={30} height={13} rx={5} fill={tint} />
           <Path d="M12 20 L24 20 M20 16 L24 20 L20 24" stroke={color.brand} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
         </G>
+      ) : icon === 'ignore' ? (
+        <G fill="none" stroke={tint} strokeWidth={2.8} strokeLinecap="round">
+          <Path d="M4 18 Q18 6 32 18 Q18 30 4 18 Z" />
+          <Circle cx={18} cy={18} r={4.5} fill={tint} />
+          <Path d="M6 30 L30 6" />
+        </G>
+      ) : icon === 'send-bed' ? (
+        <G>
+          <Path d="M3 24 Q3 14 18 14 Q33 14 33 24 Q33 30 18 30 Q3 30 3 24 Z" fill={tint} />
+          <Path d="M10 8 L24 8 M20 4 L24 8 L20 12" stroke={tint} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        </G>
+      ) : icon === 'send-away' ? (
+        <G fill="none" stroke={tint} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+          <Path d="M5 18 L29 18 M21 10 L29 18 L21 26" />
+          <Circle cx={8} cy={8} r={2.5} fill={tint} />
+          <Circle cx={8} cy={28} r={2.5} fill={tint} />
+        </G>
+      ) : icon === 'go-outside' ? (
+        <G>
+          <Rect x={4} y={4} width={16} height={28} rx={2} fill="none" stroke={tint} strokeWidth={2.8} />
+          <Path d="M16 18 L32 18 M26 12 L32 18 L26 24" stroke={tint} strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        </G>
+      ) : icon === 'cuddle' ? (
+        <Path d="M18 31 C2 20 4 6 13 7 C16 7 18 10 18 12 C18 10 20 7 23 7 C32 6 34 20 18 31 Z" fill={tint} />
       ) : (
         <G fill={tint}>
           <Rect x={7} y={14} width={5} height={14} rx={2.5} />
@@ -383,7 +495,7 @@ export function DiagnosticScene({ t, breed, coat, looking }: { t: Translate; bre
       <Svg style={fill} viewBox={`0 0 ${SCENE.w} ${SCENE.h}`} aria-hidden>
         <Rect x={0} y={0} width={SCENE.w} height={SCENE.h} fill={lightColor.sky} />
         <Circle cx={270} cy={40} r={20} fill={lightColor.accent} stroke={lightColor.ink} strokeWidth={2.5} />
-        <Path d="M0 122C50 100 110 118 170 106S280 96 320 112V190H0Z" fill={theme.world.w2.ground} stroke={lightColor.ink} strokeWidth={2.5} />
+        <Path d="M0 122C50 100 110 118 170 106S280 96 320 112V190H0Z" fill={theme.world.sidewalk.ground} stroke={lightColor.ink} strokeWidth={2.5} />
         <Path d="M0 150C70 132 150 156 230 142S300 134 320 142V190H0Z" fill={lightColor.brand} stroke={lightColor.ink} strokeWidth={2.5} />
         <Path d="M0 174C80 162 170 182 250 170S300 166 320 170V190H0Z" fill={lightColor.brandDeep} stroke={lightColor.ink} strokeWidth={2.5} />
       </Svg>

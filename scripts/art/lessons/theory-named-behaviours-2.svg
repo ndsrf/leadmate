@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-named-behaviours.image.2.caption" data-alt="trail.theory-named-behaviours.image.2.alt">
+  <!-- scene: the turtle; Migas lies on the pavement, eyes fixed on a dog far ahead; you are already turning to cross -->
+  <use href="#backdrop"/>
+  <use href="#ground-street"/>
+  <g transform="translate(40 300) scale(1.05)">
+    <use href="#person-walk" transform="scale(-1 1)"/>
+    <use href="#dog-down" transform="translate(150 0)"/>
+    <path d="M-14 -100C30 -10 120 -10 186 -46" fill="none" stroke="#1E2A3A" stroke-width="8.5" stroke-linecap="round"/>
+    <path d="M-14 -100C30 -10 120 -10 186 -46" fill="none" stroke="#6FAF73" stroke-width="4.5" stroke-linecap="round"/>
+  </g>
+  <use href="#sight" transform="translate(410 250)"/>
+  <use href="#dog2-walk" transform="translate(600 290) scale(-0.6 0.6)"/>
+  <use href="#arrow-ink" transform="translate(150 170) scale(-1 1)"/>
+</svg>

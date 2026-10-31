@@ -1,4 +1,4 @@
-import type { TextKey } from '../i18n';
+import type { TextKey, Translate } from '../i18n';
 import type { DogRecord } from './dogRecord';
 import { canCheckIn, checkInOpensAt, isOwed } from './missions/mission';
 import { NODES } from './nodes/content';
@@ -32,7 +32,15 @@ const mission = (id: string): Stop => ({ kind: 'mission', id });
 
 export const WORLDS: readonly WorldDef[] = [
   {
-    id: 'home', title: 'world.1.title', worldNumber: 1, topics: 'world.1.topics', tier: 'free',
+    id: 'basics', title: 'world.basics.title', worldNumber: 1, topics: 'world.basics.topics', tier: 'free',
+    stretches: [
+      [lesson('theory-named-behaviours'), lesson('theory-dog-as-dog'), lesson('howto-choose-action'), node('dog-as-dog'), mission('mission-dog-as-dog')],
+      [lesson('theory-home-rest'), node('home-rest'), mission('mission-home-rest')],
+      [lesson('theory-calm-first'), node('calm-first'), mission('mission-calm-first')],
+    ],
+  },
+  {
+    id: 'home', title: 'world.home.title', worldNumber: 2, unlockedBy: 'basics', topics: 'world.home.topics', tier: 'free',
     stretches: [
       [lesson('theory-harness'), lesson('howto-tap-hold'), node('harness-ritual'), mission('mission-harness')],
       [lesson('theory-doorbell'), node('doorbell-mat'), mission('mission-doorbell')],
@@ -40,7 +48,7 @@ export const WORLDS: readonly WorldDef[] = [
     ],
   },
   {
-    id: 'sidewalk', title: 'world.2.title', worldNumber: 2, unlockedBy: 'home', topics: 'world.2.topics', tier: 'free',
+    id: 'sidewalk', title: 'world.sidewalk.title', worldNumber: 3, unlockedBy: 'home', topics: 'world.sidewalk.topics', tier: 'free',
     stretches: [
       [lesson('theory-loose-leash'), lesson('howto-walking'), node('walk-distraction'), mission('mission-walk')],
       [lesson('theory-blind-corner'), node('blind-corner'), mission('mission-corners')],
@@ -48,7 +56,7 @@ export const WORLDS: readonly WorldDef[] = [
     ],
   },
   {
-    id: 'urban', title: 'world.3.title', worldNumber: 3, unlockedBy: 'sidewalk', topics: 'world.3.topics', tier: 'free',
+    id: 'urban', title: 'world.urban.title', worldNumber: 4, unlockedBy: 'sidewalk', topics: 'world.urban.topics', tier: 'free',
     stretches: [
       [lesson('theory-leave-it'), lesson('howto-cues'), node('leave-it-intro'), mission('mission-leave-it')],
       [lesson('theory-visual-shields'), node('calm-zone-intro'), node('scooter-crossing'), mission('mission-shields')],
@@ -56,16 +64,16 @@ export const WORLDS: readonly WorldDef[] = [
     ],
   },
   {
-    id: 'park', title: 'world.4.title', worldNumber: 4, unlockedBy: 'urban', topics: 'world.4.topics', tier: 'free',
+    id: 'park', title: 'world.park.title', worldNumber: 5, unlockedBy: 'urban', topics: 'world.park.topics', tier: 'free',
     stretches: [
       [lesson('theory-long-leash'), lesson('howto-long-leash'), node('park-jogger'), mission('mission-park-jogger')],
       [lesson('theory-park-mix'), node('park-mix'), mission('mission-park-mix')],
     ],
   },
-  { id: 'recall', title: 'world.5.title', worldNumber: 5, stretches: [], unlockedBy: 'park', topics: 'world.5.topics', tier: 'plus', preview: true, nodeCount: 4 },
-  { id: 'cafe', title: 'world.6.title', worldNumber: 6, stretches: [], unlockedBy: 'recall', topics: 'world.6.topics', tier: 'plus', preview: true, nodeCount: 4 },
-  { id: 'trails', title: 'world.7.title', worldNumber: 7, stretches: [], unlockedBy: 'cafe', topics: 'world.7.topics', tier: 'plus', preview: true, nodeCount: 4 },
-  { id: 'crowds', title: 'world.8.title', worldNumber: 8, stretches: [], unlockedBy: 'trails', topics: 'world.8.topics', tier: 'plus', preview: true, nodeCount: 5 },
+  { id: 'recall', title: 'world.recall.title', worldNumber: 6, stretches: [], unlockedBy: 'park', topics: 'world.recall.topics', tier: 'plus', preview: true, nodeCount: 4 },
+  { id: 'cafe', title: 'world.cafe.title', worldNumber: 7, stretches: [], unlockedBy: 'recall', topics: 'world.cafe.topics', tier: 'plus', preview: true, nodeCount: 4 },
+  { id: 'trails', title: 'world.trails.title', worldNumber: 8, stretches: [], unlockedBy: 'cafe', topics: 'world.trails.topics', tier: 'plus', preview: true, nodeCount: 4 },
+  { id: 'crowds', title: 'world.crowds.title', worldNumber: 9, stretches: [], unlockedBy: 'trails', topics: 'world.crowds.topics', tier: 'plus', preview: true, nodeCount: 5 },
 ];
 
 /**
@@ -77,6 +85,11 @@ export type Progress = Pick<DogRecord, 'completedNodes' | 'readLessons' | 'missi
 /** Progress with only these Nodes completed (and nothing read, started or grandfathered). */
 export function progressOf(completedNodes: readonly string[], more: Partial<Progress> = {}): Progress {
   return { completedNodes: [...completedNodes], readLessons: [], missions: {}, legacyNodes: [], ...more };
+}
+
+/** A World's visible title, "Mundo 2 · Casa y umbrales": its number and its name, which is keyed by id. */
+export function worldTitle(world: Pick<WorldDef, 'title' | 'worldNumber'>, t: Translate): string {
+  return t('world.numbered').replace('{n}', String(world.worldNumber)).replace('{title}', t(world.title));
 }
 
 export function findWorld(id: string, worlds: readonly WorldDef[] = WORLDS): WorldDef | undefined {

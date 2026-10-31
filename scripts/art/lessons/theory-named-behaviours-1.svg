@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-named-behaviours.image.1.caption" data-alt="trail.theory-named-behaviours.image.1.alt">
+  <!-- concept: three different dogs in three different places do the same thing: lie down, gaze fixed ahead -->
+  <use href="#sky"/>
+  <use href="#ground-grass"/>
+  <path d="M213 26V290M427 26V290" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="12 10" stroke-linecap="round"/>
+  <use href="#dog-down" transform="translate(56 292) scale(0.8)"/>
+  <use href="#sight" transform="translate(150 250) scale(0.5)"/>
+  <use href="#dog2-down" transform="translate(270 292) scale(0.8)"/>
+  <use href="#sight" transform="translate(364 250) scale(0.5)"/>
+  <use href="#dog-down" transform="translate(484 292) scale(0.8)"/>
+  <use href="#sight" transform="translate(578 250) scale(0.5)"/>
+  <use href="#badge-check" transform="translate(320 80) scale(1.3)"/>
+</svg>

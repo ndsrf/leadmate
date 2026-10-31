@@ -89,7 +89,7 @@ describe('World Map layout', () => {
 
   it('flags the end of each Stretch at its Mission with "Tramo N"', () => {
     const stops = mapModel(progressOf([]), {}, new Date(2026, 4, 2)).worlds[0].stops;
-    expect(stops.map((s) => stretchFlag(s.kind, s.stretch)?.label ?? null)).toEqual([null, null, null, 1, null, null, 2, null, null, 3]);
+    expect(stops.map((s) => stretchFlag(s.kind, s.stretch)?.label ?? null)).toEqual([null, null, null, null, 1, null, null, 2, null, null, 3]);
   });
 
   it('lays out a World of 12 Stops without overlap, within a 320-point screen', () => {

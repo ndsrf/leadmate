@@ -3,7 +3,7 @@ import { DEFAULT_ATTRIBUTES } from '../../sim/learning';
 import { newDogRecord } from '../dogRecord';
 import { DIARY_OUTCOMES } from '../streak';
 import { payloadWith } from '../testPayload';
-import { BARKDOKU_INTRO_NODE, DOORBELL_MAT_NODE, HARNESS_RITUAL_NODE, LEAVE_IT_NODE, NODES, POSTE_PRACTICE, SCOOTER_NODE, URBAN_MIX_NODE, WALK_DISTRACTION } from './content';
+import { BARKDOKU_INTRO_NODE, CALM_FIRST_NODE, DOG_AS_DOG_NODE, DOORBELL_MAT_NODE, HOME_REST_NODE, HARNESS_RITUAL_NODE, LEAVE_IT_NODE, NODES, POSTE_PRACTICE, SCOOTER_NODE, URBAN_MIX_NODE, WALK_DISTRACTION } from './content';
 import { placeOf, worldOfNode } from '../world';
 import { findLesson } from '../lessons/content';
 import { INTRO_NODE } from '../onboarding/introNode';
@@ -377,9 +377,9 @@ describe('Debrief Walk Diary and Streak', () => {
   });
 });
 
-describe('World 1 minigame Nodes', () => {
+describe('action minigame Nodes', () => {
   it('count as completed at the Debrief, never change the Dog, and offer a matching exercise', () => {
-    for (const node of [HARNESS_RITUAL_NODE, DOORBELL_MAT_NODE]) {
+    for (const node of [DOG_AS_DOG_NODE, HOME_REST_NODE, CALM_FIRST_NODE, HARNESS_RITUAL_NODE, DOORBELL_MAT_NODE]) {
       expect(node.mode).toBe('minigame');
       const run = advance(toSimulation(node), { type: 'finish', result: { kind: 'minigame', metrics: { poste: 0.5, timing: 0.5, tension: 0.9 } } });
       const record = newDogRecord();

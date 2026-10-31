@@ -23,7 +23,7 @@ function fix(slug: string, problem: string, practise: Stop): Fix {
 }
 
 /** A Mission from the catalog's `mission.<slug>.*` keys; every Fix practises `practise` unless a problem names its own Stop. */
-function mission(id: string, slug: string, technique: string, reps: number, trains: Stop[], problems: (string | [string, Stop])[]): MissionDef {
+function mission(id: string, slug: string, technique: string, reps: number, trains: Stop[], problems: (string | [string, Stop])[], place?: 'home'): MissionDef {
   const k = (name: string) => `mission.${slug}.${name}` as TextKey;
   const practise = trains[trains.length - 1];
   return {
@@ -39,14 +39,18 @@ function mission(id: string, slug: string, technique: string, reps: number, trai
       return { id: problem, label: k(`${problem}.label`), fix: fix(slug, problem, stop) };
     }),
     generalFix: fix(slug, 'general', practise),
+    ...(place ? { place } : {}),
   };
 }
 
 const node = (id: string): Stop => ({ kind: 'node', id });
 const lesson = (id: string): Stop => ({ kind: 'lesson', id });
 
-/** The Missions that end each Stretch of Worlds 1 to 4 (design decision 10). */
+/** The Missions that end each Stretch of the playable Worlds; the Basics World's are done at home. */
 export const MISSIONS: readonly MissionDef[] = [
+  mission('mission-dog-as-dog', 'dogasdog', 'dog-as-dog', 1, [node('dog-as-dog')], ['cries', 'family', 'bed'], 'home'),
+  mission('mission-home-rest', 'homerest', 'home-rest', 3, [node('home-rest')], ['insists', 'barks', 'comesback'], 'home'),
+  mission('mission-calm-first', 'calmfirst', 'calm-first', 2, [node('calm-first')], ['neverstops', 'escalates', 'givein'], 'home'),
   mission('mission-harness', 'harness', 'harness', 3, [node('harness-ritual')], ['excited', 'runs', 'bites']),
   mission('mission-doorbell', 'doorbell', 'doorbell', 3, [node('doorbell-mat')], ['barks', 'door', 'mat']),
   mission('mission-poste', 'poste', 'poste', 3, [node('poste-practice')], ['pulls', ['pulled', lesson('theory-poste')], 'long']),

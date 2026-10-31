@@ -4,8 +4,9 @@ import { applyDaySkip, newDogRecord, type DogRecord } from './dogRecord';
 import type { MissionState } from './missions/mission';
 import { progressAt } from './plus';
 import { stopsOf, WORLDS } from './world';
+import { withBasicsDone } from './testProgress';
 
-const rec = (over: Partial<DogRecord> = {}): DogRecord => ({ ...newDogRecord(), ...over });
+const rec = (over: Partial<DogRecord> = {}): DogRecord => withBasicsDone({ ...newDogRecord(), ...over });
 const node = (id: string) => ({ kind: 'node' as const, nodeId: id });
 const mission = (id: string) => ({ kind: 'mission' as const, missionId: id });
 const started: MissionState = { target: 'full', skipRun: 0, attempts: [], startedAt: '2026-05-01T09:00:00.000Z' };
@@ -131,7 +132,7 @@ describe('missed day', () => {
   });
 
   it('removes no star or progress when a day is missed', () => {
-    const r = rec({ completedNodes: ['poste-practice'], stars: { 'poste-practice': 3 }, streak: lapsed });
+    const r: DogRecord = { ...newDogRecord(), completedNodes: ['poste-practice'], stars: { 'poste-practice': 3 }, streak: lapsed };
     streakStatus(r.streak, '2026-05-09');
     expect(r.stars).toEqual({ 'poste-practice': 3 });
     expect(r.completedNodes).toEqual(['poste-practice']);

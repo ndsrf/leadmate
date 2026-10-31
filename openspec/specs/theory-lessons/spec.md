@@ -18,8 +18,12 @@ The system SHALL provide a Theory Library listing every Lesson in a fixed order,
 - **THEN** the Library and the text and bundled-image parts of every Lesson remain fully readable
 
 #### Scenario: Trail Lesson entry
-- **WHEN** a Lesson is the second Stop of World 2's first Stretch
-- **THEN** its Library entry shows "Mundo 2 · Tramo 1" instead of a suggested day
+- **WHEN** a Lesson is the second Stop of World 3's first Stretch
+- **THEN** its Library entry shows "Mundo 3 · Tramo 1" instead of a suggested day
+
+#### Scenario: Basics Lesson entry
+- **WHEN** a Lesson is the first Stop of World 1's first Stretch
+- **THEN** its Library entry shows "Mundo 1 · Tramo 1"
 
 ### Requirement: First-week Lessons
 The system SHALL ship at least five Lessons whose suggested days run from day 1 to day 5 after the Dog's onboarding, and SHALL mark today's suggested unread Lesson as "for today". Every Lesson SHALL be openable at any time; no Lesson is locked.

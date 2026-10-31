@@ -1,7 +1,7 @@
 import type { Translate } from '../i18n';
 import type { Celebration } from './celebrations';
 import { findNode } from './nodes/content';
-import { findWorld } from './world';
+import { findWorld, worldTitle } from './world';
 
 /** The short line a celebration shows. Rewards name what was done well, never what was lost. */
 export function celebrationText(c: Celebration, t: Translate): string {
@@ -14,7 +14,7 @@ export function celebrationText(c: Celebration, t: Translate): string {
       return t('reveal.newBest');
     case 'unlock-world': {
       const world = findWorld(c.worldId);
-      return `${t('celebrate.unlockWorld')}: ${world ? t(world.title) : c.worldId}`;
+      return `${t('celebrate.unlockWorld')}: ${world ? worldTitle(world, t) : c.worldId}`;
     }
     case 'unlock-node': {
       const node = findNode(c.nodeId);

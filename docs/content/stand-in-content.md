@@ -13,6 +13,9 @@ bundled, so its image block shows the themed placeholder. Missions are in `src/s
 
 | Mission | Title | Fixes (`fix/<slug>/<problem>`; `general` is "Otra cosa") |
 | --- | --- | --- |
+| `mission-dog-as-dog` | Un día como perro | `cries`, `family`, `bed`, `general` |
+| `mission-home-rest` | La casa tranquila | `insists`, `barks`, `comesback`, `general` |
+| `mission-calm-first` | Primero, calma | `neverstops`, `escalates`, `givein`, `general` |
 | `mission-harness` | El arnés en casa | `excited`, `runs`, `bites`, `general` |
 | `mission-doorbell` | El simulacro del timbre | `barks`, `door`, `mat`, `general` |
 | `mission-poste` | El poste en la escalera | `pulls`, `pulled`, `long`, `general` |
@@ -25,8 +28,32 @@ bundled, so its image block shows the themed placeholder. Missions are in `src/s
 | `mission-park-jogger` | Corredores en el parque | `chases`, `tangle`, `surprise`, `general` |
 | `mission-park-mix` | El parque lleno | `overwhelmed`, `food`, `me`, `general` |
 
-The `<slug>` of each Fix is the Mission's catalog slug: `harness`, `doorbell`, `poste`, `walk`, `corners`, `uleash`,
+The `<slug>` of each Fix is the Mission's catalog slug: `dogasdog`, `homerest`, `calmfirst`, `harness`, `doorbell`, `poste`, `walk`, `corners`, `uleash`,
 `leaveit`, `shields`, `cuechoice`, `jogger`, `parkmix`.
+
+The three Basics World Missions are Home Missions (`place: 'home'`): their check-in asks
+`mission.checkin.question.home` and their brief is headed `mission.brief.title.home`. Their copy was drafted with the
+Basics World and has not been reviewed yet.
+
+## Basics World Lessons and Nodes
+
+The Basics World ("Un perro es un perro") was drafted in one pass and still needs a review for training accuracy and
+tone, especially against the no-physical-correction rule of the `dog-basics-world` spec. Text in
+`src/i18n/es.trail.ts` (`trail.<id>.*`, `node.<slug>.*`), Minigame text in `src/i18n/es.ts` (`minigame.affection.*`,
+`minigame.rest.*`, `minigame.calm.*`, `minigame.hint.cuddle`, the new `minigame.action*`, `minigame.dog.*` and
+`minigame.cue.*` states).
+
+| Item | Kind | Pictures |
+| --- | --- | --- |
+| `theory-named-behaviours` | Theory Lesson "Tiene nombre" | `theory-named-behaviours-1`, `-2` |
+| `theory-dog-as-dog` | Theory Lesson "Un perro, no un peluche" | `theory-dog-as-dog-1`, `-2`, `-do`, `-dont` |
+| `howto-choose-action` | How-to-play Lesson "Elegir la acción" | captures `howto-choose-action-1`, `-2` |
+| `theory-home-rest` | Theory Lesson "En casa se descansa" | `theory-home-rest-1`, `-2` |
+| `theory-calm-first` | Theory Lesson "Primero, calma" | `theory-calm-first-1`, `-2` |
+| `dog-as-dog`, `home-rest`, `calm-first` | Node recaps, Checkpoints and exercises (`node.dogasdog.*`, `node.homerest.*`, `node.calmfirst.*`) | — |
+
+The tap card of `howto-tap-hold` was shortened to a reminder, since tapping is now taught in `howto-choose-action`.
+None of the Basics Lessons has a Lesson Animation or a YouTube video yet.
 
 ## YouTube videos still wanted
 

@@ -92,8 +92,13 @@ function howToPlay(id: string, controls: number): LessonDef {
   return { id, title: k('title'), kind: 'how-to-play', blocks };
 }
 
-/** The Lessons placed on the trails of Worlds 1 to 4, in trail order (design decision 10). */
+/** The Lessons placed on the trails of the playable Worlds, in trail order. */
 export const TRAIL_LESSONS: readonly LessonDef[] = [
+  theoryLesson('theory-named-behaviours', { keys: 'trail.theory-named-behaviours', images: ['theory-named-behaviours-1', 'theory-named-behaviours-2'], steps: 5, takeaways: 3 }),
+  theoryLesson('theory-dog-as-dog', { keys: 'trail.theory-dog-as-dog', images: ['theory-dog-as-dog-1', 'theory-dog-as-dog-2'], steps: 5, takeaways: 4, compare: { do: 'theory-dog-as-dog-do', dont: 'theory-dog-as-dog-dont' } }),
+  howToPlay('howto-choose-action', 2),
+  theoryLesson('theory-home-rest', { keys: 'trail.theory-home-rest', images: ['theory-home-rest-1', 'theory-home-rest-2'], steps: 5, takeaways: 4 }),
+  theoryLesson('theory-calm-first', { keys: 'trail.theory-calm-first', images: ['theory-calm-first-1', 'theory-calm-first-2'], steps: 5, takeaways: 4 }),
   theoryLesson('theory-harness', { keys: 'trail.theory-harness', images: ['theory-harness-1', 'theory-harness-2'], steps: 5, takeaways: 4 }),
   howToPlay('howto-tap-hold', 2),
   theoryLesson('theory-doorbell', { keys: 'trail.theory-doorbell', images: ['theory-doorbell-1', 'theory-doorbell-2'], steps: 6, takeaways: 4 }),

@@ -10,12 +10,12 @@ import type { Stars } from '../stars';
 import type { StreakRecord } from '../streak';
 import type { DailyBarkdokuSolve } from '../dogRecord';
 import { formatClock, solveTimeText } from '../puzzle/engine';
-import type { Progress, Stop } from '../world';
+import { worldTitle, type Progress, type Stop } from '../world';
 import type { DogRecord } from '../dogRecord';
 import { isPlus, plusEndsAt } from '../plus';
 import { Button } from '../Overlays';
 import { Badge, Chip, GearGlyph, IconChip, LightRegion, Panel, ProgressBar, Raised, StarRow } from '../ui/components';
-import { WorldSceneryBackground, HouseLandmark } from '../ui/WorldSceneryBackground';
+import { WorldSceneryBackground, HouseLandmark, worldPalette } from '../ui/WorldSceneryBackground';
 export { HouseLandmark };
 import { connector, connectorVisual, labelOnRight, labelWidth, NODE_SIZE, nodeCenterX, nodeVisual, ROW_HEIGHT, stretchFlag, type NodeGlyph } from '../ui/mapLayout';
 import { lockMessage, owedItemLabel, stopAccessibilityLabel, stopBadge, stopMarks, worldUnlockBanner, worldWalkSubtitle } from '../mapText';
@@ -523,21 +523,14 @@ function CollapsedWorldHeader({
 }) {
   const color = usePalette();
   const palette =
-    theme.world[`w${entry.world.worldNumber}` as keyof typeof theme.world] ??
-    (entry.world.worldNumber % 4 === 1
-      ? theme.world.w1
-      : entry.world.worldNumber % 4 === 2
-        ? theme.world.w2
-        : entry.world.worldNumber % 4 === 3
-          ? theme.world.w3
-          : theme.world.w4);
+worldPalette(entry.world.id);
 
   return (
     <View className="mb-3">
       <Pressable
         onPress={() => handlePress(onToggle)}
         accessibilityRole="button"
-        accessibilityLabel={`${t(entry.world.title)}. ${t(isExpanded ? 'map.collapsePreview' : 'map.openPreview')}`}
+        accessibilityLabel={`${worldTitle(entry.world, t)}. ${t(isExpanded ? 'map.collapsePreview' : 'map.openPreview')}`}
       >
         <Raised
           fill={palette.sky}
@@ -560,7 +553,7 @@ function CollapsedWorldHeader({
           </View>
           <View className="shrink flex-1">
             <View className="flex-row items-center gap-2">
-              <Text className="font-display text-title text-ink">{t(entry.world.title)}</Text>
+              <Text className="font-display text-title text-ink">{worldTitle(entry.world, t)}</Text>
               {entry.tier === 'plus' && <Badge label={t('world.plusBadge')} tone="accent" />}
             </View>
             <Text className="text-caption text-inkMuted">
@@ -626,14 +619,7 @@ function WorldArena({
   const color = usePalette();
   const isArenaActive = entry.unlocked || isFirstLocked || isExpanded;
   const palette =
-    theme.world[`w${entry.world.worldNumber}` as keyof typeof theme.world] ??
-    (entry.world.worldNumber % 4 === 1
-      ? theme.world.w1
-      : entry.world.worldNumber % 4 === 2
-        ? theme.world.w2
-        : entry.world.worldNumber % 4 === 3
-          ? theme.world.w3
-          : theme.world.w4);
+worldPalette(entry.world.id);
 
   if (!isArenaActive) {
     return <CollapsedWorldHeader t={t} entry={entry} isExpanded={isExpanded} onToggle={onToggleExpand} />;
@@ -666,7 +652,7 @@ function WorldArena({
         </View>
         <View className="shrink flex-1">
           <View className="flex-row items-center gap-2">
-            <Text className="font-display text-title text-ink">{t(entry.world.title)}</Text>
+            <Text className="font-display text-title text-ink">{worldTitle(entry.world, t)}</Text>
             {entry.tier === 'plus' && (
               <Pressable
                 onPress={() => handlePress(onPressPaywall)}
@@ -716,7 +702,6 @@ function WorldArena({
       >
         <WorldSceneryBackground
           worldId={entry.world.id}
-          worldNumber={entry.world.worldNumber}
           palette={palette}
           stopCount={entry.stops.length}
           isExpandedPreview={entry.preview && entry.stops.length === 0}

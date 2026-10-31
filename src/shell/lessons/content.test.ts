@@ -105,7 +105,7 @@ describe('trail Lessons', () => {
 
   it('show every control of a How-to-play Lesson with an image or video', () => {
     const howTo = TRAIL_LESSONS.filter((l) => l.kind === 'how-to-play');
-    expect(howTo.map((l) => l.id)).toEqual(['howto-tap-hold', 'howto-walking', 'howto-cues', 'howto-long-leash']);
+    expect(howTo.map((l) => l.id)).toEqual(['howto-choose-action', 'howto-tap-hold', 'howto-walking', 'howto-cues', 'howto-long-leash']);
     for (const l of howTo) {
       const headings = l.blocks.filter((b) => b.type === 'heading').length;
       const media = l.blocks.filter((b) => b.type === 'image' || b.type === 'video').length;

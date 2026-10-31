@@ -375,9 +375,12 @@ function leashRatio(state: SimState): number {
   return tensionRatio(state.handler, state.dog, state.config.leashLength, solidsNear(state, state.handler, state.dog));
 }
 
-/** Whether the Go Sniff button is on offer: World 2 or later, in the window, with the leash Slack. */
+/** The first World with walking Stages; Worlds 1 and 2 are static, so Go Sniff never shows there. */
+export const FIRST_WALKING_WORLD = 3;
+
+/** Whether the Go Sniff button is on offer: World 3 or later (the first walking World), in the window, with the leash Slack. */
 export function isGoSniffAvailable(state: SimState): boolean {
-  return state.config.world >= 2 && state.sniff === null && state.time < state.sniffOfferUntil && state.ratio < SLACK_MAX;
+  return state.config.world >= FIRST_WALKING_WORLD && state.sniff === null && state.time < state.sniffOfferUntil && state.ratio < SLACK_MAX;
 }
 
 /** True while the Dog is looking at the Handler (a glance or a look after following a turn). */
@@ -723,7 +726,7 @@ function disengage(state: SimState, events: SimEvent[]): void {
   raiseArousal(state, -config.arousal.disengagementDrop);
   if (state.posteStop) state.telemetry.posteSuccesses += 1;
   // the offer of a Go Sniff opens once the Reward Window is over
-  state.sniffPending = config.world >= 2;
+  state.sniffPending = config.world >= FIRST_WALKING_WORLD;
   events.push({ type: 'disengagement', time: state.time });
 }
 
