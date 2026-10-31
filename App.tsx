@@ -468,6 +468,14 @@ export default function App() {
 
   // where the map was scrolled, so a Stop's flow returns to the same place
   const mapScroll = useRef<number | undefined>(undefined);
+  // the Completed Worlds the user opened on the map this session; every other Completed World starts folded
+  const [expandedCompleted, setExpandedCompleted] = useState<ReadonlySet<string>>(() => new Set());
+  const toggleCompleted = (worldId: string) =>
+    setExpandedCompleted((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(worldId)) next.add(worldId);
+      return next;
+    });
 
   /** The screen a Mission opens on now. */
   const missionEntry = (id: string) => {
@@ -620,6 +628,8 @@ export default function App() {
           onOpenStop={openStop}
           initialScrollY={mapScroll.current}
           onScroll={(y) => (mapScroll.current = y)}
+          expandedCompleted={expandedCompleted}
+          onToggleCompleted={toggleCompleted}
           onSettings={() => setSettingsOpen(true)}
           breed={record.breed}
           coat={record.coat}

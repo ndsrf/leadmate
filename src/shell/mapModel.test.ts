@@ -186,6 +186,35 @@ describe('mapModel with Owed Missions', () => {
   });
 });
 
+describe('mapModel Completed Worlds', () => {
+  const owed = (startedAt: Date): MissionState => started(startedAt, { skippedAt: startedAt.toISOString() });
+
+  it('marks an unlocked World with every Stop done as complete', () => {
+    const m = mapModel(allDone(WORLDS.slice(0, 2)), {}, at(9));
+    expect(m.worlds.map((w) => [w.world.id, w.complete]).slice(0, 3)).toEqual([['basics', true], ['home', true], ['sidewalk', false]]);
+  });
+
+  it('does not mark a World with an Owed Mission as complete', () => {
+    const all = allDone(WORLDS.slice(0, 2));
+    const m = mapModel({ ...all, missions: { ...all.missions, 'mission-doorbell': owed(at(9, 1)) } }, {}, at(20, 1));
+    expect(m.worlds[1].complete).toBe(false);
+  });
+
+  it('never marks a preview or locked World as complete', () => {
+    const m = mapModel(allDone(WORLDS), {}, at(9));
+    expect(m.worlds.filter((w) => w.preview).every((w) => !w.complete)).toBe(true);
+    expect(mapModel(progressOf([]), {}, at(9)).worlds.filter((w) => !w.unlocked).every((w) => !w.complete)).toBe(true);
+  });
+
+  it('does not mark a Completed Plus World as complete once Plus has lapsed', () => {
+    const plusWorld: WorldDef = { ...WORLDS[1], id: 'home-plus', tier: 'plus', unlockedBy: undefined };
+    const worlds = [plusWorld];
+    const all = allDone(worlds);
+    expect(realMapModel({ ...all, plus: true }, {}, at(9), { worlds }).worlds[0]).toMatchObject({ unlocked: true, complete: true });
+    expect(realMapModel(all, {}, at(9), { worlds }).worlds[0]).toMatchObject({ unlocked: false, complete: false });
+  });
+});
+
 describe('nextMapChange', () => {
   it('is the earliest check-in still to open, and null when nothing waits', () => {
     expect(nextMapChange({}, at(9))).toBeNull();

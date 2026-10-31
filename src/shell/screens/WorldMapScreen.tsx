@@ -73,6 +73,10 @@ export interface WorldMapProps {
   onPaywall?: () => void;
   /** Another screen (Settings, the Library, a Lesson) is shown over the map: its looping animation stands still. */
   covered?: boolean;
+  /** The Completed Worlds the user opened this session; every other Completed World is folded to a header row. */
+  expandedCompleted?: ReadonlySet<string>;
+  /** Tapping a Completed World's header: open or fold its trail. */
+  onToggleCompleted?: (worldId: string) => void;
 }
 
 /** A flame drawn from two rotated drops, so it needs no emoji font; grey when there is no Streak to show. */
@@ -509,28 +513,65 @@ function CloseWorldPanel({ t, owed, onPress }: { t: Translate; owed: MapStop[]; 
   );
 }
 
-/** Compact collapsed header for subsequent locked Worlds. */
+/** The spoken name of a Completed World's header: its title, that it is completed, and what tapping does. */
+function completedWorldLabel(entry: MapWorld, t: Translate, expanded: boolean): string {
+  return `${worldTitle(entry.world, t)}. ${t('map.worldCompleted')}. ${t(expanded ? 'map.hideStops' : 'map.showStops')}`;
+}
+
+/** The World number on a surface disc, with a check mark when the World is completed. */
+function WorldNumberDisc({ number, completed, size }: { number: number; completed: boolean; size: number }) {
+  const color = usePalette();
+  return (
+    <View
+      className="items-center justify-center rounded-game-pill bg-surface"
+      style={{ width: size, height: size, borderWidth: theme.border.ink, borderColor: color.outline }}
+    >
+      <Text className="font-display text-title text-ink">{number}</Text>
+      {completed && (
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          className="items-center justify-center rounded-game-pill"
+          style={{ position: 'absolute', right: -6, bottom: -6, width: 20, height: 20, backgroundColor: color.brandDeep, borderWidth: 2, borderColor: color.outline }}
+        >
+          <Text className="font-display text-[11px] font-bold" style={{ color: color.surface }}>
+            ✓
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+/**
+ * Compact collapsed header: a later locked World (lock icon, topics), or a folded Completed World (number with a
+ * check mark, "Y de Y paradas" and topics).
+ */
 function CollapsedWorldHeader({
   t,
   entry,
+  variant = 'locked',
   isExpanded,
   onToggle,
 }: {
   t: Translate;
   entry: MapWorld;
+  variant?: 'locked' | 'completed';
   isExpanded: boolean;
   onToggle: () => void;
 }) {
   const color = usePalette();
   const palette =
 worldPalette(entry.world.id);
+  const completed = variant === 'completed';
 
   return (
     <View className="mb-3">
       <Pressable
         onPress={() => handlePress(onToggle)}
         accessibilityRole="button"
-        accessibilityLabel={`${worldTitle(entry.world, t)}. ${t(isExpanded ? 'map.collapsePreview' : 'map.openPreview')}`}
+        accessibilityLabel={completed ? completedWorldLabel(entry, t, isExpanded) : `${worldTitle(entry.world, t)}. ${t(isExpanded ? 'map.collapsePreview' : 'map.openPreview')}`}
+        accessibilityState={completed ? { expanded: isExpanded } : undefined}
       >
         <Raised
           fill={palette.sky}
@@ -542,22 +583,26 @@ worldPalette(entry.world.id);
             gap: theme.space[3],
             paddingHorizontal: 14,
             paddingVertical: 12,
-            opacity: 0.9,
+            opacity: completed ? 1 : 0.9,
           }}
         >
-          <View
-            className="items-center justify-center rounded-game-pill bg-surface"
-            style={{ width: 36, height: 36, borderWidth: theme.border.ink, borderColor: color.outline }}
-          >
-            <LockIcon tint={color.ink} />
-          </View>
+          {completed ? (
+            <WorldNumberDisc number={entry.world.worldNumber} completed size={36} />
+          ) : (
+            <View
+              className="items-center justify-center rounded-game-pill bg-surface"
+              style={{ width: 36, height: 36, borderWidth: theme.border.ink, borderColor: color.outline }}
+            >
+              <LockIcon tint={color.ink} />
+            </View>
+          )}
           <View className="shrink flex-1">
             <View className="flex-row items-center gap-2">
               <Text className="font-display text-title text-ink">{worldTitle(entry.world, t)}</Text>
               {entry.tier === 'plus' && <Badge label={t('world.plusBadge')} tone="accent" />}
             </View>
             <Text className="text-caption text-inkMuted">
-              {t(entry.topics)}
+              {completed ? `${worldWalkSubtitle(entry, t)} · ${t(entry.topics)}` : t(entry.topics)}
             </Text>
           </View>
           <Text className="font-display text-body text-inkMuted">
@@ -579,6 +624,9 @@ type WorldBlockProps = {
   isFirstLocked: boolean;
   isExpanded: boolean;
   onToggleExpand: () => void;
+  /** A Completed World the user opened this session; otherwise it is folded to its header row. */
+  completedOpen: boolean;
+  onToggleCompleted: () => void;
   onPressNode: (n: MapStop) => void;
   /** The waiting Mission the Dog rests at, when nothing is next-up. */
   restingAt?: Stop;
@@ -591,7 +639,8 @@ type WorldBlockProps = {
 
 /** A world's header and trail sit on its scenery, so they stay Light whatever the Appearance. */
 function WorldBlock(props: WorldBlockProps) {
-  const active = props.entry.unlocked || props.isFirstLocked || props.isExpanded;
+  const folded = props.entry.complete && !props.completedOpen;
+  const active = !folded && (props.entry.unlocked || props.isFirstLocked || props.isExpanded);
   return (
     <LightRegion className={active ? 'mb-6' : undefined} onLayout={props.onLayout} style={active ? { opacity: props.entry.unlocked ? 1 : 0.9 } : undefined}>
       <WorldArena {...props} />
@@ -609,6 +658,8 @@ function WorldArena({
   isFirstLocked,
   isExpanded,
   onToggleExpand,
+  completedOpen,
+  onToggleCompleted,
   onPressNode,
   onPressPaywall,
   onPathLayout,
@@ -621,53 +672,76 @@ function WorldArena({
   const palette =
 worldPalette(entry.world.id);
 
+  if (entry.complete && !completedOpen) {
+    return <CollapsedWorldHeader t={t} entry={entry} variant="completed" isExpanded={false} onToggle={onToggleCompleted} />;
+  }
   if (!isArenaActive) {
     return <CollapsedWorldHeader t={t} entry={entry} isExpanded={isExpanded} onToggle={onToggleExpand} />;
   }
 
-  return (
-    <>
-      <Raised
-        fill={palette.sky}
-        radius={theme.radius.lg}
-        offset={theme.depth.rest.x}
-        className="mb-3"
-        faceStyle={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: theme.space[3],
-          paddingHorizontal: 14,
-          paddingVertical: 10,
-        }}
-      >
+  const titleRow = (
+    <Raised
+      fill={palette.sky}
+      radius={theme.radius.lg}
+      offset={theme.depth.rest.x}
+      className="mb-3"
+      faceStyle={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.space[3],
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+      }}
+    >
+      {entry.unlocked ? (
+        <WorldNumberDisc number={entry.world.worldNumber} completed={entry.complete} size={40} />
+      ) : (
         <View
           className="items-center justify-center rounded-game-pill bg-surface"
           style={{ width: 40, height: 40, borderWidth: theme.border.ink, borderColor: color.outline }}
         >
-          {entry.unlocked ? (
-            <Text className="font-display text-title text-ink">{entry.world.worldNumber}</Text>
-          ) : (
-            <LockIcon tint={color.ink} />
+          <LockIcon tint={color.ink} />
+        </View>
+      )}
+      <View className="shrink flex-1">
+        <View className="flex-row items-center gap-2">
+          <Text className="font-display text-title text-ink">{worldTitle(entry.world, t)}</Text>
+          {entry.tier === 'plus' && (
+            <Pressable
+              onPress={() => handlePress(onPressPaywall)}
+              accessibilityRole="button"
+              accessibilityLabel={t('world.plusBadge')}
+            >
+              <Badge label={t('world.plusBadge')} tone="accent" />
+            </Pressable>
           )}
         </View>
-        <View className="shrink flex-1">
-          <View className="flex-row items-center gap-2">
-            <Text className="font-display text-title text-ink">{worldTitle(entry.world, t)}</Text>
-            {entry.tier === 'plus' && (
-              <Pressable
-                onPress={() => handlePress(onPressPaywall)}
-                accessibilityRole="button"
-                accessibilityLabel={t('world.plusBadge')}
-              >
-                <Badge label={t('world.plusBadge')} tone="accent" />
-              </Pressable>
-            )}
-          </View>
-          <Text className="text-caption text-inkMuted">
-            {worldWalkSubtitle(entry, t)} · {t(entry.topics)}
-          </Text>
-        </View>
-      </Raised>
+        <Text className="text-caption text-inkMuted">
+          {worldWalkSubtitle(entry, t)} · {t(entry.topics)}
+        </Text>
+      </View>
+      {entry.complete && (
+        <Text className="font-display text-body text-inkMuted">
+          ▲
+        </Text>
+      )}
+    </Raised>
+  );
+
+  return (
+    <>
+      {entry.complete ? (
+        <Pressable
+          onPress={() => handlePress(onToggleCompleted)}
+          accessibilityRole="button"
+          accessibilityLabel={completedWorldLabel(entry, t, true)}
+          accessibilityState={{ expanded: true }}
+        >
+          {titleRow}
+        </Pressable>
+      ) : (
+        titleRow
+      )}
 
       {entry.unlocked && !entry.preview && <ProgressBar value={entry.done} max={entry.total} className="mb-3" />}
 
@@ -805,6 +879,8 @@ export function WorldMapScreen({
   coat,
   onPaywall = () => {},
   covered = false,
+  expandedCompleted,
+  onToggleCompleted = () => {},
 }: WorldMapProps) {
   const color = usePalette();
   const motion = useMotion();
@@ -918,6 +994,8 @@ export function WorldMapScreen({
             isFirstLocked={world.world.id === firstLockedWorldId}
             isExpanded={!!expandedWorlds[world.world.id]}
             onToggleExpand={() => toggleExpand(world.world.id)}
+            completedOpen={!!expandedCompleted?.has(world.world.id)}
+            onToggleCompleted={() => onToggleCompleted(world.world.id)}
             onPressNode={press}
             onPressPaywall={onPaywall}
             onLayout={(e) => (offsets.current.blocks[world.world.id] = e.nativeEvent.layout.y)}

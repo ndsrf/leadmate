@@ -269,6 +269,10 @@ _Avoid_: Pending Mission, deferred Mission, skipped Mission
 Passing every Mission of a World, Owed Missions included; only then is the World complete and the next one unlocked.
 _Avoid_: Finishing the trail
 
+**Completed World**:
+A World whose every Stop is done and none owed; reached by Closing a World.
+_Avoid_: Finished World, done World, closed World
+
 **Fix**:
 The corrective material shown when a Mission check-in did not go well: reassurance, what likely went wrong, what to change, an easier target and what to practise again.
 _Avoid_: Troubleshooting, tip, remedy

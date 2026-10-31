@@ -7,7 +7,7 @@ import { checkInOpensAt, opensAtMidnight, type MissionDef, type MissionState } f
 import { NODES } from './nodes/content';
 import type { NodeDef } from './nodes/node';
 import type { Stars } from './stars';
-import { isWorldUnlocked, stopStatus, type Progress, type Stop, type StopLock, type WorldDef, WORLDS } from './world';
+import { isWorldComplete, isWorldUnlocked, stopStatus, type Progress, type Stop, type StopLock, type WorldDef, WORLDS } from './world';
 
 export type NodeState = 'locked' | 'open' | 'next' | 'waiting' | 'owed' | 'done';
 
@@ -43,6 +43,8 @@ export interface MapStop {
 export interface MapWorld {
   world: WorldDef;
   unlocked: boolean;
+  /** An unlocked Completed World: every Stop done, none owed. The map folds it to a header row. */
+  complete: boolean;
   done: number;
   total: number;
   stops: MapStop[];
@@ -170,6 +172,7 @@ export function mapModel(progress: Progress, stars: Readonly<Record<string, Star
     return {
       world,
       unlocked,
+      complete: unlocked && isWorldComplete(world, progress),
       // an optional Lesson is done for the trail, so a World can be shown full
       done: stops.filter((s) => s.state === 'done' || s.optional).length,
       total: preview ? (world.nodeCount ?? 0) : stops.length,

@@ -68,7 +68,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { createTranslator, es } from '../../i18n';
 import { BarkdokuChip, WorldMapScreen } from './WorldMapScreen';
 import { NO_STREAK } from '../streak';
-import { progressOf } from '../world';
+import { findWorld, progressOf, stopsOf, worldTitle, type Progress, type Stop, type WorldDef } from '../world';
+import { LESSONS } from '../lessons/content';
 
 describe('WorldMapScreen - Daily Barkdoku chip', () => {
   const t = createTranslator(es);
@@ -309,5 +310,140 @@ describe('BarkdokuChip', () => {
     expect(html).toContain('2:30 / 2:00');
     expect(html).not.toContain('✓');
     expect(html).not.toContain(es['map.dailyNew']);
+  });
+});
+
+describe('WorldMapScreen - Completed Worlds', () => {
+  const t = createTranslator(es);
+  const passed = { target: 'full' as const, skipRun: 0, attempts: [], startedAt: '2026-10-01T09:00:00.000Z', passedOn: '2026-10-02' };
+  const skipped = { target: 'full' as const, skipRun: 0, attempts: [], startedAt: '2026-10-27T09:00:00.000Z', skippedAt: '2026-10-27T09:00:00.000Z' };
+  /** Every Stop of the given Worlds done, the way a user who finished them has it. */
+  const done = (ids: string[], missions: Record<string, object> = {}) => {
+    const stops = ids.flatMap((id) => stopsOf(findWorld(id)!));
+    return progressOf(stops.filter((s) => s.kind === 'node').map((s) => s.id), {
+      readLessons: stops.filter((s) => s.kind === 'lesson').map((s) => s.id),
+      missions: { ...Object.fromEntries(stops.filter((s) => s.kind === 'mission').map((s) => [s.id, passed])), ...missions } as Progress['missions'],
+    });
+  };
+  const basicsDone = done(['basics']);
+  const render = (props: Partial<React.ComponentProps<typeof WorldMapScreen>> = {}) => {
+    mockPressables.length = 0;
+    return renderToStaticMarkup(
+      <WorldMapScreen
+        t={t}
+        progress={basicsDone}
+        stars={{}}
+        now={new Date('2026-10-28T09:00:00')}
+        streak={NO_STREAK}
+        today="2026-10-28"
+        dailyBest={undefined}
+        rustyPrompt={false}
+        rusty={false}
+        skippedWarmup={false}
+        onWarmup={() => {}}
+        onSkipWarmup={() => {}}
+        onDaily={() => {}}
+        onOpenStop={() => {}}
+        onSettings={() => {}}
+        {...props}
+      />,
+    );
+  };
+  const basics = findWorld('basics')!;
+  const basicsTitle = worldTitle(basics, t);
+  const count = stopsOf(basics).length;
+  const label = (expanded: boolean) => `${basicsTitle}. ${es['map.worldCompleted']}. ${expanded ? es['map.hideStops'] : es['map.showStops']}`;
+  const firstStop = (world: string) => t(LESSONS.find((l) => l.id === stopsOf(findWorld(world)!)[0].id)!.title);
+
+  it('folds a Completed World to a header row with its count and no trail or scenery', () => {
+    const markup = render();
+    const header = mockPressables.filter((p) => p.accessibilityLabel === label(false));
+    expect(header).toHaveLength(1);
+    expect(header[0].accessibilityRole).toBe('button');
+    expect(header[0].accessibilityState).toEqual({ expanded: false });
+    expect(markup).toContain(`${count} de ${count} paradas`);
+    expect(markup).not.toContain('testID="environmental-backdrop-basics"');
+    expect(markup).not.toContain('testID="top-landmark-basics"');
+    expect(markup).not.toContain(firstStop('basics'));
+    // the in-progress World is drawn in full
+    expect(markup).toContain('testID="environmental-backdrop-home"');
+  });
+
+  it('draws an opened Completed World in full, and its header folds it again', () => {
+    const onToggleCompleted = jest.fn();
+    const markup = render({ expandedCompleted: new Set(['basics']), onToggleCompleted });
+    expect(markup).toContain('testID="environmental-backdrop-basics"');
+    expect(markup).toContain(firstStop('basics'));
+    const header = mockPressables.filter((p) => p.accessibilityLabel === label(true));
+    expect(header).toHaveLength(1);
+    expect(header[0].accessibilityState).toEqual({ expanded: true });
+    header[0].onPress();
+    expect(onToggleCompleted).toHaveBeenCalledWith('basics');
+  });
+
+  it('opens a folded Completed World from its header', () => {
+    const onToggleCompleted = jest.fn();
+    render({ onToggleCompleted });
+    mockPressables.find((p) => p.accessibilityLabel === label(false))!.onPress();
+    expect(onToggleCompleted).toHaveBeenCalledWith('basics');
+  });
+
+  it('does not make the in-progress World\'s header a toggle', () => {
+    render();
+    const homeTitle = worldTitle(findWorld('home')!, t);
+    expect(mockPressables.filter((p) => String(p.accessibilityLabel ?? '').startsWith(homeTitle))).toEqual([]);
+  });
+
+  it('keeps a World with an Owed Mission open, with its "Cerrar el mundo" panel', () => {
+    const missionId = stopsOf(basics).find((s) => s.kind === 'mission')!.id;
+    const markup = render({ progress: done(['basics'], { [missionId]: skipped }) });
+    expect(mockPressables.filter((p) => String(p.accessibilityLabel ?? '').includes(es['map.worldCompleted']))).toEqual([]);
+    expect(markup).toContain('testID="environmental-backdrop-basics"');
+    expect(markup).toContain(es['map.closeWorld.title']);
+  });
+});
+
+describe('WorldMapScreen - a Completed Plus World after Plus lapses', () => {
+  const t = createTranslator(es);
+
+  it('shows the locked World, not the completed row', () => {
+    jest.isolateModules(() => {
+      jest.doMock('../world', () => {
+        const actual = jest.requireActual('../world');
+        return { ...actual, WORLDS: actual.WORLDS.map((w: WorldDef) => (w.id === 'basics' ? { ...w, tier: 'plus' } : w)) };
+      });
+      const { WorldMapScreen: Screen } = require('./WorldMapScreen');
+      const world = require('../world');
+      const stops = world.stopsOf(world.findWorld('basics'));
+      const progress = world.progressOf(stops.filter((s: Stop) => s.kind === 'node').map((s: Stop) => s.id), {
+        readLessons: stops.filter((s: Stop) => s.kind === 'lesson').map((s: Stop) => s.id),
+        missions: Object.fromEntries(stops.filter((s: Stop) => s.kind === 'mission').map((s: Stop) => [s.id, { target: 'full', skipRun: 0, attempts: [], startedAt: '2026-10-01T09:00:00.000Z', passedOn: '2026-10-02' }])),
+      });
+      // the isolated registry has its own React, so the screen is rendered with that one
+      const IsolatedReact = require('react');
+      const { renderToStaticMarkup: isolatedRender } = require('react-dom/server');
+      mockPressables.length = 0;
+      const markup = isolatedRender(
+        IsolatedReact.createElement(Screen, {
+          t,
+          progress,
+          stars: {},
+          now: new Date('2026-10-28T09:00:00'),
+          streak: NO_STREAK,
+          today: '2026-10-28',
+          dailyBest: undefined,
+          rustyPrompt: false,
+          rusty: false,
+          skippedWarmup: false,
+          onWarmup: () => {},
+          onSkipWarmup: () => {},
+          onDaily: () => {},
+          onOpenStop: () => {},
+          onSettings: () => {},
+        }),
+      );
+      expect(mockPressables.filter((p) => String(p.accessibilityLabel ?? '').includes(es['map.worldCompleted']))).toEqual([]);
+      expect(markup).toContain(es['world.unlockPlus']);
+    });
   });
 });
