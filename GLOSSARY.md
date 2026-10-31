@@ -241,6 +241,8 @@ _Avoid_: Finishing the trail
 The corrective material shown when a Mission check-in did not go well: reassurance, what likely went wrong, what to change, an easier target and what to practise again.
 _Avoid_: Troubleshooting, tip, remedy
 
+### Monetization & Advertising
+
 **Plus World**:
 A World designated as part of LeadMate Plus, requiring Plus membership in addition to completing preceding Worlds.
 _Avoid_: Premium chapter, paid zone
@@ -248,6 +250,10 @@ _Avoid_: Premium chapter, paid zone
 **Plus membership**:
 Whether the user has LeadMate Plus right now, granted either during an active Trial or via a verified store Subscription Tier.
 _Avoid_: Plus subscription, premium, entitlement
+
+**Free Tier**:
+The status of a user without an active Plus membership (either prior to starting a Trial or after Trial expiry without an active Subscription Tier).
+_Avoid_: Non-paying user, basic mode, unpaid
 
 **Subscription Tier**:
 An auto-renewing billing plan (Annual or Monthly) that grants continuous Plus membership.
@@ -272,6 +278,22 @@ _Avoid_: Upsell screen, checkout, store
 **Value Recap**:
 The one-time summary screen presented on the first app launch after the Trial expires, celebrating achievements during the trial and presenting full subscription options alongside the free tier bypass.
 _Avoid_: Expiration modal, exit survey, renewal screen
+
+**Commercial Ad**:
+An external promotional creative delivered by the advertising network to monetize the Free Tier. Strictly forbidden inside active walk simulations and minigames.
+_Avoid_: Promotion, sponsor, ad creative
+
+**Anchored Banner**:
+A persistent banner ad affixed to the bottom of the World Map screen for Free Tier users.
+_Avoid_: Bottom banner, sticky banner, footer ad
+
+**Transition Interstitial**:
+A full-screen ad displayed exclusively upon leaving a completed Stage debrief back to the World Map, constrained by the Ad Cooldown.
+_Avoid_: Fullscreen ad, popup, interstitial
+
+**Ad Cooldown**:
+The minimum elapsed time (300 seconds) required between Transition Interstitial impressions.
+_Avoid_: Ad frequency, interstitial timer
 
 **Preview World**:
 An upcoming World shown on the World Map as a curriculum roadmap preview with topic summaries and node counts, but without playable simulation stages yet.

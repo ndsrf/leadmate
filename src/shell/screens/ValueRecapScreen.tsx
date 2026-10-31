@@ -157,6 +157,7 @@ export function ValueRecapScreen({
           { icon: '🔥', text: t('recap.streak').replace('{days}', String(streakDays)) },
           { icon: '🎬', text: t('recap.videos').replace('{count}', String(videosWatched)) },
           { icon: '⚡', text: t('recap.skips').replace('{count}', String(skipsUsed)) },
+          { icon: '✨', text: t('recap.perk.adfree') },
         ] as const).map((stat, i) => (
           <View key={i} className="flex-row items-center gap-3">
             <Text className="text-displayM">{stat.icon}</Text>

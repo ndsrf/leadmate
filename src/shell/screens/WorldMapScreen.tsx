@@ -26,6 +26,7 @@ import { handlePress } from '../ui/press';
 import { theme, usePalette } from '../ui/theme';
 import { useMotion } from '../ui/useMotion';
 import { Screen } from './Screen';
+import { AdBanner, getAdService } from '../ads';
 
 export interface WorldMapProps {
   t: Translate;
@@ -892,6 +893,7 @@ export function TrialStatusModal({
             { key: 'videos', text: t('trialModal.perk.videos') },
             { key: 'skips', text: t('trialModal.perk.skips') },
             { key: 'worlds', text: t('trialModal.perk.worlds') },
+            { key: 'adfree', text: t('trialModal.perk.adfree') },
           ] as const).map((perk) => (
             <View key={perk.key} className="flex-row items-center gap-2">
               <Text className="font-display text-body text-accent">✓</Text>
@@ -952,6 +954,12 @@ export function WorldMapScreen({
   const isTrialModalOpen = trialModalOpen ?? internalModalOpen;
   const openTrialModal = onOpenTrialModal ?? (() => setInternalModalOpen(true));
   const closeTrialModal = onCloseTrialModal ?? (() => setInternalModalOpen(false));
+
+  useEffect(() => {
+    if (!plus) {
+      getAdService().showConsentFormIfRequired().catch(() => {});
+    }
+  }, [plus]);
 
   const handlePlusPress = () => {
     if (state === 'active' || isSubscribed) {
@@ -1042,7 +1050,12 @@ export function WorldMapScreen({
   );
 
   return (
-    <Screen header={header} scrollRef={scroll} onScroll={onScroll ? (e) => onScroll(e.nativeEvent.contentOffset.y) : undefined}>
+    <Screen
+      header={header}
+      footer={!plus ? <AdBanner isPlus={plus} /> : undefined}
+      scrollRef={scroll}
+      onScroll={onScroll ? (e) => onScroll(e.nativeEvent.contentOffset.y) : undefined}
+    >
       {banner}
       {rustyPrompt && (
         <Panel tone="warn" className="mb-4">

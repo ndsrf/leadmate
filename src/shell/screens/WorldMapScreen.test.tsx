@@ -384,4 +384,100 @@ describe('PlusChip and TrialStatusModal', () => {
     expect(markup).toContain('Disfruta de todas las ventajas incluidas con tu suscripción.');
     expect(markup).toContain('Demostraciones en vídeo desbloqueadas');
   });
+
+  describe('WorldMapScreen - Anchored Banner Integration', () => {
+    const baseMembership = {
+      onboarding: {
+        trialStartedAt: null as string | null,
+        mockSubscribed: false,
+      },
+    };
+
+    it('renders Anchored Banner for Free Tier users (no trial)', () => {
+      const markup = renderToStaticMarkup(
+        <WorldMapScreen
+          t={t}
+          progress={progressOf([])}
+          membership={baseMembership as any}
+          stars={{}}
+          now={new Date('2026-10-28T09:00:00')}
+          streak={NO_STREAK}
+          today="2026-10-28"
+          dailyBest={undefined}
+          rustyPrompt={false}
+          rusty={false}
+          skippedWarmup={false}
+          onWarmup={() => {}}
+          onSkipWarmup={() => {}}
+          onDaily={() => {}}
+          onBarkdoku={() => {}}
+          onOpenStop={() => {}}
+          onSettings={() => {}}
+        />
+      );
+      expect(markup).toContain('leadmate-ad-banner');
+    });
+
+    it('suppresses Anchored Banner for active Trial Plus members', () => {
+      const trialMembership = {
+        onboarding: {
+          trialStartedAt: '2026-10-27T09:00:00Z',
+          mockSubscribed: false,
+        },
+      };
+      const markup = renderToStaticMarkup(
+        <WorldMapScreen
+          t={t}
+          progress={progressOf([])}
+          membership={trialMembership as any}
+          stars={{}}
+          now={new Date('2026-10-28T09:00:00Z')}
+          streak={NO_STREAK}
+          today="2026-10-28"
+          dailyBest={undefined}
+          rustyPrompt={false}
+          rusty={false}
+          skippedWarmup={false}
+          onWarmup={() => {}}
+          onSkipWarmup={() => {}}
+          onDaily={() => {}}
+          onBarkdoku={() => {}}
+          onOpenStop={() => {}}
+          onSettings={() => {}}
+        />
+      );
+      expect(markup).not.toContain('leadmate-ad-banner');
+    });
+
+    it('suppresses Anchored Banner for subscribed Plus members', () => {
+      const subscribedMembership = {
+        onboarding: {
+          trialStartedAt: null,
+          mockSubscribed: true,
+        },
+      };
+      const markup = renderToStaticMarkup(
+        <WorldMapScreen
+          t={t}
+          progress={progressOf([])}
+          membership={subscribedMembership as any}
+          stars={{}}
+          now={new Date('2026-10-28T09:00:00Z')}
+          streak={NO_STREAK}
+          today="2026-10-28"
+          dailyBest={undefined}
+          rustyPrompt={false}
+          rusty={false}
+          skippedWarmup={false}
+          onWarmup={() => {}}
+          onSkipWarmup={() => {}}
+          onDaily={() => {}}
+          onBarkdoku={() => {}}
+          onOpenStop={() => {}}
+          onSettings={() => {}}
+        />
+      );
+      expect(markup).not.toContain('leadmate-ad-banner');
+    });
+  });
 });

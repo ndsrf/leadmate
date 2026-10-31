@@ -10,10 +10,11 @@ import { theme, usePalette } from '../ui/theme';
 import { Screen } from './Screen';
 import { getBillingService, type BillingPackage, type BillingService } from '../billing';
 
-type Benefit = 'worlds' | 'guides' | 'more';
+type Benefit = 'worlds' | 'guides' | 'adfree' | 'more';
 const BENEFITS: readonly { id: Benefit; text: TextKey }[] = [
   { id: 'worlds', text: 'paywall.benefit.worlds' },
   { id: 'guides', text: 'paywall.benefit.guides' },
+  { id: 'adfree', text: 'paywall.benefit.adfree' },
   { id: 'more', text: 'paywall.benefit.more' },
 ];
 
@@ -32,6 +33,12 @@ function BenefitIcon({ id }: { id: Benefit }) {
         <>
           <Rect x={4} y={4} width={20} height={20} rx={4} fill={color.infoSoft} {...ink} />
           <Path d="M11.5 9.5v9l7-4.5z" fill={color.info} {...ink} />
+        </>
+      )}
+      {id === 'adfree' && (
+        <>
+          <Circle cx={14} cy={14} r={10} fill={color.sintonia} {...ink} />
+          <Path d="M9 14l3.5 3.5L19 10" fill="none" stroke={color.ink} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
         </>
       )}
       {id === 'more' && (

@@ -48,6 +48,7 @@ import { LessonScreen, LibraryScreen } from './src/shell/screens/LessonScreens';
 import { WorldMapScreen } from './src/shell/screens/WorldMapScreen';
 import { CheckpointScreen, DebriefScreen, PrimerScreen } from './src/shell/screens/NodeScreens';
 import { PosteMinigameView } from './src/shell/screens/PosteMinigameView';
+import { getAdService } from './src/shell/ads';
 import { ReadDogView } from './src/shell/screens/ReadDogView';
 import { DiagnosticView } from './src/shell/screens/DiagnosticView';
 import { PaywallScreen } from './src/shell/screens/PaywallScreen';
@@ -338,6 +339,9 @@ export default function App() {
   useEffect(() => {
     const f = flowRef.current;
     if (debriefId === null || f?.name !== 'node') return;
+    if (recordRef.current && !isPlus(recordRef.current, new Date())) {
+      getAdService().preloadInterstitial().catch(() => {});
+    }
     let diff: Celebration[] = [];
     update((r) => {
       const now = new Date();
@@ -417,6 +421,9 @@ export default function App() {
           const completion = completeDaily(before, payload, now);
           update(() => completion.record);
           setWarmup((w) => warmupAfterDaily(w));
+          if (!isPlus(completion.record, now)) {
+            getAdService().preloadInterstitial().catch(() => {});
+          }
           const list = celebrationsFor(progressAt(before, now), progressAt(completion.record, now), { kind: 'daily', improved: completion.improved, firstOfDay: completion.firstOfDay, best: completion.best });
           setFlow({ ...f, result: { payload, completion, celebrations: list } });
         } else if (routeRef.current.name === 'taste') {
@@ -981,7 +988,12 @@ export default function App() {
             completion={f.result.completion}
             celebrations={f.result.celebrations}
             onReplay={() => setFlow({ ...f, attempt: f.attempt + 1, result: null })}
-            onDone={withBack(goHome)}
+            onDone={withBack(async () => {
+              if (recordRef.current && !isPlus(recordRef.current, new Date())) {
+                await getAdService().showInterstitial().catch(() => {});
+              }
+              goHome();
+            })}
           />
         );
       } else {
@@ -1025,6 +1037,7 @@ export default function App() {
         } catch {
           update((r) => subscribeThen(r, f.then, at));
         }
+        getAdService().clearCache();
         resolvePendingPlus(f.then, true);
       };
       const onRestore = async () => {
@@ -1038,6 +1051,7 @@ export default function App() {
               const withBilling = applyBillingSubscription(r, entitlement, at);
               return subscribeThen(withBilling, f.then, at);
             });
+            getAdService().clearCache();
             resolvePendingPlus(f.then, true);
           }
         } catch {}
@@ -1051,6 +1065,7 @@ export default function App() {
             const done = !!f.then && !!recordRef.current && canStartTrial(recordRef.current, now);
             update((r) => startTrialThen(r, f.then, now));
             resolvePendingPlus(f.then, done);
+            getAdService().clearCache();
           }}
           onSubscribeAnnual={onSubscribe}
           onSubscribeMonthly={onSubscribe}
@@ -1132,11 +1147,17 @@ export default function App() {
             celebrations={celebrations?.id === `${run.node.id}:${f.attempt}` ? celebrations.list : []}
             onPosteLink={() => startNodeRun(POSTE_PRACTICE)}
             onPlayAgain={() => setFlow({ ...f, run: { ...run, step: 'simulation', result: null }, attempt: f.attempt + 1 })}
-            onDone={withBack(() => {
+            onDone={withBack(async () => {
               // the Debrief of a Stretch's last Node opens its Mission brief
               const next = missionAfterDebrief(run.node.id, progressAt(record, new Date()), new Date());
-              if (next) setFlow({ name: 'mission', id: next, view: 'brief' });
-              else goHome();
+              if (next) {
+                setFlow({ name: 'mission', id: next, view: 'brief' });
+              } else {
+                if (recordRef.current && !isPlus(recordRef.current, new Date())) {
+                  await getAdService().showInterstitial().catch(() => {});
+                }
+                goHome();
+              }
             })}
           />
         );
