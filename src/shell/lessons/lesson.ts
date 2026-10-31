@@ -8,8 +8,9 @@ export type LessonBlock =
   | { type: 'heading'; text: TextKey }
   | { type: 'text'; text: TextKey }
   | { type: 'tip'; text: TextKey }
-  | { type: 'image'; art: string; alt: TextKey; caption: TextKey; placeholder?: boolean }
-  | { type: 'video'; videoId: string; poster: string; alt: TextKey; caption: TextKey; placeholder?: boolean }
+  | { type: 'image'; art: string; alt: TextKey; caption: TextKey }
+  /** A Lesson Video: a Lesson Animation (our hosted clip, by key) or a YouTube video (by id), played after a tap. */
+  | { type: 'video'; source: VideoSource; poster: string; alt: TextKey; caption: TextKey }
   /** A numbered how-to list. */
   | { type: 'steps'; items: TextKey[] }
   /** A short story of the technique on a real walk, set apart from the body. */
@@ -18,6 +19,9 @@ export type LessonBlock =
   | { type: 'compare'; do: CompareSide; dont: CompareSide }
   /** A short bulleted summary. */
   | { type: 'takeaways'; items: TextKey[] };
+
+/** Where a Lesson Video plays from: a Lesson Animation key (`animationUrl`) or a YouTube id (`videoEmbedUrl`). */
+export type VideoSource = { kind: 'animation'; key: string } | { kind: 'youtube'; id: string };
 
 export interface CompareSide {
   text: TextKey;
@@ -34,8 +38,6 @@ export interface LessonDef {
   kind: LessonKind;
   /** Suggested day after the first Stage (Day 1 is the day it was completed); absent for a Lesson on a World's trail. */
   day?: number;
-  /** Provisional text; shows the placeholder badge on the card and at the top of the Lesson. */
-  placeholder?: boolean;
   blocks: LessonBlock[];
 }
 

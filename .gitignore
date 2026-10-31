@@ -43,3 +43,6 @@ yarn-error.*
 bundle/dist/
 coverage/
 src/shell/simHtml.generated.ts
+
+# Supabase CLI cache (link state, versions), machine-local
+supabase/.temp/

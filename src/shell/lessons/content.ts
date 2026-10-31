@@ -1,8 +1,10 @@
 import type { TextKey } from '../../i18n';
-import { LESSON_VIDEOS } from './lessonMedia';
+import { MEDIA_BASE } from '../ui/media';
+import { SUPPORTED_LANGUAGES, type Language } from '../voice';
+import { LESSON_MEDIA } from './lessonMedia';
 import type { LessonBlock, LessonDef } from './lesson';
 
-/** What a theory Lesson names besides its catalog keys: its illustrations, how many steps and takeaways, an optional video. */
+/** What a theory Lesson names besides its catalog keys: its illustrations, how many steps and takeaways, optional Lesson Videos. */
 export interface TheorySpec {
   /** Catalog prefix of the Lesson's keys, e.g. `lesson.1` or `trail.theory-poste`. */
   keys: string;
@@ -13,20 +15,23 @@ export interface TheorySpec {
   takeaways: number;
   /** Bundled art of the "do" and "don't" sides, when the comparison has its own pictures. */
   compare?: { do?: string; dont?: string };
-  /** A YouTube id; the stand-in videos keep their placeholder badge. */
-  video?: { id: string; placeholder?: boolean };
-  placeholder?: boolean;
+  /** A Lesson Animation key, shown right after the steps with the poster `<id>-anim`; left out when `mediaBase` is empty. */
+  animation?: string;
+  /** A YouTube id in the Lesson's language, shown after the do / don't comparison. */
+  video?: string;
+  /** Where Lesson Animations are hosted; defaults to the configured `MEDIA_BASE`. */
+  mediaBase?: string;
 }
 
 /**
  * A theory Lesson in the teaching pattern (see docs/content/lesson-guide.md): hook, why it happens, illustration, how
- * to do it as steps, a worked example on a real walk, more illustrations, common mistakes as do / don't, an optional
- * video, a "try it today" tip and the takeaways. Keys under `spec.keys`: heading, hook, why, step.<n>, example.title,
- * example.text, do, dont, today, takeaway.<n>, image.<n>.alt/caption, video.alt/caption.
+ * to do it as steps, an optional Lesson Animation, a worked example on a real walk, more illustrations, common mistakes as do / don't, an optional
+ * YouTube video, a "try it today" tip and the takeaways. Keys under `spec.keys`: heading, hook, why, step.<n>,
+ * example.title, example.text, do, dont, today, takeaway.<n>, image.<n>.alt/caption, animation.alt/caption, video.alt/caption.
  */
 export function theoryLesson(id: string, spec: TheorySpec): LessonDef {
   const k = (name: string) => `${spec.keys}.${name}` as TextKey;
-  const image = (art: string, n: number): LessonBlock => ({ type: 'image', art, alt: k(`image.${n}.alt`), caption: k(`image.${n}.caption`), ...(spec.placeholder ? { placeholder: true } : {}) });
+  const image = (art: string, n: number): LessonBlock => ({ type: 'image', art, alt: k(`image.${n}.alt`), caption: k(`image.${n}.caption`) });
   const range = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
   const [first, ...more] = spec.images;
   const blocks: LessonBlock[] = [
@@ -37,30 +42,40 @@ export function theoryLesson(id: string, spec: TheorySpec): LessonDef {
     image(first, 1),
     { type: 'heading', text: 'lesson.section.how' },
     { type: 'steps', items: range(spec.steps).map((n) => k(`step.${n}`)) },
+    ...(spec.animation && (spec.mediaBase ?? MEDIA_BASE)
+      ? [{ type: 'video', source: { kind: 'animation', key: spec.animation }, poster: `${id}-anim`, alt: k('animation.alt'), caption: k('animation.caption') } satisfies LessonBlock]
+      : []),
     { type: 'example', title: k('example.title'), text: k('example.text') },
     ...more.map((art, i) => image(art, i + 2)),
     { type: 'heading', text: 'lesson.section.mistakes' },
     { type: 'compare', do: { text: k('do'), art: spec.compare?.do }, dont: { text: k('dont'), art: spec.compare?.dont } },
   ];
-  if (spec.video) blocks.push({ type: 'video', videoId: spec.video.id, poster: 'poster', alt: k('video.alt'), caption: k('video.caption'), placeholder: spec.video.placeholder });
+  if (spec.video) blocks.push({ type: 'video', source: { kind: 'youtube', id: spec.video }, poster: 'poster', alt: k('video.alt'), caption: k('video.caption') });
   blocks.push({ type: 'tip', text: k('today') }, { type: 'takeaways', items: range(spec.takeaways).map((n) => k(`takeaway.${n}`)) });
   const lesson: LessonDef = { id, title: k('title'), kind: 'theory', blocks };
   if (spec.day !== undefined) lesson.day = spec.day;
-  if (spec.placeholder) lesson.placeholder = true;
   return lesson;
 }
 
+/** The language Lessons are built in: the one the app ships. */
+const LESSON_LANGUAGE: Language = SUPPORTED_LANGUAGES[0];
+
 /**
- * The first-week Lessons, Day 1 to Day 5, in the Library only, in the teaching pattern; the videos are stand-ins
- * (`lessonMedia.ts`) and keep their placeholder badge.
+ * The first-week Lessons, Day 1 to Day 5, in the Library only, in the teaching pattern, with their Lesson Videos
+ * (`lessonMedia.ts`). A Lesson gets a YouTube video only when it has one in `language`, never one in another language.
  */
-export const FIRST_WEEK_LESSONS: readonly LessonDef[] = [
-  theoryLesson('calm-leash', { keys: 'lesson.1', day: 1, images: ['calm-leash-1', 'calm-leash-2'], steps: 5, takeaways: 3, video: { id: LESSON_VIDEOS['calm-leash'], placeholder: true } }),
-  theoryLesson('body-language', { keys: 'lesson.2', day: 2, images: ['body-language-1', 'body-language-2'], steps: 6, takeaways: 4, video: { id: LESSON_VIDEOS['body-language'], placeholder: true } }),
-  theoryLesson('smile-leash', { keys: 'lesson.3', day: 3, images: ['smile-leash-1', 'smile-leash-2'], steps: 5, takeaways: 4, video: { id: LESSON_VIDEOS['smile-leash'], placeholder: true } }),
-  theoryLesson('marking-rewarding', { keys: 'lesson.4', day: 4, images: ['marking-rewarding-1', 'marking-rewarding-2'], steps: 5, takeaways: 4, video: { id: LESSON_VIDEOS['marking-rewarding'], placeholder: true } }),
-  theoryLesson('sniffing-decompression', { keys: 'lesson.5', day: 5, images: ['sniffing-decompression-1', 'sniffing-decompression-2'], steps: 5, takeaways: 3, compare: { do: 'sniffing-decompression-do', dont: 'sniffing-decompression-dont' }, video: { id: LESSON_VIDEOS['sniffing-decompression'], placeholder: true } }),
-];
+export function firstWeekLessons(mediaBase: string = MEDIA_BASE, language: Language = LESSON_LANGUAGE): LessonDef[] {
+  const media = (id: string) => ({ animation: LESSON_MEDIA[id]?.animation, video: LESSON_MEDIA[id]?.youtube?.[language], mediaBase });
+  return [
+    theoryLesson('calm-leash', { keys: 'lesson.1', day: 1, images: ['calm-leash-1', 'calm-leash-2'], steps: 5, takeaways: 3, ...media('calm-leash') }),
+    theoryLesson('body-language', { keys: 'lesson.2', day: 2, images: ['body-language-1', 'body-language-2'], steps: 6, takeaways: 4, ...media('body-language') }),
+    theoryLesson('smile-leash', { keys: 'lesson.3', day: 3, images: ['smile-leash-1', 'smile-leash-2'], steps: 5, takeaways: 4, ...media('smile-leash') }),
+    theoryLesson('marking-rewarding', { keys: 'lesson.4', day: 4, images: ['marking-rewarding-1', 'marking-rewarding-2'], steps: 5, takeaways: 4, ...media('marking-rewarding') }),
+    theoryLesson('sniffing-decompression', { keys: 'lesson.5', day: 5, images: ['sniffing-decompression-1', 'sniffing-decompression-2'], steps: 5, takeaways: 3, compare: { do: 'sniffing-decompression-do', dont: 'sniffing-decompression-dont' }, ...media('sniffing-decompression') }),
+  ];
+}
+
+export const FIRST_WEEK_LESSONS: readonly LessonDef[] = firstWeekLessons();
 
 /** A How-to-play Lesson: each control it covers, with an annotated capture of the real control (capture-controls.mjs). */
 function howToPlay(id: string, controls: number): LessonDef {

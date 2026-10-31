@@ -29,7 +29,7 @@ export function LessonPicture({ t, art }: { t: Translate; art: string }) {
   );
 }
 
-/** A Lesson image block: the picture, its type badge, the placeholder badge when provisional, and the caption. */
+/** A Lesson image block: the picture, its type badge and the caption. */
 export function LessonImage({ t, block }: { t: Translate; block: Extract<LessonBlock, { type: 'image' }> }) {
   const color = usePalette();
   return (
@@ -38,7 +38,6 @@ export function LessonImage({ t, block }: { t: Translate; block: Extract<LessonB
         <LessonPicture t={t} art={block.art} />
         <View className="flex-row flex-wrap items-center gap-2 p-3">
           <Badge label={t('media.badge.image')} />
-          {block.placeholder && <Badge label={t('media.badge.placeholder')} tone="warn" />}
           <Text className="text-body text-inkMuted" style={{ flexBasis: '100%' }}>{t(block.caption)}</Text>
         </View>
       </Raised>

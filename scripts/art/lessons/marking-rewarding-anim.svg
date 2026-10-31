@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="lesson.4.animation.caption" data-alt="lesson.4.animation.alt">
+  <!-- animation poster, beat 1: Migas sits and looks up at you; your hands stay still, before the mark and the treat -->
+  <use href="#backdrop"/>
+  <use href="#tree" transform="translate(490 292) scale(1.05)"/>
+  <use href="#ground-grass"/>
+  <g transform="translate(170 300) scale(1.25)">
+    <use href="#person-stand"/>
+    <use href="#dog-sit" transform="translate(122 0) scale(-1 1)"/>
+  </g>
+</svg>

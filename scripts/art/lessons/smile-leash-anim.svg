@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="lesson.3.animation.caption" data-alt="lesson.3.animation.alt">
+  <!-- animation poster, beat 1: you walk together with the leash hanging in a smile curve, before the treat comes down -->
+  <use href="#sky"/>
+  <use href="#tree" transform="translate(84 296) scale(1.1)"/>
+  <use href="#bush" transform="translate(590 300)"/>
+  <use href="#ground-street"/>
+  <g transform="translate(130 300) scale(1.2)">
+    <use href="#person-walk"/>
+    <use href="#dog-walk-calm" transform="translate(200 0)"/>
+    <use href="#leash-u"/>
+  </g>
+</svg>

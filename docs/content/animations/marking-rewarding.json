@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "duration": 8,
+  "beats": [
+    {"id": "look", "start": 0, "end": 3},
+    {"id": "mark", "start": 3, "end": 6},
+    {"id": "treat", "start": 6, "end": 8}
+  ],
+  "lines": [
+    {"id": "bien", "start": 3.2, "end": 4.4, "voice": "marker"}
+  ]
+}

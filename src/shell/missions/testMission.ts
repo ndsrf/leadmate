@@ -7,7 +7,7 @@ const fix = (id: string): Fix => ({
   blocks: [
     { type: 'text', text: key(`${id}.reassure`) },
     { type: 'text', text: key(`${id}.cause`) },
-    { type: 'image', art: 'harness', alt: key(`${id}.alt`), caption: key(`${id}.caption`), placeholder: true },
+    { type: 'image', art: 'harness', alt: key(`${id}.alt`), caption: key(`${id}.caption`) },
   ],
   easierTarget: key(`${id}.easier`),
   practise: { kind: 'node', id: 'harness-ritual' },

@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "duration": 8,
+  "beats": [
+    {"id": "sniff", "start": 0, "end": 3},
+    {"id": "freeze", "start": 3, "end": 6},
+    {"id": "turn-away", "start": 6, "end": 8}
+  ],
+  "lines": [
+    {"id": "vamos", "start": 6.2, "end": 7.2, "voice": "cue"}
+  ]
+}

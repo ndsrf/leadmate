@@ -12,13 +12,12 @@ import { theme } from '../ui/theme';
 import { DIARY_KEYS, WalkDiaryBar } from './NodeScreens';
 import { Screen } from './Screen';
 
-/** The title block every Mission screen opens with: "Misión", the placeholder badge and the Mission's title. */
+/** The title block every Mission screen opens with: "Misión" and the Mission's title. */
 function MissionHeading({ t, mission, heading }: { t: Translate; mission: MissionDef; heading: TextKey }) {
   return (
     <View className="mb-3">
       <View className="flex-row flex-wrap items-center" style={{ gap: theme.space[2] }}>
         <Badge label={t('mission.label')} tone="accent" />
-        {mission.placeholder && <Badge label={t('media.badge.placeholder')} tone="warn" />}
       </View>
       <Text className="mt-2 font-display text-caption text-inkMuted">{t(heading)}</Text>
       <Text className="font-display text-displayM text-ink" accessibilityRole="header">{t(mission.title)}</Text>
@@ -171,7 +170,6 @@ export function FixScreen({
     <Screen>
       <View className="flex-row flex-wrap items-center" style={{ gap: theme.space[2] }}>
         <Badge label={t('fix.title')} tone="accent" />
-        {fix.placeholder && <Badge label={t('media.badge.placeholder')} tone="warn" />}
       </View>
       <Text className="mt-2 font-display text-caption text-inkMuted">{t(mission.title)}</Text>
       <Text className="font-display text-displayM text-ink" accessibilityRole="header">{t(problem)}</Text>

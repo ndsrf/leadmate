@@ -12,7 +12,6 @@ export interface Fix {
   blocks: LessonBlock[];
   easierTarget: TextKey;
   practise: Stop;
-  placeholder?: boolean;
 }
 
 export interface MissionProblem {
@@ -38,7 +37,6 @@ export interface MissionDef {
   problems: MissionProblem[];
   /** The Fix for "Otra cosa", and the easier target offered after three skips. */
   generalFix: Fix;
-  placeholder?: boolean;
 }
 
 /** The problem id of "Otra cosa": it leads to the general Fix. */

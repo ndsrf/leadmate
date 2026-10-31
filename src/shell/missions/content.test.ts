@@ -19,7 +19,6 @@ describe('Mission content', () => {
     expect(m.problems.length).toBeGreaterThanOrEqual(3);
     expect(m.problems.length).toBeLessThanOrEqual(4);
     expect(m.generalFix).toBeDefined();
-    expect(m.placeholder).toBe(true);
   });
 
   it.each(fixes.map((f) => [f.id, f] as const))('%s is reassurance, cause, corrections with media, then the easier target and a Stop', (_id, f) => {
@@ -42,7 +41,6 @@ describe('Mission content', () => {
     for (const key of lessonTextKeys(f.blocks)) expect(es[key]).toBeTruthy();
     expect(es[f.easierTarget]).toBeTruthy();
     expect(f.practise).toBeDefined();
-    expect(f.placeholder).toBe(true);
   });
 
   it('finds each Fix with its Mission and problem, and names the general one "Otra cosa"', () => {

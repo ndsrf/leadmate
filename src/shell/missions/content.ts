@@ -15,11 +15,10 @@ function fix(slug: string, problem: string, practise: Stop): Fix {
       { type: 'text', text: k('cause') },
       { type: 'text', text: k('c1') },
       { type: 'text', text: k('c2') },
-      { type: 'image', art: `fix/${slug}/${problem}`, alt: k('alt'), caption: k('caption'), placeholder: true },
+      { type: 'image', art: `fix/${slug}/${problem}`, alt: k('alt'), caption: k('caption') },
     ],
     easierTarget: k('easier'),
     practise,
-    placeholder: true,
   };
 }
 
@@ -40,7 +39,6 @@ function mission(id: string, slug: string, technique: string, reps: number, trai
       return { id: problem, label: k(`${problem}.label`), fix: fix(slug, problem, stop) };
     }),
     generalFix: fix(slug, 'general', practise),
-    placeholder: true,
   };
 }
 

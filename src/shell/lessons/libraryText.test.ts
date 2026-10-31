@@ -31,10 +31,11 @@ describe('Library entries', () => {
 
 describe('reading time', () => {
   const words = (n: number) => Array.from({ length: n }, () => 'palabra').join(' ');
-  const blocks = (texts: number[], images: number, videos = 0): LessonBlock[] => [
+  const blocks = (texts: number[], images: number, videos = 0, animations = 0): LessonBlock[] => [
     ...texts.map((_, i) => ({ type: 'text' as const, text: `w.${i}` as never })),
     ...Array.from({ length: images }, () => ({ type: 'image' as const, art: 'a', alt: 'x' as never, caption: 'x' as never })),
-    ...Array.from({ length: videos }, () => ({ type: 'video' as const, videoId: 'v', poster: 'p', alt: 'x' as never, caption: 'x' as never })),
+    ...Array.from({ length: videos }, () => ({ type: 'video' as const, source: { kind: 'youtube' as const, id: 'v' }, poster: 'p', alt: 'x' as never, caption: 'x' as never })),
+    ...Array.from({ length: animations }, () => ({ type: 'video' as const, source: { kind: 'animation' as const, key: 'a' }, poster: 'p', alt: 'x' as never, caption: 'x' as never })),
   ];
   const catalog = (texts: number[]): Translate => ((key: string) => (key.startsWith('w.') ? words(texts[Number(key.slice(2))]) : 'ignored alt and caption text')) as Translate;
 
@@ -49,6 +50,11 @@ describe('reading time', () => {
     const lesson = { blocks: blocks([300, 0], 1) };
     expect(readingMinutes(lesson, catalog([300, 0]))).toBe(2);
     expect(readingMinutes(lesson, catalog([300, 400]))).toBe(5);
+  });
+
+  it('counts a Lesson Animation like an illustration and a YouTube video as a video', () => {
+    expect(readingMinutes({ blocks: blocks([45], 0, 1, 1) }, catalog([45]))).toBe(1); // 15 s + 10 s + 30 s
+    expect(readingMinutes({ blocks: blocks([45], 0, 2, 0) }, catalog([45]))).toBe(2); // 15 s + 60 s
   });
 
   it('counts the words of steps, examples, do / don\'t and takeaways too', () => {

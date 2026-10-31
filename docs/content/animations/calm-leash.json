@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "duration": 8,
+  "beats": [
+    {"id": "pull", "start": 0, "end": 3},
+    {"id": "stop", "start": 3, "end": 6},
+    {"id": "walk-on", "start": 6, "end": 8}
+  ],
+  "lines": []
+}

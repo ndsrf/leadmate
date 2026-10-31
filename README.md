@@ -224,6 +224,31 @@ Row-level security checks run with `supabase test db` (needs Docker); `src/shell
 
 Rollback: unset the two environment variables and rebuild. The app goes back to local-only with no data lost. Signed-in users keep their local Dog; the cloud rows stay until the account is deleted in the app.
 
+## Lesson Animations
+
+Lessons can show short silent clips of our own (Lesson Animations), hosted outside the app and fetched only when the
+user taps play ([ADR 0016](docs/adr/0016-hosted-lesson-animations-and-youtube-origin.md)). With
+`EXPO_PUBLIC_MEDIA_BASE` empty, Lessons simply leave them out. The clips are made with the prompt book,
+[`docs/content/lesson-animation-prompts.md`](docs/content/lesson-animation-prompts.md).
+
+1. The public bucket `lesson-media` is created by `supabase db push` (migration
+   `20261031000000_lesson_media_bucket.sql`; MP4 and JSON only, at most 5 MB each). Upload into its `animations/`
+   folder.
+2. Export each clip as the prompt book says (`ffmpeg … -an … <key>.mp4`), measure its timeline with the prompt
+   book's timing prompt and save it to `docs/content/animations/<key>.json` (`npx jest src/shell/lessons` must pass).
+   Upload both files, `lesson-media/animations/<key>.mp4` and `lesson-media/animations/<key>.json`, with cache control
+   `3600` (`cache-control: max-age=3600`). To replace a clip, overwrite both objects; users get them within the hour,
+   without an app release. Without its `.json` a clip still plays, only without subtitles.
+3. Set `EXPO_PUBLIC_MEDIA_BASE=https://<project-ref>.supabase.co/storage/v1/object/public/lesson-media` in
+   `.env.local` (and in the EAS environment), then restart Expo so it is inlined. Any other static https host works
+   the same; the app adds `/animations/<key>.mp4`.
+4. Clips play with `expo-video`, a native module: rebuild the dev client (`npx expo run:android` / `run:ios`, or a new
+   EAS development build) after pulling this change. Expo Go already includes it.
+
+The YouTube videos of Lessons play on phones from a small page at a fixed origin, `APP_ORIGIN` in
+`src/shell/ui/media.ts`, set to our Supabase project origin (`https://fmtcbwhmawhwvjxptjod.supabase.co`), a domain
+we control. If the project ever moves, update it there; never point it at a domain we do not own.
+
 ## Adding a language
 
 1. Copy `src/i18n/es.ts` to `src/i18n/<code>.ts` and translate the values (keys stay the same;

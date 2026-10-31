@@ -150,11 +150,11 @@ For a Dog whose record predates Missions, a Mission SHALL count as passed when i
 - **THEN** the Missions after it are not passed, and the first unpassed Mission gates the Stops after it
 
 ### Requirement: Mission content is plain catalog data
-Every Mission SHALL be data: target text, repetition count, success sign, the Stops it trains, a fixed list of problems each with a Fix, and a general Fix. A Fix holds Lesson-style blocks, an easier-target text and the Stop to practise again. All text SHALL come from the localization catalog and MAY be flagged placeholder.
+Every Mission SHALL be data: target text, repetition count, success sign, the Stops it trains, a fixed list of problems each with a Fix, and a general Fix. A Fix holds Lesson-style blocks, an easier-target text and the Stop to practise again. All text SHALL come from the localization catalog. No Mission brief or Fix page SHALL show a placeholder badge.
 
 #### Scenario: Placeholder Mission
-- **WHEN** a Mission or Fix is flagged placeholder
-- **THEN** its brief and Fix page carry the placeholder badge
+- **WHEN** a Mission brief or a Fix page is shown, including content that is not final yet
+- **THEN** it carries no placeholder or provisional badge, and a Fix image that cannot be drawn shows the themed placeholder
 
 #### Scenario: Missing translation
 - **WHEN** a Mission string has no entry in the selected language

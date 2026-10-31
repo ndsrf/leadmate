@@ -86,8 +86,24 @@ The first step of a Node: one or two short cards recapping the Lessons that prec
 _Avoid_: Intro, slideshow
 
 **Lesson**:
-A standalone piece of theory reading, a vertical sequence of text, image, video and tip blocks, either a theory Lesson (training the real dog) or a How-to-play Lesson. It is never part of a Node, can always be opened from the Theory Library, and may also sit on the trail as a Stop.
+A standalone piece of theory reading, a vertical sequence of text, image, Lesson Video and tip blocks, either a theory Lesson (training the real dog) or a How-to-play Lesson. It is never part of a Node, can always be opened from the Theory Library, and may also sit on the trail as a Stop.
 _Avoid_: Article, guide, Node
+
+**Lesson Video**:
+A block in a Lesson that plays, on the user's tap, either a Lesson Animation or a YouTube video. A Lesson may hold several.
+_Avoid_: Embed, player
+
+**Lesson Animation**:
+A short, silent, looping clip of our own, drawn in the Lesson illustration style, that shows the one idea of a Lesson's steps.
+_Avoid_: Animation (alone), clip, GIF
+
+**Animation Timeline**:
+The small file hosted next to a Lesson Animation that records when each of its beats and Lines happens. It carries times only, never text; a missing or invalid one only drops the subtitles.
+_Avoid_: Subtitle file, captions, VTT
+
+**Line**:
+A short word the Person says in a Lesson Animation, such as «vamos» or «bien», shown by the app as a subtitle during its time range, with its text from the catalog. A Line may be marked as the Handler's Cue or the spoken Marker word.
+_Avoid_: Cue, subtitle cue
 
 **How-to-play Lesson**:
 A Lesson that teaches the simulator's controls and how to read the virtual Dog, placed on the trail before the first Node that needs them.

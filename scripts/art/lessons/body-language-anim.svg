@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="lesson.2.animation.caption" data-alt="lesson.2.animation.alt">
+  <!-- animation poster, beat 1: Migas sniffs the verge, relaxed, the leash hanging; the open path on the right is where the skateboarder will appear -->
+  <use href="#sky"/>
+  <use href="#tree" transform="translate(44 296) scale(1)"/>
+  <use href="#ground-street"/>
+  <use href="#bush" transform="translate(600 300) scale(0.8)"/>
+  <g transform="translate(130 300) scale(1.05)">
+    <use href="#person-still"/>
+    <use href="#dog-sniff" transform="translate(200 0)"/>
+    <use href="#leash-still-u"/>
+    <use href="#sniff-lines" transform="translate(272 -26)"/>
+  </g>
+</svg>

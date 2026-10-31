@@ -22,12 +22,14 @@ const SECONDS_PER_VIDEO = 30;
 
 /**
  * Estimated reading time in whole minutes (at least 1): the Lesson's words in the active language at 180 per minute,
- * plus 10 s for each illustration and 30 s for each video. Edited text changes it with no edit to the Lesson.
+ * plus 10 s for each illustration or Lesson Animation and 30 s for each YouTube video. Edited text changes it with no
+ * edit to the Lesson.
  */
 export function readingMinutes(lesson: Pick<LessonDef, 'blocks'>, t: Translate): number {
   const words = lessonTextKeys(lesson.blocks).reduce((sum, key) => sum + countWords(t(key)), 0);
-  const images = lessonArtNames(lesson.blocks).length;
-  const videos = lesson.blocks.filter((b) => b.type === 'video').length;
+  const animations = lesson.blocks.filter((b) => b.type === 'video' && b.source.kind === 'animation').length;
+  const images = lessonArtNames(lesson.blocks).length + animations;
+  const videos = lesson.blocks.filter((b) => b.type === 'video' && b.source.kind === 'youtube').length;
   const seconds = (words / WORDS_PER_MINUTE) * 60 + images * SECONDS_PER_IMAGE + videos * SECONDS_PER_VIDEO;
   return Math.max(1, Math.ceil(seconds / 60));
 }

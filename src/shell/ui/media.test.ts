@@ -1,5 +1,6 @@
+import { theoryLesson } from '../lessons/content';
 import type { NodeMedia } from '../nodes/node';
-import { browserNext, PAUSE_MEDIA_JS, isAllowedVideoHost, isWebUrl, mediaDisplay, lessonImageKind, placeholderReason, videoEmbedUrl, videoWatchUrl } from './media';
+import { animationTimelineUrl, animationUrl, APP_ORIGIN, browserNext, isAllowedPlayerNavigation, PAUSE_MEDIA_JS, isAllowedVideoHost, isAnimationKey, isWebUrl, MEDIA_BASE, mediaBase, mediaDisplay, lessonImageKind, placeholderReason, videoEmbedPage, videoEmbedUrl, videoPlayback, videoWatchUrl } from './media';
 
 const image: NodeMedia = { type: 'image', url: 'https://example.com/a.png', caption: 'media.caption.poste' };
 
@@ -61,11 +62,82 @@ describe('video embedding', () => {
     }
   });
 
+  it('carries the app origin, and only fixed parameters, when one is set', () => {
+    expect(videoEmbedUrl('dQw4w9WgXcQ', 'https://abc.supabase.co')).toBe('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0&playsinline=1&modestbranding=1&enablejsapi=1&origin=https%3A%2F%2Fabc.supabase.co');
+    expect(videoEmbedUrl('dQw4w9WgXcQ', '')).toBe('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0&playsinline=1&modestbranding=1');
+    expect(videoEmbedUrl('dQw4w9WgXcQ')).toBe(videoEmbedUrl('dQw4w9WgXcQ', APP_ORIGIN));
+    expect(isAllowedVideoHost(videoEmbedUrl('dQw4w9WgXcQ', 'https://abc.supabase.co')!)).toBe(true);
+  });
+
+  it('embeds from our Supabase project origin: a bare https origin, so the native player loads its page there', () => {
+    expect(APP_ORIGIN).toBe('https://fmtcbwhmawhwvjxptjod.supabase.co');
+    expect(new URL(APP_ORIGIN).origin).toBe(APP_ORIGIN);
+    expect(videoEmbedUrl('dQw4w9WgXcQ')).toContain(`&origin=${encodeURIComponent(APP_ORIGIN)}`);
+    expect(isAllowedPlayerNavigation(`${APP_ORIGIN}/`)).toBe(true);
+  });
+
+  it('wraps the embed in a page with one iframe that sends its referrer', () => {
+    const page = videoEmbedPage('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0&origin=x');
+    expect(page.match(/<iframe /g)).toHaveLength(1);
+    expect(page).toContain('src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0&amp;origin=x"');
+    expect(page).toContain('referrerpolicy="strict-origin-when-cross-origin"');
+    expect(page).not.toMatch(/<script/i);
+  });
+
+  it('lets the native player navigate only to its page and the YouTube host', () => {
+    const origin = 'https://abc.supabase.co';
+    for (const ok of ['about:blank', 'https://abc.supabase.co/', 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ']) expect(isAllowedPlayerNavigation(ok, origin)).toBe(true);
+    for (const bad of ['https://abc.supabase.co.evil.com/', 'http://abc.supabase.co/', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'https://evil.com/', 'javascript:alert(1)', '']) expect(isAllowedPlayerNavigation(bad, origin)).toBe(false);
+    expect(isAllowedPlayerNavigation('https://abc.supabase.co/', '')).toBe(false);
+  });
+
   it('allows only the nocookie host over https', () => {
     expect(isAllowedVideoHost('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ')).toBe(true);
     for (const bad of ['https://www.youtube.com/embed/dQw4w9WgXcQ', 'http://www.youtube-nocookie.com/embed/x', 'https://evil.com/?www.youtube-nocookie.com', 'https://www.youtube-nocookie.com.evil.com/x', 'javascript:alert(1)', '']) {
       expect(isAllowedVideoHost(bad)).toBe(false);
     }
+  });
+});
+
+describe('Lesson Animation addresses', () => {
+  const base = 'https://media.example.com/lesson-media';
+
+  it('builds the clip address from the base, the animations folder and the key', () => {
+    expect(animationUrl('calm-leash', base)).toBe('https://media.example.com/lesson-media/animations/calm-leash.mp4');
+    expect(animationUrl('calm-leash', `${base}//`)).toBe('https://media.example.com/lesson-media/animations/calm-leash.mp4');
+  });
+
+  it('builds the timeline address next to the clip', () => {
+    expect(animationTimelineUrl('calm-leash', base)).toBe('https://media.example.com/lesson-media/animations/calm-leash.json');
+  });
+
+  it('builds nothing from a malformed key or a full address', () => {
+    for (const bad of ['a/b', 'a.b', 'A', '-a', 'a-', 'a--b', '', 'a b', 'https://evil.com/x.mp4', '../x']) {
+      expect(isAnimationKey(bad)).toBe(false);
+      expect(animationUrl(bad, base)).toBeNull();
+      expect(animationTimelineUrl(bad, base)).toBeNull();
+    }
+  });
+
+  it('builds nothing without an https base', () => {
+    for (const bad of ['', '  ', 'http://media.example.com', 'media.example.com', 'javascript:alert(1)']) {
+      expect(mediaBase(bad)).toBe('');
+      expect(animationUrl('calm-leash', bad)).toBeNull();
+      expect(animationTimelineUrl('calm-leash', bad)).toBeNull();
+    }
+  });
+
+  it('has no base in tests, so a Lesson built with the default leaves its animation out', () => {
+    expect(MEDIA_BASE).toBe('');
+    const lesson = theoryLesson('t', { keys: 'x', images: ['a'], steps: 3, takeaways: 2, animation: 't', video: 'WPWbgzAd6C0' });
+    expect(lesson.blocks.filter((b) => b.type === 'video').map((b) => b.type === 'video' && b.source.kind)).toEqual(['youtube']);
+    expect(theoryLesson('t', { keys: 'x', images: ['a'], steps: 3, takeaways: 2, animation: 't', mediaBase: base }).blocks.some((b) => b.type === 'video')).toBe(true);
+  });
+
+  it('gives an animation no "Open video" address, and a YouTube video both', () => {
+    expect(videoPlayback({ kind: 'animation', key: 'calm-leash' }, base)).toEqual({ uri: `${base}/animations/calm-leash.mp4`, watch: null });
+    expect(videoPlayback({ kind: 'animation', key: 'calm-leash' }, '')).toEqual({ uri: null, watch: null });
+    expect(videoPlayback({ kind: 'youtube', id: 'dQw4w9WgXcQ' })).toEqual({ uri: videoEmbedUrl('dQw4w9WgXcQ'), watch: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' });
   });
 });
 
@@ -90,10 +162,13 @@ describe('lesson image display', () => {
 describe('PAUSE_MEDIA_JS', () => {
   it('pauses every video and audio element in place', () => {
     const media = [{ paused: false, currentTime: 42, pause() { this.paused = true; } }, { paused: false, currentTime: 7, pause() { this.paused = true; } }];
-    const document = { querySelectorAll: (selector: string) => (selector === 'video,audio' ? media : []) };
-    const result = new Function('document', `return ${PAUSE_MEDIA_JS.replace(/; true;$/, '')}, true;`)(document);
+    const posted: string[] = [];
+    const frames = [{ contentWindow: { postMessage: (m: string) => posted.push(m) } }];
+    const document = { querySelectorAll: (selector: string) => (selector === 'video,audio' ? media : selector === 'iframe' ? frames : []) };
+    const result = new Function('document', 'script', 'return eval(script);')(document, PAUSE_MEDIA_JS); // the injected script's last value
     expect(result).toBe(true);
     expect(media.every((m) => m.paused)).toBe(true);
     expect(media.map((m) => m.currentTime)).toEqual([42, 7]);
+    expect(posted.map((m) => JSON.parse(m))).toEqual([{ event: 'command', func: 'pauseVideo', args: '' }]);
   });
 });

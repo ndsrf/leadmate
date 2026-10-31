@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="lesson.5.animation.caption" data-alt="lesson.5.animation.alt">
+  <!-- animation poster, beat 1: a quiet park with hedges; the leash hangs and Migas puts his nose down to choose his way -->
+  <use href="#backdrop"/>
+  <use href="#ground-grass"/>
+  <use href="#bush" transform="translate(40 300) scale(1.1)"/>
+  <use href="#bush" transform="translate(470 300) scale(0.9)"/>
+  <use href="#bush" transform="translate(600 300) scale(1.2)"/>
+  <g transform="translate(110 300) scale(1)">
+    <use href="#person-still"/>
+    <use href="#dog-sniff" transform="translate(200 0)"/>
+    <use href="#leash-still-u"/>
+    <use href="#sniff-lines" transform="translate(272 -26)"/>
+  </g>
+</svg>

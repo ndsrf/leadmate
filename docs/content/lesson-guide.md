@@ -3,8 +3,8 @@
 How to write the theory Lessons of the Library and the trails, their illustrations and the Checkpoint questions that
 test them. A Lesson is plain data (`theoryLesson()` in `src/shell/lessons/content.ts`); its words live in the Spanish
 catalog (`src/i18n/es.ts` for the first week, `src/i18n/es.trail.ts` for the trails) and its pictures in
-`scripts/art/lessons/`. `src/shell/lessons/conformance.test.ts` checks every Lesson that is not `placeholder` against
-the rules below.
+`scripts/art/lessons/`. `src/shell/lessons/conformance.test.ts` checks every theory Lesson against the rules below.
+Content that is not final yet is listed in [stand-in-content.md](stand-in-content.md).
 
 ## Voice
 
@@ -52,10 +52,11 @@ Under the Lesson's prefix (`lesson.<n>` or `trail.<id>`):
 | "Por qué pasa" + text | `why` | The behaviour science in plain words: what the dog learned, what it feels, why the usual reaction makes it worse. 60-110 words. |
 | image 1 | `image.1.alt`, `image.1.caption` | The concept diagram (leash shapes, body signals, positions). |
 | "Cómo hacerlo" + steps | `step.1` ... `step.n` | 3-6 numbered steps, each one action the reader can do, 12-30 words. |
+| Lesson Animation (optional) | `animation.alt`, `animation.caption` | A short silent clip of the steps (see "Adding an animation"). |
 | example | `example.title`, `example.text` | The worked example (recipe below). 60-110 words. |
 | image 2..n | `image.<n>.*` | A scene or sequence: what the example looks like. |
 | "Errores comunes" + do / don't | `do`, `dont` | One common mistake (`dont`) and its fix (`do`), each 15-40 words. Optional art per side. |
-| video (optional) | `video.alt`, `video.caption` | Only where a relevant video exists; stand-ins keep the placeholder badge. |
+| YouTube video (optional) | `video.alt`, `video.caption` | Only where a relevant video exists **in the Lesson's language**: an id per language in `lessonMedia.ts` (`youtube: { es: '<id>' }`); with none for the active language the block is left out. Lessons still wanting one are listed in [stand-in-content.md](stand-in-content.md). |
 | tip | `today` | "Prueba hoy": one small, concrete thing to try on the next walk. 15-35 words. |
 | takeaways | `takeaway.1` ... `takeaway.n` | 2-4 one-line summaries, each 5-15 words. |
 
@@ -65,8 +66,8 @@ are shared catalog keys.
 ### Word bounds
 
 The reading text (headings, including the shared section headings, hook, why, steps, example, do / don't, tip,
-takeaways; not captions or alt text) is **350-700 words**, aiming for 420-550. Reading time is computed from it (180 words per minute plus 10 s per image,
-30 s per video), so never write minutes by hand.
+takeaways; not captions or alt text) is **350-700 words**, aiming for 420-550. Reading time is computed from it (180 words per minute plus 10 s per image or
+Lesson Animation, 30 s per YouTube video), so never write minutes by hand.
 
 ### Worked example recipe
 
@@ -122,6 +123,31 @@ Write the shot list before drawing; review it together with the text. One entry 
   alt:      what a screen reader says (what it shows)
   caption:  the idea it names (what it means)
 ```
+
+### Adding an animation
+
+A Lesson Animation is a short silent clip (about 8 s, 16:9, no text) shown right after the steps, generated with
+Gemini / Veo and hosted outside the app (ADR [0016](../adr/0016-hosted-lesson-animations-and-youtube-origin.md)).
+Adding one needs no code change:
+
+1. **Key**: lowercase letters and digits in `-`-separated runs, normally the Lesson id (`calm-leash`). Anything else
+   (a `/`, a `.`, a capital, a full address) is refused and fails `conformance.test.ts`.
+2. **`lessonMedia.ts`**: add `animation: '<key>'` to the Lesson's entry in `LESSON_MEDIA`; `theoryLesson()` places the
+   block after the steps.
+3. **Catalog**: `<prefix>.animation.alt` (what the clip shows, beat by beat) and `<prefix>.animation.caption` (the
+   one idea).
+4. **Poster**: a scene `scripts/art/lessons/<lesson-id>-anim.svg` showing the clip's first beat, drawn from the kit
+   like any picture but with no badges, arrows or numbers (it is also the clip's first frame). It must differ from the
+   Lesson's other pictures. Render it with `node scripts/render-lesson-art.mjs <lesson-id>-anim`.
+5. **Prompt book**: a `## <key>` entry in [lesson-animation-prompts.md](lesson-animation-prompts.md) with the beats,
+   the Lines, a full prompt, a target timeline and acceptance checks; the test fails without it. Generate, export and
+   upload the clip as the book says, and list it in [stand-in-content.md](stand-in-content.md) until it passes its
+   checks.
+6. **Timeline and Lines**: save the entry's target timeline as `docs/content/animations/<key>.json`, replaced by the
+   measured one once the clip exists, and upload it next to the clip. Each Line (a word the Person says, shown as a
+   subtitle) needs a catalog key `<prefix>.animation.line.<id>` holding its text; mark it `voice: cue` or
+   `voice: marker` when it is the Cue or the Marker word. `conformance.test.ts` checks the file, the catalog keys
+   and that the prompt book lists the same beats and Lines.
 
 ### Rendering and review
 
@@ -187,23 +213,23 @@ starting. One Lesson per author; Lessons can be written in parallel because each
    the contact sheet (`node scripts/lesson-art-sheet.mjs <lesson-id>`). Fix and re-render until each picture shows its
    one idea clearly at 320 pt and nothing overlaps (badges, sun, arrows).
 4. Switch the Lesson in `src/shell/lessons/content.ts` to `theoryLesson(id, { keys, images, steps, takeaways,
-   compare?, video?, day? })`, still with `placeholder: true` (a person removes it after review; the factory marks its images placeholder too).
+   compare?, animation?, video?, day? })` and add it to [stand-in-content.md](stand-in-content.md) until a person has
+   reviewed it.
 5. For a trail theory Lesson: rewrite `node.<slug>.tq1..3.*` so each question tests a different point of the new text
    and each `why` uses the Lesson's words; update `node.<slug>.recap1` if the Lesson's core idea changed; point the
    Node's recap card at the Lesson's clearest picture (`recapPrimer(slug, { art: '<name>' })` in
    `src/shell/nodes/content.ts`).
    The game's controls belong to the How-to-play Lessons and the recap's second card (`recap2`): describe what the
    handler does on a real walk, not which button to press, and leave those keys alone.
-6. Check: `npx jest src/shell/lessons src/shell/nodes src/i18n` passes and, with `placeholder` removed locally, the
-   conformance test passes for the Lesson (then put the flag back).
+6. Check: `npx jest src/shell/lessons src/shell/nodes src/i18n` passes, the conformance test included.
 
 **Outputs** (all in the change, nothing else touched): the shot list (in the hand-off message), the catalog keys,
 the SVG sources, the rendered PNGs and the regenerated `lessonArtRegistry.ts`, the `content.ts` entry, and for trail
 Lessons the Checkpoint and recap keys. `lessonArtRegistry.ts` is generated: when merging parallel work, re-run
 `node scripts/render-lesson-art.mjs` instead of merging it by hand.
 
-## Placeholder flag
+## Stand-in content
 
-A Lesson keeps `placeholder: true` until its text and pictures are final **and a person has reviewed it** for training
-accuracy and tone. Removing the flag puts it under the conformance test and hides its placeholder badges; a stand-in
-video keeps its own badge (`video: { id, placeholder: true }`).
+The app shows no "provisional" badge. A Lesson, video, clip, Mission or Fix that is not final yet is listed in
+[stand-in-content.md](stand-in-content.md) until its text and pictures are final **and a person has reviewed it** for
+training accuracy and tone; then it leaves the list.

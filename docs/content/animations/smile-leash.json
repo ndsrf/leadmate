@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "duration": 8,
+  "beats": [
+    {"id": "walk", "start": 0, "end": 3},
+    {"id": "treat", "start": 3, "end": 6},
+    {"id": "take", "start": 6, "end": 8}
+  ],
+  "lines": [
+    {"id": "bien", "start": 2.0, "end": 3.0, "voice": "marker"}
+  ]
+}

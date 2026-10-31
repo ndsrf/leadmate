@@ -61,7 +61,6 @@ export function LibraryScreen({
               <Panel>
                 <View className="flex-row flex-wrap items-center" style={{ gap: theme.space[2] }}>
                   <Badge label={t('fix.title')} tone="accent" />
-                  {entry.fix.placeholder && <Badge label={t('media.badge.placeholder')} tone="warn" />}
                 </View>
                 <Text className="mt-2 font-display text-body text-ink">{fixEntryLabel(entry, t)}</Text>
               </Panel>
@@ -87,7 +86,6 @@ export function LibraryScreen({
                 {place !== '' && <Badge label={place} tone="info" />}
                 <Badge label={lessonKindLabel(lesson, t)} />
                 {today && <Badge label={t('library.today')} tone="accent" />}
-                {lesson.placeholder && <Badge label={t('media.badge.placeholder')} tone="warn" />}
               </View>
               <Text className="mt-2 font-display text-title text-ink">{t(lesson.title)}</Text>
               <View className="mt-1 flex-row items-center" style={{ gap: theme.space[3] }}>
@@ -127,7 +125,6 @@ export function LessonScreen({ t, lesson, onDone, onBack, backLabel = t('lesson.
     <View>
       <View className="flex-row items-center justify-between" style={{ gap: theme.space[2] }}>
         <Button label={backLabel} tone="secondary" onPress={onBack} />
-        {lesson.placeholder && <Badge label={t('lesson.placeholder')} tone="warn" />}
       </View>
       <View className="mt-2" accessibilityLabel={t('lesson.progress')}>
         <ProgressBar value={progress} max={100} />

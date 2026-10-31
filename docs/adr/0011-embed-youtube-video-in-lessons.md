@@ -1,5 +1,7 @@
 # Embed YouTube Video in Lessons, Loaded on Demand
 
+**Status: superseded** by [ADR 0016](0016-hosted-lesson-animations-and-youtube-origin.md) (hosted Lesson Animations, and the YouTube origin fix for phones).
+
 Lessons in the Theory Library play video by embedding YouTube through its privacy-enhanced host (`youtube-nocookie.com`), in a WebView on a phone and an iframe on the web. Nothing is requested from the host until the user taps play: before that a Lesson shows bundled art, a play control, a "Plays from YouTube" label and the caption. Data holds only a bare 11-character video id; the embed address is built in one place from that id and fixed parameters, and any other host is refused. Offline or unavailable embeds fall back to the themed placeholder with a retry and an "Open video" link to the system browser. Terms such as Lesson and Theory Library follow `GLOSSARY.md`; this extends [ADR 0008](0008-web-hosted-tutorials-and-placeholders.md), which keeps the core offline-first.
 
 ## Considered Options

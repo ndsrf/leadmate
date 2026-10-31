@@ -73,17 +73,6 @@ The system SHALL present a Lesson as a vertical sequence of blocks of these type
 - **WHEN** a compare block is shown at 320 points wide
 - **THEN** the two sides stack vertically with "do" first and nothing is clipped
 
-### Requirement: Placeholder content is visibly provisional
-The system SHALL support marking a Lesson, or its media, as placeholder and SHALL show it with a "placeholder" badge so it is never mistaken for final content.
-
-#### Scenario: Placeholder Lesson
-- **WHEN** a Lesson is marked placeholder
-- **THEN** its Library card and the top of the Lesson carry the placeholder badge
-
-#### Scenario: Placeholder video
-- **WHEN** a Lesson video is marked placeholder
-- **THEN** it plays normally and carries a visible placeholder badge with the caption
-
 ### Requirement: Read tracking
 The system SHALL record a Lesson as read when the user reaches its end, SHALL keep that record on the Dog's record locally first, and SHALL merge read sets from multiple devices as a union.
 
@@ -204,13 +193,28 @@ The system SHALL show each Lesson's estimated reading time computed from the wor
 - **WHEN** a Lesson's text grows
 - **THEN** its estimated minutes update without editing the Lesson's definition
 
-### Requirement: Final Lessons carry no placeholder badge
-A Lesson whose text and media are final SHALL NOT be marked placeholder, and SHALL NOT show the placeholder badge on its card, at its top, or on any of its blocks.
+### Requirement: No placeholder badge on Lesson content
+The system SHALL NOT show a "placeholder" or "provisional" badge on any Lesson card, Lesson top or Lesson block. Media that is missing or fails to load SHALL still show the themed placeholder without such a badge.
 
-#### Scenario: Rewritten Lesson
-- **WHEN** a theory Lesson has been rewritten and all its illustrations are bundled
-- **THEN** neither its Library card nor any of its blocks shows the placeholder badge
+#### Scenario: Library card
+- **WHEN** the user browses the Theory Library
+- **THEN** no Lesson card carries a placeholder badge
 
-#### Scenario: Stand-in video kept
-- **WHEN** a final Lesson still uses a stand-in video
-- **THEN** only that video block carries the placeholder badge
+#### Scenario: Lesson blocks
+- **WHEN** any Lesson is opened
+- **THEN** none of its image or video blocks, nor its top, carries a placeholder badge
+
+#### Scenario: Missing media
+- **WHEN** a Lesson image or video cannot be shown
+- **THEN** the themed placeholder appears without a placeholder badge and the Lesson stays readable
+
+### Requirement: Lesson YouTube videos are in the user's language
+A Lesson's YouTube video SHALL be spoken in the user's active language. Each YouTube video of a Lesson SHALL be declared for one language, and the system SHALL show a Lesson's YouTube video block only when the Lesson has a video in the active language. It SHALL NOT show a video in another language instead. Lesson Animations, which carry no words, are shown in every language.
+
+#### Scenario: Video in the active language
+- **WHEN** the user opens a Lesson that has a YouTube video in the active language
+- **THEN** that video's block is shown after the do / don't comparison
+
+#### Scenario: No video in the active language
+- **WHEN** the user opens a Lesson whose YouTube videos are all in other languages, or that has none
+- **THEN** no YouTube block is shown, reading time counts no YouTube video, and the Lesson Animation, if any, is still shown
