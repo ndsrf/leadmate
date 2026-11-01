@@ -1,4 +1,5 @@
 import type { TextKey } from '../i18n';
+import type { PlanItem } from './concerns';
 import { starsShown } from './celebrations';
 import { LESSONS } from './lessons/content';
 import type { LessonDef } from './lessons/lesson';
@@ -7,7 +8,7 @@ import { checkInOpensAt, opensAtMidnight, type MissionDef, type MissionState } f
 import { NODES } from './nodes/content';
 import type { NodeDef } from './nodes/node';
 import type { Stars } from './stars';
-import { isWorldComplete, isWorldUnlocked, stopStatus, type Progress, type Stop, type StopLock, type WorldDef, WORLDS } from './world';
+import { findStretch, isWorldComplete, isWorldUnlocked, stopStatus, type Progress, type Stop, type StopLock, type WorldDef, WORLDS } from './world';
 
 export type NodeState = 'locked' | 'open' | 'next' | 'waiting' | 'owed' | 'done';
 
@@ -38,6 +39,8 @@ export interface MapStop {
   checkInDue?: boolean;
   /** An Owed Mission, kept when it becomes next-up so it still shows its "Pendiente" mark. */
   owed?: boolean;
+  /** Next-up because the Personal Plan names its Stretch: drawn with a "Start here" mark. */
+  startHere?: boolean;
 }
 
 export interface MapWorld {
@@ -81,6 +84,8 @@ export interface MapContent {
   nodes?: readonly NodeDef[];
   lessons?: readonly LessonDef[];
   missions?: readonly MissionDef[];
+  /** The Personal Plan; its first unlocked, unfinished Stretch is next-up. Absent or empty means trail order. */
+  plan?: readonly PlanItem[];
 }
 
 function describe(stop: Stop, nodes: readonly NodeDef[], lessons: readonly LessonDef[], missions: readonly MissionDef[]): { kind: StopKind; title: TextKey; node?: NodeDef } {
@@ -103,7 +108,7 @@ function describe(stop: Stop, nodes: readonly NodeDef[], lessons: readonly Lesso
  * draws it. `now` decides whether a started or owed Mission is waiting or due.
  */
 export function mapModel(progress: Progress, stars: Readonly<Record<string, Stars>>, now: Date, content: MapContent = {}): MapModel {
-  const { worlds = WORLDS, nodes = NODES, lessons = LESSONS, missions = MISSIONS } = content;
+  const { worlds = WORLDS, nodes = NODES, lessons = LESSONS, missions = MISSIONS, plan = [] } = content;
   let nextUp: MapModel['nextUp'] = null;
   let waitingAt: MapModel['waitingAt'];
   let owedAt: MapModel['waitingAt'];
@@ -184,6 +189,7 @@ export function mapModel(progress: Progress, stars: Readonly<Record<string, Star
       unlockRequirement,
     };
   });
+  nextUp = followPlan(mapWorlds, worlds, plan, nextUp);
   // with nothing else open, the first due Owed Mission is next-up
   if (nextUp === null) {
     for (const w of mapWorlds) {
@@ -199,6 +205,29 @@ export function mapModel(progress: Progress, stars: Readonly<Record<string, Star
   const playable = mapWorlds.filter((w) => !w.preview);
   const allComplete = nextUp === null && !waitingAt && playable.every((w) => w.stops.every((s) => s.state === 'done' || s.optional));
   return { worlds: mapWorlds, nextUp, waitingAt: nextUp === null ? waitingAt : undefined, allComplete };
+}
+
+/**
+ * Moves next-up to the first Stop the Personal Plan points at: the first Stop still to do of the first plan Stretch
+ * whose World is unlocked and whose Stop is open. A Stretch that is done, locked or waiting is passed over, so the
+ * plan never changes which Worlds are locked, and with no such Stretch next-up stays where trail order put it.
+ */
+function followPlan(mapWorlds: MapWorld[], worlds: readonly WorldDef[], plan: readonly PlanItem[], nextUp: MapModel['nextUp']): MapModel['nextUp'] {
+  for (const item of plan) {
+    const found = findStretch(item.stretchId, worlds);
+    const world = found && mapWorlds.find((w) => w.world.id === found.world.id);
+    if (!found || !world || !world.unlocked) continue;
+    const target = world.stops.filter((s) => s.stretch === found.stretch && s.state !== 'done' && !s.optional)[0];
+    if (!target || (target.state !== 'open' && target.state !== 'next')) continue;
+    if (target.state === 'open') {
+      for (const w of mapWorlds) for (const s of w.stops) if (s.state === 'next') s.state = 'open';
+      target.state = 'next';
+      nextUp = { worldId: world.world.id, stop: target.stop, stopKind: target.kind };
+    }
+    target.startHere = true;
+    return nextUp;
+  }
+  return nextUp;
 }
 
 /**

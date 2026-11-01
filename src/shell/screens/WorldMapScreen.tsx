@@ -10,7 +10,9 @@ import type { Stars } from '../stars';
 import type { StreakRecord } from '../streak';
 import type { DailyBarkdokuSolve } from '../dogRecord';
 import { formatClock, solveTimeText } from '../puzzle/engine';
-import { worldTitle, type Progress, type Stop } from '../world';
+import { HomeBehavioursSection } from './HomeBehavioursSection';
+import type { HomeConcern, HomeConcerns } from '../concerns';
+import { worldsFor, worldTitle, type Progress, type Stop } from '../world';
 import type { DogRecord } from '../dogRecord';
 import { isPlus, plusEndsAt, trialDaysRemaining, trialState, type TrialState } from '../plus';
 import { Backdrop, Button } from '../Overlays';
@@ -30,6 +32,8 @@ import { AdBanner, getAdService } from '../ads';
 
 export interface WorldMapProps {
   t: Translate;
+  /** The Home Behaviours section: the Dog's home concerns and what "this is a concern now" does. Absent hides the section. */
+  home?: { concerns: HomeConcerns; onBecomeConcern: (concern: HomeConcern) => void };
   /** What of the Dog record the trail reads. */
   progress: Progress;
   /** Whose LeadMate Plus the map checks with `isPlus` against its own clock: Plus Worlds open, and close when the trial ends. */
@@ -968,6 +972,7 @@ export function TrialStatusModal({
 
 export function WorldMapScreen({
   t,
+  home,
   progress,
   membership,
   stars,
@@ -1030,7 +1035,8 @@ export function WorldMapScreen({
     }
   };
 
-  const model = useMemo(() => mapModel(plus ? { ...progress, plus } : progress, stars, at), [progress, plus, stars, at]);
+  const plan = membership?.onboarding.plan;
+  const model = useMemo(() => mapModel(plus ? { ...progress, plus } : progress, stars, at, { plan, worlds: plan && plan.length > 0 ? worldsFor(plan, progress) : undefined }), [progress, plus, stars, at, plan]);
   const scroll = useRef<ScrollViewInstance>(null);
   const [width, setWidth] = useState(theme.size.readableWidth);
   const [lockNote, setLockNote] = useState<string | null>(null);
@@ -1153,6 +1159,7 @@ export function WorldMapScreen({
           />
         ))}
       </View>
+      {home && <HomeBehavioursSection t={t} concerns={home.concerns} onBecomeConcern={home.onBecomeConcern} />}
       {isTrialModalOpen && (
         <TrialStatusModal
           t={t}

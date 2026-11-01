@@ -86,10 +86,10 @@ export function SelectChip({ label, selected, onPress }: { label: string; select
   const focus = useFocus();
   const c = choiceStyle(color, selected);
   return (
-    <Pressable onPress={() => handlePress(onPress)} onFocus={focus.onFocus} onBlur={focus.onBlur} accessibilityRole="button" accessibilityState={{ selected }} className="mr-2 mt-2" style={{ minHeight: theme.size.touchMin }}>
-      <Raised fill={c.fill} radius={theme.radius.pill} offset={c.shadowOffset} focused={focus.focused} faceStyle={{ minHeight: theme.size.touchMin - c.shadowOffset, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: theme.space[4], gap: theme.space[2] }}>
+    <Pressable onPress={() => handlePress(onPress)} onFocus={focus.onFocus} onBlur={focus.onBlur} accessibilityRole="button" accessibilityState={{ selected }} className="mr-2 mt-2" style={{ minHeight: theme.size.touchMin, maxWidth: '100%' }}>
+      <Raised fill={c.fill} radius={theme.radius.pill} offset={c.shadowOffset} focused={focus.focused} faceStyle={{ minHeight: theme.size.touchMin - c.shadowOffset, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: theme.space[4], paddingVertical: theme.space[1], gap: theme.space[2] }}>
         {selected && <CheckMark size={18} fill={color.surface} />}
-        <Text className="font-display text-body" style={{ color: c.label }}>
+        <Text className="shrink font-display text-body" style={{ color: c.label, flexShrink: 1 }}>
           {label}
         </Text>
       </Raised>

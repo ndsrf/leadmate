@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 import type { Translate } from '../../i18n';
 import type { DogRecord } from '../dogRecord';
+import type { Concern } from '../concerns';
+import { payoffKeys } from '../concernText';
+import { MainConcernChips } from '../ui/ConcernPickers';
 import { Button } from '../Overlays';
 import { BREEDS, BREEDS_COLLAPSED, breedOf, DEFAULT_BREED, type BreedId } from '../onboarding/breeds';
 import { withDogName } from '../onboarding/intro';
@@ -113,8 +116,9 @@ export function DogLookScreen({ t, record, onDone }: { t: Translate; record: Dog
 }
 
 /** Over the taste Stage once the Dog has reacted: the same text whatever the result, naming the Dog. The Stage stays visible above it. */
-export function PayoffOverlay({ t, name, onContinue }: { t: Translate; name: string; onContinue: () => void }) {
+export function PayoffOverlay({ t, name, mainConcerns = [], onContinue }: { t: Translate; name: string; mainConcerns?: readonly Concern[]; onContinue: () => void }) {
   const neutral = t('dog.neutral');
+  const keys = payoffKeys(mainConcerns);
   // drawn over the running Stage, so it stays Light whatever the Appearance
   return (
     <LightRegion className="absolute inset-0 justify-end p-4">
@@ -122,10 +126,28 @@ export function PayoffOverlay({ t, name, onContinue }: { t: Translate; name: str
         <Text className="mb-2 font-display text-displayM text-ink" accessibilityRole="header">
           {withDogName(t('payoff.title'), name, neutral)}
         </Text>
-        <Text className="mb-2 text-bodyL text-ink">{withDogName(t('payoff.reacted'), name, neutral)}</Text>
-        <Text className="mb-4 text-bodyL text-inkMuted">{withDogName(t('payoff.body'), name, neutral)}</Text>
+        <Text className="mb-2 text-bodyL text-ink">{withDogName(t(keys.reacted), name, neutral)}</Text>
+        <Text className="mb-4 text-bodyL text-inkMuted">{withDogName(t(keys.body), name, neutral)}</Text>
         <Button label={t('payoff.continue')} onPress={onContinue} />
       </Panel>
     </LightRegion>
+  );
+}
+
+/** The main concern question: up to three choices, asked right after the Dog's name and look, and skippable. */
+export function ConcernScreen({ t, record, onDone }: { t: Translate; record: DogRecord; onDone: (concerns: Concern[]) => void }) {
+  const [picked, setPicked] = useState<Concern[]>(record.mainConcerns);
+  return (
+    <Screen>
+      <Text className="mb-3 font-display text-displayM text-ink" accessibilityRole="header">
+        {withDogName(t('concern.title'), record.name, t('dog.neutral'))}
+      </Text>
+      <Panel>
+        <Text className="mb-1 text-body text-inkMuted">{t('concern.help')}</Text>
+        <MainConcernChips t={t} value={picked} onToggle={(c) => setPicked((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]))} />
+        <Button label={t('concern.continue')} onPress={() => onDone(picked)} />
+        <Button label={t('concern.skip')} tone="quiet" onPress={() => onDone([])} />
+      </Panel>
+    </Screen>
   );
 }

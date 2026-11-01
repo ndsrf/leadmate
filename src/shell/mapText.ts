@@ -57,7 +57,7 @@ export function owedItemLabel(entry: MapStop, t: Translate): string {
 export function stopBadge(entry: MapStop, t: Translate): string | null {
   if (entry.state === 'waiting') return waitingLabel(entry, t);
   if (entry.state === 'owed') return owedLabel(entry, t);
-  if (entry.state === 'next') return t(entry.checkInDue ? 'map.checkInDue' : 'map.badgeNext');
+  if (entry.state === 'next') return t(entry.checkInDue ? 'map.checkInDue' : entry.startHere ? 'plan.start' : 'map.badgeNext');
   return null;
 }
 

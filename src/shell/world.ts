@@ -108,6 +108,24 @@ export function nodeIdsOf(world: WorldDef): string[] {
 
 export const sameStop = (a: Stop, b: Stop) => a.kind === b.kind && a.id === b.id;
 
+/** The id of a Stretch: the id of its first Stop. */
+export const stretchIdOf = (stretch: readonly Stop[]): string => stretch[0].id;
+
+/** The Stretch a plan item names, with its World; undefined for an unknown id. */
+export function findStretch(stretchId: string, worlds: readonly WorldDef[] = WORLDS): { world: WorldDef; stretch: number; stops: Stop[] } | undefined {
+  for (const world of worlds) {
+    const stretch = world.stretches.findIndex((stops) => stops.length > 0 && stretchIdOf(stops) === stretchId);
+    if (stretch >= 0) return { world, stretch, stops: world.stretches[stretch] };
+  }
+  return undefined;
+}
+
+/** The id of the Stretch holding the Stop with this id (a Node id of an old plan, for one); undefined when none does. */
+export function stretchIdContaining(stopId: string, worlds: readonly WorldDef[] = WORLDS): string | undefined {
+  for (const world of worlds) for (const stops of world.stretches) if (stops.some((s) => s.id === stopId)) return stretchIdOf(stops);
+  return undefined;
+}
+
 /** Where a Stop sits: its World, its Stretch (0-based) and its index in that Stretch. */
 export interface StopPlace {
   world: WorldDef;
@@ -302,4 +320,35 @@ export function isNodeOpen(node: NodeDef, progress: Progress, worlds: readonly W
 export function currentWorld(progress: Progress, worlds: readonly WorldDef[] = WORLDS): WorldDef {
   const playable = worlds.filter((w) => !w.preview);
   return playable.find((w) => !isWorldComplete(w, progress)) ?? (playable[playable.length - 1] ?? worlds[0]);
+}
+
+/** True when the user has done anything in the Stretch: read a Lesson, completed a Node or started a Mission. */
+function touched(stops: readonly Stop[], progress: Progress): boolean {
+  return stops.some((s) => (s.kind === 'lesson' ? progress.readLessons.includes(s.id) : s.kind === 'node' ? progress.completedNodes.includes(s.id) : !!progress.missions[s.id]?.startedAt));
+}
+
+/**
+ * The Worlds as this Dog walks them: inside each World the Stretches the Personal Plan names come first, in plan order,
+ * after any Stretch the user has already started (those keep their place so no progress moves). The Worlds, their locks,
+ * their unlocks and the order of Stops inside a Stretch do not change. With no plan this is `WORLDS`.
+ */
+export function worldsFor(plan: readonly { stretchId: string }[], progress: Progress, worlds: readonly WorldDef[] = WORLDS): readonly WorldDef[] {
+  if (plan.length === 0) return worlds;
+  let changed = false;
+  const out = worlds.map((world) => {
+    if (world.stretches.length < 2) return world;
+    const indexInPlan = (stops: Stop[]) => {
+      const i = plan.findIndex((p) => p.stretchId === stretchIdOf(stops));
+      return i < 0 ? plan.length : i;
+    };
+    // started Stretches first in their own order, then the plan's Stretches in plan order, then the rest in trail order
+    const sorted = world.stretches
+      .map((stops, original) => ({ stops, key: touched(stops, progress) ? [0, 0, original] : [1, indexInPlan(stops), original] }))
+      .sort((a, b) => a.key[0] - b.key[0] || a.key[1] - b.key[1] || a.key[2] - b.key[2]);
+    const stretches = sorted.map((s) => s.stops);
+    if (stretches.every((s, i) => s === world.stretches[i])) return world;
+    changed = true;
+    return { ...world, stretches };
+  });
+  return changed ? out : worlds;
 }

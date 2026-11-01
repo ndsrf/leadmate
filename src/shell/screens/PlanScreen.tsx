@@ -4,7 +4,10 @@ import { Button } from '../Overlays';
 import type { DogRecord } from '../dogRecord';
 import { BreedArt } from '../ui/BreedArt';
 import { Panel } from '../ui/components';
-import { findNode } from '../nodes/content';
+import { isHomeConcern, type PlanItem } from '../concerns';
+import { planReasonKey, stretchTitleKey, whoKey } from '../concernText';
+import { hasDedicatedLesson } from '../homeBehaviours';
+import { planNotes } from '../onboarding/plan';
 import { latencyBand } from '../onboarding/diagnostic';
 import { Screen } from './Screen';
 
@@ -12,8 +15,9 @@ const BAND_KEYS = { quick: 'plan.band.quick', steady: 'plan.band.steady', slow: 
 const NOTE_KEYS = { quick: 'plan.note.quick', steady: 'plan.note.steady', slow: 'plan.note.slow' } as const;
 
 /** The diagnostic card (latency and band) and the Walk Plan, shown before the paywall. */
-export function PlanScreen({ t, dog, latency, plan, onContinue }: { t: Translate; dog: Pick<DogRecord, 'name' | 'breed' | 'coat'>; latency: number; plan: readonly string[]; onContinue: () => void }) {
+export function PlanScreen({ t, dog, latency, plan, onContinue }: { t: Translate; dog: Pick<DogRecord, 'name' | 'breed' | 'coat' | 'sex' | 'homeConcerns' | 'triggerProfile'>; latency: number; plan: readonly PlanItem[]; onContinue: () => void }) {
   const band = latencyBand(latency);
+  const notes = planNotes(dog);
   return (
     <Screen>
       <Text className="mb-4 font-display text-displayM text-ink">{t('plan.title')}</Text>
@@ -32,13 +36,29 @@ export function PlanScreen({ t, dog, latency, plan, onContinue }: { t: Translate
       </Panel>
       <Panel className="mb-5">
         <Text className="mb-2 font-display text-title text-ink">{t('plan.walkPlan')}</Text>
-        {plan.map((id, i) => {
-          const node = findNode(id);
-          return node ? (
-            <Text key={id} className="py-0.5 text-body text-ink">{`${i + 1}. ${t(node.title)}`}</Text>
-          ) : null;
+        {plan.map((item, i) => {
+          const title = stretchTitleKey(item.stretchId);
+          if (!title) return null;
+          const coming = item.concern !== undefined && isHomeConcern(item.concern) && !hasDedicatedLesson(item.concern);
+          return (
+            <View key={item.stretchId} className="py-1">
+              <Text className="text-body text-ink">{`${i + 1}. ${t(title)}`}</Text>
+              <Text className="text-caption text-inkMuted">{t(planReasonKey(item))}</Text>
+              {coming && <Text className="text-caption text-inkMuted">{t('plan.reason.comingSoon').split('{who}').join(t(whoKey(dog.sex)))}</Text>}
+            </View>
+          );
         })}
       </Panel>
+      {notes.professionalHelp && (
+        <Panel tone="info" className="mb-5">
+          <Text className="text-body text-ink">{t('plan.note.professional')}</Text>
+        </Panel>
+      )}
+      {notes.supervision && (
+        <Panel tone="info" className="mb-5">
+          <Text className="text-body text-ink">{t('plan.note.supervision')}</Text>
+        </Panel>
+      )}
       <Button label={t('plan.continue')} onPress={onContinue} />
     </Screen>
   );

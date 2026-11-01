@@ -4,8 +4,9 @@
 Defines the first-run experience: a welcome, a taste of the problem on the real simulation, then a short Diagnostic and a personalized Walk Plan, and only after the first Stage a registration prompt and the soft paywall.
 
 ## Requirements
+
 ### Requirement: Funnel order
-The system SHALL show the splash first, which for a new user stays up as the welcome screen, and then present the funnel in this order: the welcome screen, the Dog's name and look, the taste Stage with its payoff, Dog setup (Equipment, weights, Trigger Profile questionnaire), the Diagnostic, the diagnostic card and Walk Plan, the introductory Theory Primer and Checkpoint, the guided first Stage walk, the Debrief, the registration prompt, and the soft paywall.
+The system SHALL show the splash first, which for a new user stays up as the welcome screen, and then present the funnel in this order: the welcome screen, the Dog's name and look, the main concerns question, the taste Stage with its payoff, Dog setup (Equipment, weights, age and sex, Trigger Profile and concern questionnaire), the Diagnostic, the diagnostic card and personal plan, the introductory Theory Primer and Checkpoint, the guided first Stage walk, the Debrief, the registration prompt, and the soft paywall.
 
 #### Scenario: First run
 - **WHEN** a user opens the app for the first time
@@ -13,7 +14,7 @@ The system SHALL show the splash first, which for a new user stays up as the wel
 
 #### Scenario: Play before questions
 - **WHEN** a new user moves through the funnel
-- **THEN** the taste Stage is played before any Dog setup question is asked
+- **THEN** the taste Stage is played before any Dog setup question other than the main concern
 
 #### Scenario: Paywall precedes the first Stage
 - **WHEN** the user finishes the guided first Stage and the registration prompt
@@ -26,6 +27,14 @@ The system SHALL show the splash first, which for a new user stays up as the wel
 #### Scenario: After the funnel
 - **WHEN** the registration prompt and the soft paywall are done or skipped
 - **THEN** the user lands on the World Map
+
+#### Scenario: Main concerns asked once
+- **WHEN** the user picks up to three concerns on the main concerns question
+- **THEN** the picks are saved in order, shown preselected in Dog setup, and not asked again
+
+#### Scenario: Limit of three
+- **WHEN** three concerns are picked
+- **THEN** a fourth cannot be added until one is unpicked
 
 ### Requirement: Resumable funnel
 The system SHALL persist the current onboarding step and the answers entered so far after each step, SHALL resume at the last completed step after the app is closed, and SHALL mark the funnel complete once the paywall step has been passed, and SHALL persist the paywall step before the registration prompt opens. A progress reset SHALL restore the first-run step and clear the Dog's name and coat so the funnel runs again from the welcome screen.
@@ -85,12 +94,16 @@ The system SHALL run the Diagnostic as a 15-second Minigame played on a scene of
 - **THEN** no latency is recorded for that press and the Dog stays as it was
 
 ### Requirement: Diagnostic card and Walk Plan
-The system SHALL display a diagnostic card based on the recorded reaction latency and SHALL generate a Walk Plan before the guided first Stage.
+The system SHALL display a diagnostic card based on the recorded reaction latency and SHALL generate the personal plan before the guided first Stage, using the concern profile, age band and the latency band.
 
 #### Scenario: Card and plan before paywall
 - **WHEN** the user finishes the Diagnostic
-- **THEN** the system shows the diagnostic card and Walk Plan
+- **THEN** the system shows the diagnostic card and the personal plan with a reason per item
 - **AND** only then the guided first Stage, with the soft paywall coming after it
+
+#### Scenario: Plan follows answers
+- **WHEN** the user finishes setup with biting the owner as main concern
+- **THEN** the first plan item is an at-home Stretch
 
 ### Requirement: Soft paywall stub
 The system SHALL present a 7-day trial soft paywall after the guided first Stage and the registration prompt, with a close control, the mascot, a "7 days free" pill, three benefit rows, a line saying the basics stay free, a "Start trial" button and a "Maybe later" button. It SHALL let both buttons and the close control continue to the World Map, SHALL record only a local `trialStartedAt` on "Start trial", and SHALL NOT check any entitlement or gate any content. The benefit rows SHALL NOT promise anything the app does not have, and the screen SHALL NOT show a price or billing terms until billing exists.
@@ -291,3 +304,29 @@ The system SHALL show the payoff over the taste Stage once the camera has zoomed
 #### Scenario: Whatever the result
 - **WHEN** the taste Stage ended by reaction or by time limit
 - **THEN** the same payoff is shown
+
+### Requirement: Taste matched to the Main Concern
+The Taste Stage SHALL remain a leash Stage for every user and SHALL use the Distractor kind of the first outdoor Main Concern when there is one (dog, child, bicycle, skateboard, food). When every Main Concern is a Home Behaviour, or none is set, it SHALL use the approaching dog. The Payoff Screen SHALL name the Dog and, for a Home Behaviour, say that the Dog's Concerns will be tuned in the Personal Plan. The result SHALL be discarded.
+
+#### Scenario: Bicycle concern
+- **WHEN** the Main Concern is reacting to bicycles
+- **THEN** the Taste Stage approaches the Dog with a bicycle, not a dog
+
+#### Scenario: Biting concern
+- **WHEN** the Main Concern is biting the owner
+- **THEN** the Taste Stage is the approaching-dog Stage and its Payoff Screen says the Concerns will be tuned in the plan
+
+#### Scenario: Skipped concern
+- **WHEN** the user skips the Main Concern question
+- **THEN** the Taste Stage is the approaching-dog Stage
+
+### Requirement: Age and sex in setup
+The Dog setup SHALL ask for the Dog's age as a band (puppy under 6 months, adolescent 6 to 18 months, adult, senior) and the Dog's sex (male, female), each skippable, and SHALL save them to the Dog record.
+
+#### Scenario: Answers recorded
+- **WHEN** the user picks "adolescent" and "female"
+- **THEN** the Dog record holds both
+
+#### Scenario: Skipped
+- **WHEN** the user skips age and sex
+- **THEN** setup continues and both stay unset

@@ -16,7 +16,7 @@ describe('routeFor', () => {
   });
 
   it('funnel wins over a left-over flow and settings', () => {
-    for (const step of ['welcome', 'dog', 'setup', 'diagnostic', 'plan'] as const) {
+    for (const step of ['welcome', 'dog', 'concern', 'setup', 'diagnostic', 'plan'] as const) {
       expect(
         routeFor({
           ready: true,

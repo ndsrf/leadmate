@@ -1,5 +1,5 @@
 import { DEFAULT_ATTRIBUTES } from '../sim/learning';
-import { applyActivity, applyDaySkip, applyMissionCheckIn, updateMission, applyStage, failedPoste, touch, loadDogRecord, mergeLegacyNodes, migrateRecord, newDogRecord, RECORD_KEY, recordDailyBarkdoku, recordDailyScore, saveDogRecord, setTriggerLevel, toSnapshot, type KeyValueStore } from './dogRecord';
+import { applyActivity, applyDaySkip, applyMissionCheckIn, updateMission, applyStage, failedPoste, touch, loadDogRecord, mergeLegacyNodes, migrateRecord, newDogRecord, RECORD_KEY, recordDailyBarkdoku, recordDailyScore, saveDogRecord, setTriggerLevel, setMainConcerns, setHomeConcern, setAgeBand, setSex, toSnapshot, type KeyValueStore } from './dogRecord';
 import { payloadWith } from './testPayload';
 import { lookOf } from './onboarding/look';
 import { advance, onDebrief, startNode, type NodeRun } from './nodes/node';
@@ -37,7 +37,7 @@ describe('Dog record', () => {
 
   it('is versioned and repairs unreadable fields', () => {
     const fixed = migrateRecord({ attributes: { followChance: 7, reactivityThreshold: 'x' }, triggerProfile: { child: 9, dog: 1 }, equipment: 'rope' });
-    expect(fixed.version).toBe(8);
+    expect(fixed.version).toBe(9);
     expect(fixed.attributes.followChance).toBe(1);
     expect(fixed.attributes.reactivityThreshold).toBe(DEFAULT_ATTRIBUTES.reactivityThreshold);
     expect(fixed.triggerProfile.child).toBe(2);
@@ -96,7 +96,7 @@ describe('Dog record: Walk Diary, Streak and Daily best', () => {
   it('migrates a version 1 record: keeps what it had and adds the new fields', () => {
     const v1 = { version: 1, attributes: { followChance: 0.9 }, completedNodes: ['poste-practice'], equipment: 'harness', posture: 1 };
     const r = migrateRecord(v1);
-    expect(r.version).toBe(8);
+    expect(r.version).toBe(9);
     expect(r.attributes.followChance).toBeCloseTo(0.9);
     expect(r.completedNodes).toEqual(['poste-practice', 'dog-as-dog', 'home-rest', 'calm-first']) // plus the Basics World, marked by the version 8 migration;
     expect(r.equipment).toBe('harness');
@@ -174,7 +174,7 @@ describe('Dog record: version 3', () => {
   it('migrates a version 2 record as an existing user who has finished onboarding', () => {
     const v2 = { version: 2, attributes: { followChance: 0.9 }, completedNodes: ['poste-practice'], streak: { current: 2, best: 3, lastActiveDate: '2026-05-01' } };
     const r = migrateRecord(v2);
-    expect(r.version).toBe(8);
+    expect(r.version).toBe(9);
     expect(r.onboarding.step).toBe('done');
     expect(r.weights).toEqual({ dogKg: null, handlerKg: null });
     expect(r.seenHints).toEqual([]);
@@ -192,7 +192,7 @@ describe('Dog record: version 3', () => {
 
   it('repairs unreadable onboarding, weight and hint fields', () => {
     const r = migrateRecord({ onboarding: { step: 'nope', trialStartedAt: 5, diagnosticLatency: 'fast', plan: ['a', 3] }, weights: { dogKg: -3, handlerKg: 70 }, seenHints: ['marker', 9], updatedAt: 'later' });
-    expect(r.onboarding).toEqual({ step: 'setup', firstStageCompletedAt: null, trialStartedAt: null, diagnosticLatency: null, plan: ['a'] });
+    expect(r.onboarding).toEqual({ step: 'setup', firstStageCompletedAt: null, trialStartedAt: null, diagnosticLatency: null, plan: [] });
     expect(r.weights).toEqual({ dogKg: null, handlerKg: 70 });
     expect(r.seenHints).toEqual(['marker']);
     expect(r.updatedAt).toBe(new Date(0).toISOString());
@@ -276,7 +276,7 @@ describe('stars on the record', () => {
   it('migrates an old record to an empty stars map', () => {
     const old = { version: 3, completedNodes: ['poste-practice'] };
     const r = migrateRecord(old);
-    expect(r.version).toBe(8);
+    expect(r.version).toBe(9);
     expect(r.stars).toEqual({});
     expect(r.completedNodes).toEqual(['poste-practice', 'dog-as-dog', 'home-rest', 'calm-first']) // plus the Basics World, marked by the version 8 migration;
   });
@@ -337,7 +337,7 @@ describe('Dog record: version 5 (names and the new funnel)', () => {
   it('loads an old record with an empty name', () => {
     const r = migrateRecord({ ...base, onboarding: { step: 'done' } });
     expect(r.name).toBe('');
-    expect(r.version).toBe(8);
+    expect(r.version).toBe(9);
   });
 
   it('keeps a stored name and repairs an unreadable one', () => {
@@ -428,7 +428,7 @@ describe('Dog record: version 7 (Missions)', () => {
 
   it('migrates an older record: empty Missions and Fixes, and a snapshot of its completed Nodes', () => {
     const r = migrateRecord({ version: 6, completedNodes: ['harness-ritual', 'doorbell-mat'] });
-    expect(r.version).toBe(8);
+    expect(r.version).toBe(9);
     // only the Basics World's Missions, passed by the version 8 migration
     expect(Object.keys(r.missions).sort()).toEqual(['mission-calm-first', 'mission-dog-as-dog', 'mission-home-rest']);
     expect(r.seenFixes).toEqual([]);
@@ -635,5 +635,46 @@ describe('Dog record: version 8 (the Basics World)', () => {
     const log = [{ kind: 'node', id: 'harness-ritual', at: '2026-05-01T08:00:00.000Z', stars: 2 }];
     const r = migrateRecord({ version: 7, completedNodes: ['harness-ritual'], activityLog: log });
     expect(r.activityLog).toHaveLength(migrateRecord({ version: 8, completedNodes: ['harness-ritual'], activityLog: log }).activityLog.length);
+  });
+});
+
+describe('Concern profile', () => {
+  it('defaults to nothing answered', () => {
+    const r = newDogRecord();
+    expect([r.mainConcerns, r.ageBand, r.sex, r.homeConcerns]).toEqual([[], null, null, {}]);
+  });
+
+  it('defaults the fields of a record from before them and keeps the rest', () => {
+    const r = migrateRecord({ version: 8, name: 'Luna', triggerProfile: { child: 3 } });
+    expect([r.mainConcerns, r.ageBand, r.sex, r.homeConcerns, r.name, r.triggerProfile.child]).toEqual([[], null, null, {}, 'Luna', 3]);
+  });
+
+  it('repairs unreadable concern fields', () => {
+    const r = migrateRecord({ mainConcerns: ['nope', 'destroy', 'destroy', 'bark-home', 'react-dog', 'react-food'], ageBand: 4, sex: 'x', homeConcerns: { 'bark-home': 9, destroy: 2, other: 1 } });
+    expect([r.mainConcerns, r.ageBand, r.sex, r.homeConcerns]).toEqual([['destroy', 'bark-home', 'react-dog'], null, null, { destroy: 2 }]);
+    expect(migrateRecord({ mainConcern: 'bite-owner' }).mainConcerns).toEqual(['bite-owner']);
+  });
+
+  it('maps the Node ids of an old plan to Stretches and drops unknown ones', () => {
+    const r = migrateRecord({ version: 8, onboarding: { step: 'plan', plan: ['poste-practice', 'poste-practice', 'zzz', 'harness-ritual'] } });
+    expect(r.onboarding.plan).toEqual([{ stretchId: 'theory-poste' }, { stretchId: 'theory-harness' }]);
+  });
+
+  it('keeps plan items with their concern across a save', () => {
+    const plan = [{ stretchId: 'theory-home-rest', concern: 'bite-owner' as const }];
+    expect(migrateRecord(JSON.parse(JSON.stringify({ ...newDogRecord(), onboarding: { ...newDogRecord().onboarding, plan } }))).onboarding.plan).toEqual(plan);
+  });
+
+  it('sets and clears each answer', () => {
+    let r = setMainConcerns(newDogRecord(), ['react-bicycle']);
+    r = setAgeBand(setSex(setHomeConcern(r, 'eat-objects', 3), 'female'), 'puppy');
+    expect([r.mainConcerns, r.homeConcerns, r.sex, r.ageBand]).toEqual([['react-bicycle'], { 'eat-objects': 3 }, 'female', 'puppy']);
+    r = setAgeBand(setSex(setHomeConcern(setMainConcerns(r, []), 'eat-objects', 0), null), null);
+    expect([r.mainConcerns, r.homeConcerns, r.sex, r.ageBand]).toEqual([[], {}, null, null]);
+  });
+
+  it('leaves the Trigger Profile alone when a home concern is set', () => {
+    const before = newDogRecord();
+    expect(setHomeConcern(before, 'eat-objects', 3).triggerProfile).toEqual(before.triggerProfile);
   });
 });

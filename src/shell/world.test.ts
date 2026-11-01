@@ -9,7 +9,7 @@ import {
   BLIND_CORNER_NODE, DOORBELL_MAT_NODE, HARNESS_RITUAL_NODE, LEAVE_IT_NODE, NODES, PARK_JOGGER_NODE, PARK_MIX_NODE, POSTE_PRACTICE, SCOOTER_NODE, SLACK_U_NODE, URBAN_MIX_NODE, WALK_DISTRACTION,
 } from './nodes/content';
 import { isAvailable, primerCardOf, type NodeDef } from './nodes/node';
-import { currentWorld, findWorld, isLastNodeOfStretch, isNodeOpen, isWorldComplete, isWorldUnlocked, missionOfStop, nodeIdsOf, nodesOfWorld, placeOfLesson, progressOf, sameStop, stopLock, stopsOf, stopStatus, WORLDS, worldOfNode, worldTitle, type Progress, type Stop, type WorldDef } from './world';
+import { currentWorld, findWorld, isLastNodeOfStretch, isNodeOpen, isWorldComplete, isWorldUnlocked, missionOfStop, nodeIdsOf, nodesOfWorld, placeOfLesson, progressOf, sameStop, stopLock, stopsOf, stopStatus, WORLDS, worldOfNode, worldsFor, worldTitle, type Progress, type Stop, type WorldDef } from './world';
 import { findNode } from './nodes/content';
 import { findLesson } from './lessons/content';
 import { MISSIONS } from './missions/content';
@@ -604,5 +604,41 @@ describe('worldTitle and the Dog name', () => {
     const named: typeof es = { ...es };
     const t = (key: keyof typeof es) => named[key].replace('{name}', 'Migas');
     expect(worldTitle(findWorld('basics')!, t)).toBe('Mundo 1 · Un perro es un perro');
+  });
+});
+
+describe('worldsFor', () => {
+  const lead = (w: WorldDef) => w.stretches.map((s) => s[0].id);
+  const basics = (worlds: readonly WorldDef[]) => worlds.find((w) => w.id === 'basics')!;
+
+  it('is the shipped Worlds for an empty plan', () => {
+    expect(worldsFor([], progressOf([]))).toBe(WORLDS);
+  });
+
+  it('puts the plan Stretches first inside their World, in plan order', () => {
+    const worlds = worldsFor([{ stretchId: 'theory-calm-first' }, { stretchId: 'theory-home-rest' }], progressOf([]));
+    expect(lead(basics(worlds))).toEqual(['theory-calm-first', 'theory-home-rest', 'theory-named-behaviours']);
+  });
+
+  it('keeps Stretches the user started where they are', () => {
+    const started = progressOf([], { readLessons: ['theory-named-behaviours'] });
+    expect(lead(basics(worldsFor([{ stretchId: 'theory-home-rest' }], started)))).toEqual(['theory-named-behaviours', 'theory-home-rest', 'theory-calm-first']);
+  });
+
+  it('leaves the World list, the locks and the Stops of each Stretch alone', () => {
+    const worlds = worldsFor([{ stretchId: 'theory-poste' }, { stretchId: 'theory-home-rest' }], progressOf([]));
+    expect(worlds.map((w) => w.id)).toEqual(WORLDS.map((w) => w.id));
+    expect(worlds.map((w) => w.unlockedBy)).toEqual(WORLDS.map((w) => w.unlockedBy));
+    for (const [i, w] of worlds.entries()) expect(stopsOf(w).map((s) => s.id).sort()).toEqual(stopsOf(WORLDS[i]).map((s) => s.id).sort());
+  });
+
+  it('opens the plan Stretch first for a Dog with no progress', () => {
+    const worlds = worldsFor([{ stretchId: 'theory-home-rest' }], progressOf([]));
+    expect(stopLock({ kind: 'lesson', id: 'theory-home-rest' }, progressOf([]), worlds)).toBeNull();
+    expect(stopLock({ kind: 'lesson', id: 'theory-named-behaviours' }, progressOf([]), worlds)).toMatchObject({ kind: 'mission' });
+  });
+
+  it('ignores an unknown Stretch', () => {
+    expect(worldsFor([{ stretchId: 'nope' }], progressOf([]))).toBe(WORLDS);
   });
 });

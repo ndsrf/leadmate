@@ -1,33 +1,93 @@
-import { DISTRACTOR_KINDS, type DistractorKind, type TriggerProfile } from '../../sim/learning';
-import { findNode } from '../nodes/content';
+import { CONCERNS, isHomeConcern, KIND_OF_OUTDOOR, type Concern, type PlanBecause, type PlanItem } from '../concerns';
+import type { DogRecord } from '../dogRecord';
+import { findStretch } from '../world';
 import { latencyBand } from './latency';
 
-/** The default order of the opening Nodes: World 1, then the first walking Node. */
-const DEFAULT_PLAN = ['harness-ritual', 'doorbell-mat', 'poste-practice', 'walk-distraction'] as const;
+/** The default order of the opening Stretches, each named by its first Stop: harness, doorbell, Poste, the first walk. */
+const DEFAULT_PLAN = ['theory-harness', 'theory-doorbell', 'theory-poste', 'theory-loose-leash'] as const;
 
-/** The Node that practices each kind of Distractor; skateboards are already in the base walking Node. */
-const NODE_FOR_KIND: Partial<Record<DistractorKind, string>> = {
-  bicycle: 'blind-corner',
-  child: 'slack-u',
-  dog: 'slack-u',
-  food: 'leave-it-intro',
-};
-
+/** The Stretch that practices the Poste, which a slow reaction time or an adolescent Dog moves up. */
+export const POSTE_STRETCH_ID = 'theory-poste';
 export const POSTE_NODE_ID = 'poste-practice';
 
+/** The Stretches about being at home, which a puppy and every biting Concern start with. */
+const AT_HOME = ['theory-home-rest', 'theory-calm-first'] as const;
+const REDIRECTED_BITING = 'theory-named-behaviours';
+
 /**
- * An ordered list of 3 to 5 existing Node ids. The default order, with the Poste practice first when the latency is slow,
- * and the Node for the Dog's strongest reaction added when it is above the usual level.
+ * The Stretches that train each Concern, in the order they are worth doing, named by their first Stop. Home Behaviours
+ * have no Lessons of their own yet (see `KNOWN_GAPS`), so they point to the nearest existing material.
  */
-export function buildWalkPlan(latency: number, profile: TriggerProfile): string[] {
-  let plan: string[] = [...DEFAULT_PLAN];
-  if (latencyBand(latency) === 'slow') plan = [POSTE_NODE_ID, ...plan.filter((id) => id !== POSTE_NODE_ID)];
-  const strongest = DISTRACTOR_KINDS.filter((k) => profile[k] === 3 && NODE_FOR_KIND[k]).map((k) => NODE_FOR_KIND[k]!)[0];
-  if (strongest && !plan.includes(strongest)) plan.push(strongest);
-  return plan.filter((id) => findNode(id) !== undefined).slice(0, 5);
+export const CONCERN_STRETCHES: Record<Concern, readonly string[]> = {
+  'bite-owner': [...AT_HOME, REDIRECTED_BITING],
+  'bite-others': [...AT_HOME, REDIRECTED_BITING],
+  'bark-home': [...AT_HOME],
+  destroy: [...AT_HOME],
+  'eat-objects': [REDIRECTED_BITING, 'theory-home-rest'],
+  'react-dog': ['theory-slack-u'],
+  'react-child': ['theory-slack-u'],
+  'react-bicycle': ['theory-blind-corner'],
+  'react-skateboard': ['theory-loose-leash'],
+  'react-food': ['theory-leave-it'],
+};
+
+const BITING: readonly Concern[] = ['bite-owner', 'bite-others'];
+const MAX_PLAN = 5;
+
+/** How strongly the Dog has a Concern, 0 to 3: the saved level, or at least 1 for the Main Concern. */
+export function concernLevel(record: Pick<DogRecord, 'homeConcerns' | 'triggerProfile' | 'mainConcerns'>, concern: Concern): number {
+  const saved = isHomeConcern(concern) ? (record.homeConcerns[concern] ?? 0) : record.triggerProfile[KIND_OF_OUTDOOR[concern]];
+  return Math.max(saved, record.mainConcerns.includes(concern) ? 1 : 0);
 }
 
-/** The first Node of the plan not yet completed. */
-export function nextPlanned(plan: readonly string[], completed: readonly string[]): string | null {
-  return plan.find((id) => !completed.includes(id)) ?? null;
+/** The Concerns to plan for besides the Main Concern: every home concern set, and the outdoor reactions at the highest level. */
+function otherConcerns(record: DogRecord): Concern[] {
+  return CONCERNS.filter((c) => !record.mainConcerns.includes(c) && !BITING.includes(c) && c !== 'eat-objects')
+    .filter((c) => (isHomeConcern(c) ? concernLevel(record, c) > 0 : concernLevel(record, c) === 3))
+    .sort((a, b) => concernLevel(record, b) - concernLevel(record, a));
+}
+
+/**
+ * The Personal Plan: an ordered list of 3 to 5 existing Stretches. Biting comes first (the at-home Stretches and the
+ * redirected-biting Lesson), then eating non-food things, then what age or a slow reaction time call for, then the
+ * Main Concern, the other Concerns by level, and the default trail order. Sex never changes the order. Pure.
+ */
+export function buildPersonalPlan(record: DogRecord): PlanItem[] {
+  const items: PlanItem[] = [];
+  const add = (stretchIds: readonly string[], why: { concern?: Concern; because?: PlanBecause }) => {
+    for (const stretchId of stretchIds) {
+      if (!items.some((i) => i.stretchId === stretchId) && findStretch(stretchId)) items.push({ stretchId, ...why });
+    }
+  };
+
+  for (const c of BITING.filter((b) => concernLevel(record, b) > 0).sort((a, b) => concernLevel(record, b) - concernLevel(record, a))) add(CONCERN_STRETCHES[c], { concern: c });
+  if (concernLevel(record, 'eat-objects') > 0) add(CONCERN_STRETCHES['eat-objects'], { concern: 'eat-objects' });
+
+  if (record.ageBand === 'puppy') add(AT_HOME, { because: 'puppy' });
+  const latency = record.onboarding.diagnosticLatency;
+  if (record.ageBand === 'adolescent') add([POSTE_STRETCH_ID], { because: 'adolescent' });
+  else if (latency !== null && latencyBand(latency) === 'slow') add([POSTE_STRETCH_ID], { because: 'slow' });
+
+  for (const c of record.mainConcerns) add(CONCERN_STRETCHES[c], { concern: c });
+  for (const c of otherConcerns(record)) add(CONCERN_STRETCHES[c], { concern: c });
+  add(DEFAULT_PLAN, {});
+  return items.slice(0, MAX_PLAN);
+}
+
+/** The record with its plan rebuilt from its answers. */
+export function rebuildPlan(record: DogRecord): DogRecord {
+  return { ...record, onboarding: { ...record.onboarding, plan: buildPersonalPlan(record) } };
+}
+
+/** The two safety notes, derived from the current levels and never stored. */
+export interface PlanNotes {
+  /** Either biting Concern at level 2 or 3. */
+  professionalHelp: boolean;
+  /** Reacting to children at level 3. */
+  supervision: boolean;
+}
+
+export function planNotes(record: Pick<DogRecord, 'homeConcerns' | 'triggerProfile'>): PlanNotes {
+  const levels = [record.homeConcerns['bite-owner'] ?? 0, record.homeConcerns['bite-others'] ?? 0];
+  return { professionalHelp: levels.some((l) => l >= 2), supervision: record.triggerProfile.child === 3 };
 }

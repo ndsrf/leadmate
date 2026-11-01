@@ -174,13 +174,22 @@ The Dog's state after a gap of days. An optional easy warm-up walk restores its 
 **Trigger Profile**:
 The Dog's starting personality: for each kind of Distractor, how strongly this Dog reacts to it, taken from what the owner reports about their real dog. Training can lower a level over time but never raises it.
 
+**Concern**:
+Anything the owner reports about their real dog as a problem: a reaction to a kind of Distractor (kept in the Trigger Profile) or a Home Behaviour. Each has a level from a little to a lot.
+
+**Home Behaviour**:
+A Concern that happens at home rather than on a walk: biting the owner, biting other people, barking at home, destroying things, eating things that are not food such as socks. It never enters the simulation.
+
+**Main Concern**:
+The up to three Concerns the owner picks as their biggest problems, most worrying first. They are asked once, before the Taste Stage; the first outdoor one decides which Distractor the Taste Stage uses, and together they decide what the Personal Plan puts first.
+
 **Diagnostic**:
 The 15-second onboarding Minigame that measures the user's reaction latency. It seeds the Dog's starting reconnection latency once and is not a Stage.
 _Avoid_: Mini-playtest, test
 
-**Walk Plan**:
-The personalized sequence of Nodes suggested to a new user after the Diagnostic, shown with the diagnostic card before the guided first Stage.
-_Avoid_: Curriculum, schedule
+**Personal Plan**:
+The ordered list of Stretches suggested to a new user after the Diagnostic, built from their Concerns, the Dog's age and the Diagnostic result, with the reason for each item. It is shown with the diagnostic card before the guided first Stage and decides where the World Map says to start. Biting always comes first.
+_Avoid_: Walk Plan, curriculum, schedule
 
 **Hint**:
 A one-shot, non-blocking message shown over a Stage the first time a simulation event happens (the leash first Taut, the Dog first Fixated, the leash first at its limit). A seen Hint is not shown again.
@@ -408,11 +417,11 @@ The bond between a device's Dog and one Dog saved in an account, which keeps the
 _Avoid_: Link, connection, attachment
 
 **Funnel**:
-The first-run sequence a new Dog goes through once: welcome, name and look, Taste Stage with its payoff, Dog setup, Diagnostic, Walk Plan, the guided first Stage and the soft paywall. It ends at the World Map and runs again only after Reset Progress.
+The first-run sequence a new Dog goes through once: welcome, name and look, Main Concern, Taste Stage with its payoff, Dog setup, Diagnostic, Personal Plan, the guided first Stage and the soft paywall. It ends at the World Map and runs again only after Reset Progress.
 _Avoid_: Onboarding flow, wizard, tutorial
 
 **Taste Stage**:
-The first Stage a new user plays, before any setup question: a strong Distractor meets a Dog with no Cue skill, built so the Dog ends up Reactive. It makes the user feel the problem the game solves. It never changes the Dog record.
+The first Stage a new user plays, before any setup question other than the Main Concern: a strong Distractor of the kind the Main Concern names (a dog when none is named) meets a Dog with no Cue skill, built so the Dog ends up Reactive. It makes the user feel the problem the game solves. It never changes the Dog record.
 _Avoid_: Demo, intro level, failure stage
 
 **Payoff Screen**:

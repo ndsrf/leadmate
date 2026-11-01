@@ -18,13 +18,14 @@ import { DEFAULT_BREED, isBreed, type BreedId } from './onboarding/breeds';
 import { cleanDogName } from './onboarding/name';
 import { nextPosture, updateLearning, updateTriggerProfile } from './learning';
 import { isOnboardingStep, type OnboardingStep } from './onboarding/flow';
-import { findWorld, stopsOf } from './world';
+import { findWorld, stopsOf, stretchIdContaining, findStretch } from './world';
+import { isAgeBand, isConcern, isPlanBecause, isSex, readConcernList, readHomeConcerns, type AgeBand, type Concern, type HomeConcern, type HomeConcerns, type ConcernLevel, type PlanItem, type Sex } from './concerns';
 import { activityAt, addActivity, readActivityLog, type ActivityEvent } from './activity';
 import type { PuzzleSummary } from './puzzle/types';
 import { addDiaryEntry, DIARY_OUTCOMES, isDateString, localDateString, markActive, NO_STREAK, type DiaryOutcome, type StreakRecord, type WalkDiaryEntry } from './streak';
 import { checkIn, fixFor, readMissions, readSeenFixes, skipDay, NEW_MISSION, type MissionDef, type MissionState, type SeenFix } from './missions/mission';
 
-export const RECORD_VERSION = 8;
+export const RECORD_VERSION = 9;
 export const RECORD_KEY = 'leadmate.dog';
 
 /** Seconds of the Checkpoint timer; 0 turns it off. */
@@ -47,6 +48,14 @@ export interface DogRecord {
   coat: DogCoat;
   /** The Dog's breed, drawn in the shell and used as a weight hint; cosmetic, the simulation never reads it. */
   breed: BreedId;
+  /** What worries the owner most: up to three Concerns in the order picked; empty until answered or skipped. */
+  mainConcerns: Concern[];
+  /** The level (1 to 3) of each home-behaviour concern; absent means not a concern. Outdoor reactions live in `triggerProfile`. */
+  homeConcerns: HomeConcerns;
+  /** The Dog's age band; null until answered. It only reorders the plan, and unset acts as adult. */
+  ageBand: AgeBand | null;
+  /** The Dog's sex; null until answered. Used for pronouns only. */
+  sex: Sex | null;
   voicePack: string;
   checkpointSeconds: CheckpointSeconds;
   completedNodes: string[];
@@ -121,8 +130,8 @@ export interface OnboardingState {
   trialStartedAt: string | null;
   /** Median reaction time of the Diagnostic, in seconds; null before it ran. */
   diagnosticLatency: number | null;
-  /** Node ids of the Walk Plan shown on the card. */
-  plan: string[];
+  /** The Personal Plan shown on the card and followed by the map. */
+  plan: PlanItem[];
   mockSubscribed?: boolean;
   trialRecapSeenAt?: string;
 }
@@ -139,6 +148,10 @@ export function newDogRecord(): DogRecord {
     name: '',
     coat: 'golden',
     breed: DEFAULT_BREED,
+    mainConcerns: [],
+    homeConcerns: {},
+    ageBand: null,
+    sex: null,
     voicePack: DEFAULT_VOICE_PACK,
     checkpointSeconds: 5,
     completedNodes: [],
@@ -229,6 +242,28 @@ function readWeights(raw: unknown): Weights {
   return { dogKg: kg(r.dogKg), handlerKg: kg(r.handlerKg) };
 }
 
+/** A stored plan of any version: items as they are, or the Node ids of an old plan mapped to the Stretch holding them. Unknown ids are dropped. */
+function readPlan(raw: unknown): PlanItem[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const out: PlanItem[] = [];
+  for (const entry of raw) {
+    let item: PlanItem | undefined;
+    if (typeof entry === 'string') {
+      const stretchId = stretchIdContaining(entry);
+      if (stretchId) item = { stretchId };
+    } else if (entry && typeof entry === 'object' && typeof (entry as PlanItem).stretchId === 'string' && findStretch((entry as PlanItem).stretchId)) {
+      const { stretchId, concern, because } = entry as PlanItem;
+      item = { stretchId, ...(isConcern(concern) ? { concern } : {}), ...(isPlanBecause(because) ? { because } : {}) };
+    }
+    if (item && !seen.has(item.stretchId)) {
+      seen.add(item.stretchId);
+      out.push(item);
+    }
+  }
+  return out;
+}
+
 /** A record saved before onboarding existed belongs to an existing user, who never sees the funnel. */
 function readOnboarding(raw: unknown, version: unknown): OnboardingState {
   if (!raw || typeof raw !== 'object') return { ...NEW_ONBOARDING, step: 'done' };
@@ -245,7 +280,7 @@ function readOnboarding(raw: unknown, version: unknown): OnboardingState {
     firstStageCompletedAt: completedAt,
     trialStartedAt: strOrNull(r.trialStartedAt),
     diagnosticLatency: kg(r.diagnosticLatency),
-    plan: strings(r.plan),
+    plan: readPlan(r.plan),
   };
   if (typeof r.mockSubscribed === 'boolean') out.mockSubscribed = r.mockSubscribed;
   if (typeof r.trialRecapSeenAt === 'string' && !Number.isNaN(Date.parse(r.trialRecapSeenAt))) {
@@ -317,6 +352,11 @@ export function migrateRecord(raw: unknown): DogRecord {
     name: cleanDogName(r.name) ?? '',
     coat: isCoat(r.coat) ? r.coat : 'golden',
     breed: isBreed(r.breed) ? r.breed : DEFAULT_BREED,
+    // a record saved while the question took one answer keeps it as the first of the list
+    mainConcerns: readConcernList(Array.isArray(r.mainConcerns) ? r.mainConcerns : [(r as { mainConcern?: unknown }).mainConcern]),
+    homeConcerns: readHomeConcerns(r.homeConcerns),
+    ageBand: isAgeBand(r.ageBand) ? r.ageBand : null,
+    sex: isSex(r.sex) ? r.sex : null,
     voicePack: typeof r.voicePack === 'string' ? r.voicePack : base.voicePack,
     checkpointSeconds: checkpoint === 0 || checkpoint === 10 ? checkpoint : 5,
     completedNodes,
@@ -414,6 +454,27 @@ export function applyStage(record: DogRecord, payload: SimulationDebriefPayload,
 
 export function setTriggerLevel(record: DogRecord, kind: DistractorKind, level: TriggerLevel): DogRecord {
   return { ...record, triggerProfile: { ...record.triggerProfile, [kind]: level }, calmCounts: { ...record.calmCounts, [kind]: 0 } };
+}
+
+/** The record with its Main Concerns set (distinct, at most three, in the order given). */
+export function setMainConcerns(record: DogRecord, concerns: readonly Concern[]): DogRecord {
+  return { ...record, mainConcerns: readConcernList([...concerns]) };
+}
+
+/** The record with one home-behaviour concern at a level; level 0 removes it. */
+export function setHomeConcern(record: DogRecord, concern: HomeConcern, level: ConcernLevel | 0): DogRecord {
+  const homeConcerns = { ...record.homeConcerns };
+  if (level === 0) delete homeConcerns[concern];
+  else homeConcerns[concern] = level;
+  return { ...record, homeConcerns };
+}
+
+export function setAgeBand(record: DogRecord, ageBand: AgeBand | null): DogRecord {
+  return { ...record, ageBand };
+}
+
+export function setSex(record: DogRecord, sex: Sex | null): DogRecord {
+  return { ...record, sex };
 }
 
 /** The record with one Mission's state changed (e.g. by `startMission`); an unchanged state returns the same record. */

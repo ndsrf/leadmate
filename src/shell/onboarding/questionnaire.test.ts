@@ -1,6 +1,6 @@
 import { DISTRACTOR_KINDS } from '../../sim/learning';
 import { newDogRecord } from '../dogRecord';
-import { ANSWERS, answerOf, applyAnswer, chipsOf, INTENSITIES, levelOf, QUESTION_KINDS, selectKind, setIntensity } from './questionnaire';
+import { ANSWERS, answerOf, applyAnswer, chipsOf, homeChipsOf, INTENSITIES, levelOf, QUESTION_KINDS, selectHomeConcern, selectKind, setHomeIntensity, setIntensity } from './questionnaire';
 
 describe('Trigger Profile questionnaire', () => {
   it('asks about every supported kind and not about other', () => {
@@ -71,5 +71,27 @@ describe('trigger chips', () => {
     const after = setIntensity(before, 'bicycle', 'alot');
     expect(after.triggerProfile.child).toBe(before.triggerProfile.child);
     expect(chipsOf(after.triggerProfile).map((c) => c.kind)).not.toContain('other');
+  });
+});
+
+describe('home-behaviour questionnaire', () => {
+  it('selects a concern at "often", keeps a level already set and deselects it', () => {
+    let r = selectHomeConcern(newDogRecord(), 'eat-objects', true);
+    expect(r.homeConcerns).toEqual({ 'eat-objects': 2 });
+    r = setHomeIntensity(r, 'eat-objects', 'alot');
+    expect(selectHomeConcern(r, 'eat-objects', true).homeConcerns).toEqual({ 'eat-objects': 3 });
+    expect(selectHomeConcern(r, 'eat-objects', false).homeConcerns).toEqual({});
+  });
+
+  it('saves "a lot" as level 3 without touching the Trigger Profile', () => {
+    const before = newDogRecord();
+    const r = setHomeIntensity(before, 'eat-objects', 'alot');
+    expect(r.homeConcerns).toEqual({ 'eat-objects': 3 });
+    expect(r.triggerProfile).toEqual(before.triggerProfile);
+  });
+
+  it('lists the chosen concerns in questionnaire order with their intensity', () => {
+    const r = setHomeIntensity(setHomeIntensity(newDogRecord(), 'destroy', 'little'), 'bite-owner', 'alot');
+    expect(homeChipsOf(r.homeConcerns)).toEqual([{ concern: 'bite-owner', intensity: 'alot' }, { concern: 'destroy', intensity: 'little' }]);
   });
 });

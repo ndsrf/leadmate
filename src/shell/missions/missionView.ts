@@ -1,5 +1,5 @@
 import type { DogRecord } from '../dogRecord';
-import { isLastMissionOfWorld, isLastNodeOfStretch, missionOfStop, stopStatus, type Progress } from '../world';
+import { isLastMissionOfWorld, isLastNodeOfStretch, missionOfStop, stopStatus, WORLDS, type Progress, type WorldDef } from '../world';
 import { canCheckIn, type MissionState } from './mission';
 
 /**
@@ -24,8 +24,8 @@ export function missionEntryOf(missionId: string, progress: Progress, now: Date)
  * Whether "Saltar el día" is offered: the Mission is started and waiting for its check-in, not owed already, and not
  * its World's last Mission. It says nothing about Plus; a free user sees it too and is sent to the paywall.
  */
-export function canSkipDay(missionId: string, progress: Progress, now: Date): boolean {
-  return stopStatus({ kind: 'mission', id: missionId }, progress, now).state === 'waiting' && !isLastMissionOfWorld(missionId);
+export function canSkipDay(missionId: string, progress: Progress, now: Date, worlds: readonly WorldDef[] = WORLDS): boolean {
+  return stopStatus({ kind: 'mission', id: missionId }, progress, now, worlds).state === 'waiting' && !isLastMissionOfWorld(missionId, worlds);
 }
 
 /**

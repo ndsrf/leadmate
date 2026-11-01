@@ -2,7 +2,7 @@ import { migrateRecord } from './dogRecord';
 import { mapModel as realMapModel, nextMapChange, type MapModel, type MapStop } from './mapModel';
 import { withBasicsDone } from './testProgress';
 import type { MissionState } from './missions/mission';
-import { progressOf, stopsOf, WORLDS, type Progress, type WorldDef } from './world';
+import { progressOf, stopsOf, WORLDS, worldsFor, type Progress, type WorldDef } from './world';
 
 const at = (h: number, day = 2, m = 0) => new Date(2026, 4, day, h, m);
 /** The map of a Dog past the Basics World: these tests are about Home & Thresholds and the Worlds after it. */
@@ -229,5 +229,51 @@ describe('nextMapChange', () => {
 
   it('skips a check-in that is already open', () => {
     expect(nextMapChange({ due: started(at(8, 1)) }, at(12, 3))).toBeNull();
+  });
+});
+
+describe('mapModel following the Personal Plan', () => {
+  const nextStops = (m: MapModel) => m.worlds.flatMap((w) => w.stops).filter((s) => s.state === 'next');
+  /** The map as the app draws it: the Worlds ordered by the plan, and the plan itself. */
+  const planned = (progress: Progress, plan: { stretchId: string; concern?: 'bite-owner' }[]) => realMapModel(progress, {}, at(9), { plan, worlds: worldsFor(plan, progress) });
+
+  it('opens on the plan Stretch with a Start here mark, whatever its place in the trail', () => {
+    const m = planned(progressOf([]), [{ stretchId: 'theory-home-rest', concern: 'bite-owner' }]);
+    expect(m.nextUp).toEqual({ worldId: 'basics', stop: { kind: 'lesson', id: 'theory-home-rest' }, stopKind: 'theory' });
+    expect(nextStops(m).map((s) => s.stop.id)).toEqual(['theory-home-rest']);
+    expect(find(m, 'theory-home-rest').startHere).toBe(true);
+    expect(find(m, 'theory-named-behaviours').state).toBe('locked');
+  });
+
+  it('skips a plan item in a locked World and uses the next open one', () => {
+    const m = planned(progressOf([]), [{ stretchId: 'theory-poste' }, { stretchId: 'theory-calm-first' }]);
+    expect(m.nextUp?.stop.id).toBe('theory-calm-first');
+    expect(find(m, 'theory-poste').state).toBe('locked');
+  });
+
+  it('moves on to the next plan item once a Stretch is done', () => {
+    const progress = progressOf(['home-rest'], { readLessons: ['theory-home-rest'], missions: { 'mission-home-rest': passedOn() } });
+    const m = planned(progress, [{ stretchId: 'theory-home-rest' }, { stretchId: 'theory-calm-first' }]);
+    expect(m.nextUp?.stop.id).toBe('theory-calm-first');
+  });
+
+  it('keeps trail order for an empty plan, an unknown Stretch or a plan with nothing playable', () => {
+    const base = realMapModel(progressOf([]), {}, at(9));
+    for (const plan of [[], [{ stretchId: 'nope' }], [{ stretchId: 'theory-poste' }]]) {
+      const m = planned(progressOf([]), plan);
+      expect(m.nextUp).toEqual(base.nextUp);
+      expect(m.worlds.flatMap((w) => w.stops).some((s) => s.startHere)).toBe(false);
+    }
+  });
+
+  it('never changes which Worlds are locked', () => {
+    const plain = realMapModel(progressOf([]), {}, at(9));
+    expect(planned(progressOf([]), [{ stretchId: 'theory-calm-first' }]).worlds.map((w) => w.unlocked)).toEqual(plain.worlds.map((w) => w.unlocked));
+  });
+
+  it('leaves an old plan on the default trail order alone', () => {
+    const base = realMapModel(progressOf([]), {}, at(9));
+    const m = planned(progressOf([]), [{ stretchId: 'theory-harness' }, { stretchId: 'theory-doorbell' }, { stretchId: 'theory-poste' }, { stretchId: 'theory-loose-leash' }]);
+    expect(m.nextUp).toEqual(base.nextUp);
   });
 });

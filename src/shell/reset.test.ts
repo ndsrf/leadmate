@@ -68,7 +68,7 @@ describe('resetProgress', () => {
   const now = new Date('2026-06-16T12:00:00.000Z');
 
   const populatedRecord: DogRecord = {
-    version: 8,
+    version: 9,
     attributes: { reconnectionLatency: 0.8, reactivityThreshold: 0.7, followChance: 0.9, checkInFrequency: 0.8 },
     triggerProfile: { dog: 2, child: 1, bicycle: 0, skateboard: 3, food: 1, other: 0 },
     calmCounts: { dog: 4 },
@@ -76,6 +76,10 @@ describe('resetProgress', () => {
     name: 'Luna',
     coat: 'black',
     breed: 'collie',
+    mainConcerns: ['bark-home'],
+    homeConcerns: { 'bark-home': 2 },
+    ageBand: 'adult',
+    sex: 'female',
     voicePack: 'spark',
     checkpointSeconds: 10,
     completedNodes: ['doorbell-mat', 'heel-turns'],
@@ -94,7 +98,7 @@ describe('resetProgress', () => {
       firstStageCompletedAt: '2026-06-01T10:00:00.000Z',
       trialStartedAt: '2026-06-01T10:05:00.000Z',
       diagnosticLatency: 0.42,
-      plan: ['heel-turns'],
+      plan: [{ stretchId: 'theory-poste' }],
     },
     seenHints: ['taut', 'rigid'],
     readLessons: ['lesson-1'],
@@ -118,6 +122,10 @@ describe('resetProgress', () => {
     expect(reset.onboarding.firstStageCompletedAt).toBeNull();
     expect(reset.onboarding.trialStartedAt).toBeNull();
     expect(reset.onboarding.plan).toEqual([]);
+    expect(reset.mainConcerns).toEqual([]);
+    expect(reset.homeConcerns).toEqual({});
+    expect(reset.ageBand).toBeNull();
+    expect(reset.sex).toBeNull();
     expect(reset.streak.current).toBe(0);
     expect(reset.completedNodes).toEqual([]);
     expect(reset.stars).toEqual({});

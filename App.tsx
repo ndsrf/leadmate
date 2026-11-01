@@ -18,7 +18,8 @@ import { BUNDLE_MESSAGE_TYPES, decode, type BundleMessage, type ShellMessage } f
 import { newSeed } from './src/sim/rng';
 import { playDogSound, playResolvedCue, prepareAudio } from './src/shell/audio';
 import { createVocalizer } from './src/shell/vocalize';
-import { applyDaySkip, applyMissionCheckIn, recordDailyBarkdoku, toSnapshot, updateMission } from './src/shell/dogRecord';
+import { applyDaySkip, applyMissionCheckIn, recordDailyBarkdoku, setHomeConcern, toSnapshot, updateMission } from './src/shell/dogRecord';
+import { rebuildPlan } from './src/shell/onboarding/plan';
 import { starsFor } from './src/shell/stars';
 import { lookOf } from './src/shell/onboarding/look';
 import { INTRO_NODE } from './src/shell/onboarding/introNode';
@@ -43,7 +44,8 @@ import { canSkipDay, missionAfterDebrief, missionEntryOf, missionForDebrief } fr
 import { getBillingService } from './src/shell/billing';
 import { applyBillingSubscription, canStartTrial, computeTrialRecap, isPlus, pendingSkipMission, progressAt, startTrialThen, subscribeThen, trialState, type PendingPlusAction } from './src/shell/plus';
 import { FixScreen, MissionBriefScreen, MissionCheckInScreen, MissionPassedScreen, MissionProblemScreen, MissionWaitingScreen } from './src/shell/screens/MissionScreens';
-import type { Stop } from './src/shell/world';
+import type { Concern } from './src/shell/concerns';
+import { worldsFor, type Stop } from './src/shell/world';
 import { lessonDay, markLessonRead, todaysLesson } from './src/shell/lessons/lesson';
 import { LessonScreen, LibraryScreen } from './src/shell/screens/LessonScreens';
 import { WorldMapScreen } from './src/shell/screens/WorldMapScreen';
@@ -55,7 +57,7 @@ import { DiagnosticView } from './src/shell/screens/DiagnosticView';
 import { PaywallScreen } from './src/shell/screens/PaywallScreen';
 import { ValueRecapScreen } from './src/shell/screens/ValueRecapScreen';
 import { PlanScreen } from './src/shell/screens/PlanScreen';
-import { DogLookScreen, PayoffOverlay } from './src/shell/screens/IntroScreens';
+import { ConcernScreen, DogLookScreen, PayoffOverlay } from './src/shell/screens/IntroScreens';
 import { SetupScreen } from './src/shell/screens/SetupScreen';
 import { SettingsScreen } from './src/shell/screens/SettingsScreen';
 import { SplashScreen } from './src/shell/screens/SplashScreen';
@@ -67,9 +69,9 @@ import { completeFirstStage } from './src/shell/onboarding/firstStage';
 import { nextStep } from './src/shell/onboarding/flow';
 import { recordDiagnostic } from './src/shell/onboarding/diagnostic';
 import { COACH_ID, HINT_TEXT, hintFor, markHintSeen, type HintId } from './src/shell/onboarding/hints';
-import { completeTaste, leaveWelcome, namedTranslator, saveNameAndLook, withDogName } from './src/shell/onboarding/intro';
+import { completeTaste, leaveWelcome, namedTranslator, saveMainConcerns, saveNameAndLook, withDogName } from './src/shell/onboarding/intro';
 import { passPaywall } from './src/shell/onboarding/paywall';
-import { TASTE_LINGER_MS, TASTE_SNAPSHOT, tasteScenario } from './src/shell/onboarding/taste';
+import { TASTE_LINGER_MS, tasteKind, tasteScenarioFor, tasteSnapshot } from './src/shell/onboarding/taste';
 import { useDog } from './src/shell/useDog';
 import { migrateRecord } from './src/shell/dogRecord';
 import { resolveScenario } from './src/shell/sync/configs';
@@ -294,6 +296,8 @@ export default function App() {
 
   // the taste Stage: an untrained Dog on a scenario built to fail; the Coach marks show as in any Stage
   const [tastePayoff, setTastePayoff] = useState(false);
+  const mainConcernsRef = useRef<readonly Concern[]>(record?.mainConcerns ?? []);
+  mainConcernsRef.current = record?.mainConcerns ?? [];
   const tastePayoffTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showTastePayoff = useCallback(() => {
     if (tastePayoffTimer.current) return;
@@ -305,7 +309,8 @@ export default function App() {
     setTastePayoff(false);
     if (tastePayoffTimer.current) clearTimeout(tastePayoffTimer.current);
     tastePayoffTimer.current = null;
-    startStage(tasteScenario, newSeed(), TASTE_SNAPSHOT);
+    const kind = tasteKind(mainConcernsRef.current);
+    startStage(tasteScenarioFor(mainConcernsRef.current), newSeed(), tasteSnapshot(kind));
   }, [route.name, startStage]);
 
   // the guided first Stage: runs the introductory "Node 0" loop (Primer, Checkpoint, Simulation, Debrief)
@@ -642,6 +647,7 @@ export default function App() {
       <View className="absolute inset-0">
         <WorldMapScreen
           t={t}
+          home={{ concerns: record.homeConcerns, onBecomeConcern: (concern) => update((r) => rebuildPlan(setHomeConcern(r, concern, 1))) }}
           progress={record}
           membership={record}
           stars={record.stars}
@@ -722,6 +728,7 @@ export default function App() {
           />
         );
       else if (route.step === 'dog') screen = <DogLookScreen t={t} record={record} onDone={(name, coat, breed) => update((r) => saveNameAndLook(r, name, coat, breed))} />;
+      else if (route.step === 'concern') screen = <ConcernScreen t={t} record={record} onDone={(concerns) => update((r) => saveMainConcerns(r, concerns))} />;
       else if (route.step === 'setup') screen = <SetupScreen t={t} record={record} update={update} />;
       else if (route.step === 'diagnostic')
         screen = <DiagnosticView key="diagnostic" t={t} record={record} seed={newSeed()} onFinish={(latency) => update((r) => recordDiagnostic(r, latency))} />;
@@ -968,7 +975,7 @@ export default function App() {
               state={state}
               now={new Date()}
               onAcceptEasier={accept}
-              onSkip={canSkipDay(mission.id, progressAt(record, new Date()), new Date()) ? () => skipMission(mission.id) : undefined}
+              onSkip={canSkipDay(mission.id, progressAt(record, new Date()), new Date(), worldsFor(record.onboarding.plan, record)) ? () => skipMission(mission.id) : undefined}
               onClose={withBack(goHome)}
             />
           );
@@ -1196,7 +1203,7 @@ export default function App() {
           {playingStage && record && dogWarning && !paused && (
             <DogWarningOverlay text={withDogName(t('coach.dog.warning'), record.name, t('dog.neutral'))} bearing={dogWarning.bearing} />
           )}
-          {route.name === 'taste' && tastePayoff && record && <PayoffOverlay t={t} name={record.name} onContinue={() => update(completeTaste)} />}
+          {route.name === 'taste' && tastePayoff && record && <PayoffOverlay t={t} name={record.name} mainConcerns={record.mainConcerns} onContinue={() => update(completeTaste)} />}
           {playingStage && bundle === 'loading' && <LoadingOverlay t={t} />}
           {playingStage && paused && (
             <ResumeOverlay

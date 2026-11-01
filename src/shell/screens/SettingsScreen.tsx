@@ -15,6 +15,9 @@ import type { Account } from '../sync/useAccount';
 import { AccountSection } from './AccountScreens';
 import { APPEARANCES, type UiSettings } from '../ui/uiSettings';
 import { renameDog } from '../onboarding/intro';
+import { rebuildPlan } from '../onboarding/plan';
+import { toggleMainConcern } from '../onboarding/questionnaire';
+import { AgeSexChips, HomeConcernChips, MainConcernChips } from '../ui/ConcernPickers';
 import { DOG_COAT_NAMES } from '../onboarding/look';
 import { cleanDogName, DOG_NAME_MAX } from '../onboarding/name';
 import { Screen } from './Screen';
@@ -120,6 +123,8 @@ export function SettingsScreen({
 
   const billing = billingService ?? getBillingService();
   const plus = isPlus(record, new Date());
+  // the Personal Plan is rebuilt whenever an answer it reads is edited here
+  const updatePlanned = (fn: (r: DogRecord) => DogRecord) => update((r) => rebuildPlan(fn(r)));
 
   const handleRestorePurchases = async () => {
     setRestoring(true);
@@ -200,6 +205,16 @@ export function SettingsScreen({
         </View>
       </Section>
 
+      <Section title={t('settings.about')}>
+        <Text className="mb-1 text-caption text-inkMuted">{t('settings.about.help')}</Text>
+        <Text className="mt-2 font-display text-bodyL text-ink">{t('settings.about.main')}</Text>
+        <MainConcernChips t={t} value={record.mainConcerns} onToggle={(concern) => updatePlanned((r) => toggleMainConcern(r, concern))} />
+        <Text className="mt-4 font-display text-bodyL text-ink">{t('setup.home.title')}</Text>
+        <HomeConcernChips t={t} record={record} update={updatePlanned} />
+        <Text className="mt-4 font-display text-bodyL text-ink">{t('setup.about.title')}</Text>
+        <AgeSexChips t={t} record={record} update={updatePlanned} />
+      </Section>
+
       <Section title={t('settings.triggers')}>
         <Text className="mb-1 text-caption text-inkMuted">{t('settings.triggers.help')}</Text>
         {DISTRACTOR_KINDS.map((kind: DistractorKind) => (
@@ -207,7 +222,7 @@ export function SettingsScreen({
             <Text className="text-body text-ink">{t(KIND_KEYS[kind])}</Text>
             <View className="flex-row">
               {([0, 1, 2, 3] as TriggerLevel[]).map((level) => (
-                <Choice key={level} label={String(level)} selected={record.triggerProfile[kind] === level} onPress={() => update((r) => setTriggerLevel(r, kind, level))} />
+                <Choice key={level} label={String(level)} selected={record.triggerProfile[kind] === level} onPress={() => updatePlanned((r) => setTriggerLevel(r, kind, level))} />
               ))}
             </View>
           </View>
