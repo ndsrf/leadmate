@@ -87,6 +87,15 @@ export interface DogRecord {
   legacyNodes: string[];
   /** Dated log of what the user did, oldest first, for the Diary; nothing reads progress from it. */
   activityLog: ActivityEvent[];
+  /** Verified subscription entitlements from store billing, cached for offline continuity. */
+  billing?: BillingRecordState;
+}
+
+export interface BillingRecordState {
+  isSubscribed: boolean;
+  expiresAt: string | null;
+  lastVerifiedAt: string;
+  tier?: 'annual' | 'monthly';
 }
 
 /** The first solve of a date's Daily Barkdoku. */
@@ -114,6 +123,8 @@ export interface OnboardingState {
   diagnosticLatency: number | null;
   /** Node ids of the Walk Plan shown on the card. */
   plan: string[];
+  mockSubscribed?: boolean;
+  trialRecapSeenAt?: string;
 }
 
 export const NEW_ONBOARDING: OnboardingState = { step: 'welcome', firstStageCompletedAt: null, trialStartedAt: null, diagnosticLatency: null, plan: [] };
@@ -229,12 +240,32 @@ function readOnboarding(raw: unknown, version: unknown): OnboardingState {
   if (old && step === 'paywall') step = 'first-stage';
   // before version 5 the first Stage came after the paywall: one who has played it has seen everything
   else if (old && step === 'first-stage' && completedAt) step = 'done';
-  return {
+  const out: OnboardingState = {
     step,
     firstStageCompletedAt: completedAt,
     trialStartedAt: strOrNull(r.trialStartedAt),
     diagnosticLatency: kg(r.diagnosticLatency),
     plan: strings(r.plan),
+  };
+  if (typeof r.mockSubscribed === 'boolean') out.mockSubscribed = r.mockSubscribed;
+  if (typeof r.trialRecapSeenAt === 'string' && !Number.isNaN(Date.parse(r.trialRecapSeenAt))) {
+    out.trialRecapSeenAt = r.trialRecapSeenAt;
+  }
+  return out;
+}
+
+function readBilling(raw: unknown): BillingRecordState | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const b = raw as Record<string, unknown>;
+  if (typeof b.isSubscribed !== 'boolean') return undefined;
+  const expiresAt = typeof b.expiresAt === 'string' && !Number.isNaN(Date.parse(b.expiresAt)) ? b.expiresAt : null;
+  const lastVerifiedAt = typeof b.lastVerifiedAt === 'string' && !Number.isNaN(Date.parse(b.lastVerifiedAt)) ? b.lastVerifiedAt : new Date(0).toISOString();
+  const tier = b.tier === 'annual' || b.tier === 'monthly' ? b.tier : undefined;
+  return {
+    isSubscribed: b.isSubscribed,
+    expiresAt,
+    lastVerifiedAt,
+    ...(tier ? { tier } : {}),
   };
 }
 
@@ -276,6 +307,7 @@ export function migrateRecord(raw: unknown): DogRecord {
   const checkpoint = r.checkpointSeconds;
   const completedNodes = strings(r.completedNodes);
   const beforeMissions = typeof r.version !== 'number' || r.version < 7;
+  const billing = readBilling(r.billing);
   return skipBasicsWorld({
     version: RECORD_VERSION,
     attributes,
@@ -306,6 +338,7 @@ export function migrateRecord(raw: unknown): DogRecord {
     seenFixes: readSeenFixes(r.seenFixes),
     legacyNodes: beforeMissions ? [...completedNodes] : strings(r.legacyNodes),
     activityLog: readActivityLog(r.activityLog),
+    ...(billing ? { billing } : {}),
   }, r.version, localDateString(new Date()));
 }
 

@@ -66,7 +66,7 @@ import React from 'react';
 // @ts-ignore
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createTranslator, es } from '../../i18n';
-import { BarkdokuChip, WorldMapScreen } from './WorldMapScreen';
+import { BarkdokuChip, PlusChip, TrialStatusModal, WorldMapScreen } from './WorldMapScreen';
 import { NO_STREAK } from '../streak';
 import { findWorld, progressOf, stopsOf, worldTitle, type Progress, type Stop, type WorldDef } from '../world';
 import { LESSONS } from '../lessons/content';
@@ -269,15 +269,16 @@ describe('WorldMapScreen - Map Header', () => {
     return mockPressables.map((p) => String(p.accessibilityLabel ?? ''));
   };
 
-  it('shows Streak, Library, gear, Daily and Guaudoku in that order with nothing between them', () => {
+  it('shows Streak, Library, Plus, gear, Daily and Guaudoku in that order with nothing between them', () => {
     const labels = renderHeader();
     const start = labels.findIndex((l) => l.startsWith(es['streak.flame']));
     expect(start).toBeGreaterThanOrEqual(0);
     expect(labels[start]).toContain(es['diary.chip']);
     expect(labels[start + 1]).toBe(es['library.chip']);
-    expect(labels[start + 2]).toBe(es['map.settings']);
-    expect(labels[start + 3]).toBe(es['daily.title']);
-    expect(labels[start + 4].startsWith(es['map.barkdoku.daily'])).toBe(true);
+    expect(labels[start + 2]).toBe('Plus. 7 días gratis');
+    expect(labels[start + 3]).toBe(es['map.settings']);
+    expect(labels[start + 4]).toBe(es['daily.title']);
+    expect(labels[start + 5].startsWith(es['map.barkdoku.daily'])).toBe(true);
   });
 
   it('has no Diario chip: only the Streak chip mentions the Diary', () => {
@@ -444,6 +445,175 @@ describe('WorldMapScreen - a Completed Plus World after Plus lapses', () => {
       );
       expect(mockPressables.filter((p) => String(p.accessibilityLabel ?? '').includes(es['map.worldCompleted']))).toEqual([]);
       expect(markup).toContain(es['world.unlockPlus']);
+    });
+  });
+});
+
+describe('PlusChip and TrialStatusModal', () => {
+  const t = createTranslator(es);
+
+  it('renders PlusChip unstarted state with "7 días gratis"', () => {
+    let pressed = false;
+    const markup = renderToStaticMarkup(
+      <PlusChip t={t} state="unstarted" onPress={() => { pressed = true; }} />
+    );
+    expect(markup).toContain('Plus');
+    expect(markup).toContain('7 días gratis');
+    expect(markup).toContain('Plus. 7 días gratis');
+  });
+
+  it('renders PlusChip active state with countdown days', () => {
+    const markup = renderToStaticMarkup(
+      <PlusChip t={t} state="active" daysRemaining={4} onPress={() => {}} />
+    );
+    expect(markup).toContain('Plus');
+    expect(markup).toContain('4 d');
+    expect(markup).toContain('Plus · 4 d');
+  });
+
+  it('renders PlusChip expired state with "Pasar a Plus"', () => {
+    const markup = renderToStaticMarkup(
+      <PlusChip t={t} state="expired" onPress={() => {}} />
+    );
+    expect(markup).toContain('Plus');
+    expect(markup).toContain('Pasar a Plus');
+    expect(markup).toContain('Plus. Pasar a Plus');
+  });
+
+  it('renders PlusChip subscribed state with "Activo"', () => {
+    const markup = renderToStaticMarkup(
+      <PlusChip t={t} state="expired" isSubscribed={true} onPress={() => {}} />
+    );
+    expect(markup).toContain('Plus');
+    expect(markup).toContain('Activo');
+    expect(markup).toContain('Plus · Activo');
+  });
+
+  it('renders TrialStatusModal with remaining days and active perks', () => {
+    let dismissed = false;
+    const markup = renderToStaticMarkup(
+      <TrialStatusModal
+        t={t}
+        daysRemaining={5}
+        onDismiss={() => { dismissed = true; }}
+      />
+    );
+    expect(markup).toContain('LeadMate Plus activo');
+    expect(markup).toContain('5 días restantes');
+    expect(markup).toContain('Demostraciones en vídeo desbloqueadas');
+    expect(markup).toContain('Saltos de día ilimitados en misiones');
+    expect(markup).toContain('Acceso a los mundos avanzados de Plus');
+    expect(markup).toContain('Entendido');
+  });
+
+  it('renders TrialStatusModal subscribed state with "Activo" and subscribed subtitle', () => {
+    const markup = renderToStaticMarkup(
+      <TrialStatusModal
+        t={t}
+        daysRemaining={0}
+        isSubscribed={true}
+        onDismiss={() => {}}
+      />
+    );
+    expect(markup).toContain('LeadMate Plus activo');
+    expect(markup).toContain('Activo');
+    expect(markup).toContain('Disfruta de todas las ventajas incluidas con tu suscripción.');
+    expect(markup).toContain('Demostraciones en vídeo desbloqueadas');
+  });
+
+  describe('WorldMapScreen - Anchored Banner Integration', () => {
+    const baseMembership = {
+      onboarding: {
+        trialStartedAt: null as string | null,
+        mockSubscribed: false,
+      },
+    };
+
+    it('renders Anchored Banner for Free Tier users (no trial)', () => {
+      const markup = renderToStaticMarkup(
+        <WorldMapScreen
+          t={t}
+          progress={progressOf([])}
+          membership={baseMembership as any}
+          stars={{}}
+          now={new Date('2026-10-28T09:00:00')}
+          streak={NO_STREAK}
+          today="2026-10-28"
+          dailyBest={undefined}
+          rustyPrompt={false}
+          rusty={false}
+          skippedWarmup={false}
+          onWarmup={() => {}}
+          onSkipWarmup={() => {}}
+          onDaily={() => {}}
+          onBarkdoku={() => {}}
+          onOpenStop={() => {}}
+          onSettings={() => {}}
+        />
+      );
+      expect(markup).toContain('leadmate-ad-banner');
+    });
+
+    it('suppresses Anchored Banner for active Trial Plus members', () => {
+      const trialMembership = {
+        onboarding: {
+          trialStartedAt: '2026-10-27T09:00:00Z',
+          mockSubscribed: false,
+        },
+      };
+      const markup = renderToStaticMarkup(
+        <WorldMapScreen
+          t={t}
+          progress={progressOf([])}
+          membership={trialMembership as any}
+          stars={{}}
+          now={new Date('2026-10-28T09:00:00Z')}
+          streak={NO_STREAK}
+          today="2026-10-28"
+          dailyBest={undefined}
+          rustyPrompt={false}
+          rusty={false}
+          skippedWarmup={false}
+          onWarmup={() => {}}
+          onSkipWarmup={() => {}}
+          onDaily={() => {}}
+          onBarkdoku={() => {}}
+          onOpenStop={() => {}}
+          onSettings={() => {}}
+        />
+      );
+      expect(markup).not.toContain('leadmate-ad-banner');
+    });
+
+    it('suppresses Anchored Banner for subscribed Plus members', () => {
+      const subscribedMembership = {
+        onboarding: {
+          trialStartedAt: null,
+          mockSubscribed: true,
+        },
+      };
+      const markup = renderToStaticMarkup(
+        <WorldMapScreen
+          t={t}
+          progress={progressOf([])}
+          membership={subscribedMembership as any}
+          stars={{}}
+          now={new Date('2026-10-28T09:00:00Z')}
+          streak={NO_STREAK}
+          today="2026-10-28"
+          dailyBest={undefined}
+          rustyPrompt={false}
+          rusty={false}
+          skippedWarmup={false}
+          onWarmup={() => {}}
+          onSkipWarmup={() => {}}
+          onDaily={() => {}}
+          onBarkdoku={() => {}}
+          onOpenStop={() => {}}
+          onSettings={() => {}}
+        />
+      );
+      expect(markup).not.toContain('leadmate-ad-banner');
     });
   });
 });

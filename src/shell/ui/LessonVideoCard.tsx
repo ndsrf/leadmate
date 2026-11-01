@@ -10,6 +10,7 @@ import { animationTimelineUrl, browserNext, MEDIA_BASE, videoPlayback, type Brow
 import { CanineMinigameAvatar } from './CanineMinigameAvatar';
 import { handlePress } from './press';
 import { theme, usePalette } from './theme';
+import type { TrialState, VideoGatingProps } from '../plus';
 
 export type VideoBlock = Extract<LessonBlock, { type: 'video' }>;
 
@@ -53,10 +54,38 @@ export async function loadAnimationTimeline(url: string | null, t: Translate, ca
  * platform player loads; a failed load shows the themed placeholder with retry. A YouTube video also offers "Open
  * video"; a Lesson Animation does not. A Lesson Animation also fetches its timeline on the tap and draws the active
  * Line as a subtitle over the bottom of the clip; without a timeline it plays with none.
+ *
+ * Gated by LeadMate Plus: free users see the poster under a locked overlay with an unlock button instead of the
+ * play control. Members (active trial or full) get an unlocked badge and play it as above; with `autoPlay` it starts
+ * at once (the play action held while the paywall was open).
  */
-export function LessonVideoCard({ t, block, renderPlayer, mediaBase = MEDIA_BASE }: { t: Translate; block: VideoBlock; renderPlayer: PlayerRenderer; mediaBase?: string }) {
+export function LessonVideoCard({
+  t,
+  block,
+  renderPlayer,
+  mediaBase = MEDIA_BASE,
+  gating,
+  isPlus: propIsPlus,
+  trialState: propTrialState,
+  onUnlock: propOnUnlock,
+  autoPlay: propAutoPlay,
+}: {
+  t: Translate;
+  block: VideoBlock;
+  renderPlayer: PlayerRenderer;
+  mediaBase?: string;
+  gating?: VideoGatingProps;
+  isPlus?: boolean;
+  trialState?: TrialState;
+  onUnlock?: () => void;
+  autoPlay?: boolean;
+}) {
+  const isPlus = gating?.isPlus ?? propIsPlus ?? false;
+  const trialState = gating?.trialState ?? propTrialState ?? 'unstarted';
+  const onUnlock = gating?.onUnlock ?? propOnUnlock;
+  const autoPlay = gating?.autoPlay ?? propAutoPlay ?? false;
   const color = usePalette();
-  const [started, setStarted] = useState(false);
+  const [started, setStarted] = useState(isPlus && autoPlay);
   const [state, setState] = useState<BrowserState>('loading');
   const [attempt, setAttempt] = useState(0);
   const [timeline, setTimeline] = useState<AnimationTimeline | null>(null);
@@ -75,11 +104,23 @@ export function LessonVideoCard({ t, block, renderPlayer, mediaBase = MEDIA_BASE
       if (request.current === id) setTimeline(tl);
     });
   };
+  // a held play action: start as soon as the user is Plus, and fetch the timeline as the play tap would
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (!isPlus || !autoPlay || autoStarted.current) return;
+    autoStarted.current = true;
+    setStarted(true);
+    setState('loading');
+    loadTimeline();
+    // only when the gate opens, not on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPlus, autoPlay]);
   const subtitle = started && !youtube ? subtitleAt(t, block.caption, timeline, time) : null;
-  const failed = started && (state === 'offline' || uri === null);
+  const failed = started && isPlus && (state === 'offline' || uri === null);
   const open = () => {
     if (watch) void Linking.openURL(watch).catch(() => {});
   };
+  const unlockLabel = trialState === 'expired' ? t('media.video.unlockPlus') : t('media.video.unlockTrial');
   return (
     <View accessible={!started} accessibilityLabel={started ? undefined : `${t(block.alt)}. ${t(block.caption)}`} className="mt-4">
       <Raised fill={color.surfaceSunken} radius={theme.radius.lg} offset={theme.depth.sm.x} faceStyle={{ overflow: 'hidden' }}>
@@ -89,7 +130,7 @@ export function LessonVideoCard({ t, block, renderPlayer, mediaBase = MEDIA_BASE
               <CanineMinigameAvatar t={t} posture="calm_sphinx_on_mat" />
               <Text className="mt-2 text-caption text-inkMuted">{t('media.unavailable')}</Text>
             </View>
-          ) : started && uri ? (
+          ) : started && uri && isPlus ? (
             <>
               {renderPlayer({
                 kind: block.source.kind,
@@ -114,6 +155,14 @@ export function LessonVideoCard({ t, block, renderPlayer, mediaBase = MEDIA_BASE
                 </View>
               )}
             </>
+          ) : !isPlus ? (
+            <>
+              <LessonPicture t={t} art={block.poster} />
+              <View style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.45)', alignItems: 'center', justifyContent: 'center', gap: theme.space[2] }}>
+                <Badge label={t('plus.label')} tone="accent" />
+                <Button label={unlockLabel} onPress={() => onUnlock?.()} />
+              </View>
+            </>
           ) : (
             <>
               <LessonPicture t={t} art={block.poster} />
@@ -133,7 +182,9 @@ export function LessonVideoCard({ t, block, renderPlayer, mediaBase = MEDIA_BASE
         <View className="gap-2 p-3">
           <View className="flex-row flex-wrap items-center gap-2">
             <Badge label={t('media.badge.video')} />
-            {youtube && !started && <Text className="text-caption text-inkMuted">{t('media.video.source')}</Text>}
+            {isPlus && <Badge label={t('media.video.unlockedPlus')} tone="accent" />}
+            {!isPlus && <Text className="text-caption text-inkMuted">{t('media.video.locked')}</Text>}
+            {isPlus && youtube && !started && <Text className="text-caption text-inkMuted">{t('media.video.source')}</Text>}
           </View>
           <Text className="text-body text-inkMuted">{t(block.caption)}</Text>
           {failed && (
@@ -149,7 +200,7 @@ export function LessonVideoCard({ t, block, renderPlayer, mediaBase = MEDIA_BASE
               />
             </Panel>
           )}
-          {started && youtube && (
+          {started && isPlus && youtube && (
             <View className="flex-row">
               <Button label={t('media.video.open')} tone="quiet" onPress={() => handlePress(open)} />
             </View>

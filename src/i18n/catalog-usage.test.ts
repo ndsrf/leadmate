@@ -8,7 +8,7 @@ function sources(dir: string, exts: string[]): string[] {
     const path = join(dir, name);
     if (name === 'node_modules' || name === 'dist' || name === 'assets') return [];
     if (statSync(path).isDirectory()) return sources(path, exts);
-    return exts.some((e) => name.endsWith(e)) && !name.endsWith('.test.ts') && !name.endsWith('.d.ts') ? [path] : [];
+    return exts.some((e) => name.endsWith(e)) && !name.endsWith('.test.ts') && !name.endsWith('.test.tsx') && !name.endsWith('.d.ts') ? [path] : [];
   });
 }
 

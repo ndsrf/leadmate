@@ -11,6 +11,7 @@ import { LessonBlockView } from '../ui/LessonBlocks';
 import { handlePress } from '../ui/press';
 import { theme } from '../ui/theme';
 import { Screen } from './Screen';
+import type { TrialState, VideoGatingProps } from '../plus';
 
 /**
  * The Theory Library: every Lesson in order with its place (day or trail Stretch), kind, reading time and read
@@ -100,8 +101,34 @@ export function LibraryScreen({
   );
 }
 
-function Item({ t, item, onDone }: { t: Translate; item: LessonItem; onDone: () => void }) {
-  if (item.type !== 'done') return <LessonBlockView t={t} block={item} />;
+function Item({
+  t,
+  item,
+  onDone,
+  videoGating,
+  isPlus,
+  trialState,
+  onUnlockVideo,
+  autoPlayVideo,
+}: {
+  t: Translate;
+  item: LessonItem;
+  onDone: () => void;
+  videoGating?: VideoGatingProps;
+  isPlus?: boolean;
+  trialState?: TrialState;
+  onUnlockVideo?: () => void;
+  autoPlayVideo?: boolean;
+}) {
+  if (item.type !== 'done') {
+    return (
+      <LessonBlockView
+        t={t}
+        block={item}
+        videoGating={videoGating ?? { isPlus, trialState, onUnlock: onUnlockVideo, autoPlay: autoPlayVideo }}
+      />
+    );
+  }
   return (
     <View className="mt-8">
       <Button label={t('lesson.done')} onPress={onDone} />
@@ -114,8 +141,31 @@ function Item({ t, item, onDone }: { t: Translate; item: LessonItem; onDone: () 
  * reached by reading to the end; tapping it marks the Lesson read. Leaving earlier leaves it unread. `backLabel`
  * names where Back goes: the Library, or the map for a Lesson opened from its Stop.
  */
-export function LessonScreen({ t, lesson, onDone, onBack, backLabel = t('lesson.back') }: { t: Translate; lesson: LessonDef; onDone: () => void; onBack: () => void; backLabel?: string }) {
+export function LessonScreen({
+  t,
+  lesson,
+  onDone,
+  onBack,
+  backLabel = t('lesson.back'),
+  videoGating,
+  isPlus,
+  trialState,
+  onUnlockVideo,
+  autoPlayVideo,
+}: {
+  t: Translate;
+  lesson: LessonDef;
+  onDone: () => void;
+  onBack: () => void;
+  backLabel?: string;
+  videoGating?: VideoGatingProps;
+  isPlus?: boolean;
+  trialState?: TrialState;
+  onUnlockVideo?: () => void;
+  autoPlayVideo?: boolean;
+}) {
   const [progress, setProgress] = useState(0);
+  const gating: VideoGatingProps = videoGating ?? { isPlus, trialState, onUnlock: onUnlockVideo, autoPlay: autoPlayVideo };
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
     setProgress(readingProgress(contentOffset.y, contentSize.height, layoutMeasurement.height));
@@ -139,7 +189,13 @@ export function LessonScreen({ t, lesson, onDone, onBack, backLabel = t('lesson.
       </View>
       <Text className="font-display text-displayM text-ink" accessibilityRole="header">{t(lesson.title)}</Text>
       {lessonItems(lesson).map((item, i) => (
-        <Item key={i} t={t} item={item} onDone={onDone} />
+        <Item
+          key={i}
+          t={t}
+          item={item}
+          onDone={onDone}
+          videoGating={gating}
+        />
       ))}
     </Screen>
   );

@@ -9,7 +9,21 @@ import { theme } from '../ui/theme';
  * safe-area insets respected and a short entrance (a fade alone under reduced motion). The entrance
  * never disables touches, so the new screen takes input at once.
  */
-export function Screen({ children, header, scrollRef, onScroll }: { children: React.ReactNode; /** A fixed bar above the scrolling content. */ header?: React.ReactNode; scrollRef?: React.Ref<ScrollViewInstance>; onScroll?: (e: NativeSyntheticEvent<NativeScrollEvent>) => void }) {
+export function Screen({
+  children,
+  header,
+  footer,
+  scrollRef,
+  onScroll,
+}: {
+  children: React.ReactNode;
+  /** A fixed bar above the scrolling content. */
+  header?: React.ReactNode;
+  /** A fixed bar pinned at the bottom outside the scrolling content. */
+  footer?: React.ReactNode;
+  scrollRef?: React.Ref<ScrollViewInstance>;
+  onScroll?: (e: NativeSyntheticEvent<NativeScrollEvent>) => void;
+}) {
   const insets = useSafeAreaInsets();
   const { transition } = useMotion();
   const entering = transition.kind === 'fade' ? FadeIn.duration(transition.durationMs) : FadeInDown.duration(transition.durationMs);
@@ -25,16 +39,22 @@ export function Screen({ children, header, scrollRef, onScroll }: { children: Re
           ref={scrollRef}
           onScroll={onScroll}
           scrollEventThrottle={onScroll ? 32 : undefined}
+          style={{ flex: 1 }}
           contentContainerStyle={{
             alignItems: 'center',
             paddingTop: header ? theme.space[2] : insets.top + theme.space[4],
-            paddingBottom: insets.bottom + theme.space[6],
+            paddingBottom: footer ? theme.space[6] : insets.bottom + theme.space[6],
             paddingLeft: insets.left + theme.space[4],
             paddingRight: insets.right + theme.space[4],
           }}
         >
           <View style={{ width: '100%', maxWidth: theme.size.readableWidth }}>{children}</View>
         </ScrollView>
+        {footer && (
+          <View className="items-center bg-bg" style={{ paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right }}>
+            <View style={{ width: '100%', maxWidth: theme.size.readableWidth }}>{footer}</View>
+          </View>
+        )}
       </Animated.View>
     </View>
   );

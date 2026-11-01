@@ -6,6 +6,7 @@ import { WebView } from 'react-native-webview';
 import type { Translate } from '../../i18n';
 import { APP_ORIGIN, isAllowedPlayerNavigation, videoEmbedPage } from './media';
 import { LessonVideoCard, type VideoBlock } from './LessonVideoCard';
+import type { TrialState, VideoGatingProps } from '../plus';
 import { usePalette } from './theme';
 import { usePauseMediaInBackground, type WebViewHandle } from './usePauseMediaInBackground';
 
@@ -13,11 +14,29 @@ import { usePauseMediaInBackground, type WebViewHandle } from './usePauseMediaIn
  * Native: a Lesson Animation plays in `expo-video`, a YouTube video in a WebView. Either is created only after the
  * tap and pauses when the app goes to the background.
  */
-export function LessonVideo({ t, block }: { t: Translate; block: VideoBlock }) {
+export function LessonVideo({
+  t,
+  block,
+  gating,
+  isPlus,
+  trialState,
+  onUnlock,
+  autoPlay,
+}: {
+  t: Translate;
+  block: VideoBlock;
+  gating?: VideoGatingProps;
+  isPlus?: boolean;
+  trialState?: TrialState;
+  onUnlock?: () => void;
+  autoPlay?: boolean;
+}) {
+  const videoGating: VideoGatingProps = gating ?? { isPlus, trialState, onUnlock, autoPlay };
   return (
     <LessonVideoCard
       t={t}
       block={block}
+      gating={videoGating}
       renderPlayer={({ kind, uri, attempt, onLoaded, onError, onTime }) =>
         kind === 'animation' ? (
           <AnimationPlayer key={attempt} t={t} block={block} uri={uri} onLoaded={onLoaded} onError={onError} onTime={onTime} />

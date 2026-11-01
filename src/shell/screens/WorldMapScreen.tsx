@@ -12,8 +12,8 @@ import type { DailyBarkdokuSolve } from '../dogRecord';
 import { formatClock, solveTimeText } from '../puzzle/engine';
 import { worldTitle, type Progress, type Stop } from '../world';
 import type { DogRecord } from '../dogRecord';
-import { isPlus, plusEndsAt } from '../plus';
-import { Button } from '../Overlays';
+import { isPlus, plusEndsAt, trialDaysRemaining, trialState, type TrialState } from '../plus';
+import { Backdrop, Button } from '../Overlays';
 import { Badge, Chip, GearGlyph, IconChip, LightRegion, Panel, ProgressBar, Raised, StarRow } from '../ui/components';
 import { WorldSceneryBackground, HouseLandmark, worldPalette } from '../ui/WorldSceneryBackground';
 export { HouseLandmark };
@@ -26,6 +26,7 @@ import { handlePress } from '../ui/press';
 import { theme, usePalette } from '../ui/theme';
 import { useMotion } from '../ui/useMotion';
 import { Screen } from './Screen';
+import { AdBanner, getAdService } from '../ads';
 
 export interface WorldMapProps {
   t: Translate;
@@ -77,6 +78,10 @@ export interface WorldMapProps {
   expandedCompleted?: ReadonlySet<string>;
   /** Tapping a Completed World's header: open or fold its trail. */
   onToggleCompleted?: (worldId: string) => void;
+  /** Whether the LeadMate Plus active trial status modal is open. */
+  trialModalOpen?: boolean;
+  onOpenTrialModal?: () => void;
+  onCloseTrialModal?: () => void;
 }
 
 /** A flame drawn from two rotated drops, so it needs no emoji font; grey when there is no Streak to show. */
@@ -850,6 +855,117 @@ export function BarkdokuChip({ t, solve, onPress }: { t: Translate; solve?: Dail
   return <Chip label={name} value={solveTimeText(solve.seconds, solve.targetSeconds)} onPress={onPress} accessibilityLabel={`${name}. ${spoken}${met ? `. ${t('minigame.barkdoku.targetMet')}` : ''}`} />;
 }
 
+/**
+ * Header Plus chip: adapts appearance to the user's trial lifecycle:
+ * - 'unstarted': offers the 7-day trial ('7 días gratis')
+ * - 'active': shows remaining days ('Plus · X d')
+ * - 'expired': prompts conversion ('Pasar a Plus')
+ */
+export function PlusChip({
+  t,
+  state,
+  daysRemaining,
+  isSubscribed = false,
+  onPress,
+}: {
+  t: Translate;
+  state: TrialState;
+  daysRemaining?: number;
+  isSubscribed?: boolean;
+  onPress: () => void;
+}) {
+  if (isSubscribed) {
+    return (
+      <Chip
+        label={t('map.plus.chip')}
+        value={t('map.plus.subscribed')}
+        highlight
+        onPress={onPress}
+        accessibilityLabel={`${t('map.plus.chip')} · ${t('map.plus.subscribed')}`}
+      />
+    );
+  }
+  if (state === 'unstarted') {
+    return (
+      <Chip
+        label={t('map.plus.chip')}
+        value={t('paywall.badge')}
+        highlight
+        onPress={onPress}
+        accessibilityLabel={`${t('map.plus.chip')}. ${t('paywall.badge')}`}
+      />
+    );
+  }
+  if (state === 'active') {
+    const days = daysRemaining ?? 7;
+    const value = `${days} d`;
+    return (
+      <Chip
+        label={t('map.plus.chip')}
+        value={value}
+        highlight
+        onPress={onPress}
+        accessibilityLabel={`${t('map.plus.chip')} · ${value}`}
+      />
+    );
+  }
+  return (
+    <Chip
+      label={t('map.plus.chip')}
+      value={t('map.plus.expired')}
+      highlight
+      onPress={onPress}
+      accessibilityLabel={`${t('map.plus.chip')}. ${t('map.plus.expired')}`}
+    />
+  );
+}
+
+/**
+ * Modal sheet recapping active LeadMate Plus trial perks and remaining duration.
+ */
+export function TrialStatusModal({
+  t,
+  daysRemaining,
+  isSubscribed = false,
+  onDismiss,
+}: {
+  t: Translate;
+  daysRemaining: number;
+  isSubscribed?: boolean;
+  onDismiss: () => void;
+}) {
+  return (
+    <Backdrop>
+      <View className="gap-3">
+        <View className="flex-row items-center justify-between">
+          <Badge label={t('plus.label')} tone="accent" />
+          <Text className="font-display text-caption text-inkMuted">
+            {isSubscribed ? t('map.plus.subscribed') : t('trialModal.days').replace('{count}', String(daysRemaining))}
+          </Text>
+        </View>
+        <Text className="font-display text-title text-ink">{t('trialModal.title')}</Text>
+        <Text className="text-body text-inkMuted">
+          {isSubscribed ? t('trialModal.subtitleSubscribed') : t('trialModal.subtitle')}
+        </Text>
+        <View className="my-2 gap-2">
+          {([
+            { key: 'videos', text: t('trialModal.perk.videos') },
+            { key: 'skips', text: t('trialModal.perk.skips') },
+            { key: 'worlds', text: t('trialModal.perk.worlds') },
+            { key: 'adfree', text: t('trialModal.perk.adfree') },
+          ] as const).map((perk) => (
+            <View key={perk.key} className="flex-row items-center gap-2">
+              <Text className="font-display text-body text-accent">✓</Text>
+              <Text className="text-body text-ink">{perk.text}</Text>
+            </View>
+          ))}
+        </View>
+        <Button label={t('trialModal.dismiss')} onPress={onDismiss} />
+      </View>
+    </Backdrop>
+  );
+}
+
 export function WorldMapScreen({
   t,
   progress,
@@ -881,6 +997,9 @@ export function WorldMapScreen({
   covered = false,
   expandedCompleted,
   onToggleCompleted = () => {},
+  trialModalOpen,
+  onOpenTrialModal,
+  onCloseTrialModal,
 }: WorldMapProps) {
   const color = usePalette();
   const motion = useMotion();
@@ -889,6 +1008,28 @@ export function WorldMapScreen({
   const clock = useMapClock(live, progress.missions, plusEnd);
   const at = now ?? clock;
   const plus = !!membership && isPlus(membership, at);
+  const isSubscribed = !!membership?.onboarding.mockSubscribed;
+  const state = membership ? trialState(membership, at) : 'unstarted';
+  const days = membership ? trialDaysRemaining(membership, at) : 0;
+  const [internalModalOpen, setInternalModalOpen] = useState(false);
+  const isTrialModalOpen = trialModalOpen ?? internalModalOpen;
+  const openTrialModal = onOpenTrialModal ?? (() => setInternalModalOpen(true));
+  const closeTrialModal = onCloseTrialModal ?? (() => setInternalModalOpen(false));
+
+  useEffect(() => {
+    if (!plus) {
+      getAdService().showConsentFormIfRequired().catch(() => {});
+    }
+  }, [plus]);
+
+  const handlePlusPress = () => {
+    if (state === 'active' || isSubscribed) {
+      openTrialModal();
+    } else {
+      onPaywall();
+    }
+  };
+
   const model = useMemo(() => mapModel(plus ? { ...progress, plus } : progress, stars, at), [progress, plus, stars, at]);
   const scroll = useRef<ScrollViewInstance>(null);
   const [width, setWidth] = useState(theme.size.readableWidth);
@@ -950,6 +1091,7 @@ export function WorldMapScreen({
           onPress={onLibrary}
           accessibilityLabel={libraryToday ? `${t('library.chip')}. ${t('library.chipToday')}` : t('library.chip')}
         />
+        <PlusChip t={t} state={state} daysRemaining={days} isSubscribed={isSubscribed} onPress={handlePlusPress} />
         <IconChip icon={<GearGlyph />} onPress={onSettings} accessibilityLabel={t('map.settings')} />
         <Chip
           label={t('daily.title')}
@@ -969,7 +1111,12 @@ export function WorldMapScreen({
   );
 
   return (
-    <Screen header={header} scrollRef={scroll} onScroll={onScroll ? (e) => onScroll(e.nativeEvent.contentOffset.y) : undefined}>
+    <Screen
+      header={header}
+      footer={!plus ? <AdBanner isPlus={plus} /> : undefined}
+      scrollRef={scroll}
+      onScroll={onScroll ? (e) => onScroll(e.nativeEvent.contentOffset.y) : undefined}
+    >
       {banner}
       {rustyPrompt && (
         <Panel tone="warn" className="mb-4">
@@ -1006,6 +1153,14 @@ export function WorldMapScreen({
           />
         ))}
       </View>
+      {isTrialModalOpen && (
+        <TrialStatusModal
+          t={t}
+          daysRemaining={days}
+          isSubscribed={isSubscribed}
+          onDismiss={closeTrialModal}
+        />
+      )}
     </Screen>
   );
 }

@@ -50,7 +50,7 @@ const timeline = parseAnimationTimeline(JSON.stringify({ version: 1, duration: 8
  * Renders the card. `started` renders it as after the play tap; `played` also as loaded, holding `timeline` at
  * playback time `time`. The card's states, in order: started, load state, attempt, timeline, time.
  */
-function render(block: VideoBlock, started = false, opts: { mediaBase?: string; played?: { timeline: unknown; time: number } } = {}) {
+function render(block: VideoBlock, started = false, opts: { mediaBase?: string; played?: { timeline: unknown; time: number }; gating?: React.ComponentProps<typeof LessonVideoCard>['gating'] } = {}) {
   const renderPlayer = jest.fn(() => React.createElement('i', null, 'player'));
   const real = React.useState;
   const spy = jest.spyOn(React, 'useState');
@@ -58,7 +58,7 @@ function render(block: VideoBlock, started = false, opts: { mediaBase?: string; 
   for (const v of values) spy.mockImplementationOnce(() => [v, () => {}] as never);
   spy.mockImplementation(real as never);
   try {
-    return { html: renderToStaticMarkup(<LessonVideoCard t={t} block={block} renderPlayer={renderPlayer} mediaBase={opts.mediaBase} />), renderPlayer };
+    return { html: renderToStaticMarkup(<LessonVideoCard t={t} block={block} renderPlayer={renderPlayer} mediaBase={opts.mediaBase} gating={opts.gating ?? { isPlus: true, trialState: 'active' }} />), renderPlayer };
   } finally {
     spy.mockRestore();
   }
@@ -144,5 +144,45 @@ describe('LessonVideoCard subtitles', () => {
     const json = JSON.stringify({ version: 1, duration: 8, beats: [], lines: [{ id: 'hola', start: 1, end: 2 }, { id: 'bien', start: 3.2, end: 4.4, voice: 'marker' }] });
     const tl = await loadAnimationTimeline(`${base}/animations/x.json`, t, marking.caption, (() => Promise.resolve({ ok: true, text: async () => json })) as never);
     expect(tl?.lines.map((l) => l.id)).toEqual(['bien']);
+  });
+});
+
+describe('LessonVideoCard Plus gating', () => {
+  it('locks a free user out with "Desbloquear con 7 días gratis" before the trial, and the button unlocks', () => {
+    for (const block of [youtube, animation]) {
+      const onUnlock = jest.fn();
+      presses.clear();
+      const { html, renderPlayer } = render(block, false, { gating: { isPlus: false, trialState: 'unstarted', onUnlock } });
+      expect(html).toContain(es['media.video.unlockTrial']);
+      expect(html).toContain(es['media.video.locked']);
+      expect(html).not.toContain(es['media.video.unlockedPlus']);
+      expect(html).not.toContain(es['media.video.play']);
+      expect(renderPlayer).not.toHaveBeenCalled();
+      presses.get(es['media.video.unlockTrial'])!();
+      expect(onUnlock).toHaveBeenCalled();
+    }
+  });
+
+  it('offers "Desbloquear con Plus" once the trial has expired', () => {
+    const { html } = render(youtube, false, { gating: { isPlus: false, trialState: 'expired', onUnlock: () => {} } });
+    expect(html).toContain(es['media.video.unlockPlus']);
+    expect(html).not.toContain(es['media.video.unlockedPlus']);
+  });
+
+  it('never renders the player for a free user, even with a held play action', () => {
+    const { renderPlayer } = render(youtube, true, { gating: { isPlus: false, trialState: 'expired', autoPlay: true } });
+    expect(renderPlayer).not.toHaveBeenCalled();
+  });
+
+  it('shows a Plus user the "Desbloqueado con Plus" badge and the play control', () => {
+    const { html } = render(youtube);
+    expect(html).toContain(es['media.video.unlockedPlus']);
+    expect(html).toContain(es['media.video.play']);
+    expect(html).not.toContain(es['media.video.unlockTrial']);
+  });
+
+  it('starts the player at once for a Plus user with a held play action', () => {
+    const { renderPlayer } = render(youtube, false, { gating: { isPlus: true, trialState: 'active', autoPlay: true } });
+    expect(renderPlayer).toHaveBeenCalledWith(expect.objectContaining({ kind: 'youtube' }));
   });
 });

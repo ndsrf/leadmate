@@ -249,6 +249,28 @@ The YouTube videos of Lessons play on phones from a small page at a fixed origin
 `src/shell/ui/media.ts`, set to our Supabase project origin (`https://fmtcbwhmawhwvjxptjod.supabase.co`), a domain
 we control. If the project ever moves, update it there; never point it at a domain we do not own.
 
+## In-App Subscriptions (RevenueCat & StoreKit / Google Play)
+
+LeadMate Plus subscriptions (Annual and Monthly) are powered by RevenueCat, synchronizing store receipts with Supabase accounts while preserving local offline continuity ([ADR 0017](docs/adr/0017-revenuecat-and-offline-subscription-entitlements.md)).
+
+### Environment Variables
+
+Add your public API keys to `.env.local` (or CI build secrets):
+
+```bash
+EXPO_PUBLIC_REVENUECAT_APPLE_KEY=appl_...
+EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY=goog_...
+```
+
+When building or running in environments where native purchases are unavailable (such as desktop browsers, Expo Go, or unit tests), `getBillingService()` automatically falls back to `MockBillingService` without crashing or throwing errors. For native store billing, use development builds (`npx expo run:ios` / `npx expo run:android`).
+
+### Testing & Sandbox Workflows
+
+- **iOS Local StoreKit Testing:** In Xcode, attach a `.storekit` configuration file under **Edit Scheme > Run > Options > StoreKit Configuration** containing products `leadmate_plus_annual` and `leadmate_plus_monthly`. Use accelerated renewal rates to verify renewal, expiration, and offline grace behavior.
+- **Android Google Play Testing:** Set up License Testers in Google Play Console with response `RESPOND_NORMALLY` and install the app from an Internal Testing track.
+- **Purchase Restoration:** Apple App Store Review requires paywalls to include a "Restaurar compras" action. This is available on `PaywallScreen`, `ValueRecapScreen`, and `SettingsModal`.
+- **Account Deletion Compliance:** Per App Store Review Guideline 5.1.1(v), account deletion warns users that deleting their Supabase profile does not cancel recurring store subscriptions and directs them to system subscription settings.
+
 ## Adding a language
 
 1. Copy `src/i18n/es.ts` to `src/i18n/<code>.ts` and translate the values (keys stay the same;

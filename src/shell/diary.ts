@@ -23,7 +23,7 @@ export interface DiaryDay {
   dailyBest?: number;
   /** The first solve of the day's Daily Barkdoku, if solved; kept by the record, so it outlives the log. */
   dailyBarkdoku?: DailyBarkdokuSolve;
-  /** The day the free trial started. */
+  /** The day the Trial started. */
   trialStarted: boolean;
 }
 

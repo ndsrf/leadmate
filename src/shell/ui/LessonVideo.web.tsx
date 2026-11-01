@@ -1,16 +1,35 @@
 import { createElement } from 'react';
 import type { Translate } from '../../i18n';
 import { LessonVideoCard, type VideoBlock } from './LessonVideoCard';
+import type { TrialState, VideoGatingProps } from '../plus';
 
 /**
  * Web: a Lesson Animation plays in a silent, looping `<video>`, a YouTube video in an iframe; either is created only
  * after the tap. A tap on the animation pauses or resumes it; its `timeupdate` drives the subtitles.
  */
-export function LessonVideo({ t, block }: { t: Translate; block: VideoBlock }) {
+export function LessonVideo({
+  t,
+  block,
+  gating,
+  isPlus,
+  trialState,
+  onUnlock,
+  autoPlay,
+}: {
+  t: Translate;
+  block: VideoBlock;
+  gating?: VideoGatingProps;
+  isPlus?: boolean;
+  trialState?: TrialState;
+  onUnlock?: () => void;
+  autoPlay?: boolean;
+}) {
+  const videoGating: VideoGatingProps = gating ?? { isPlus, trialState, onUnlock, autoPlay };
   return (
     <LessonVideoCard
       t={t}
       block={block}
+      gating={videoGating}
       renderPlayer={({ kind, uri, attempt, onLoaded, onError, onTime }) =>
         kind === 'animation'
           ? createElement('video', {

@@ -40,7 +40,8 @@ import { findFix, findMission } from './src/shell/missions/content';
 import { acceptEasier, canMoveOn, fixFor, moveOn, startMission } from './src/shell/missions/mission';
 import type { DiaryOutcome } from './src/shell/streak';
 import { canSkipDay, missionAfterDebrief, missionEntryOf, missionForDebrief } from './src/shell/missions/missionView';
-import { canStartTrial, isPlus, progressAt, startTrialThen, type PendingPlusAction } from './src/shell/plus';
+import { getBillingService } from './src/shell/billing';
+import { applyBillingSubscription, canStartTrial, computeTrialRecap, isPlus, pendingSkipMission, progressAt, startTrialThen, subscribeThen, trialState, type PendingPlusAction } from './src/shell/plus';
 import { FixScreen, MissionBriefScreen, MissionCheckInScreen, MissionPassedScreen, MissionProblemScreen, MissionWaitingScreen } from './src/shell/screens/MissionScreens';
 import type { Stop } from './src/shell/world';
 import { lessonDay, markLessonRead, todaysLesson } from './src/shell/lessons/lesson';
@@ -48,9 +49,11 @@ import { LessonScreen, LibraryScreen } from './src/shell/screens/LessonScreens';
 import { WorldMapScreen } from './src/shell/screens/WorldMapScreen';
 import { CheckpointScreen, DebriefScreen, PrimerScreen } from './src/shell/screens/NodeScreens';
 import { PosteMinigameView } from './src/shell/screens/PosteMinigameView';
+import { getAdService } from './src/shell/ads';
 import { ReadDogView } from './src/shell/screens/ReadDogView';
 import { DiagnosticView } from './src/shell/screens/DiagnosticView';
 import { PaywallScreen } from './src/shell/screens/PaywallScreen';
+import { ValueRecapScreen } from './src/shell/screens/ValueRecapScreen';
 import { PlanScreen } from './src/shell/screens/PlanScreen';
 import { DogLookScreen, PayoffOverlay } from './src/shell/screens/IntroScreens';
 import { SetupScreen } from './src/shell/screens/SetupScreen';
@@ -89,7 +92,7 @@ type Flow =
   | { name: 'library' }
   | { name: 'diary' }
   /** A Lesson from the Library, or from its Stop on the map; Done and Back return there. */
-  | { name: 'lesson'; id: string; returnTo: 'map' | 'library' }
+  | { name: 'lesson'; id: string; returnTo: 'map' | 'library'; autoPlayVideo?: boolean }
   /** A Mission Stop's screens; a Fix opened from "Tus ajustes" returns to the Library. */
   | { name: 'mission'; id: string; view: MissionView; fixId?: string; returnTo?: 'map' | 'library' }
   /** The paywall from the map, or from a Plus-only action (`then`) that "Empezar prueba" completes. */
@@ -142,6 +145,7 @@ export default function App() {
   const [bundle, setBundle] = useState<'loading' | 'ready' | 'error'>('loading');
   const [paused, setPaused] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [trialModalOpen, setTrialModalOpen] = useState(false);
   const [flow, setFlow] = useState<Flow | null>(null);
   const [hint, setHint] = useState<HintId | null>(null);
   // the approaching-dog warning: where the dog comes from on screen, while it is shown
@@ -182,12 +186,24 @@ export default function App() {
     }
   }, [splashReady, record, fontsLoaded, fontTimedOut, minSplashElapsed]);
 
+  // Value Recap on cold start: decided once when the record is first loaded, never mid-session
+  const coldStartNeedsRecap = useRef<boolean | null>(null);
+  if (record && coldStartNeedsRecap.current === null) {
+    coldStartNeedsRecap.current =
+      record.onboarding.step === 'done' &&
+      !record.onboarding.mockSubscribed &&
+      trialState(record, new Date()) === 'expired' &&
+      !record.onboarding.trialRecapSeenAt;
+  }
+  const needsRecap = Boolean(coldStartNeedsRecap.current && !record?.onboarding.trialRecapSeenAt);
+
   const route = routeFor({
     ready: splashReady,
     onboardingStep: record?.onboarding.step,
     flow,
     accountFlow: flow?.name === 'auth' || flow?.name === 'register',
     settingsOpen,
+    needsRecap,
   });
   const routeRef = useRef(route);
   routeRef.current = route;
@@ -324,6 +340,9 @@ export default function App() {
   useEffect(() => {
     const f = flowRef.current;
     if (debriefId === null || f?.name !== 'node') return;
+    if (recordRef.current && !isPlus(recordRef.current, new Date())) {
+      getAdService().preloadInterstitial().catch(() => {});
+    }
     let diff: Celebration[] = [];
     update((r) => {
       const now = new Date();
@@ -403,6 +422,9 @@ export default function App() {
           const completion = completeDaily(before, payload, now);
           update(() => completion.record);
           setWarmup((w) => warmupAfterDaily(w));
+          if (!isPlus(completion.record, now)) {
+            getAdService().preloadInterstitial().catch(() => {});
+          }
           const list = celebrationsFor(progressAt(before, now), progressAt(completion.record, now), { kind: 'daily', improved: completion.improved, firstOfDay: completion.firstOfDay, best: completion.best });
           setFlow({ ...f, result: { payload, completion, celebrations: list } });
         } else if (routeRef.current.name === 'taste') {
@@ -425,6 +447,18 @@ export default function App() {
 
   useEffect(() => {
     prepareAudio(false);
+    const billing = getBillingService();
+    billing
+      .initialize()
+      .then(async () => {
+        try {
+          const entitlement = await billing.checkEntitlements();
+          if (recordRef.current) {
+            update((r) => applyBillingSubscription(r, entitlement, new Date()));
+          }
+        } catch {}
+      })
+      .catch(() => {});
   }, []);
 
   // a bundle that never reports ready counts as a load failure
@@ -521,7 +555,7 @@ export default function App() {
     if (!r) return;
     const now = new Date();
     if (!isPlus(r, now)) {
-      setFlow({ name: 'paywall', then: { skipMission: id } });
+      setFlow({ name: 'paywall', then: { kind: 'skip', missionId: id } });
       return;
     }
     update((rec) => applyDaySkip(rec, id, now));
@@ -634,6 +668,9 @@ export default function App() {
           breed={record.breed}
           coat={record.coat}
           onPaywall={() => setFlow({ name: 'paywall' })}
+          trialModalOpen={trialModalOpen}
+          onOpenTrialModal={() => setTrialModalOpen(true)}
+          onCloseTrialModal={withBack(() => setTrialModalOpen(false))}
           covered={overlay !== null}
           banner={
             account.signedIn && account.sync.paused === 'verify' ? (
@@ -745,7 +782,113 @@ export default function App() {
       choosingDog = true;
       screen = <ChooseDogScreen t={t} local={record} cloud={migrateRecord(account.choice[0].record)} onChoose={account.chooseDog} />;
     } else if (record) {
-      screen = <PaywallScreen t={t} onStartTrial={() => update((r) => passPaywall(r, true, new Date()))} onLater={() => update((r) => passPaywall(r, false, new Date()))} />;
+      const onRestore = async () => {
+        const at = new Date();
+        const billing = getBillingService();
+        try {
+          const res = await billing.restorePurchases();
+          if (res.success && res.isPlus) {
+            const entitlement = await billing.checkEntitlements();
+            update((r) => {
+              const withBilling = applyBillingSubscription(r, entitlement, at);
+              return passPaywall(withBilling, true, at);
+            });
+          }
+        } catch {}
+      };
+      screen = (
+        <PaywallScreen
+          t={t}
+          onStartTrial={() => update((r) => passPaywall(r, true, new Date()))}
+          onRestore={onRestore}
+          onLater={() => update((r) => passPaywall(r, false, new Date()))}
+        />
+      );
+    }
+  } else if (route.name === 'recap') {
+    if (record) {
+      const { activeStreakDays, videosWatched, skipsUsed } = computeTrialRecap(record, LESSONS);
+      const onDismissRecap = () => {
+        update((r) => ({
+          ...r,
+          onboarding: {
+            ...r.onboarding,
+            trialRecapSeenAt: new Date().toISOString(),
+          },
+        }));
+      };
+      const onSubscribe = async () => {
+        const at = new Date();
+        const billing = getBillingService();
+        try {
+          const entitlement = await billing.checkEntitlements();
+          update((r) => {
+            const withBilling = applyBillingSubscription(
+              {
+                ...r,
+                onboarding: {
+                  ...r.onboarding,
+                  trialRecapSeenAt: at.toISOString(),
+                },
+              },
+              entitlement,
+              at,
+            );
+            return subscribeThen(withBilling, undefined, at);
+          });
+        } catch {
+          update((r) =>
+            subscribeThen(
+              {
+                ...r,
+                onboarding: {
+                  ...r.onboarding,
+                  trialRecapSeenAt: at.toISOString(),
+                },
+              },
+              undefined,
+              at,
+            ),
+          );
+        }
+      };
+      const onRestore = async () => {
+        const at = new Date();
+        const billing = getBillingService();
+        try {
+          const res = await billing.restorePurchases();
+          if (res.success && res.isPlus) {
+            const entitlement = await billing.checkEntitlements();
+            update((r) => {
+              const withBilling = applyBillingSubscription(
+                {
+                  ...r,
+                  onboarding: {
+                    ...r.onboarding,
+                    trialRecapSeenAt: at.toISOString(),
+                  },
+                },
+                entitlement,
+                at,
+              );
+              return subscribeThen(withBilling, undefined, at);
+            });
+          }
+        } catch {}
+      };
+      screen = (
+        <ValueRecapScreen
+          t={t}
+          dogName={record.name}
+          streakDays={activeStreakDays}
+          videosWatched={videosWatched}
+          skipsUsed={skipsUsed}
+          onSubscribeAnnual={onSubscribe}
+          onSubscribeMonthly={onSubscribe}
+          onRestore={onRestore}
+          onContinueFree={withBack(onDismissRecap)}
+        />
+      );
     }
   } else if (route.name === 'map' || route.name === 'settings') {
     if (account.choice && account.signedIn && record) {
@@ -773,6 +916,9 @@ export default function App() {
       screen = mapWith(<DiaryScreen t={t} record={record} today={todayString()} onBack={withBack(goHome)} />);
     } else if (f.name === 'lesson' && record) {
       const lesson = findLesson(f.id);
+      const now = new Date();
+      const plus = isPlus(record, now);
+      const state = trialState(record, now);
       const back = withBack(() => (f.returnTo === 'map' ? goHome() : setFlow({ name: 'library' })));
       screen = mapWith(
         lesson ? (
@@ -780,6 +926,10 @@ export default function App() {
             t={t}
             lesson={lesson}
             backLabel={t(f.returnTo === 'map' ? 'lesson.backToMap' : 'lesson.back')}
+            isPlus={plus}
+            trialState={state}
+            autoPlayVideo={f.autoPlayVideo}
+            onUnlockVideo={() => setFlow({ name: 'paywall', then: { kind: 'video', lessonId: lesson.id, returnTo: f.returnTo } })}
             onDone={() => {
               update((r) => markLessonRead(r, lesson.id, new Date()));
               back();
@@ -849,7 +999,12 @@ export default function App() {
             completion={f.result.completion}
             celebrations={f.result.celebrations}
             onReplay={() => setFlow({ ...f, attempt: f.attempt + 1, result: null })}
-            onDone={withBack(goHome)}
+            onDone={withBack(async () => {
+              if (recordRef.current && !isPlus(recordRef.current, new Date())) {
+                await getAdService().showInterstitial().catch(() => {});
+              }
+              goHome();
+            })}
           />
         );
       } else {
@@ -857,19 +1012,76 @@ export default function App() {
         withBack(goHome);
       }
     } else if (f.name === 'paywall') {
+      const now = new Date();
+      const expired = record ? trialState(record, now) === 'expired' : false;
+      const resolvePendingPlus = (action: PendingPlusAction | undefined, unlocked: boolean) => {
+        if (!action) {
+          goHome();
+          return;
+        }
+        if ('kind' in action && action.kind === 'video') {
+          const returnTo = action.returnTo ?? 'map';
+          setFlow({ name: 'lesson', id: action.lessonId, returnTo, autoPlayVideo: unlocked });
+          return;
+        }
+        const missionId = pendingSkipMission(action);
+        if (missionId) {
+          if (unlocked) {
+            mapScroll.current = undefined;
+            goHome();
+          } else {
+            setFlow({ name: 'mission', id: missionId, view: missionEntry(missionId) });
+          }
+        } else {
+          goHome();
+        }
+      };
+      const onSubscribe = async () => {
+        const at = new Date();
+        const billing = getBillingService();
+        try {
+          const entitlement = await billing.checkEntitlements();
+          update((r) => {
+            const withBilling = applyBillingSubscription(r, entitlement, at);
+            return subscribeThen(withBilling, f.then, at);
+          });
+        } catch {
+          update((r) => subscribeThen(r, f.then, at));
+        }
+        getAdService().clearCache();
+        resolvePendingPlus(f.then, true);
+      };
+      const onRestore = async () => {
+        const at = new Date();
+        const billing = getBillingService();
+        try {
+          const res = await billing.restorePurchases();
+          if (res.success && res.isPlus) {
+            const entitlement = await billing.checkEntitlements();
+            update((r) => {
+              const withBilling = applyBillingSubscription(r, entitlement, at);
+              return subscribeThen(withBilling, f.then, at);
+            });
+            getAdService().clearCache();
+            resolvePendingPlus(f.then, true);
+          }
+        } catch {}
+      };
       screen = (
         <PaywallScreen
           t={t}
+          mode={expired ? 'subscription' : 'trial'}
           onStartTrial={() => {
             const now = new Date();
-            // a trial that already ended does not restart, so the held skip is not done: back to its Mission
             const done = !!f.then && !!recordRef.current && canStartTrial(recordRef.current, now);
             update((r) => startTrialThen(r, f.then, now));
-            if (done) mapScroll.current = undefined;
-            if (f.then && !done) setFlow({ name: 'mission', id: f.then.skipMission, view: missionEntry(f.then.skipMission) });
-            else goHome();
+            resolvePendingPlus(f.then, done);
+            getAdService().clearCache();
           }}
-          onLater={withBack(() => (f.then ? setFlow({ name: 'mission', id: f.then.skipMission, view: missionEntry(f.then.skipMission) }) : goHome()))}
+          onSubscribeAnnual={onSubscribe}
+          onSubscribeMonthly={onSubscribe}
+          onRestore={onRestore}
+          onLater={withBack(() => resolvePendingPlus(f.then, false))}
         />
       );
     } else if (f.name === 'warmup') {
@@ -946,11 +1158,17 @@ export default function App() {
             celebrations={celebrations?.id === `${run.node.id}:${f.attempt}` ? celebrations.list : []}
             onPosteLink={() => startNodeRun(POSTE_PRACTICE)}
             onPlayAgain={() => setFlow({ ...f, run: { ...run, step: 'simulation', result: null }, attempt: f.attempt + 1 })}
-            onDone={withBack(() => {
+            onDone={withBack(async () => {
               // the Debrief of a Stretch's last Node opens its Mission brief
               const next = missionAfterDebrief(run.node.id, progressAt(record, new Date()), new Date());
-              if (next) setFlow({ name: 'mission', id: next, view: 'brief' });
-              else goHome();
+              if (next) {
+                setFlow({ name: 'mission', id: next, view: 'brief' });
+              } else {
+                if (recordRef.current && !isPlus(recordRef.current, new Date())) {
+                  await getAdService().showInterstitial().catch(() => {});
+                }
+                goHome();
+              }
             })}
           />
         );

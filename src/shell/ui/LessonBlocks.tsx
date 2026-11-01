@@ -6,10 +6,28 @@ import { LessonImage, LessonPicture } from './LessonImage';
 import { LessonVideo } from './LessonVideo';
 import { Panel, Raised } from './components';
 import { theme, usePalette } from './theme';
+import type { TrialState, VideoGatingProps } from '../plus';
 
 /** One Lesson-style block: a heading, text, a tip, an image, a video, steps, an example, a do / don't or takeaways. Lessons and Fixes are drawn with it. */
-export function LessonBlockView({ t, block }: { t: Translate; block: LessonBlock }) {
+export function LessonBlockView({
+  t,
+  block,
+  videoGating,
+  isPlus,
+  trialState,
+  onUnlockVideo,
+  autoPlayVideo,
+}: {
+  t: Translate;
+  block: LessonBlock;
+  videoGating?: VideoGatingProps;
+  isPlus?: boolean;
+  trialState?: TrialState;
+  onUnlockVideo?: () => void;
+  autoPlayVideo?: boolean;
+}) {
   const color = usePalette();
+  const gating: VideoGatingProps = videoGating ?? { isPlus, trialState, onUnlock: onUnlockVideo, autoPlay: autoPlayVideo };
   switch (block.type) {
     case 'heading':
       return <Text className="mt-6 font-display text-title text-ink" accessibilityRole="header">{t(block.text)}</Text>;
@@ -25,7 +43,13 @@ export function LessonBlockView({ t, block }: { t: Translate; block: LessonBlock
     case 'image':
       return <LessonImage t={t} block={block} />;
     case 'video':
-      return <LessonVideo t={t} block={block} />;
+      return (
+        <LessonVideo
+          t={t}
+          block={block}
+          gating={gating}
+        />
+      );
     case 'steps':
       return (
         <View className="mt-4" accessibilityRole="list">
@@ -103,11 +127,33 @@ function CompareCard({ t, side, good }: { t: Translate; side: CompareSide; good:
 }
 
 /** Blocks in declared order, in a single column. */
-export function LessonBlocks({ t, blocks }: { t: Translate; blocks: readonly LessonBlock[] }) {
+export function LessonBlocks({
+  t,
+  blocks,
+  videoGating,
+  isPlus,
+  trialState,
+  onUnlockVideo,
+  autoPlayVideo,
+}: {
+  t: Translate;
+  blocks: readonly LessonBlock[];
+  videoGating?: VideoGatingProps;
+  isPlus?: boolean;
+  trialState?: TrialState;
+  onUnlockVideo?: () => void;
+  autoPlayVideo?: boolean;
+}) {
+  const gating: VideoGatingProps = videoGating ?? { isPlus, trialState, onUnlock: onUnlockVideo, autoPlay: autoPlayVideo };
   return (
     <>
       {blocks.map((block, i) => (
-        <LessonBlockView key={i} t={t} block={block} />
+        <LessonBlockView
+          key={i}
+          t={t}
+          block={block}
+          videoGating={gating}
+        />
       ))}
     </>
   );

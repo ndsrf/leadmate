@@ -128,8 +128,20 @@ export function AccountBanner({ t, kind, onAction, onDismiss }: { t: Translate; 
 }
 
 /** The Account section of settings: status, log in or out, restoring the backup, and in-app account deletion. */
-export function AccountSection({ t, account, onLogIn, onForget }: { t: Translate; account: Account; onLogIn: () => void; onForget: () => void }) {
-  const [confirming, setConfirming] = useState(false);
+export function AccountSection({
+  t,
+  account,
+  onLogIn,
+  onForget,
+  initialConfirming = false,
+}: {
+  t: Translate;
+  account: Account;
+  onLogIn: () => void;
+  onForget: () => void;
+  initialConfirming?: boolean;
+}) {
+  const [confirming, setConfirming] = useState(initialConfirming);
   const [message, setMessage] = useState<TextKey | null>(null);
   const { auth } = account;
   return (
@@ -145,6 +157,7 @@ export function AccountSection({ t, account, onLogIn, onForget }: { t: Translate
           {confirming ? (
             <View className="mt-2">
               <Text className="text-body text-dangerText">{t('account.delete.confirm')}</Text>
+              <Text className="mt-2 text-caption text-inkMuted">{t('account.delete.subscriptionAdvisory')}</Text>
               <Button
                 label={t('account.delete.yes')}
                 onPress={async () => {
