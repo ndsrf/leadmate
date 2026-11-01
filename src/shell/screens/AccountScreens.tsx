@@ -177,7 +177,7 @@ export function AccountSection({
         </>
       ) : (
         <>
-          <Text className="text-body text-inkMuted">{t('account.signedOut')}</Text>
+          <Text className="text-body text-inkMuted">{t(account.sync.dogId !== null ? 'account.signedOutPaired' : 'account.signedOut')}</Text>
           <Button label={t('account.logIn')} onPress={onLogIn} />
         </>
       )}

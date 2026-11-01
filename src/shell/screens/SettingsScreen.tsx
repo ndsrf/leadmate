@@ -73,6 +73,17 @@ function DogNameField({ label, value, onCommit }: { label: string; value: string
   return <TextField accessibilityLabel={label} value={text} onChangeText={setText} onBlur={commit} onSubmitEditing={commit} maxLength={DOG_NAME_MAX} autoCapitalize="words" returnKeyType="done" />;
 }
 
+/** The Reset confirmation's wording; a device still paired with an account's Dog is told the account copy is kept. */
+export function ResetConfirmText({ t, paired }: { t: Translate; paired: boolean }) {
+  return (
+    <>
+      <Text className="font-display text-title text-dangerText">{t('settings.reset.confirmTitle')}</Text>
+      <Text className="mt-3 text-body text-inkMuted">{t('settings.reset.confirmBody')}</Text>
+      {paired && <Text className="mt-2 text-body text-inkMuted">{t('settings.reset.confirmAccountNote')}</Text>}
+    </>
+  );
+}
+
 type RecordState = 'idle' | 'recording' | 'denied';
 
 export function SettingsScreen({
@@ -267,7 +278,7 @@ export function SettingsScreen({
 
       <AccountSection t={t} account={account} onLogIn={onLogIn} onForget={account.forgetAccount} />
 
-      {shouldShowResetSection(account.signedIn, account.sync.dogId !== null) && (
+      {shouldShowResetSection(account.signedIn) && (
         <Panel className="mb-5">
           <Text className="mb-1 font-display text-title text-dangerText">{t('settings.reset.title')}</Text>
           <Text className="mb-3 text-body text-inkMuted">{t('settings.reset.desc')}</Text>
@@ -286,8 +297,7 @@ export function SettingsScreen({
           <PaletteRoot className="flex-1">
           <SafeAreaView className="flex-1 items-center justify-center bg-outline/70 p-4">
             <Panel className="w-full max-w-sm">
-              <Text className="font-display text-title text-dangerText">{t('settings.reset.confirmTitle')}</Text>
-              <Text className="mt-3 text-body text-inkMuted">{t('settings.reset.confirmBody')}</Text>
+              <ResetConfirmText t={t} paired={account.sync.dogId !== null} />
               <View className="mt-4 gap-3">
                 <Button label={t('settings.reset.cancelButton')} tone="secondary" onPress={() => setShowResetModal(false)} />
                 <Button

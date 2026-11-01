@@ -69,6 +69,7 @@ import { DEFAULT_UI_SETTINGS } from '../ui/uiSettings';
 import { MockBillingService } from '../billing';
 import { SettingsModal } from './SettingsModal';
 import { AccountSection } from './AccountScreens';
+import { ResetConfirmText } from './SettingsScreen';
 import { NEW_SYNC_STATE } from '../sync/state';
 
 describe('SettingsModal', () => {
@@ -78,11 +79,11 @@ describe('SettingsModal', () => {
     for (const k of Object.keys(pressed)) delete pressed[k];
   });
 
-  const fakeAccount = (signedIn = false, authApi: any = null) => ({
+  const fakeAccount = (signedIn = false, authApi: any = null, dogId: string | null = null) => ({
     configured: true,
     signedIn,
     auth: authApi,
-    sync: NEW_SYNC_STATE,
+    sync: { ...NEW_SYNC_STATE, dogId },
     choice: null,
     chooseDog: jest.fn(),
     backup: null,
@@ -178,5 +179,60 @@ describe('SettingsModal', () => {
 
     expect(confirmingMarkup).toContain('¿Eliminar la cuenta?');
     expect(confirmingMarkup).toContain('Nota importante: Eliminar tu cuenta no cancela tu suscripción');
+  });
+
+  describe('Reset progress', () => {
+    const renderSettings = (account: ReturnType<typeof fakeAccount>) =>
+      renderToStaticMarkup(
+        <SettingsModal
+          t={t}
+          language="es"
+          record={newDogRecord()}
+          update={jest.fn()}
+          onClose={jest.fn()}
+          account={account}
+          onLogIn={jest.fn()}
+          ui={{ settings: DEFAULT_UI_SETTINGS, change: jest.fn() }}
+          onReset={jest.fn()}
+          billingService={new MockBillingService()}
+        />
+      );
+
+    it('is offered when signed out even while the device is still paired with an account Dog', () => {
+      expect(renderSettings(fakeAccount(false, null, 'd1'))).toContain(es['settings.reset.desc']);
+      expect(renderSettings(fakeAccount(false, null, null))).toContain(es['settings.reset.desc']);
+    });
+
+    it('is hidden while signed in', () => {
+      const auth = { deleteAccount: jest.fn(), signOut: jest.fn() };
+      expect(renderSettings(fakeAccount(true, auth, 'd1'))).not.toContain(es['settings.reset.desc']);
+    });
+
+    it('confirmation says the account Dog is kept only when the device is paired', () => {
+      const paired = renderToStaticMarkup(<ResetConfirmText t={t} paired />);
+      expect(paired).toContain(es['settings.reset.confirmBody']);
+      expect(paired).toContain(es['settings.reset.confirmAccountNote']);
+      const unpaired = renderToStaticMarkup(<ResetConfirmText t={t} paired={false} />);
+      expect(unpaired).toContain(es['settings.reset.confirmBody']);
+      expect(unpaired).not.toContain(es['settings.reset.confirmAccountNote']);
+    });
+  });
+
+  describe('Account section while signed out', () => {
+    const auth = { deleteAccount: jest.fn(), signOut: jest.fn() };
+    const render = (dogId: string | null) =>
+      renderToStaticMarkup(<AccountSection t={t} account={fakeAccount(false, auth, dogId)} onLogIn={jest.fn()} onForget={jest.fn()} />);
+
+    it('says the progress is only on this device when never paired', () => {
+      const html = render(null);
+      expect(html).toContain(es['account.signedOut']);
+      expect(html).not.toContain(es['account.signedOutPaired']);
+    });
+
+    it('says the Dog is still saved in the account when logged out but still paired', () => {
+      const html = render('d1');
+      expect(html).toContain(es['account.signedOutPaired']);
+      expect(html).not.toContain(es['account.signedOut']);
+    });
   });
 });

@@ -400,8 +400,12 @@ This device's choice of System, Light or Dark colours for the app's screens. It 
 _Avoid_: Theme, dark mode, night mode
 
 **Reset Progress**:
-A deliberate, confirmed return of a local-only Dog to its first-run state, available only while signed out. It never touches an account or a cloud Dog.
+A deliberate, confirmed return of this device's Dog to its first-run state, available only while signed out. It ends any Pairing but never changes the account's Dog.
 _Avoid_: Delete account, wipe, factory reset
+
+**Pairing**:
+The bond between a device's Dog and one Dog saved in an account, which keeps the two in sync. Logging out keeps it; Reset Progress and account deletion end it.
+_Avoid_: Link, connection, attachment
 
 **Funnel**:
 The first-run sequence a new Dog goes through once: welcome, name and look, Taste Stage with its payoff, Dog setup, Diagnostic, Walk Plan, the guided first Stage and the soft paywall. It ends at the World Map and runs again only after Reset Progress.

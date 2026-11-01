@@ -3,12 +3,12 @@ import { newDogRecord, saveDogRecord, touch, type DogRecord, type KeyValueStore 
 import { NEW_SYNC_STATE, saveSyncState } from './sync/state';
 
 /**
- * Whether the Reset section should be rendered in Settings: only for a Dog with no cloud copy,
- * so never while signed in and never while the device is still paired with an account's Dog
- * (not even disabled). A paired Dog is detached by deleting the account.
+ * Whether the Reset section should be rendered in Settings: whenever signed out, a device still
+ * paired with an account's Dog included, and never while signed in (not even disabled).
+ * Reset itself ends the Pairing, so the account's Dog is never merged into or changed.
  */
-export function shouldShowResetSection(signedIn: boolean, paired: boolean = false): boolean {
-  return !signedIn && !paired;
+export function shouldShowResetSection(signedIn: boolean): boolean {
+  return !signedIn;
 }
 
 /**

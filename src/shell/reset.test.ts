@@ -200,9 +200,9 @@ describe('resetProgress', () => {
     expect(shouldShowResetSection(true)).toBe(false);
   });
 
-  it('section hidden while the device is paired with a cloud Dog, even when signed out', () => {
-    expect(shouldShowResetSection(false, true)).toBe(false);
-    expect(shouldShowResetSection(false, false)).toBe(true);
+  it('section shown when signed out, whether or not the device is still paired with a cloud Dog', () => {
+    // visibility depends on sign-in alone: a paired, signed-out device can reset too
+    expect(shouldShowResetSection(false)).toBe(true);
   });
 
   it('after a reset, logging in to an account with a Dog takes that Dog, and registering uploads only the reset Dog', async () => {
