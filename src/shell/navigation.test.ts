@@ -366,7 +366,7 @@ describe('backAction', () => {
 });
 
 describe('stageViewWanted', () => {
-  const node = (mode: 'stage' | 'minigame', step: string) => ({ name: 'flow' as const, flow: { name: 'node', run: { step, node: { mode } } } });
+  const node = (mode: 'stage' | 'minigame' | 'close_exercise', step: string) => ({ name: 'flow' as const, flow: { name: 'node', run: { step, node: { mode } } } });
 
   it('is false on shell screens', () => {
     for (const route of [{ name: 'map' }, { name: 'settings' }, { name: 'recap' }, { name: 'splash' }, { name: 'paywall' }] as const) {
@@ -379,6 +379,11 @@ describe('stageViewWanted', () => {
   it('is true from the Primer through the walk of a Stage Node, false at the Debrief', () => {
     for (const step of ['primer', 'checkpoint', 'simulation']) expect(stageViewWanted({ route: node('stage', step) })).toBe(true);
     expect(stageViewWanted({ route: node('stage', 'debrief') })).toBe(false);
+  });
+
+  it('is true from the Primer through simulation for a close exercise Node, false at the Debrief', () => {
+    for (const step of ['primer', 'checkpoint', 'simulation']) expect(stageViewWanted({ route: node('close_exercise', step) })).toBe(true);
+    expect(stageViewWanted({ route: node('close_exercise', 'debrief') })).toBe(false);
   });
 
   it('is never true for a Minigame Node, even one that carries a scenario', () => {

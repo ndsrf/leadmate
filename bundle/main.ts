@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { createTranslator, es, type Catalog, type Translate } from '../src/i18n';
-import { defaultScenario } from '../src/sim/config';
+import { defaultScenario, type ScenarioConfig } from '../src/sim/config';
 import {
   SHELL_MESSAGE_TYPES,
   createOutbox,
@@ -11,6 +11,8 @@ import { newSeed } from '../src/sim/rng';
 import { validateScenario } from '../src/sim/scenery';
 import { showPause, showResults } from './src/overlay';
 import { StageScene, type StageOptions } from './src/StageScene';
+import { CloseExerciseScene, type CloseExerciseOptions } from './src/CloseExerciseScene';
+import type { CloseExerciseConfig } from '../src/sim/closeExercise';
 
 const send = createOutbox(window as never);
 const embedded = Boolean((window as { ReactNativeWebView?: unknown }).ReactNativeWebView) || window.parent !== window;
@@ -49,7 +51,7 @@ const game = new Phaser.Game({
  * `loop.frame` counts every requestAnimationFrame/timer callback, including the ones the fps limit skips (PRE_STEP
  * only fires for frames that pass it).
  */
-const perf = { frames: 0, get wakes() { return game.loop.frame; }, steps: () => scene()?.simSteps ?? 0 };
+const perf = { frames: 0, get wakes() { return game.loop.frame; }, steps: () => activeScene()?.simSteps ?? 0 };
 game.events.on(Phaser.Core.Events.POST_RENDER, () => perf.frames++);
 
 // One owner decides whether the render loop runs. It sleeps when no Stage is on screen (shell said so), the app or
@@ -61,8 +63,9 @@ let sleepPending = false;
 function shouldRun(): boolean {
   if (suspended || document.hidden) return false;
   if (starting) return true;
-  const s = scene();
-  return Boolean(s) && game.scene.isActive('stage') && !s!.isPaused && !s!.isEnded;
+  const s = activeScene();
+  const isActive = game.scene.isActive('stage') || game.scene.isActive('close_exercise');
+  return Boolean(s) && isActive && !s!.isPaused && !s!.isEnded;
 }
 
 function sleepAfterFrame(): void {
@@ -99,8 +102,10 @@ window.addEventListener('resize', drawOnce);
 window.addEventListener('orientationchange', drawOnce);
 
 game.scene.add('stage', StageScene, false);
+game.scene.add('close_exercise', CloseExerciseScene, false);
 
-function scene(): StageScene | undefined {
+function activeScene(): StageScene | CloseExerciseScene | undefined {
+  if (game.scene.isActive('close_exercise')) return game.scene.getScene('close_exercise') as CloseExerciseScene;
   return game.scene.getScene('stage') as StageScene | undefined;
 }
 
@@ -109,9 +114,41 @@ function startStage(message: Extract<ShellMessage, { type: 'start' }> | null): v
   closeOverlay = null;
   const catalog: Catalog | undefined = message?.catalog;
   t = createTranslator(catalog ?? es);
+
+  const isCloseExercise =
+    (message?.scenario as { mode?: string })?.mode === 'close_exercise' ||
+    new URLSearchParams(location.search).get('scene') === 'close';
+
+  if (isCloseExercise) {
+    const options: CloseExerciseOptions = {
+      seed: message?.seed ?? newSeed(),
+      scenario: (message?.scenario as unknown as Partial<CloseExerciseConfig>) ?? {},
+      t,
+      onCue: (cueType) => send({ type: 'playCue', cueType }),
+      onTier: (tier, time) => send({ type: 'reaction-tier-change', tier, time }),
+      onSignal: (signal, time, detail) => send({ type: 'stage-signal', signal, time, ...detail }),
+      onReady: () => {
+        starting = false;
+        setRunning();
+      },
+      onEnd: (payload) => {
+        setRunning();
+        send({ type: 'debrief', payload });
+        if (!embedded) closeOverlay = showResults(t, payload, () => startStage(null));
+      },
+    };
+
+    suspended = false;
+    starting = true;
+    setRunning();
+    if (game.scene.isActive('stage')) game.scene.stop('stage');
+    game.scene.start('close_exercise', options);
+    return;
+  }
+
   const options: StageOptions = {
     seed: message?.seed ?? newSeed(),
-    scenario: { ...defaultScenario, ...message?.scenario },
+    scenario: { ...defaultScenario, ...(message?.scenario as Partial<ScenarioConfig>) },
     t,
     onCue: (cueType) => send({ type: 'playCue', cueType }),
     onTier: (tier, time) => send({ type: 'reaction-tier-change', tier, time }),
@@ -131,12 +168,14 @@ function startStage(message: Extract<ShellMessage, { type: 'start' }> | null): v
   suspended = false;
   starting = true;
   setRunning();
+  if (game.scene.isActive('close_exercise')) game.scene.stop('close_exercise');
   game.scene.start('stage', options);
 }
 
 function pause(): void {
-  const s = scene();
-  if (!s || s.isPaused || s.isEnded || !game.scene.isActive('stage')) return;
+  const s = activeScene();
+  const isActive = game.scene.isActive('stage') || game.scene.isActive('close_exercise');
+  if (!s || s.isPaused || s.isEnded || !isActive) return;
   s.pauseStage();
   setRunning();
   send({ type: 'paused' });
@@ -146,7 +185,7 @@ function pause(): void {
 function resume(): void {
   closeOverlay?.();
   closeOverlay = null;
-  scene()?.resumeStage();
+  activeScene()?.resumeStage();
   setRunning();
   window.focus();
 }
@@ -156,7 +195,7 @@ function onMessage(raw: unknown): void {
   if (!message) return;
   if (message.type === 'start') startStage(message);
   else if (message.type === 'pause') pause();
-  else if (message.type === 'focus') scene()?.focusCamera();
+  else if (message.type === 'focus') activeScene()?.focusCamera();
   else if (message.type === 'suspend') {
     suspended = true;
     setRunning();
@@ -182,7 +221,7 @@ game.events.once(Phaser.Core.Events.READY, () => {
 });
 
 // debug handle for scripted checks in a desktop browser
-(window as unknown as { __leadmate: unknown }).__leadmate = { game, scene, startStage, perf };
+(window as unknown as { __leadmate: unknown }).__leadmate = { game, scene: activeScene, startStage, perf };
 
 // dev readout: ?perf=1 shows loop wakeups/s, frames/s, simulation steps/s and ms per frame
 if (new URLSearchParams(location.search).has('perf')) {

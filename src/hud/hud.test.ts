@@ -1,5 +1,5 @@
 import { es } from '../i18n';
-import { applyDetents, keyboardInput, screenToWorldDirection } from './input';
+import { applyDetents, keyboardInput, mapCloseKeyboardEvent, screenToWorldDirection } from './input';
 import { project, unproject } from './iso';
 import { CUE_LABEL_WIDTH, CUE_RADIUS, fitFontSize, hudLayout, MARKER_RADIUS, SNIFF_RADIUS, textWidth, visibleCues } from './layout';
 
@@ -134,5 +134,17 @@ describe('Cue and Go Sniff buttons', () => {
       const longer = es[key] + es[key].slice(0, Math.ceil(es[key].length * 0.4));
       expect(textWidth(longer, fitFontSize(longer, CUE_LABEL_WIDTH, 14))).toBeLessThanOrEqual(CUE_LABEL_WIDTH + 1e-9);
     }
+  });
+});
+
+describe('close exercise keyboard mapping', () => {
+  it('maps gather, shield, poste, cue, and marker key events', () => {
+    const base = { gather: false, shieldSide: 'none' as const, poste: false, marker: false };
+    expect(mapCloseKeyboardEvent('Space', true, base).gather).toBe(true);
+    expect(mapCloseKeyboardEvent('KeyA', true, base).shieldSide).toBe('left');
+    expect(mapCloseKeyboardEvent('KeyD', true, base).shieldSide).toBe('right');
+    expect(mapCloseKeyboardEvent('KeyW', true, base).poste).toBe(true);
+    expect(mapCloseKeyboardEvent('KeyC', true, base).cue).toBe(true);
+    expect(mapCloseKeyboardEvent('KeyM', true, base).marker).toBe(true);
   });
 });

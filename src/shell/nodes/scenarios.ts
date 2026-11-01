@@ -1,5 +1,7 @@
 import type { DistractorConfig, ScenarioConfig } from '../../sim/config';
 import { defaultScenario } from '../../sim/config';
+import type { CloseExerciseConfig } from '../../sim/closeExercise';
+import { defaultCloseExerciseConfig } from '../../sim/closeExercise';
 import type { SceneryItem, SceneryTheme, Wall } from '../../sim/geometry';
 import { routePoints, scatterScenery } from '../../sim/scenery';
 import type { Vec2 } from '../../sim/vec';
@@ -227,3 +229,30 @@ export const PARK_MIX: ScenarioConfig = stage({
     crossing('bicycle', 5, p(95, 40), p(95, 10), { activateAfterMeters: 85, triggerRadius: 16 }),
   ],
 });
+
+// -- Close Leash Exercise Scenarios -------------------------------------------------------------------
+
+/** A narrow street dog pass close leash exercise: handler gathers leash and maintains line-of-sight shielding. */
+export const NARROW_STREET_PASS: CloseExerciseConfig = {
+  ...defaultCloseExerciseConfig,
+  controls: 'leash_drill',
+  leashMinLength: 0.5,
+  leashMaxLength: 2.0,
+  gatherRate: 1.5,
+  releaseRate: 2.0,
+  posteDamping: 0.35,
+  posteArousalDamping: 0.4,
+  shieldOcclusionDistance: 0.65,
+  shieldOffset: 0.8,
+  handlerBase: { x: 0, y: 0 },
+  dogOffset: { x: 0.9, y: 0.1 },
+  distractor: {
+    kind: 'dog',
+    speed: 1.4,
+    triggerRadius: 6.0,
+    startPos: { x: 1.8, y: 12.0 },
+    endPos: { x: 1.8, y: -6.0 },
+    cue: 'lets-go',
+  },
+};
+

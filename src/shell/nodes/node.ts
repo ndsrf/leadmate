@@ -1,4 +1,5 @@
 import type { ScenarioConfig } from '../../sim/config';
+import type { CloseExerciseConfig } from '../../sim/closeExercise';
 import type { SimulationDebriefPayload } from '../../sim/payload';
 import type { TextKey } from '../../i18n';
 import { activityAt, addActivity, stageSummary } from '../activity';
@@ -58,14 +59,18 @@ export type MinigameKind = 'poste-hold' | 'harness-ritual' | 'doorbell-mat' | 'b
 export interface NodeDef {
   id: string;
   title: TextKey;
-  /** 'stage' is a walking Stage that updates the Dog; 'minigame' is static and never does. */
-  mode: 'stage' | 'minigame';
+  /** 'stage' is a walking Stage; 'close_exercise' is a close 2D isometric stage; 'minigame' is static. */
+  mode: 'stage' | 'minigame' | 'close_exercise';
   /** 3 to 5 short cards; real-world dog theory first, then the virtual dog's mechanics. */
   primerCards: PrimerCard[];
   /** Asked one at a time; three on a trail Node, one on the introductory Node. */
   checkpoint: CheckpointQuestion[];
-  /** For a Stage: scenario overrides. For a Minigame: which one to run. */
-  simulation: { scenario?: Partial<ScenarioConfig>; minigame?: MinigameKind };
+  /** For a Stage: scenario overrides. For a close exercise: closeScenario. For a Minigame: which one to run. */
+  simulation: {
+    scenario?: Partial<ScenarioConfig>;
+    closeScenario?: Partial<CloseExerciseConfig>;
+    minigame?: MinigameKind;
+  };
   exercises: NodeExercise[];
   prerequisites: string[];
 }
@@ -82,6 +87,7 @@ export function isAvailable(node: NodeDef, completed: readonly string[]): boolea
 
 export type NodeResult =
   | { kind: 'stage'; payload: SimulationDebriefPayload }
+  | { kind: 'close_exercise'; payload: SimulationDebriefPayload }
   /** `handlingScore` (0-1000) is set by an action Minigame, which earns 1 to 3 stars from it; the Poste practice has none. A Barkdoku adds its solved board. */
   | { kind: 'minigame'; metrics: Partial<Record<Metric, number>>; handlingScore?: number; puzzle?: PuzzleSummary };
 
@@ -183,7 +189,9 @@ function answered(run: NodeRun, answer: CheckpointAnswer): NodeRun {
 }
 
 function resultMatchesMode(node: NodeDef, result: NodeResult): boolean {
-  return (node.mode === 'stage') === (result.kind === 'stage');
+  if (node.mode === 'close_exercise') return result.kind === 'close_exercise' || result.kind === 'stage';
+  if (node.mode === 'stage') return result.kind === 'stage';
+  return result.kind === 'minigame';
 }
 
 /**
@@ -211,24 +219,28 @@ export function checkpointLimit(setting: CheckpointSeconds): number | null {
  */
 export function onDebrief(record: DogRecord, run: NodeRun, now: Date): DogRecord {
   if (run.step !== 'debrief' || !run.result) return record;
-  const graded = run.node.mode === 'stage' && run.result.kind === 'stage' ? applyStage(record, run.result.payload, now) : record;
-  const completedNodes = graded.completedNodes.includes(run.node.id) ? graded.completedNodes : [...graded.completedNodes, run.node.id];
-  // stars come from handling quality alone (the Poste practice has no score) and only ever go up
-  const earned = starsFor(run.result.kind === 'stage' ? run.result.payload.handlingScore : run.result.handlingScore);
-  const stars = { ...graded.stars, [run.node.id]: bestStars(graded.stars[run.node.id], earned)! };
   const result = run.result;
+
+  const isStageLike = result.kind === 'stage' || result.kind === 'close_exercise';
+  const base = isStageLike ? applyStage(record, result.payload, now) : record;
+  const score = isStageLike ? result.payload.handlingScore : result.handlingScore;
+  const earned = starsFor(score);
+
+  const completedNodes = base.completedNodes.includes(run.node.id) ? base.completedNodes : [...base.completedNodes, run.node.id];
+  const stars = { ...base.stars, [run.node.id]: bestStars(base.stars[run.node.id], earned)! };
   const entry = activityAt(now, {
     kind: 'node',
     id: run.node.id,
     stars: earned,
-    ...(result.kind === 'stage' ? { stage: stageSummary(result.payload) } : { metrics: { ...result.metrics }, ...(result.puzzle ? { puzzle: result.puzzle } : {}) }),
+    ...(isStageLike
+      ? { stage: stageSummary(result.payload) }
+      : { metrics: { ...result.metrics }, ...(result.puzzle ? { puzzle: result.puzzle } : {}) }),
     ...(run.node.exercises.length > 0 ? { exercise: pickExercise(run.node, result).key } : {}),
   });
-  const logged = { ...graded, completedNodes, stars, activityLog: addActivity(graded.activityLog, entry) };
+  const logged = { ...base, completedNodes, stars, activityLog: addActivity(base.activityLog, entry) };
   const missionId = missionOfStop({ kind: 'node', id: run.node.id });
   const focus = pickExercise(run.node, result).key;
   const focused = missionId ? updateMission(logged, missionId, (m) => (m.focus === focus ? m : { ...m, focus })) : logged;
-  // reaching a Debrief makes today an active day for the Streak
   return applyActivity(focused, now);
 }
 

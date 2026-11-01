@@ -70,7 +70,7 @@ The system SHALL end each Node with a Debrief that shows the performance results
 - **THEN** the Debrief names that Mission, offers no check-in answers itself, and the Mission brief shows the exercise as "Tu foco"
 
 ### Requirement: Static and walking modes
-The system SHALL run each Node's Interactive Simulation as a Minigame (static) or as a Stage (2.5D walking), as defined by the Node's configuration. A static Minigame SHALL render dog-centric graphical feedback (canine posture and environmental cues) tied to canine behavior, rather than solely abstract geometric timers. Only a Stage emits the debrief payload and updates the Dog.
+The system SHALL run each Node's Interactive Simulation as a Minigame (static), a close leash exercise Stage (close 2D isometric), or a walking Stage (2.5D walking), as defined by the Node's configuration. A static Minigame SHALL render dog-centric graphical feedback (canine posture and environmental cues) tied to canine behavior, rather than solely abstract geometric timers. Both walking Stages and close leash exercise Stages emit the debrief payload and update the Dog.
 
 #### Scenario: Static Node
 - **WHEN** a Node is configured as static
@@ -79,6 +79,10 @@ The system SHALL run each Node's Interactive Simulation as a Minigame (static) o
 #### Scenario: Walking Node
 - **WHEN** a Node is configured as walking
 - **THEN** the Interactive Simulation is a joystick-driven Stage
+
+#### Scenario: Close leash exercise Node
+- **WHEN** a Node is configured as a close leash exercise
+- **THEN** the Interactive Simulation runs as a close 2D isometric Stage focusing on leash handling mechanics and emits debrief telemetry
 
 ### Requirement: Node data
 The system SHALL describe each Node as plain data: mode, Primer cards categorized into real-world dog theory and virtual dog simulation instructions, optional media references, Checkpoint question, simulation config including Distractors, real-world exercises, and a list of prerequisite Nodes. The unlock interface and world progression belong to `engagement-and-worlds`.

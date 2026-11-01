@@ -1,9 +1,9 @@
 import type { TextKey } from '../../i18n';
 import type { Metric, NodeDef, PrimerCardDef } from './node';
-import { BLIND_CORNER, ELEVATOR_LOBBY, HALLWAY, LEAVE_IT_INTRO, PARK_JOGGER, PARK_MIX, SCOOTER_CROSSING, SLACK_U, URBAN_MIX } from './scenarios';
+import { BLIND_CORNER, ELEVATOR_LOBBY, HALLWAY, LEAVE_IT_INTRO, NARROW_STREET_PASS, PARK_JOGGER, PARK_MIX, SCOOTER_CROSSING, SLACK_U, URBAN_MIX } from './scenarios';
 
 /** Slugs of the Nodes whose texts follow the `node.<slug>.*` pattern (see the catalog). */
-type Slug = 'dogasdog' | 'homerest' | 'calmfirst' | 'harness' | 'doorbell' | 'corner' | 'u' | 'leaveit' | 'scooter' | 'urban' | 'jogger' | 'park' | 'barkdoku';
+type Slug = 'dogasdog' | 'homerest' | 'calmfirst' | 'harness' | 'doorbell' | 'corner' | 'u' | 'leaveit' | 'scooter' | 'urban' | 'jogger' | 'park' | 'barkdoku' | 'closepass';
 
 /** Where the web-hosted full guides live (EXPO_PUBLIC_TUTORIAL_BASE); unset, the cards show no guide button. */
 const TUTORIAL_BASE = (process.env.EXPO_PUBLIC_TUTORIAL_BASE ?? '').replace(/\/+$/, '');
@@ -186,6 +186,18 @@ export const SCOOTER_NODE = textNode('scooter', 'scooter-crossing', {
   prerequisites: [LEAVE_IT_NODE.id],
 });
 
+export const CLOSE_PASS_NODE = textNode('closepass', 'close-narrow-street-pass', {
+  mode: 'close_exercise',
+  primer: recapPrimer('closepass', { art: 'theory-visual-shields-2' }),
+  simulation: { scenario: { theme: 'urban_street' }, closeScenario: NARROW_STREET_PASS },
+  exercises: [
+    { metric: 'tension', n: 1 },
+    { metric: 'timing', n: 2 },
+    { metric: 'attention', n: 3 },
+  ],
+  prerequisites: [SCOOTER_NODE.id],
+});
+
 export const URBAN_MIX_NODE = textNode('urban', 'urban-mix', {
   mode: 'stage',
   simulation: { scenario: URBAN_MIX },
@@ -225,6 +237,7 @@ export const NODES: readonly NodeDef[] = [
   LEAVE_IT_NODE,
   BARKDOKU_INTRO_NODE,
   SCOOTER_NODE,
+  CLOSE_PASS_NODE,
   URBAN_MIX_NODE,
   PARK_JOGGER_NODE,
   PARK_MIX_NODE,

@@ -49,7 +49,7 @@ _Avoid_: Collider, solid prop
 ### Leash
 
 **Tension Ratio**:
-The distance between Handler and Dog divided by the maximum leash length.
+The distance between Handler and Dog divided by the maximum leash length (or Effective Leash Length when gathered).
 
 **Slack**:
 Tension Ratio below 0.85; the leash hangs in a relaxed curve.
@@ -63,6 +63,14 @@ Tension Ratio above 1.0.
 **Poste**:
 The technique of stopping the Handler so the leash origin is anchored and the Dog cannot advance past the leash limit.
 _Avoid_: Tree, anchor
+
+**Effective Leash Length**:
+The active unfolded length of the leash in an exercise, against which Tension Ratio is calculated.
+_Avoid_: Working length, gathered length
+
+**Leash Gathering**:
+The deliberate action of shortening the Effective Leash Length to manage distance without creating Rigid Pull.
+_Avoid_: Reeling, pulling in, shortening (alone)
 
 ### Dog attention
 
@@ -83,11 +91,19 @@ _Avoid_: Mark, click, treat button
 A signal the Handler gives the Dog before it reacts, such as "Let's go" or "Aquí", to steer its attention. Unlike the Marker, a Cue is proactive. "Let's Go" reorients a Dog on something that moves; "Leave It" (from World 3) lets a Dog go of food on the ground. Only the matching Cue works.
 _Avoid_: Command, call, order
 
+**Handler Shielding**:
+Positioning the Handler between the Dog and an oncoming Distractor to occlude line of sight and buffer Arousal, without physical contact.
+_Avoid_: Body block, blocking, physical shield
+
 ### Training
 
 **Node**:
-One training unit: Theory Primer, Checkpoint, Interactive Simulation, Debrief. A Node's Interactive Simulation is one Stage (walking) or one Minigame (static).
+One training unit: Theory Primer, Checkpoint, Interactive Simulation, Debrief. A Node's Interactive Simulation is one Stage (walking or close exercise) or one Minigame (static).
 _Avoid_: Level
+
+**Close Exercise Stage**:
+A specialized close-view Stage focused on close-quarters canine exercises (such as leash handling drills) with exercise-specific controls rather than open-route joystick movement.
+_Avoid_: Minigame, drill level, close drill
 
 **Theory Primer**:
 The first step of a Node: one or two short cards recapping the Lessons that precede the Node on the trail.

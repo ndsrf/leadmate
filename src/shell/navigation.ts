@@ -131,7 +131,7 @@ export interface StageViewFlow {
   /** Daily: the result is set once the walk is over. */
   result?: unknown;
   /** Node: the run, with its step and the Node's mode. */
-  run?: { step: string; node: { mode: 'stage' | 'minigame' } };
+  run?: { step: string; node: { mode: 'stage' | 'minigame' | 'close_exercise' } };
 }
 
 export interface StageViewParams {
@@ -152,7 +152,11 @@ export function stageViewWanted({ route, introStep = null }: StageViewParams): b
   const flow = route.flow;
   if (flow.name === 'warmup') return true;
   if (flow.name === 'daily') return flow.result == null;
-  if (flow.name === 'node' && flow.run) return flow.run.node.mode === 'stage' && flow.run.step !== 'debrief';
+  if (flow.name === 'node' && flow.run) {
+    const isStageLike =
+      flow.run.node.mode === 'stage' || flow.run.node.mode === 'close_exercise';
+    return isStageLike && flow.run.step !== 'debrief';
+  }
   return false;
 }
 

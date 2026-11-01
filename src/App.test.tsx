@@ -130,8 +130,7 @@ jest.mock('./shell/Overlays', () => mockScreens());
 
 import App from '../App';
 import { newDogRecord, NEW_ONBOARDING, RECORD_KEY, RECORD_VERSION } from './shell/dogRecord';
-import { WALK_DISTRACTION } from './shell/nodes/content';
-import { BARKDOKU_INTRO_NODE } from './shell/nodes/content';
+import { BARKDOKU_INTRO_NODE, CLOSE_PASS_NODE, WALK_DISTRACTION } from './shell/nodes/content';
 
 const LOAD_TIMEOUT_MS = 20000;
 const latest = (name: string) => mockProps[name];
@@ -285,6 +284,23 @@ describe('App - Stage view lifecycle', () => {
     act(() => latest('ErrorOverlay').onRetry());
     expect(latest('ErrorOverlay')).toBeUndefined();
     expect(mockSim.mounts).toBe(mountsBefore + 1);
+  });
+
+  it('mounts CLOSE_PASS_NODE on demand and releases it when debrief is reached', async () => {
+    await openMap();
+    expect(mockSim.mounts).toBe(0);
+    openStop(CLOSE_PASS_NODE.id);
+    expect(latest('PrimerScreen')).toBeDefined();
+    expect(mockSim.live).toBe(1);
+
+    throughPrimerAndCheckpoint();
+    await sendFromView({ type: 'ready' });
+    expect(posted('start')).toHaveLength(1);
+    expect(posted('start')[0].scenario.mode).toBe('close_exercise');
+
+    await sendFromView({ type: 'debrief', payload: {} });
+    expect(latest('DebriefScreen')).toBeDefined();
+    expect(mockSim.live).toBe(0);
   });
 
   it('sends nothing on app state changes while there is no view', async () => {
