@@ -1,25 +1,65 @@
-import { NativeModules, Platform } from 'react-native';
-import MobileAds, {
-  AdEventType,
-  AdsConsent,
-  AdsConsentStatus,
+import { NativeModules, Platform, TurboModuleRegistry } from 'react-native';
+import type {
+  AdsConsentStatus as AdsConsentStatusType,
   InterstitialAd,
-  TestIds,
 } from 'react-native-google-mobile-ads';
 import { AdConsentStatus as LeadMateConsentStatus, AdService } from './types';
 import { isInterstitialCooldownActive, recordInterstitialImpression } from './storage';
+
+export const FallbackTestIds = {
+  BANNER: 'ca-app-pub-3940256099942544/6300978111',
+  INTERSTITIAL: 'ca-app-pub-3940256099942544/1033173712',
+  REWARDED: 'ca-app-pub-3940256099942544/5224354917',
+} as const;
 
 export function isNativeGoogleMobileAdsAvailable(): boolean {
   if (typeof Platform === 'undefined' || !Platform || Platform.OS === 'web') {
     return false;
   }
-  return Boolean(
-    typeof NativeModules !== 'undefined' &&
-      NativeModules &&
-      (NativeModules.RNGoogleMobileAdsModule ||
-        NativeModules.RNGoogleMobileAdsInitModule ||
-        NativeModules.RNGoogleMobileAdsConsentModule)
-  );
+  try {
+    let hasTurbo = false;
+    if (
+      typeof TurboModuleRegistry !== 'undefined' &&
+      TurboModuleRegistry &&
+      typeof TurboModuleRegistry.get === 'function'
+    ) {
+      hasTurbo = Boolean(TurboModuleRegistry.get('RNGoogleMobileAdsModule'));
+    }
+
+    const hasBridge = Boolean(
+      typeof NativeModules !== 'undefined' &&
+        NativeModules &&
+        (NativeModules.RNGoogleMobileAdsModule ||
+          NativeModules.RNGoogleMobileAdsInitModule ||
+          NativeModules.RNGoogleMobileAdsConsentModule)
+    );
+
+    return hasTurbo || hasBridge;
+  } catch {
+    return false;
+  }
+}
+
+let cachedGoogleMobileAds: any = null;
+
+export function getGoogleMobileAdsModule(): any {
+  if (cachedGoogleMobileAds) {
+    return cachedGoogleMobileAds;
+  }
+  if (!isNativeGoogleMobileAdsAvailable()) {
+    return null;
+  }
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    cachedGoogleMobileAds = require('react-native-google-mobile-ads');
+    return cachedGoogleMobileAds;
+  } catch {
+    return null;
+  }
+}
+
+export function resetGoogleMobileAdsModule(): void {
+  cachedGoogleMobileAds = null;
 }
 
 export class GoogleMobileAdsService implements AdService {
@@ -32,7 +72,12 @@ export class GoogleMobileAdsService implements AdService {
   async initialize(): Promise<void> {
     if (this.initialized) return;
     try {
-      await MobileAds().initialize();
+      const gma = getGoogleMobileAdsModule();
+      if (!gma) return;
+      const MobileAds = gma.default ?? gma.MobileAds;
+      if (typeof MobileAds === 'function') {
+        await MobileAds().initialize();
+      }
       this.initialized = true;
     } catch {
       // Gracefully survive initialization errors
@@ -41,7 +86,11 @@ export class GoogleMobileAdsService implements AdService {
 
   async requestConsentInfoUpdate(): Promise<LeadMateConsentStatus> {
     try {
-      const consentInfo = await AdsConsent.requestInfoUpdate();
+      const gma = getGoogleMobileAdsModule();
+      if (!gma?.AdsConsent?.requestInfoUpdate) {
+        return this.consentStatus;
+      }
+      const consentInfo = await gma.AdsConsent.requestInfoUpdate();
       this.consentStatus = this.mapConsentStatus(consentInfo.status);
       return this.consentStatus;
     } catch {
@@ -51,9 +100,13 @@ export class GoogleMobileAdsService implements AdService {
 
   async showConsentFormIfRequired(): Promise<LeadMateConsentStatus> {
     try {
+      const gma = getGoogleMobileAdsModule();
+      if (!gma?.AdsConsent?.showForm) {
+        return this.consentStatus;
+      }
       const status = await this.requestConsentInfoUpdate();
       if (status === 'REQUIRED') {
-        const result = await AdsConsent.showForm();
+        const result = await gma.AdsConsent.showForm();
         this.consentStatus = this.mapConsentStatus(result.status);
       }
       return this.consentStatus;
@@ -62,15 +115,12 @@ export class GoogleMobileAdsService implements AdService {
     }
   }
 
-  private mapConsentStatus(status: AdsConsentStatus | string): LeadMateConsentStatus {
+  private mapConsentStatus(status: AdsConsentStatusType | string): LeadMateConsentStatus {
     switch (status) {
-      case AdsConsentStatus.REQUIRED:
       case 'REQUIRED':
         return 'REQUIRED';
-      case AdsConsentStatus.OBTAINED:
       case 'OBTAINED':
         return 'OBTAINED';
-      case AdsConsentStatus.NOT_REQUIRED:
       case 'NOT_REQUIRED':
         return 'NOT_REQUIRED';
       default:
@@ -83,7 +133,8 @@ export class GoogleMobileAdsService implements AdService {
     if (custom && typeof __DEV__ !== 'undefined' && !__DEV__) {
       return custom;
     }
-    return TestIds.BANNER;
+    const gma = getGoogleMobileAdsModule();
+    return gma?.TestIds?.BANNER ?? FallbackTestIds.BANNER;
   }
 
   getInterstitialUnitId(): string {
@@ -91,7 +142,8 @@ export class GoogleMobileAdsService implements AdService {
     if (custom && typeof __DEV__ !== 'undefined' && !__DEV__) {
       return custom;
     }
-    return TestIds.INTERSTITIAL;
+    const gma = getGoogleMobileAdsModule();
+    return gma?.TestIds?.INTERSTITIAL ?? FallbackTestIds.INTERSTITIAL;
   }
 
   isInterstitialReady(): boolean {
@@ -113,30 +165,38 @@ export class GoogleMobileAdsService implements AdService {
 
     try {
       this.clearCache();
+      const gma = getGoogleMobileAdsModule();
+      if (!gma?.InterstitialAd?.createForAdRequest) {
+        return false;
+      }
+
       const unitId = this.getInterstitialUnitId();
       const requestNonPersonalizedAdsOnly = this.consentStatus !== 'OBTAINED';
-      const interstitial = InterstitialAd.createForAdRequest(unitId, {
+      const interstitial: InterstitialAd = gma.InterstitialAd.createForAdRequest(unitId, {
         requestNonPersonalizedAdsOnly,
       });
 
       this.cachedInterstitial = interstitial;
 
       const unsubs: (() => void)[] = [];
+      const eventLoaded = gma.AdEventType?.LOADED ?? 'loaded';
+      const eventError = gma.AdEventType?.ERROR ?? 'error';
+      const eventClosed = gma.AdEventType?.CLOSED ?? 'closed';
 
       unsubs.push(
-        interstitial.addAdEventListener(AdEventType.LOADED, () => {
+        interstitial.addAdEventListener(eventLoaded, () => {
           this.isLoaded = true;
         })
       );
 
       unsubs.push(
-        interstitial.addAdEventListener(AdEventType.ERROR, () => {
+        interstitial.addAdEventListener(eventError, () => {
           this.clearCache();
         })
       );
 
       unsubs.push(
-        interstitial.addAdEventListener(AdEventType.CLOSED, () => {
+        interstitial.addAdEventListener(eventClosed, () => {
           this.clearCache();
         })
       );

@@ -1,6 +1,10 @@
 import { AdService } from './types';
 import { MockAdService } from './mock';
-import { GoogleMobileAdsService, isNativeGoogleMobileAdsAvailable } from './admob';
+import {
+  GoogleMobileAdsService,
+  isNativeGoogleMobileAdsAvailable,
+  resetGoogleMobileAdsModule,
+} from './admob';
 
 export * from './types';
 export * from './mock';
@@ -44,4 +48,5 @@ export function setAdService(service: AdService | null): void {
 
 export function resetAdService(): void {
   adInstance = null;
+  resetGoogleMobileAdsModule();
 }

@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
-import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 import { getAdService } from './index';
-import { isNativeGoogleMobileAdsAvailable } from './admob';
+import { isNativeGoogleMobileAdsAvailable, getGoogleMobileAdsModule } from './admob';
 import { theme } from '../ui/theme';
 
 export interface AdBannerProps {
@@ -26,6 +25,9 @@ const baseContainerStyle = {
  * Anchored adaptive banner component displayed at the base of the World Map
  * for Free Tier users. Unmounts immediately when `isPlus` is true and collapses
  * cleanly to 0 height if loading fails or when offline.
+ *
+ * Gracefully renders safe fallback in Expo Go, web, or when native TurboModules
+ * are not registered in the native binary.
  */
 export function AdBanner({ isPlus, unitId, testID = 'leadmate-ad-banner' }: AdBannerProps) {
   const [hasError, setHasError] = useState(false);
@@ -44,8 +46,27 @@ export function AdBanner({ isPlus, unitId, testID = 'leadmate-ad-banner' }: AdBa
   const adService = getAdService();
   const activeUnitId = unitId ?? adService.getBannerUnitId();
 
-  // In non-native environments (e.g. web, Jest tests without native modules)
+  // In non-native environments (e.g. web, Expo Go without custom binary, or Jest without native modules)
   if (!isNativeGoogleMobileAdsAvailable()) {
+    return (
+      <View
+        testID={testID}
+        style={[
+          baseContainerStyle,
+          {
+            backgroundColor: theme.color.bg,
+            borderTopColor: theme.color.edge,
+          },
+        ]}
+      />
+    );
+  }
+
+  const gma = getGoogleMobileAdsModule();
+  const BannerAd = gma?.BannerAd;
+  const BannerAdSize = gma?.BannerAdSize;
+
+  if (!BannerAd) {
     return (
       <View
         testID={testID}
@@ -74,7 +95,7 @@ export function AdBanner({ isPlus, unitId, testID = 'leadmate-ad-banner' }: AdBa
     >
       <BannerAd
         unitId={activeUnitId}
-        size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+        size={BannerAdSize?.ANCHORED_ADAPTIVE_BANNER ?? 'ANCHORED_ADAPTIVE_BANNER'}
         onAdLoaded={() => {
           setIsLoaded(true);
           setHasError(false);
