@@ -76,7 +76,7 @@ import { resolveScenario } from './src/shell/sync/configs';
 import { useAccount } from './src/shell/sync/useAccount';
 import { AccountBanner, AuthScreen, ChooseDogScreen, RegisterPrompt } from './src/shell/screens/AccountScreens';
 import { resolveCue, type Language } from './src/shell/voice';
-import { backAction, isReadyToLeaveSplash, routeFor, type BackActionParams } from './src/shell/navigation';
+import { backAction, isReadyToLeaveSplash, onStageViewFailure, routeFor, stageViewWanted, type BackActionParams } from './src/shell/navigation';
 import { resetProgress } from './src/shell/reset';
 
 // Hold native splash on cold start until ready
@@ -169,6 +169,9 @@ export default function App() {
   const vocalizer = useRef(createVocalizer(playDogSound));
   const pendingStart = useRef<ShellMessage | null>(null);
   const bundleReady = useRef(false);
+  // the Stage view is created on demand (see stageViewWanted): one silent remount is allowed before play
+  const silentRemountUsed = useRef(false);
+  const viewFailedRef = useRef<() => void>(() => {});
 
   // Ready to leave splash: record loaded, font loaded or timed out (2 s cap), and min splash time elapsed (~2.2 s)
   const [splashReady, setSplashReady] = useState(false);
@@ -318,6 +321,19 @@ export default function App() {
     }
   }, [route.name]);
 
+  // the Stage view exists only while a Stage is being prepared or played; every shell screen runs without a browser engine behind it
+  const viewWanted = stageViewWanted({ route: route as Parameters<typeof stageViewWanted>[0]['route'], introStep: introRun?.step ?? null });
+  const viewWantedRef = useRef(viewWanted);
+  viewWantedRef.current = viewWanted;
+  useEffect(() => {
+    if (viewWanted) return;
+    // the view is gone: forget it was ready, drop any queued start and the silent-remount allowance
+    bundleReady.current = false;
+    pendingStart.current = null;
+    silentRemountUsed.current = false;
+    setBundle('loading');
+  }, [viewWanted]);
+
   useEffect(() => {
     if (route.name === 'first-stage' && introRun?.step === 'simulation' && introRun.result === null) {
       startStage({});
@@ -373,7 +389,7 @@ export default function App() {
   const onMessage = useCallback(
     (raw: unknown) => {
       const message = decode<BundleMessage>(raw, BUNDLE_MESSAGE_TYPES);
-      if (!message) return;
+      if (!message || !viewWantedRef.current) return; // nothing from a view that has been released
       if (message.type === 'ready') {
         bundleReady.current = true;
         setBundle('ready');
@@ -440,7 +456,7 @@ export default function App() {
           accountRef.current.countStage();
           act({ type: 'finish', result: { kind: 'stage', payload } });
         }
-      } else if (message.type === 'error') setBundle('error');
+      } else if (message.type === 'error') viewFailedRef.current();
     },
     [act, goHome, send, showTastePayoff, update],
   );
@@ -461,16 +477,17 @@ export default function App() {
       .catch(() => {});
   }, []);
 
-  // a bundle that never reports ready counts as a load failure
+  // a view that never reports ready counts as a load failure; nothing runs while there is no view
   useEffect(() => {
-    if (bundle !== 'loading') return;
-    const timer = setTimeout(() => setBundle('error'), LOAD_TIMEOUT_MS);
+    if (!viewWanted || bundle !== 'loading') return;
+    const timer = setTimeout(() => viewFailedRef.current(), LOAD_TIMEOUT_MS);
     return () => clearTimeout(timer);
-  }, [bundle, attempt]);
+  }, [bundle, attempt, viewWanted]);
 
   // leaving the app pauses the Stage; no Stage time elapses until the user chooses Resume
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
+      if (!viewWantedRef.current) return;
       if (state === 'active') {
         if (playingStageRef.current) send({ type: 'wake' });
       } else {
@@ -483,6 +500,7 @@ export default function App() {
 
   const retry = () => {
     bundleReady.current = false;
+    silentRemountUsed.current = false;
     setBundle('loading');
     setAttempt((n) => n + 1);
   };
@@ -586,8 +604,22 @@ export default function App() {
   const playingStageRef = useRef(playingStage);
   playingStageRef.current = playingStage;
   useEffect(() => {
-    if (!playingStage) send({ type: 'suspend' });
-  }, [playingStage, send]);
+    if (!playingStage && viewWanted) send({ type: 'suspend' });
+  }, [playingStage, viewWanted, send]);
+
+  // A failure while the player is still reading the Primer or Checkpoint remounts the view once, silently; any other failure
+  // (or a second one) stays in `bundle` and the error screen shows when the Stage needs the view.
+  viewFailedRef.current = () => {
+    if (!viewWantedRef.current) return;
+    if (onStageViewFailure({ playing: playingStageRef.current, silentRemountUsed: silentRemountUsed.current }) === 'remount') {
+      silentRemountUsed.current = true;
+      bundleReady.current = false;
+      setBundle('loading');
+      setAttempt((n) => n + 1);
+      return;
+    }
+    setBundle('error');
+  };
 
   const resetting = useRef(false);
   const handleReset = async () => {
@@ -1182,7 +1214,7 @@ export default function App() {
     <SafeAreaProvider>
       <PaletteProvider scheme={scheme}>
         <PaletteRoot className="flex-1 bg-bg">
-          <SimView key={attempt} ref={sim} onMessage={onMessage} onLoadError={() => setBundle('error')} />
+          {viewWanted && <SimView key={attempt} ref={sim} onMessage={onMessage} onLoadError={() => viewFailedRef.current()} />}
           {screen}
           {playingStage && hint && !dogWarning && !paused && <HintOverlay text={t(HINT_TEXT[hint])} />}
           {playingStage && record && !tastePayoff && !paused && bundle === 'ready' && (
@@ -1209,7 +1241,7 @@ export default function App() {
               }}
             />
           )}
-          {bundle === 'error' && <ErrorOverlay t={t} onRetry={retry} />}
+          {playingStage && bundle === 'error' && <ErrorOverlay t={t} onRetry={retry} />}
           <StatusBar style="dark" hidden />
         </PaletteRoot>
       </PaletteProvider>

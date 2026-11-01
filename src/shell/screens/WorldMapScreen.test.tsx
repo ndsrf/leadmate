@@ -66,7 +66,7 @@ import React from 'react';
 // @ts-ignore
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createTranslator, es } from '../../i18n';
-import { BarkdokuChip, PlusChip, TrialStatusModal, WorldMapScreen } from './WorldMapScreen';
+import { BarkdokuChip, NEXT_UP_PULSE_CYCLES, PlusChip, TrialStatusModal, WorldMapScreen } from './WorldMapScreen';
 import { NO_STREAK } from '../streak';
 import { findWorld, progressOf, stopsOf, worldTitle, type Progress, type Stop, type WorldDef } from '../world';
 import { LESSONS } from '../lessons/content';
@@ -615,5 +615,12 @@ describe('PlusChip and TrialStatusModal', () => {
       );
       expect(markup).not.toContain('leadmate-ad-banner');
     });
+  });
+});
+
+describe('WorldMapScreen - Next Up pulse', () => {
+  it('pulses a bounded number of cycles, never forever', () => {
+    expect(Number.isFinite(NEXT_UP_PULSE_CYCLES)).toBe(true);
+    expect(NEXT_UP_PULSE_CYCLES).toBe(4);
   });
 });

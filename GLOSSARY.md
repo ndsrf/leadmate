@@ -22,6 +22,14 @@ _Avoid_: Stimulus, trigger
 One playthrough of a scenario, from start to its end condition.
 _Avoid_: Level, run, session
 
+**Shell**:
+The React Native app around the Stage view: the screens, navigation, audio, storage and accounts. It sends a Stage's configuration in and receives the Debrief payload out.
+_Avoid_: App layer, UI layer
+
+**Stage view**:
+The live container in which the simulation bundle runs a Stage. It exists only around a Node flow that contains a Stage, never behind the World Map or a Minigame, and is not the Stage itself.
+_Avoid_: WebView, sim, player
+
 **Drive**:
 What the Dog wants at a given moment, such as reaching a Goal, following a scent, chasing, or wandering. A scenario can blend several Drives.
 _Avoid_: Motivation, interest, AI
