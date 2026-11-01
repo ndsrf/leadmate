@@ -22,6 +22,14 @@ _Avoid_: Stimulus, trigger
 One playthrough of a scenario, from start to its end condition.
 _Avoid_: Level, run, session
 
+**Shell**:
+The React Native app around the Stage view: the screens, navigation, audio, storage and accounts. It sends a Stage's configuration in and receives the Debrief payload out.
+_Avoid_: App layer, UI layer
+
+**Stage view**:
+The live container in which the simulation bundle runs a Stage. It exists only around a Node flow that contains a Stage, never behind the World Map or a Minigame, and is not the Stage itself.
+_Avoid_: WebView, sim, player
+
 **Drive**:
 What the Dog wants at a given moment, such as reaching a Goal, following a scent, chasing, or wandering. A scenario can blend several Drives.
 _Avoid_: Motivation, interest, AI
@@ -41,7 +49,7 @@ _Avoid_: Collider, solid prop
 ### Leash
 
 **Tension Ratio**:
-The distance between Handler and Dog divided by the maximum leash length.
+The distance between Handler and Dog divided by the maximum leash length (or Effective Leash Length when gathered).
 
 **Slack**:
 Tension Ratio below 0.85; the leash hangs in a relaxed curve.
@@ -55,6 +63,14 @@ Tension Ratio above 1.0.
 **Poste**:
 The technique of stopping the Handler so the leash origin is anchored and the Dog cannot advance past the leash limit.
 _Avoid_: Tree, anchor
+
+**Effective Leash Length**:
+The active unfolded length of the leash in an exercise, against which Tension Ratio is calculated.
+_Avoid_: Working length, gathered length
+
+**Leash Gathering**:
+The deliberate action of shortening the Effective Leash Length to manage distance without creating Rigid Pull.
+_Avoid_: Reeling, pulling in, shortening (alone)
 
 ### Dog attention
 
@@ -75,11 +91,19 @@ _Avoid_: Mark, click, treat button
 A signal the Handler gives the Dog before it reacts, such as "Let's go" or "Aquí", to steer its attention. Unlike the Marker, a Cue is proactive. "Let's Go" reorients a Dog on something that moves; "Leave It" (from World 3) lets a Dog go of food on the ground. Only the matching Cue works.
 _Avoid_: Command, call, order
 
+**Handler Shielding**:
+Positioning the Handler between the Dog and an oncoming Distractor to occlude line of sight and buffer Arousal, without physical contact.
+_Avoid_: Body block, blocking, physical shield
+
 ### Training
 
 **Node**:
-One training unit: Theory Primer, Checkpoint, Interactive Simulation, Debrief. A Node's Interactive Simulation is one Stage (walking) or one Minigame (static).
+One training unit: Theory Primer, Checkpoint, Interactive Simulation, Debrief. A Node's Interactive Simulation is one Stage (walking or close exercise) or one Minigame (static).
 _Avoid_: Level
+
+**Close Exercise Stage**:
+A specialized close-view Stage focused on close-quarters canine exercises (such as leash handling drills) with exercise-specific controls rather than open-route joystick movement.
+_Avoid_: Minigame, drill level, close drill
 
 **Theory Primer**:
 The first step of a Node: one or two short cards recapping the Lessons that precede the Node on the trail.
@@ -153,7 +177,7 @@ The Solve Time of the first solve of a date's Daily Barkdoku. Later solves that 
 _Avoid_: Best Solve Time, best time, record
 
 **Checkpoint**:
-The 5-second timed quiz between the Theory Primer and the Interactive Simulation.
+The timed quiz between the Theory Primer and the Interactive Simulation, timed at 15 seconds by default (configurable in Settings).
 _Avoid_: Quiz, test
 
 **Pause Menu**:
@@ -353,7 +377,7 @@ The non-interactive paper-cut backdrop illustrations and landmarks decorating a 
 _Avoid_: Map props, background decals, world stickers, map decorations
 
 **Map Header**:
-The fixed strip at the top of the World Map that stays in view while the trail scrolls. It holds the Status Chips and the Settings gear.
+The fixed strip at the top of the World Map that stays in view while the trail scrolls. It holds the Status Chips wrapping on the left and the Settings gear pinned permanently to the top right.
 _Avoid_: Top menu, top bar, toolbar
 
 **Status Chip**:
@@ -417,12 +441,16 @@ The bond between a device's Dog and one Dog saved in an account, which keeps the
 _Avoid_: Link, connection, attachment
 
 **Funnel**:
-The first-run sequence a new Dog goes through once: welcome, name and look, Main Concern, Taste Stage with its payoff, Dog setup, Diagnostic, Personal Plan, the guided first Stage and the soft paywall. It ends at the World Map and runs again only after Reset Progress.
+The first-run sequence a new Dog goes through once: welcome, name and look, Main Concern, Taste Briefing, Taste Stage with its payoff, Dog setup, Diagnostic, Personal Plan, the guided first Stage and the soft paywall. It ends at the World Map and runs again only after Reset Progress.
 _Avoid_: Onboarding flow, wizard, tutorial
 
 **Taste Stage**:
 The first Stage a new user plays, before any setup question other than the Main Concern: a strong Distractor of the kind the Main Concern names (a dog when none is named) meets a Dog with no Cue skill, built so the Dog ends up Reactive. It makes the user feel the problem the game solves. It never changes the Dog record.
 _Avoid_: Demo, intro level, failure stage
+
+**Taste Briefing**:
+The screen shown before the Taste Stage starts that names the Dog and says what the user is about to do: walk the Dog, another dog will approach, and the goal is to keep the Dog calm by moving it away. The Taste Stage does not start, and its clock does not run, until the user dismisses it.
+_Avoid_: Tutorial, instructions screen, intro screen
 
 **Payoff Screen**:
 The message shown over the Taste Stage, after a zoom on the Handler and the Dog, that says the Dog has reacted, names the Dog and says the game will be tuned to it, whatever the Taste Stage's result.

@@ -32,6 +32,10 @@ export interface SimulationDebriefPayload {
   sintoniaTimeSeconds: number;
   /** Go Sniffs the Handler started. */
   goSniffs: number;
+  /** Optional close-view leash exercise metrics. */
+  peakTensionRatio?: number;
+  shieldCoverageScore?: number;
+  leashHandlingAccuracy?: number;
   /** Composite handling score, 0 to 1000 (see `handlingScore`). */
   handlingScore: number;
   /** 'bundled' or the version of the remote level config the Stage ran on. */

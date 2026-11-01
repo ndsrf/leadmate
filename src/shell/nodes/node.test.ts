@@ -8,7 +8,7 @@ import { placeOf, worldOfNode } from '../world';
 import { findLesson } from '../lessons/content';
 import { INTRO_NODE } from '../onboarding/introNode';
 import { createRng } from '../../sim/rng';
-import { advance, checkpointLimit, shuffledOrder, isAvailable, metricScores, missingPrerequisites, onDebrief, pickExercise, primerCardOf, shouldShowPosteLink, startNode, type NodeRun } from './node';
+import { advance, checkpointLimit, shuffledOrder, isAvailable, metricScores, missingPrerequisites, onDebrief, pickExercise, primerCardOf, shouldShowPosteLink, startNode, type NodeDef, type NodeRun } from './node';
 import { newPosteMinigame, posteMinigameMetrics, POSTE_MINIGAME, stepPosteMinigame, tensionOf } from './posteMinigame';
 
 const stageResult = (over = {}) => ({ kind: 'stage' as const, payload: payloadWith(over) });
@@ -127,14 +127,31 @@ describe('Node state machine', () => {
     expect(shuffledOrder(1, random)).toEqual([0]);
   });
 
-  it('turns the Checkpoint setting into a limit: 5 s, 10 s or none', () => {
-    expect(checkpointLimit(5)).toBe(5);
+  it('turns the Checkpoint setting into a limit: 10 s, 15 s, 20 s or none', () => {
     expect(checkpointLimit(10)).toBe(10);
+    expect(checkpointLimit(15)).toBe(15);
+    expect(checkpointLimit(20)).toBe(20);
     expect(checkpointLimit(0)).toBeNull();
   });
 });
 
 describe('Stage and Minigame modes', () => {
+  it('updates the Dog after a close exercise Stage', () => {
+    const closeNode: NodeDef = {
+      ...WALK_DISTRACTION,
+      id: 'close-narrow-street',
+      mode: 'close_exercise',
+    };
+    const run = advance(toSimulation(closeNode), {
+      type: 'finish',
+      result: { kind: 'close_exercise', payload: stageResult({ followMarks: 3, checkInHits: 3 }).payload },
+    });
+    const after = onDebrief(newDogRecord(), run, new Date('2026-02-02T00:00:00Z'));
+    expect(after.attributes.followChance).toBeGreaterThan(DEFAULT_ATTRIBUTES.followChance);
+    expect(after.lastStageDate).not.toBeNull();
+    expect(after.completedNodes).toEqual(['close-narrow-street']);
+  });
+
   it('updates the Dog only after a Stage', () => {
     const run = advance(toSimulation(WALK_DISTRACTION), { type: 'finish', result: stageResult({ followMarks: 3, checkInHits: 3 }) });
     const after = onDebrief(newDogRecord(), run, new Date('2026-02-02T00:00:00Z'));

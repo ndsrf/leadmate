@@ -60,7 +60,7 @@ export const WORLDS: readonly WorldDef[] = [
     stretches: [
       [lesson('theory-leave-it'), lesson('howto-cues'), node('leave-it-intro'), mission('mission-leave-it')],
       [lesson('theory-visual-shields'), node('calm-zone-intro'), node('scooter-crossing'), mission('mission-shields')],
-      [lesson('theory-choosing-cue'), node('urban-mix'), mission('mission-cue-choice')],
+      [lesson('theory-choosing-cue'), node('close-narrow-street-pass'), node('urban-mix'), mission('mission-cue-choice')],
     ],
   },
   {

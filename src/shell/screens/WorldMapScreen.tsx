@@ -28,7 +28,7 @@ import { handlePress } from '../ui/press';
 import { theme, usePalette } from '../ui/theme';
 import { useMotion } from '../ui/useMotion';
 import { Screen } from './Screen';
-import { AdBanner, getAdService } from '../ads';
+import { AdBanner, prepareAds } from '../ads';
 
 export interface WorldMapProps {
   t: Translate;
@@ -300,23 +300,37 @@ function useMapClock(live: boolean, missions: Progress['missions'], wakeAt: numb
   return now;
 }
 
+/** How many times the Next Up ring pulses before it comes to rest as a static ring. */
+export const NEXT_UP_PULSE_CYCLES = 4;
+
 /**
- * The one looping animation on the map. Under reduced motion it is a static ring instead; it also stands still
- * while it is not `live` (the app is in the background or the map is covered by another screen).
+ * The map's attention pulse. It plays {@link NEXT_UP_PULSE_CYCLES} cycles and then rests as the static ring, so a resting map
+ * keeps no animation running. Under reduced motion it is a static ring from the start; it also stands still while it is not
+ * `live` (the app is in the background or the map is covered by another screen), and replays when it becomes live again.
  */
 function NextUpRing({ pulse, live }: { pulse: boolean; live: boolean }) {
   const color = usePalette();
   const phase = useSharedValue(0);
+  const settled = useSharedValue(0);
   useEffect(() => {
+    cancelAnimation(phase);
+    phase.value = 0;
     if (!pulse || !live) {
-      cancelAnimation(phase);
-      phase.value = 0;
+      settled.value = 0;
       return;
     }
-    phase.value = withRepeat(withTiming(1, { duration: 1100 }), -1, false);
+    settled.value = 0;
+    phase.value = withRepeat(withTiming(1, { duration: 1100 }), NEXT_UP_PULSE_CYCLES, false, (finished) => {
+      'worklet';
+      if (finished) settled.value = 1;
+    });
     return () => cancelAnimation(phase);
-  }, [pulse, live, phase]);
-  const style = useAnimatedStyle(() => ({ opacity: pulse ? 0.7 * (1 - phase.value) : 1, transform: [{ scale: pulse ? 1 + 0.35 * phase.value : 1 }] }));
+  }, [pulse, live, phase, settled]);
+  const style = useAnimatedStyle(() =>
+    pulse && settled.value === 0
+      ? { opacity: 0.7 * (1 - phase.value), transform: [{ scale: 1 + 0.35 * phase.value }] }
+      : { opacity: 1, transform: [{ scale: 1 }] },
+  );
   const size = NODE_SIZE + 14;
   return (
     <Animated.View
@@ -861,7 +875,7 @@ export function BarkdokuChip({ t, solve, onPress }: { t: Translate; solve?: Dail
 
 /**
  * Header Plus chip: adapts appearance to the user's trial lifecycle:
- * - 'unstarted': offers the 7-day trial ('7 días gratis')
+ * - 'unstarted': offers the trial ('Gratis')
  * - 'active': shows remaining days ('Plus · X d')
  * - 'expired': prompts conversion ('Pasar a Plus')
  */
@@ -893,7 +907,7 @@ export function PlusChip({
     return (
       <Chip
         label={t('map.plus.chip')}
-        value={t('paywall.badge')}
+        value={t('map.plus.trialChip')}
         highlight
         onPress={onPress}
         accessibilityLabel={`${t('map.plus.chip')}. ${t('paywall.badge')}`}
@@ -1023,7 +1037,7 @@ export function WorldMapScreen({
 
   useEffect(() => {
     if (!plus) {
-      getAdService().showConsentFormIfRequired().catch(() => {});
+      prepareAds();
     }
   }, [plus]);
 
@@ -1087,20 +1101,24 @@ export function WorldMapScreen({
   };
 
   const header = (
-    <View>
-      <View className="flex-row flex-wrap items-center" style={{ gap: theme.space[2] }}>
-        <StreakChip t={t} status={streakStatus(streak, today)} onPress={onDiary} />
-        <Chip
-          label={libraryToday ? t('library.chipToday') : undefined}
-          value={t('library.chip')}
-          icon={libraryToday ? <View className="mr-2 h-3 w-3 rounded-game-pill bg-accent" style={{ borderWidth: 2, borderColor: color.outline }} /> : undefined}
-          onPress={onLibrary}
-          accessibilityLabel={libraryToday ? `${t('library.chip')}. ${t('library.chipToday')}` : t('library.chip')}
-        />
-        <PlusChip t={t} state={state} daysRemaining={days} isSubscribed={isSubscribed} onPress={handlePlusPress} />
+    <View style={{ gap: theme.space[2] }}>
+      <View className="flex-row items-center justify-between" style={{ gap: theme.space[2] }}>
+        <View className="flex-row items-center" style={{ gap: theme.space[2] }}>
+          <StreakChip t={t} status={streakStatus(streak, today)} onPress={onDiary} />
+          <Chip
+            label={libraryToday ? t('library.chipToday') : undefined}
+            value={t('library.chip')}
+            icon={libraryToday ? <View className="mr-2 h-3 w-3 rounded-game-pill bg-accent" style={{ borderWidth: 2, borderColor: color.outline }} /> : undefined}
+            onPress={onLibrary}
+            accessibilityLabel={libraryToday ? `${t('library.chip')}. ${t('library.chipToday')}` : t('library.chip')}
+          />
+        </View>
         <IconChip icon={<GearGlyph />} onPress={onSettings} accessibilityLabel={t('map.settings')} />
+      </View>
+      <View className="flex-row flex-wrap items-center" style={{ gap: theme.space[2] }}>
+        <PlusChip t={t} state={state} daysRemaining={days} isSubscribed={isSubscribed} onPress={handlePlusPress} />
         <Chip
-          label={t('daily.title')}
+          label={t('daily.chip')}
           value={dailyBest === undefined ? t('map.dailyNew') : `${dailyBest} ${t('results.scoreOutOf')}`}
           highlight={dailyBest === undefined}
           onPress={onDaily}

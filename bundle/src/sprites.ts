@@ -1,5 +1,9 @@
 import atlasUrl from '../assets/kenney/sprites.png';
 import atlas from '../assets/kenney/sprites.json';
+import closeAtlasUrl from '../assets/close/sprites.png';
+import closeAtlas from '../assets/close/sprites.json';
+import type { CaninePosture, ShieldSide } from '../../src/sim/closeExercise';
+import type { ReactionTier } from '../../src/sim/sim';
 import type { SceneryItem } from '../../src/sim/geometry';
 import type { DogCoat } from '../../src/sim/config';
 import type { Vec2 } from '../../src/sim/vec';
@@ -11,12 +15,54 @@ import type { Vec2 } from '../../src/sim/vec';
 export const ATLAS = 'kenney';
 export { atlasUrl, atlas };
 
+export const CLOSE_ATLAS = 'close_sprites';
+export { closeAtlasUrl, closeAtlas };
+
 type Frames = Record<string, { pivot: { x: number; y: number }; res: number }>;
 const frames = atlas.frames as unknown as Frames;
 export const hasFrame = (name: string): boolean => name in frames;
 /** How many times larger than the game scale a frame is drawn (the camera zooms in on the characters). */
 export const resOf = (name: string): number => frames[name].res;
 export const pivotOf = (name: string): { x: number; y: number } => frames[name].pivot;
+
+type CloseFrames = Record<string, { pivot: { x: number; y: number }; res: number }>;
+const closeFrames = closeAtlas.frames as unknown as CloseFrames;
+export const hasCloseFrame = (name: string): boolean => name in closeFrames;
+export const closePivotOf = (name: string): { x: number; y: number } => closeFrames[name]?.pivot ?? { x: 0.5, y: 0.9 };
+
+export function caninePostureFrame(posture: CaninePosture): string {
+  switch (posture) {
+    case 'alert':
+      return 'dog_close_alert';
+    case 'strained':
+      return 'dog_close_strained';
+    case 'relaxed':
+      return 'dog_close_relaxed';
+    case 'head_turn':
+      return 'dog_close_head_turn';
+    case 'neutral':
+    default:
+      return 'dog_close_neutral';
+  }
+}
+
+export function handlerStanceFrame(
+  shieldSide: ShieldSide,
+  isPoste: boolean,
+  isGathering: boolean,
+): string {
+  if (isPoste) return 'handler_close_anchor';
+  if (shieldSide === 'left') return 'handler_close_shield_left';
+  if (shieldSide === 'right') return 'handler_close_shield_right';
+  if (isGathering) return 'handler_close_hands_gather';
+  return 'handler_close_torso';
+}
+
+export function distractorCloseFrame(tier: ReactionTier, step = 0): string {
+  if (tier === 'reactive') return 'distractor_close_lunge';
+  if (tier === 'alert') return 'distractor_close_alert';
+  return Math.floor(step / 15) % 2 === 0 ? 'distractor_close_walk0' : 'distractor_close_walk1';
+}
 
 /** The nearest of the eight facings drawn for the characters, in degrees (0 = +x of the world, up and to the right on screen). */
 export function facingDegrees(v: Vec2): number {

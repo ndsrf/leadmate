@@ -37,13 +37,36 @@ npm run sim:dev
 
 # 2. the app shell
 npm run web          # desktop browser (the bundle runs in an iframe)
-npx expo start       # then scan the QR code with Expo Go on Android / iPhone
+npx expo start       # then scan the QR code with Expo Go on Android / iPhone (no ads or store billing; see Build options)
 ```
 
 On a phone the shell loads the simulation embedded in the app (built by `npm run sim:embed`, which
 `npm start` runs first), so no second server or tunnel is needed and Expo `--tunnel` works. After
 changing code under `bundle/` or `src/sim/`, run `npm run sim:embed` and reload the app. To load a live
 dev server instead, set `EXPO_PUBLIC_SIM_URL` (for example `http://<LAN IP>:5173`).
+
+### Build options
+
+Each way of running the app gives you a different set of native features. Choose by what you need to test:
+
+| Build | Command | Real ads | Real store billing | Use it for |
+| --- | --- | --- | --- | --- |
+| Web | `npm run web` | No (mock) | No (mock) | Fast UI and logic work, dev seeds, scripted browser checks |
+| Expo Go | `npm start`, then scan the QR code | No (mock) | No (mock) | Quick checks on a phone with no native build |
+| Development build | `npx expo run:android` / `npx expo run:ios` | Yes (Google test ads) | Yes (sandbox) | Ads, purchases and anything else that needs native modules |
+| Release build | `eas build --profile production` | Yes (your AdMob units) | Yes | Store submissions and internal testing tracks |
+
+Expo Go only contains Expo's own native modules. `react-native-google-mobile-ads` and
+`react-native-purchases` are not among them, so in Expo Go (and on web) the app quietly uses
+`MockAdService` and `MockBillingService` instead, and nothing crashes.
+
+A development build compiles the app with every native module in `package.json` and the config plugins in
+`app.json`. `npx expo run:android` needs the Android SDK (and a device or emulator); `npx expo run:ios`
+needs macOS with Xcode. It generates the `android/` / `ios/` folders, which are not committed. Rebuild
+after adding a native module or changing a plugin in `app.json`; JavaScript changes reload over Metro as
+usual. To build in the cloud instead, set up EAS once with `npx eas build:configure` (the repo has no
+`eas.json` yet) and run `eas build --profile development --platform android`. Installing
+`expo-dev-client` (`npx expo install expo-dev-client`) adds the dev menu and launcher to these builds.
 
 ### Skipping onboarding in development (web)
 
@@ -270,6 +293,42 @@ When building or running in environments where native purchases are unavailable 
 - **Android Google Play Testing:** Set up License Testers in Google Play Console with response `RESPOND_NORMALLY` and install the app from an Internal Testing track.
 - **Purchase Restoration:** Apple App Store Review requires paywalls to include a "Restaurar compras" action. This is available on `PaywallScreen`, `ValueRecapScreen`, and `SettingsModal`.
 - **Account Deletion Compliance:** Per App Store Review Guideline 5.1.1(v), account deletion warns users that deleting their Supabase profile does not cancel recurring store subscriptions and directs them to system subscription settings.
+
+## Advertisements (Google Mobile Ads)
+
+Free Tier users see ads through `react-native-google-mobile-ads` (AdMob). Plus members, including those
+on an active trial, never see ads. Simulations, Minigames and active exercises are always ad-free
+([ADR 0018](docs/adr/0018-google-mobile-ads-free-tier-and-simulation-isolation.md)).
+
+### Where ads appear
+
+- **Anchored banner** at the bottom of the World Map only.
+- **Transition interstitial** when leaving a completed Daily Stage or Node Stage result screen, at most
+  once every 5 minutes. The cooldown is saved on the device, so restarting the app does not reset it.
+
+### Limitations
+
+- **No real ads on web or in Expo Go.** The native module is missing there, so `getAdService()` falls back
+  to `MockAdService` and the banner area stays empty. Use a development build (see
+  [Build options](#build-options)) to see ads.
+- **Development builds show Google's test ads only.** `getBannerUnitId()` and `getInterstitialUnitId()`
+  return Google's test unit IDs whenever `__DEV__` is true, even if your own unit IDs are set.
+- **The App IDs in `app.json` are Google's sample IDs.** Replace `androidAppId` and `iosAppId` in the
+  `react-native-google-mobile-ads` plugin with your AdMob App IDs before a release, then rebuild.
+- **Ads start on the World Map, not at launch.** For Free Tier users the map asks for consent (Google UMP,
+  required in the EU/UK) and then starts the SDK (`prepareAds()`). If consent is refused or the consent
+  step fails, non-personalized ads are served.
+- **An empty banner is normal.** When offline, or when AdMob has no ad to fill, the banner collapses to zero
+  height instead of leaving a blank box. New AdMob units can take a while to start filling.
+
+### Environment variables
+
+Set your AdMob unit IDs in `.env.local` (or CI build secrets). They are used only in release builds:
+
+```bash
+EXPO_PUBLIC_ADMOB_BANNER_ID=ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx
+EXPO_PUBLIC_ADMOB_INTERSTITIAL_ID=ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx
+```
 
 ## Adding a language
 

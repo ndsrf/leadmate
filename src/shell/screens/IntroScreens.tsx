@@ -115,6 +115,24 @@ export function DogLookScreen({ t, record, onDone }: { t: Translate; record: Dog
   );
 }
 
+/** Before the taste Stage: what is about to happen and the goal, text only; the Stage starts when the button is pressed. */
+export function TasteBriefScreen({ t, name, onStart }: { t: Translate; name: string; onStart: () => void }) {
+  const neutral = t('dog.neutral');
+  return (
+    <Screen>
+      <Panel>
+        <Text className="mb-3 font-display text-displayM text-ink" accessibilityRole="header">
+          {withDogName(t('tasteBrief.title'), name, neutral)}
+        </Text>
+        <Text className="mb-2 text-bodyL text-ink">{withDogName(t('tasteBrief.walk'), name, neutral)}</Text>
+        <Text className="mb-2 text-bodyL text-ink">{withDogName(t('tasteBrief.goal'), name, neutral)}</Text>
+        <Text className="mb-4 text-bodyL text-inkMuted">{withDogName(t('tasteBrief.drag'), name, neutral)}</Text>
+        <Button label={t('tasteBrief.start')} onPress={onStart} />
+      </Panel>
+    </Screen>
+  );
+}
+
 /** Over the taste Stage once the Dog has reacted: the same text whatever the result, naming the Dog. The Stage stays visible above it. */
 export function PayoffOverlay({ t, name, mainConcerns = [], onContinue }: { t: Translate; name: string; mainConcerns?: readonly Concern[]; onContinue: () => void }) {
   const neutral = t('dog.neutral');

@@ -100,6 +100,8 @@ export interface BackActionParams {
   hasScreenBack: boolean;
   /** The taste payoff is showing. */
   payoff?: boolean;
+  /** The taste briefing is showing. */
+  briefing?: boolean;
   /** The Choose Dog screen is showing. */
   choosingDog?: boolean;
 }
@@ -107,18 +109,61 @@ export interface BackActionParams {
 /**
  * Pure decision for the system back button. First match wins:
  * 1. A Stage whose bundle failed to load: its back closure (the map), or consumed in onboarding.
- * 2. The taste payoff or Choose Dog: consumed, a choice is required.
+ * 2. The taste briefing, payoff or Choose Dog: consumed, a choice is required.
  * 3. The Pause Menu is showing: resume. 4. The Stage is loading: consumed. 5. A running Stage: pause.
  * 6. The screen's own back closure. 7. Splash, the bare map, a funnel step or the onboarding paywall: leave the app.
  * 8. Anything else (a Checkpoint, a Minigame with no exit): consumed.
  */
-export function backAction({ route, playingStage, paused, bundle, hasScreenBack, payoff = false, choosingDog = false }: BackActionParams): BackAction {
+export function backAction({ route, playingStage, paused, bundle, hasScreenBack, payoff = false, briefing = false, choosingDog = false }: BackActionParams): BackAction {
   if (playingStage && bundle === 'error') return hasScreenBack ? 'screen' : 'consume';
-  if (payoff || choosingDog) return 'consume';
+  if (payoff || briefing || choosingDog) return 'consume';
   if (playingStage && paused) return 'resume';
   if (playingStage && bundle === 'loading') return 'consume';
   if (playingStage) return 'pause';
   if (hasScreenBack) return 'screen';
   if (route.name === 'splash' || route.name === 'map' || route.name === 'funnel' || route.name === 'paywall' || route.name === 'recap') return 'exit';
   return 'consume';
+}
+
+/** Just enough of a flow to decide whether the Stage view is needed (a Node run, a Daily, or a warm-up). */
+export interface StageViewFlow {
+  name: string;
+  /** Daily: the result is set once the walk is over. */
+  result?: unknown;
+  /** Node: the run, with its step and the Node's mode. */
+  run?: { step: string; node: { mode: 'stage' | 'minigame' | 'close_exercise' } };
+}
+
+export interface StageViewParams {
+  route: Route<StageViewFlow>;
+  /** The first Stage's introductory Node run, once it exists. */
+  introStep?: string | null;
+}
+
+/**
+ * Whether the Stage view (the embedded simulation bundle) must exist. True from the Primer of a Node that has a Stage
+ * (so the load hides behind reading time) through its walk, for the Daily, warm-up, taste and first Stage; false on every
+ * other screen, in every Minigame, and from the Debrief on.
+ */
+export function stageViewWanted({ route, introStep = null }: StageViewParams): boolean {
+  if (route.name === 'taste') return true;
+  if (route.name === 'first-stage') return introStep !== 'debrief';
+  if (route.name !== 'flow') return false;
+  const flow = route.flow;
+  if (flow.name === 'warmup') return true;
+  if (flow.name === 'daily') return flow.result == null;
+  if (flow.name === 'node' && flow.run) {
+    const isStageLike =
+      flow.run.node.mode === 'stage' || flow.run.node.mode === 'close_exercise';
+    return isStageLike && flow.run.step !== 'debrief';
+  }
+  return false;
+}
+
+/**
+ * What to do when the Stage view fails to load. Before the Stage begins (the player is still on the Primer or Checkpoint) the
+ * first failure remounts the view silently; any later failure, or one during play, shows the error and retry screen.
+ */
+export function onStageViewFailure({ playing, silentRemountUsed }: { playing: boolean; silentRemountUsed: boolean }): 'remount' | 'error' {
+  return !playing && !silentRemountUsed ? 'remount' : 'error';
 }

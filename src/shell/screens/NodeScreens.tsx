@@ -164,6 +164,9 @@ function StageRows({ t, p }: { t: Translate; p: SimulationDebriefPayload }) {
       {p.sintoniaTimeSeconds > 0 && <Row label={t('results.sintonia')} value={`${p.sintoniaTimeSeconds} ${t('results.seconds')}`} />}
       {p.goSniffs > 0 && <Row label={t('results.goSniffs')} value={String(p.goSniffs)} />}
       <Row label={t('results.seed')} value={String(p.seed)} />
+      {p.peakTensionRatio !== undefined && <Row label={t('results.peakTensionRatio')} value={p.peakTensionRatio.toFixed(2)} />}
+      {p.shieldCoverageScore !== undefined && <Row label={t('results.shieldCoverage')} value={`${Math.round(p.shieldCoverageScore * 100)}%`} />}
+      {p.leashHandlingAccuracy !== undefined && p.leashHandlingAccuracy > 0 && <Row label={t('results.leashHandlingAccuracy')} value={`${p.leashHandlingAccuracy} ${t('results.ms')}`} />}
     </>
   );
 }
@@ -243,7 +246,7 @@ function DebriefBody({
   celebrations: readonly Celebration[];
 }) {
   const exercise = pickExercise(run.node, result);
-  const score = result.kind === 'stage' ? result.payload.handlingScore : result.handlingScore;
+  const score = result.kind === 'stage' || result.kind === 'close_exercise' ? result.payload.handlingScore : result.handlingScore;
   // the read-the-Dog Minigames report the share of right actions, not Postes or timed marks
   const actionMinigame = readDogSceneOf(run.node.simulation.minigame) !== undefined;
   const earned = starsFor(score);
@@ -280,7 +283,7 @@ function DebriefBody({
       {phase === 'done' && <CelebrationList t={t} celebrations={celebrations} />}
       {showRows && (
         <>
-          {result.kind === 'stage' ? (
+          {result.kind === 'stage' || result.kind === 'close_exercise' ? (
             <>
               <Panel className="mb-1">
                 <StageRows t={t} p={result.payload} />

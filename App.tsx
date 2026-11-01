@@ -12,6 +12,7 @@ import { useUiSettings } from './src/shell/ui/useUiSettings';
 import { PaletteRoot } from './src/shell/ui/components';
 import { PaletteProvider, type ColorScheme } from './src/shell/ui/theme';
 import { defaultScenario, type ScenarioConfig } from './src/sim/config';
+import type { CloseExerciseConfig } from './src/sim/closeExercise';
 import type { LearningSnapshot } from './src/sim/learning';
 import type { SimulationDebriefPayload } from './src/sim/payload';
 import { BUNDLE_MESSAGE_TYPES, decode, type BundleMessage, type ShellMessage } from './src/sim/messages';
@@ -57,7 +58,7 @@ import { DiagnosticView } from './src/shell/screens/DiagnosticView';
 import { PaywallScreen } from './src/shell/screens/PaywallScreen';
 import { ValueRecapScreen } from './src/shell/screens/ValueRecapScreen';
 import { PlanScreen } from './src/shell/screens/PlanScreen';
-import { ConcernScreen, DogLookScreen, PayoffOverlay } from './src/shell/screens/IntroScreens';
+import { ConcernScreen, DogLookScreen, PayoffOverlay, TasteBriefScreen } from './src/shell/screens/IntroScreens';
 import { SetupScreen } from './src/shell/screens/SetupScreen';
 import { SettingsScreen } from './src/shell/screens/SettingsScreen';
 import { SplashScreen } from './src/shell/screens/SplashScreen';
@@ -78,7 +79,7 @@ import { resolveScenario } from './src/shell/sync/configs';
 import { useAccount } from './src/shell/sync/useAccount';
 import { AccountBanner, AuthScreen, ChooseDogScreen, RegisterPrompt } from './src/shell/screens/AccountScreens';
 import { resolveCue, type Language } from './src/shell/voice';
-import { backAction, isReadyToLeaveSplash, routeFor, type BackActionParams } from './src/shell/navigation';
+import { backAction, isReadyToLeaveSplash, onStageViewFailure, routeFor, stageViewWanted, type BackActionParams, type Route } from './src/shell/navigation';
 import { resetProgress } from './src/shell/reset';
 
 // Hold native splash on cold start until ready
@@ -101,6 +102,10 @@ type Flow =
   | { name: 'paywall'; then?: PendingPlusAction }
   | { name: 'puzzle'; date: string };
 type MissionView = 'brief' | 'waiting' | 'checkin' | 'problem' | 'fix' | 'passed';
+
+function isCloseExerciseFlow(route: Route<Flow>): boolean {
+  return route.name === 'flow' && route.flow.name === 'node' && route.flow.run.node.mode === 'close_exercise';
+}
 
 /** The shell owns the active language; Spanish is the only one shipped. */
 const CATALOG = es;
@@ -171,6 +176,9 @@ export default function App() {
   const vocalizer = useRef(createVocalizer(playDogSound));
   const pendingStart = useRef<ShellMessage | null>(null);
   const bundleReady = useRef(false);
+  // the Stage view is created on demand (see stageViewWanted): one silent remount is allowed before play
+  const silentRemountUsed = useRef(false);
+  const viewFailedRef = useRef<() => void>(() => {});
 
   // Ready to leave splash: record loaded, font loaded or timed out (2 s cap), and min splash time elapsed (~2.2 s)
   const [splashReady, setSplashReady] = useState(false);
@@ -266,22 +274,51 @@ export default function App() {
     [send],
   );
 
+  /** Starts a close leash exercise Stage; waits for the bundle if it is still loading. */
+  const startCloseExercise = useCallback(
+    (scenario: Partial<CloseExerciseConfig>, seed: number = newSeed(), snapshot?: LearningSnapshot) => {
+      const current = recordRef.current;
+      if (!current) return;
+      const message: ShellMessage = {
+        type: 'start',
+        seed,
+        catalog: CATALOG,
+        scenario: { ...scenario, mode: 'close_exercise', learning: snapshot ?? toSnapshot(current, capacityRef.current), look: lookOf(current) },
+      };
+      setPaused(false);
+      setHint(null);
+      setDogWarning(null);
+      setControlsUsed({ move: false, mark: false });
+      setStageRun((n) => n + 1);
+      if (bundleReady.current) send(message);
+      else pendingStart.current = message;
+    },
+    [send],
+  );
+
   const act = useCallback((action: NodeAction) => {
     const f = flowRef.current;
     if (f?.name !== 'node') return;
     setFlow({ ...f, run: advance(f.run, action) });
   }, []);
 
-  // entering a walking Interactive Simulation starts the Stage
+  // entering an Interactive Simulation (walking stage or close exercise) starts the Stage
   const simulationKey =
-    route.name === 'flow' && route.flow.name === 'node' && route.flow.run.step === 'simulation' && route.flow.run.node.mode === 'stage'
+    route.name === 'flow' &&
+    route.flow.name === 'node' &&
+    route.flow.run.step === 'simulation' &&
+    (route.flow.run.node.mode === 'stage' || route.flow.run.node.mode === 'close_exercise')
       ? `${route.flow.run.node.id}:${route.flow.attempt}`
       : null;
   useEffect(() => {
     if (simulationKey === null || flowRef.current?.name !== 'node') return;
     const node = flowRef.current.run.node;
-    startStage(resolveScenario(node.id, node.simulation.scenario ?? {}, accountRef.current.configs).scenario);
-  }, [simulationKey, startStage]);
+    if (node.mode === 'close_exercise') {
+      startCloseExercise(node.simulation.closeScenario ?? {});
+    } else {
+      startStage(resolveScenario(node.id, node.simulation.scenario ?? {}, accountRef.current.configs).scenario);
+    }
+  }, [simulationKey, startStage, startCloseExercise]);
 
   const warmupActive = route.name === 'flow' && route.flow.name === 'warmup';
   useEffect(() => {
@@ -298,6 +335,11 @@ export default function App() {
   const [tastePayoff, setTastePayoff] = useState(false);
   const mainConcernsRef = useRef<readonly Concern[]>(record?.mainConcerns ?? []);
   mainConcernsRef.current = record?.mainConcerns ?? [];
+  // the briefing before the Stage: the Stage starts (and its time limit runs) only once it is dismissed; reset on leaving so every entry shows it
+  const [tasteBriefed, setTasteBriefed] = useState(false);
+  useEffect(() => {
+    if (route.name !== 'taste') setTasteBriefed(false);
+  }, [route.name]);
   const tastePayoffTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showTastePayoff = useCallback(() => {
     if (tastePayoffTimer.current) return;
@@ -305,13 +347,13 @@ export default function App() {
     tastePayoffTimer.current = setTimeout(() => setTastePayoff(true), TASTE_LINGER_MS);
   }, [send]);
   useEffect(() => {
-    if (route.name !== 'taste') return;
+    if (route.name !== 'taste' || !tasteBriefed) return;
     setTastePayoff(false);
     if (tastePayoffTimer.current) clearTimeout(tastePayoffTimer.current);
     tastePayoffTimer.current = null;
     const kind = tasteKind(mainConcernsRef.current);
     startStage(tasteScenarioFor(mainConcernsRef.current), newSeed(), tasteSnapshot(kind));
-  }, [route.name, startStage]);
+  }, [route.name, tasteBriefed, startStage]);
 
   // the guided first Stage: runs the introductory "Node 0" loop (Primer, Checkpoint, Simulation, Debrief)
   const [introRun, setIntroRun] = useState<NodeRun | null>(null);
@@ -322,6 +364,19 @@ export default function App() {
       setIntroRun(null);
     }
   }, [route.name]);
+
+  // the Stage view exists only while a Stage is being prepared or played; every shell screen runs without a browser engine behind it
+  const viewWanted = stageViewWanted({ route: route as Parameters<typeof stageViewWanted>[0]['route'], introStep: introRun?.step ?? null });
+  const viewWantedRef = useRef(viewWanted);
+  viewWantedRef.current = viewWanted;
+  useEffect(() => {
+    if (viewWanted) return;
+    // the view is gone: forget it was ready, drop any queued start and the silent-remount allowance
+    bundleReady.current = false;
+    pendingStart.current = null;
+    silentRemountUsed.current = false;
+    setBundle('loading');
+  }, [viewWanted]);
 
   useEffect(() => {
     if (route.name === 'first-stage' && introRun?.step === 'simulation' && introRun.result === null) {
@@ -378,7 +433,7 @@ export default function App() {
   const onMessage = useCallback(
     (raw: unknown) => {
       const message = decode<BundleMessage>(raw, BUNDLE_MESSAGE_TYPES);
-      if (!message) return;
+      if (!message || !viewWantedRef.current) return; // nothing from a view that has been released
       if (message.type === 'ready') {
         bundleReady.current = true;
         setBundle('ready');
@@ -443,9 +498,10 @@ export default function App() {
           goHome();
         } else if (f?.name === 'node') {
           accountRef.current.countStage();
-          act({ type: 'finish', result: { kind: 'stage', payload } });
+          const kind = f.run.node.mode === 'close_exercise' ? 'close_exercise' : 'stage';
+          act({ type: 'finish', result: { kind, payload } });
         }
-      } else if (message.type === 'error') setBundle('error');
+      } else if (message.type === 'error') viewFailedRef.current();
     },
     [act, goHome, send, showTastePayoff, update],
   );
@@ -466,16 +522,17 @@ export default function App() {
       .catch(() => {});
   }, []);
 
-  // a bundle that never reports ready counts as a load failure
+  // a view that never reports ready counts as a load failure; nothing runs while there is no view
   useEffect(() => {
-    if (bundle !== 'loading') return;
-    const timer = setTimeout(() => setBundle('error'), LOAD_TIMEOUT_MS);
+    if (!viewWanted || bundle !== 'loading') return;
+    const timer = setTimeout(() => viewFailedRef.current(), LOAD_TIMEOUT_MS);
     return () => clearTimeout(timer);
-  }, [bundle, attempt]);
+  }, [bundle, attempt, viewWanted]);
 
   // leaving the app pauses the Stage; no Stage time elapses until the user chooses Resume
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
+      if (!viewWantedRef.current) return;
       if (state === 'active') {
         if (playingStageRef.current) send({ type: 'wake' });
       } else {
@@ -488,6 +545,7 @@ export default function App() {
 
   const retry = () => {
     bundleReady.current = false;
+    silentRemountUsed.current = false;
     setBundle('loading');
     setAttempt((n) => n + 1);
   };
@@ -583,7 +641,7 @@ export default function App() {
   const playingStage =
     simulationKey !== null ||
     (route.name === 'flow' && route.flow.name === 'warmup') ||
-    route.name === 'taste' ||
+    (route.name === 'taste' && tasteBriefed) ||
     (route.name === 'first-stage' && introRun?.step === 'simulation') ||
     dailyKey !== null;
 
@@ -591,8 +649,22 @@ export default function App() {
   const playingStageRef = useRef(playingStage);
   playingStageRef.current = playingStage;
   useEffect(() => {
-    if (!playingStage) send({ type: 'suspend' });
-  }, [playingStage, send]);
+    if (!playingStage && viewWanted) send({ type: 'suspend' });
+  }, [playingStage, viewWanted, send]);
+
+  // A failure while the player is still reading the Primer or Checkpoint remounts the view once, silently; any other failure
+  // (or a second one) stays in `bundle` and the error screen shows when the Stage needs the view.
+  viewFailedRef.current = () => {
+    if (!viewWantedRef.current) return;
+    if (onStageViewFailure({ playing: playingStageRef.current, silentRemountUsed: silentRemountUsed.current }) === 'remount') {
+      silentRemountUsed.current = true;
+      bundleReady.current = false;
+      setBundle('loading');
+      setAttempt((n) => n + 1);
+      return;
+    }
+    setBundle('error');
+  };
 
   const resetting = useRef(false);
   const handleReset = async () => {
@@ -736,7 +808,7 @@ export default function App() {
         screen = <PlanScreen t={t} dog={record} latency={record.onboarding.diagnosticLatency ?? 0.5} plan={record.onboarding.plan} onContinue={() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: nextStep('plan') } }))} />;
     }
   } else if (route.name === 'taste') {
-    screen = null;
+    screen = tasteBriefed || !record ? null : <TasteBriefScreen t={t} name={record.name} onStart={() => setTasteBriefed(true)} />;
   } else if (route.name === 'first-stage') {
     if (introRun?.step === 'primer') {
       screen = (
@@ -1183,16 +1255,16 @@ export default function App() {
     }
   }
 
-  backInput.current = { route, playingStage, paused, bundle, hasScreenBack: screenBack.current !== null, payoff: route.name === 'taste' && tastePayoff, choosingDog };
+  backInput.current = { route, playingStage, paused, bundle, hasScreenBack: screenBack.current !== null, payoff: route.name === 'taste' && tastePayoff, briefing: route.name === 'taste' && !tasteBriefed, choosingDog };
 
   return (
     <SafeAreaProvider>
       <PaletteProvider scheme={scheme}>
         <PaletteRoot className="flex-1 bg-bg">
-          <SimView key={attempt} ref={sim} onMessage={onMessage} onLoadError={() => setBundle('error')} />
+          {viewWanted && <SimView key={attempt} ref={sim} onMessage={onMessage} onLoadError={() => viewFailedRef.current()} />}
           {screen}
           {playingStage && hint && !dogWarning && !paused && <HintOverlay text={t(HINT_TEXT[hint])} />}
-          {playingStage && record && !tastePayoff && !paused && bundle === 'ready' && (
+          {playingStage && record && !tastePayoff && !paused && bundle === 'ready' && !isCloseExerciseFlow(route) && (
             <CoachMarksOverlay
               moveText={t('coach.controls.move')}
               markText={t('coach.controls.mark')}
@@ -1216,7 +1288,7 @@ export default function App() {
               }}
             />
           )}
-          {bundle === 'error' && <ErrorOverlay t={t} onRetry={retry} />}
+          {playingStage && bundle === 'error' && <ErrorOverlay t={t} onRetry={retry} />}
           <StatusBar style="dark" hidden />
         </PaletteRoot>
       </PaletteProvider>

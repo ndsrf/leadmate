@@ -25,7 +25,7 @@ The system SHALL structure every Node as, in order: Theory Primer, Checkpoint, I
 - **THEN** the question and options test real-world dog handling and behavioral concepts rather than virtual app buttons
 
 ### Requirement: Step timing targets
-The system SHALL size the Theory Primer at one or two short tappable cards for a Node on the trail, and at 30-60 seconds as 3-5 short tappable cards for the introductory Node. Each Checkpoint question SHALL be limited to a timed quiz of 5 seconds by default, and the Interactive Simulation SHALL be sized at 60-90 seconds.
+The system SHALL size the Theory Primer at one or two short tappable cards for a Node on the trail, and at 30-60 seconds as 3-5 short tappable cards for the introductory Node. Each Checkpoint question SHALL be limited to a timed quiz of 15 seconds by default, and the Interactive Simulation SHALL be sized at 60-90 seconds.
 
 #### Scenario: Checkpoint timeout
 - **WHEN** the user does not answer a Checkpoint question within the time limit
@@ -40,11 +40,15 @@ The system SHALL size the Theory Primer at one or two short tappable cards for a
 - **THEN** the second question starts with the full time limit
 
 ### Requirement: Checkpoint accessibility
-The system SHALL let the user extend the Checkpoint limit to 10 seconds or turn the timer off in settings, and SHALL use the Checkpoint answer only as feedback in the Debrief, never to block the Interactive Simulation or change the Dog.
+The system SHALL let the user configure the Checkpoint limit to 20 seconds, 15 seconds, 10 seconds, or turn the timer off in settings, and SHALL use the Checkpoint answer only as feedback in the Debrief, never to block the Interactive Simulation or change the Dog.
 
 #### Scenario: Timer off
 - **WHEN** the user has turned the timer off
 - **THEN** every Checkpoint question waits for an answer without a time limit
+
+#### Scenario: Configured timer duration
+- **WHEN** the user has selected a duration of 20 seconds, 15 seconds, or 10 seconds in settings
+- **THEN** each Checkpoint question counts down from the selected number of seconds
 
 #### Scenario: Wrong answer
 - **WHEN** the user answers any or all Checkpoint questions wrongly
@@ -66,7 +70,7 @@ The system SHALL end each Node with a Debrief that shows the performance results
 - **THEN** the Debrief names that Mission, offers no check-in answers itself, and the Mission brief shows the exercise as "Tu foco"
 
 ### Requirement: Static and walking modes
-The system SHALL run each Node's Interactive Simulation as a Minigame (static) or as a Stage (2.5D walking), as defined by the Node's configuration. A static Minigame SHALL render dog-centric graphical feedback (canine posture and environmental cues) tied to canine behavior, rather than solely abstract geometric timers. Only a Stage emits the debrief payload and updates the Dog.
+The system SHALL run each Node's Interactive Simulation as a Minigame (static), a close leash exercise Stage (close 2D isometric), or a walking Stage (2.5D walking), as defined by the Node's configuration. A static Minigame SHALL render dog-centric graphical feedback (canine posture and environmental cues) tied to canine behavior, rather than solely abstract geometric timers. Both walking Stages and close leash exercise Stages emit the debrief payload and update the Dog.
 
 #### Scenario: Static Node
 - **WHEN** a Node is configured as static
@@ -75,6 +79,10 @@ The system SHALL run each Node's Interactive Simulation as a Minigame (static) o
 #### Scenario: Walking Node
 - **WHEN** a Node is configured as walking
 - **THEN** the Interactive Simulation is a joystick-driven Stage
+
+#### Scenario: Close leash exercise Node
+- **WHEN** a Node is configured as a close leash exercise
+- **THEN** the Interactive Simulation runs as a close 2D isometric Stage focusing on leash handling mechanics and emits debrief telemetry
 
 ### Requirement: Node data
 The system SHALL describe each Node as plain data: mode, Primer cards categorized into real-world dog theory and virtual dog simulation instructions, optional media references, Checkpoint question, simulation config including Distractors, real-world exercises, and a list of prerequisite Nodes. The unlock interface and world progression belong to `engagement-and-worlds`.
