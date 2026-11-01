@@ -857,7 +857,7 @@ export function BarkdokuChip({ t, solve, onPress }: { t: Translate; solve?: Dail
 
 /**
  * Header Plus chip: adapts appearance to the user's trial lifecycle:
- * - 'unstarted': offers the 7-day trial ('7 días gratis')
+ * - 'unstarted': offers the trial ('Gratis')
  * - 'active': shows remaining days ('Plus · X d')
  * - 'expired': prompts conversion ('Pasar a Plus')
  */
@@ -889,7 +889,7 @@ export function PlusChip({
     return (
       <Chip
         label={t('map.plus.chip')}
-        value={t('paywall.badge')}
+        value={t('map.plus.trialChip')}
         highlight
         onPress={onPress}
         accessibilityLabel={`${t('map.plus.chip')}. ${t('paywall.badge')}`}
@@ -1081,20 +1081,24 @@ export function WorldMapScreen({
   };
 
   const header = (
-    <View>
-      <View className="flex-row flex-wrap items-center" style={{ gap: theme.space[2] }}>
-        <StreakChip t={t} status={streakStatus(streak, today)} onPress={onDiary} />
-        <Chip
-          label={libraryToday ? t('library.chipToday') : undefined}
-          value={t('library.chip')}
-          icon={libraryToday ? <View className="mr-2 h-3 w-3 rounded-game-pill bg-accent" style={{ borderWidth: 2, borderColor: color.outline }} /> : undefined}
-          onPress={onLibrary}
-          accessibilityLabel={libraryToday ? `${t('library.chip')}. ${t('library.chipToday')}` : t('library.chip')}
-        />
-        <PlusChip t={t} state={state} daysRemaining={days} isSubscribed={isSubscribed} onPress={handlePlusPress} />
+    <View style={{ gap: theme.space[2] }}>
+      <View className="flex-row items-center justify-between" style={{ gap: theme.space[2] }}>
+        <View className="flex-row items-center" style={{ gap: theme.space[2] }}>
+          <StreakChip t={t} status={streakStatus(streak, today)} onPress={onDiary} />
+          <Chip
+            label={libraryToday ? t('library.chipToday') : undefined}
+            value={t('library.chip')}
+            icon={libraryToday ? <View className="mr-2 h-3 w-3 rounded-game-pill bg-accent" style={{ borderWidth: 2, borderColor: color.outline }} /> : undefined}
+            onPress={onLibrary}
+            accessibilityLabel={libraryToday ? `${t('library.chip')}. ${t('library.chipToday')}` : t('library.chip')}
+          />
+        </View>
         <IconChip icon={<GearGlyph />} onPress={onSettings} accessibilityLabel={t('map.settings')} />
+      </View>
+      <View className="flex-row flex-wrap items-center" style={{ gap: theme.space[2] }}>
+        <PlusChip t={t} state={state} daysRemaining={days} isSubscribed={isSubscribed} onPress={handlePlusPress} />
         <Chip
-          label={t('daily.title')}
+          label={t('daily.chip')}
           value={dailyBest === undefined ? t('map.dailyNew') : `${dailyBest} ${t('results.scoreOutOf')}`}
           highlight={dailyBest === undefined}
           onPress={onDaily}

@@ -344,7 +344,7 @@ The non-interactive paper-cut backdrop illustrations and landmarks decorating a 
 _Avoid_: Map props, background decals, world stickers, map decorations
 
 **Map Header**:
-The fixed strip at the top of the World Map that stays in view while the trail scrolls. It holds the Status Chips and the Settings gear.
+The fixed strip at the top of the World Map that stays in view while the trail scrolls. It holds the Status Chips wrapping on the left and the Settings gear pinned permanently to the top right.
 _Avoid_: Top menu, top bar, toolbar
 
 **Status Chip**:

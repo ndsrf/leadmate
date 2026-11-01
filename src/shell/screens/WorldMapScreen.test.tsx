@@ -244,7 +244,7 @@ describe('WorldMapScreen - Map Header', () => {
 
   const renderHeader = () => {
     mockPressables.length = 0;
-    renderToStaticMarkup(
+    const markup = renderToStaticMarkup(
       <WorldMapScreen
         t={t}
         progress={progressOf([])}
@@ -266,23 +266,33 @@ describe('WorldMapScreen - Map Header', () => {
         onDiary={() => {}}
       />
     );
-    return mockPressables.map((p) => String(p.accessibilityLabel ?? ''));
+    return {
+      labels: mockPressables.map((p) => String(p.accessibilityLabel ?? '')),
+      markup,
+    };
   };
 
-  it('shows Streak, Library, Plus, gear, Daily and Guaudoku in that order with nothing between them', () => {
-    const labels = renderHeader();
+  it('shows Streak, Library, and gear in row 1, and Plus, Daily Paseo, and Guaudoku in row 2', () => {
+    const { labels, markup } = renderHeader();
     const start = labels.findIndex((l) => l.startsWith(es['streak.flame']));
     expect(start).toBeGreaterThanOrEqual(0);
+    // Row 1: Streak, Library, and Settings gear on the right
     expect(labels[start]).toContain(es['diary.chip']);
     expect(labels[start + 1]).toBe(es['library.chip']);
-    expect(labels[start + 2]).toBe('Plus. 7 días gratis');
-    expect(labels[start + 3]).toBe(es['map.settings']);
+    expect(labels[start + 2]).toBe(es['map.settings']);
+    // Row 2: Plus, Daily Paseo, Guaudoku
+    expect(labels[start + 3]).toBe('Plus. 7 días gratis');
     expect(labels[start + 4]).toBe(es['daily.title']);
     expect(labels[start + 5].startsWith(es['map.barkdoku.daily'])).toBe(true);
+
+    // Verifies two-row container layout
+    expect(markup).toContain('flex-row items-center justify-between');
+    expect(markup).toContain('flex-row flex-wrap items-center');
+    expect(markup).toContain(es['daily.chip']);
   });
 
   it('has no Diario chip: only the Streak chip mentions the Diary', () => {
-    const labels = renderHeader();
+    const { labels } = renderHeader();
     expect(labels.filter((l) => l === es['diary.chip'])).toHaveLength(0);
     const diary = labels.filter((l) => l.includes(es['diary.chip']));
     expect(diary).toHaveLength(1);
@@ -452,13 +462,13 @@ describe('WorldMapScreen - a Completed Plus World after Plus lapses', () => {
 describe('PlusChip and TrialStatusModal', () => {
   const t = createTranslator(es);
 
-  it('renders PlusChip unstarted state with "7 días gratis"', () => {
+  it('renders PlusChip unstarted state with "Gratis"', () => {
     let pressed = false;
     const markup = renderToStaticMarkup(
       <PlusChip t={t} state="unstarted" onPress={() => { pressed = true; }} />
     );
     expect(markup).toContain('Plus');
-    expect(markup).toContain('7 días gratis');
+    expect(markup).toContain('Gratis');
     expect(markup).toContain('Plus. 7 días gratis');
   });
 
