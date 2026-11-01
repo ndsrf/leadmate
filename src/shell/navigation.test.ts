@@ -3,7 +3,7 @@ import { canSkipDay, missionAfterDebrief, missionEntryOf, missionEntryView, miss
 import type { MissionState } from './missions/mission';
 import { findWorld, isLastMissionOfWorld, progressOf, stopsOf } from './world';
 import { withBasicsDone } from './testProgress';
-import { backAction, isReadyToLeaveSplash, routeFor, type BackActionParams } from './navigation';
+import { backAction, isReadyToLeaveSplash, onStageViewFailure, routeFor, stageViewWanted, type BackActionParams } from './navigation';
 
 describe('routeFor', () => {
   it('returns splash until ready', () => {
@@ -362,5 +362,46 @@ describe('backAction', () => {
   it("runs a flow's own back closure, and consumes the press when it has none", () => {
     expect(backAction({ ...base, route: { name: 'flow', flow: { name: 'diary' } }, hasScreenBack: true })).toBe('screen');
     expect(backAction({ ...base, route: { name: 'flow', flow: { name: 'node' } } })).toBe('consume');
+  });
+});
+
+describe('stageViewWanted', () => {
+  const node = (mode: 'stage' | 'minigame', step: string) => ({ name: 'flow' as const, flow: { name: 'node', run: { step, node: { mode } } } });
+
+  it('is false on shell screens', () => {
+    for (const route of [{ name: 'map' }, { name: 'settings' }, { name: 'recap' }, { name: 'splash' }, { name: 'paywall' }] as const) {
+      expect(stageViewWanted({ route })).toBe(false);
+    }
+    expect(stageViewWanted({ route: { name: 'flow', flow: { name: 'library' } } })).toBe(false);
+    expect(stageViewWanted({ route: { name: 'funnel', step: 'welcome' } })).toBe(false);
+  });
+
+  it('is true from the Primer through the walk of a Stage Node, false at the Debrief', () => {
+    for (const step of ['primer', 'checkpoint', 'simulation']) expect(stageViewWanted({ route: node('stage', step) })).toBe(true);
+    expect(stageViewWanted({ route: node('stage', 'debrief') })).toBe(false);
+  });
+
+  it('is never true for a Minigame Node, even one that carries a scenario', () => {
+    for (const step of ['primer', 'checkpoint', 'simulation', 'debrief']) expect(stageViewWanted({ route: node('minigame', step) })).toBe(false);
+  });
+
+  it('is true for the Daily until its result, the warm-up, the taste and the first Stage until its Debrief', () => {
+    expect(stageViewWanted({ route: { name: 'flow', flow: { name: 'daily', result: null } } })).toBe(true);
+    expect(stageViewWanted({ route: { name: 'flow', flow: { name: 'daily', result: {} } } })).toBe(false);
+    expect(stageViewWanted({ route: { name: 'flow', flow: { name: 'warmup' } } })).toBe(true);
+    expect(stageViewWanted({ route: { name: 'taste' } })).toBe(true);
+    expect(stageViewWanted({ route: { name: 'first-stage' }, introStep: 'primer' })).toBe(true);
+    expect(stageViewWanted({ route: { name: 'first-stage' }, introStep: 'debrief' })).toBe(false);
+  });
+});
+
+describe('onStageViewFailure', () => {
+  it('remounts silently once before play, then reports the error', () => {
+    expect(onStageViewFailure({ playing: false, silentRemountUsed: false })).toBe('remount');
+    expect(onStageViewFailure({ playing: false, silentRemountUsed: true })).toBe('error');
+  });
+
+  it('reports the error when the failure happens during play', () => {
+    expect(onStageViewFailure({ playing: true, silentRemountUsed: false })).toBe('error');
   });
 });

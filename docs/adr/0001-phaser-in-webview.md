@@ -11,3 +11,5 @@ The simulation, HUD and input run in one Phaser 3 bundle that loads directly in 
 ## Consequences
 
 Two runtimes joined by a message bridge. Anything outside the bundle (audio, storage, accounts) must cross that bridge.
+
+The WebView (the Stage view) is not kept alive behind shell screens: the shell creates it from the Primer or Checkpoint of a Node that has a Stage, or for the Daily, warm-up, taste and first Stage, and releases it when the Stage ends or is left. See [ADR 0019](0019-stage-view-exists-only-around-a-stage.md).
