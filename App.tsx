@@ -12,6 +12,7 @@ import { useUiSettings } from './src/shell/ui/useUiSettings';
 import { PaletteRoot } from './src/shell/ui/components';
 import { PaletteProvider, type ColorScheme } from './src/shell/ui/theme';
 import { defaultScenario, type ScenarioConfig } from './src/sim/config';
+import type { CloseExerciseConfig } from './src/sim/closeExercise';
 import type { LearningSnapshot } from './src/sim/learning';
 import type { SimulationDebriefPayload } from './src/sim/payload';
 import { BUNDLE_MESSAGE_TYPES, decode, type BundleMessage, type ShellMessage } from './src/sim/messages';
@@ -76,7 +77,7 @@ import { resolveScenario } from './src/shell/sync/configs';
 import { useAccount } from './src/shell/sync/useAccount';
 import { AccountBanner, AuthScreen, ChooseDogScreen, RegisterPrompt } from './src/shell/screens/AccountScreens';
 import { resolveCue, type Language } from './src/shell/voice';
-import { backAction, isReadyToLeaveSplash, routeFor, type BackActionParams } from './src/shell/navigation';
+import { backAction, isReadyToLeaveSplash, routeFor, type BackActionParams, type Route } from './src/shell/navigation';
 import { resetProgress } from './src/shell/reset';
 
 // Hold native splash on cold start until ready
@@ -99,6 +100,10 @@ type Flow =
   | { name: 'paywall'; then?: PendingPlusAction }
   | { name: 'puzzle'; date: string };
 type MissionView = 'brief' | 'waiting' | 'checkin' | 'problem' | 'fix' | 'passed';
+
+function isCloseExerciseFlow(route: Route<Flow>): boolean {
+  return route.name === 'flow' && route.flow.name === 'node' && route.flow.run.node.mode === 'close_exercise';
+}
 
 /** The shell owns the active language; Spanish is the only one shipped. */
 const CATALOG = es;
@@ -264,22 +269,51 @@ export default function App() {
     [send],
   );
 
+  /** Starts a close leash exercise Stage; waits for the bundle if it is still loading. */
+  const startCloseExercise = useCallback(
+    (scenario: Partial<CloseExerciseConfig>, seed: number = newSeed(), snapshot?: LearningSnapshot) => {
+      const current = recordRef.current;
+      if (!current) return;
+      const message: ShellMessage = {
+        type: 'start',
+        seed,
+        catalog: CATALOG,
+        scenario: { ...scenario, mode: 'close_exercise', learning: snapshot ?? toSnapshot(current, capacityRef.current), look: lookOf(current) },
+      };
+      setPaused(false);
+      setHint(null);
+      setDogWarning(null);
+      setControlsUsed({ move: false, mark: false });
+      setStageRun((n) => n + 1);
+      if (bundleReady.current) send(message);
+      else pendingStart.current = message;
+    },
+    [send],
+  );
+
   const act = useCallback((action: NodeAction) => {
     const f = flowRef.current;
     if (f?.name !== 'node') return;
     setFlow({ ...f, run: advance(f.run, action) });
   }, []);
 
-  // entering a walking Interactive Simulation starts the Stage
+  // entering an Interactive Simulation (walking stage or close exercise) starts the Stage
   const simulationKey =
-    route.name === 'flow' && route.flow.name === 'node' && route.flow.run.step === 'simulation' && route.flow.run.node.mode === 'stage'
+    route.name === 'flow' &&
+    route.flow.name === 'node' &&
+    route.flow.run.step === 'simulation' &&
+    (route.flow.run.node.mode === 'stage' || route.flow.run.node.mode === 'close_exercise')
       ? `${route.flow.run.node.id}:${route.flow.attempt}`
       : null;
   useEffect(() => {
     if (simulationKey === null || flowRef.current?.name !== 'node') return;
     const node = flowRef.current.run.node;
-    startStage(resolveScenario(node.id, node.simulation.scenario ?? {}, accountRef.current.configs).scenario);
-  }, [simulationKey, startStage]);
+    if (node.mode === 'close_exercise') {
+      startCloseExercise(node.simulation.closeScenario ?? {});
+    } else {
+      startStage(resolveScenario(node.id, node.simulation.scenario ?? {}, accountRef.current.configs).scenario);
+    }
+  }, [simulationKey, startStage, startCloseExercise]);
 
   const warmupActive = route.name === 'flow' && route.flow.name === 'warmup';
   useEffect(() => {
@@ -438,7 +472,8 @@ export default function App() {
           goHome();
         } else if (f?.name === 'node') {
           accountRef.current.countStage();
-          act({ type: 'finish', result: { kind: 'stage', payload } });
+          const kind = f.run.node.mode === 'close_exercise' ? 'close_exercise' : 'stage';
+          act({ type: 'finish', result: { kind, payload } });
         }
       } else if (message.type === 'error') setBundle('error');
     },
@@ -1182,10 +1217,15 @@ export default function App() {
     <SafeAreaProvider>
       <PaletteProvider scheme={scheme}>
         <PaletteRoot className="flex-1 bg-bg">
-          <SimView key={attempt} ref={sim} onMessage={onMessage} onLoadError={() => setBundle('error')} />
+          <SimView
+            key={attempt}
+            ref={sim}
+            onMessage={onMessage}
+            onLoadError={() => setBundle('error')}
+          />
           {screen}
           {playingStage && hint && !dogWarning && !paused && <HintOverlay text={t(HINT_TEXT[hint])} />}
-          {playingStage && record && !tastePayoff && !paused && bundle === 'ready' && (
+          {playingStage && record && !tastePayoff && !paused && bundle === 'ready' && !isCloseExerciseFlow(route) && (
             <CoachMarksOverlay
               moveText={t('coach.controls.move')}
               markText={t('coach.controls.mark')}

@@ -1,5 +1,6 @@
 import type { Catalog } from '../i18n';
 import type { CueType, ScenarioConfig } from './config';
+import type { CloseExerciseConfig } from './closeExercise';
 import type { SimulationDebriefPayload } from './payload';
 import type { ReactionTier } from './sim';
 
@@ -11,7 +12,7 @@ export type ShellMessage =
       seed?: number;
       /** Text for the active language; keys it lacks fall back to Spanish. */
       catalog?: Catalog;
-      scenario?: Partial<ScenarioConfig>;
+      scenario?: (Partial<ScenarioConfig> | Partial<CloseExerciseConfig>) & { mode?: string };
     }
   | { type: 'pause' }
   | { type: 'resume' }

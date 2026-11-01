@@ -59,7 +59,7 @@ export const MISSIONS: readonly MissionDef[] = [
   mission('mission-u-leash', 'uleash', 'slack-u', 1, [node('slack-u')], ['lost', 'zigzag', 'treats']),
   mission('mission-leave-it', 'leaveit', 'leave-it', 3, [node('leave-it-intro')], ['grabs', 'ignores', 'repeat']),
   mission('mission-shields', 'shields', 'visual-shields', 2, [node('calm-zone-intro'), node('scooter-crossing')], ['late', 'sees', ['nocar', lesson('theory-visual-shields')]]),
-  mission('mission-cue-choice', 'cuechoice', 'cue-choice', 2, [node('urban-mix')], [['mixup', lesson('theory-choosing-cue')], 'toomuch', 'nothing']),
+  mission('mission-cue-choice', 'cuechoice', 'cue-choice', 2, [node('close-narrow-street-pass'), node('urban-mix')], [['mixup', lesson('theory-choosing-cue')], 'toomuch', 'nothing']),
   mission('mission-park-jogger', 'jogger', 'long-leash', 2, [node('park-jogger')], ['chases', ['tangle', lesson('howto-long-leash')], 'surprise']),
   mission('mission-park-mix', 'parkmix', 'park-mix', 1, [node('park-mix')], ['overwhelmed', 'food', 'me']),
 ];

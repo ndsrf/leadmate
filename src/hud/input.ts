@@ -1,3 +1,4 @@
+import type { CloseExerciseInput } from '../sim/closeExercise';
 import type { SimInput } from '../sim/sim';
 import { normalize, type Vec2 } from '../sim/vec';
 import { unproject } from './iso';
@@ -43,4 +44,30 @@ export function keyboardInput(keys: Keys, walkStrength: number): Omit<SimInput, 
   const world = { x: (forward ? 1 : 0) - (keys.s ? 1 : 0), y: (keys.d ? 1 : 0) - (keys.a ? 1 : 0) };
   if (world.x === 0 && world.y === 0) return { direction: { x: 0, y: 0 }, strength: 0 };
   return { direction: normalize(world), strength: keys.quick && !keys.w ? 1 : walkStrength };
+}
+
+/**
+ * Maps keyboard inputs for close exercise controls.
+ */
+export function mapCloseKeyboardEvent(
+  code: string,
+  isDown: boolean,
+  current: CloseExerciseInput,
+): CloseExerciseInput {
+  const next = { ...current };
+  if (code === 'Space' || code === 'KeyG') {
+    next.gather = isDown;
+  } else if (isDown && (code === 'KeyA' || code === 'ArrowLeft')) {
+    next.shieldSide = current.shieldSide === 'left' ? 'none' : 'left';
+  } else if (isDown && (code === 'KeyD' || code === 'ArrowRight')) {
+    next.shieldSide = current.shieldSide === 'right' ? 'none' : 'right';
+  } else if (code === 'KeyW' || code === 'KeyB' || code === 'ShiftLeft') {
+    next.poste = isDown;
+  } else if (isDown && (code === 'KeyC' || code === 'KeyE')) {
+    next.cue = true;
+    next.cueType = 'lets-go';
+  } else if (isDown && (code === 'KeyM' || code === 'Enter')) {
+    next.marker = true;
+  }
+  return next;
 }
