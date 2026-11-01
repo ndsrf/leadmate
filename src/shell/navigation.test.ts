@@ -337,6 +337,10 @@ describe('backAction', () => {
     expect(backAction({ ...base, choosingDog: true })).toBe('consume');
   });
 
+  it('consumes the press on the taste briefing', () => {
+    expect(backAction({ ...base, route: { name: 'taste' }, playingStage: false, hasScreenBack: false, briefing: true })).toBe('consume');
+  });
+
   it('pauses a running Stage and resumes a paused one', () => {
     expect(backAction(stage)).toBe('pause');
     expect(backAction({ ...stage, paused: true })).toBe('resume');

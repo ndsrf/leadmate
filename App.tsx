@@ -55,7 +55,7 @@ import { DiagnosticView } from './src/shell/screens/DiagnosticView';
 import { PaywallScreen } from './src/shell/screens/PaywallScreen';
 import { ValueRecapScreen } from './src/shell/screens/ValueRecapScreen';
 import { PlanScreen } from './src/shell/screens/PlanScreen';
-import { DogLookScreen, PayoffOverlay } from './src/shell/screens/IntroScreens';
+import { DogLookScreen, PayoffOverlay, TasteBriefScreen } from './src/shell/screens/IntroScreens';
 import { SetupScreen } from './src/shell/screens/SetupScreen';
 import { SettingsScreen } from './src/shell/screens/SettingsScreen';
 import { SplashScreen } from './src/shell/screens/SplashScreen';
@@ -294,6 +294,11 @@ export default function App() {
 
   // the taste Stage: an untrained Dog on a scenario built to fail; the Coach marks show as in any Stage
   const [tastePayoff, setTastePayoff] = useState(false);
+  // the briefing before the Stage: the Stage starts (and its time limit runs) only once it is dismissed; reset on leaving so every entry shows it
+  const [tasteBriefed, setTasteBriefed] = useState(false);
+  useEffect(() => {
+    if (route.name !== 'taste') setTasteBriefed(false);
+  }, [route.name]);
   const tastePayoffTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showTastePayoff = useCallback(() => {
     if (tastePayoffTimer.current) return;
@@ -301,12 +306,12 @@ export default function App() {
     tastePayoffTimer.current = setTimeout(() => setTastePayoff(true), TASTE_LINGER_MS);
   }, [send]);
   useEffect(() => {
-    if (route.name !== 'taste') return;
+    if (route.name !== 'taste' || !tasteBriefed) return;
     setTastePayoff(false);
     if (tastePayoffTimer.current) clearTimeout(tastePayoffTimer.current);
     tastePayoffTimer.current = null;
     startStage(tasteScenario, newSeed(), TASTE_SNAPSHOT);
-  }, [route.name, startStage]);
+  }, [route.name, tasteBriefed, startStage]);
 
   // the guided first Stage: runs the introductory "Node 0" loop (Primer, Checkpoint, Simulation, Debrief)
   const [introRun, setIntroRun] = useState<NodeRun | null>(null);
@@ -578,7 +583,7 @@ export default function App() {
   const playingStage =
     simulationKey !== null ||
     (route.name === 'flow' && route.flow.name === 'warmup') ||
-    route.name === 'taste' ||
+    (route.name === 'taste' && tasteBriefed) ||
     (route.name === 'first-stage' && introRun?.step === 'simulation') ||
     dailyKey !== null;
 
@@ -729,7 +734,7 @@ export default function App() {
         screen = <PlanScreen t={t} dog={record} latency={record.onboarding.diagnosticLatency ?? 0.5} plan={record.onboarding.plan} onContinue={() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: nextStep('plan') } }))} />;
     }
   } else if (route.name === 'taste') {
-    screen = null;
+    screen = tasteBriefed || !record ? null : <TasteBriefScreen t={t} name={record.name} onStart={() => setTasteBriefed(true)} />;
   } else if (route.name === 'first-stage') {
     if (introRun?.step === 'primer') {
       screen = (
@@ -1176,7 +1181,7 @@ export default function App() {
     }
   }
 
-  backInput.current = { route, playingStage, paused, bundle, hasScreenBack: screenBack.current !== null, payoff: route.name === 'taste' && tastePayoff, choosingDog };
+  backInput.current = { route, playingStage, paused, bundle, hasScreenBack: screenBack.current !== null, payoff: route.name === 'taste' && tastePayoff, briefing: route.name === 'taste' && !tasteBriefed, choosingDog };
 
   return (
     <SafeAreaProvider>

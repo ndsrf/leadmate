@@ -28,7 +28,7 @@ export const RECORD_VERSION = 8;
 export const RECORD_KEY = 'leadmate.dog';
 
 /** Seconds of the Checkpoint timer; 0 turns it off. */
-export type CheckpointSeconds = 0 | 5 | 10;
+export type CheckpointSeconds = 0 | 10 | 15 | 20;
 
 /**
  * Everything the app remembers about the Dog, in one versioned record per Dog. Shaped so that
@@ -140,7 +140,7 @@ export function newDogRecord(): DogRecord {
     coat: 'golden',
     breed: DEFAULT_BREED,
     voicePack: DEFAULT_VOICE_PACK,
-    checkpointSeconds: 5,
+    checkpointSeconds: 15,
     completedNodes: [],
     stars: {},
     lastStageDate: null,
@@ -318,7 +318,7 @@ export function migrateRecord(raw: unknown): DogRecord {
     coat: isCoat(r.coat) ? r.coat : 'golden',
     breed: isBreed(r.breed) ? r.breed : DEFAULT_BREED,
     voicePack: typeof r.voicePack === 'string' ? r.voicePack : base.voicePack,
-    checkpointSeconds: checkpoint === 0 || checkpoint === 10 ? checkpoint : 5,
+    checkpointSeconds: checkpoint === 0 || checkpoint === 10 || checkpoint === 15 || checkpoint === 20 ? checkpoint : 15,
     completedNodes,
     stars: readStars(r.stars),
     lastStageDate: typeof r.lastStageDate === 'string' ? r.lastStageDate : null,

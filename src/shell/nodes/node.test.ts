@@ -127,9 +127,10 @@ describe('Node state machine', () => {
     expect(shuffledOrder(1, random)).toEqual([0]);
   });
 
-  it('turns the Checkpoint setting into a limit: 5 s, 10 s or none', () => {
-    expect(checkpointLimit(5)).toBe(5);
+  it('turns the Checkpoint setting into a limit: 10 s, 15 s, 20 s or none', () => {
     expect(checkpointLimit(10)).toBe(10);
+    expect(checkpointLimit(15)).toBe(15);
+    expect(checkpointLimit(20)).toBe(20);
     expect(checkpointLimit(0)).toBeNull();
   });
 });

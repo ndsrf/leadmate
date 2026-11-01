@@ -21,8 +21,9 @@ import { Screen } from './Screen';
 import { isPlus, applyBillingSubscription } from '../plus';
 import { getBillingService, type BillingService } from '../billing';
 
-const CHECKPOINT_OPTIONS: { value: CheckpointSeconds; key: 'settings.checkpoint.5' | 'settings.checkpoint.10' | 'settings.checkpoint.off' }[] = [
-  { value: 5, key: 'settings.checkpoint.5' },
+export const CHECKPOINT_OPTIONS: { value: CheckpointSeconds; key: 'settings.checkpoint.20' | 'settings.checkpoint.15' | 'settings.checkpoint.10' | 'settings.checkpoint.off' }[] = [
+  { value: 20, key: 'settings.checkpoint.20' },
+  { value: 15, key: 'settings.checkpoint.15' },
   { value: 10, key: 'settings.checkpoint.10' },
   { value: 0, key: 'settings.checkpoint.off' },
 ];

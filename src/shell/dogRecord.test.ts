@@ -45,6 +45,20 @@ describe('Dog record', () => {
     expect(fixed.equipment).toBe('collar');
   });
 
+  it('defaults checkpointSeconds to 15 in new records', () => {
+    expect(newDogRecord().checkpointSeconds).toBe(15);
+  });
+
+  it('migrates legacy 5s and invalid checkpoint options to 15 while preserving valid options', () => {
+    expect(migrateRecord({ checkpointSeconds: 5 }).checkpointSeconds).toBe(15);
+    expect(migrateRecord({ checkpointSeconds: 0 }).checkpointSeconds).toBe(0);
+    expect(migrateRecord({ checkpointSeconds: 10 }).checkpointSeconds).toBe(10);
+    expect(migrateRecord({ checkpointSeconds: 15 }).checkpointSeconds).toBe(15);
+    expect(migrateRecord({ checkpointSeconds: 20 }).checkpointSeconds).toBe(20);
+    expect(migrateRecord({ checkpointSeconds: 99 }).checkpointSeconds).toBe(15);
+    expect(migrateRecord({ checkpointSeconds: 'invalid' }).checkpointSeconds).toBe(15);
+  });
+
   it('changes nothing because days passed', async () => {
     const store = memoryStore();
     const old = applyStage(newDogRecord(), payloadWith({ posteSuccesses: 1, peakArousalScore: 30 }), new Date('2026-01-01T00:00:00Z'));

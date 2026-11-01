@@ -25,7 +25,7 @@ The system SHALL structure every Node as, in order: Theory Primer, Checkpoint, I
 - **THEN** the question and options test real-world dog handling and behavioral concepts rather than virtual app buttons
 
 ### Requirement: Step timing targets
-The system SHALL size the Theory Primer at one or two short tappable cards for a Node on the trail, and at 30-60 seconds as 3-5 short tappable cards for the introductory Node. Each Checkpoint question SHALL be limited to a timed quiz of 5 seconds by default, and the Interactive Simulation SHALL be sized at 60-90 seconds.
+The system SHALL size the Theory Primer at one or two short tappable cards for a Node on the trail, and at 30-60 seconds as 3-5 short tappable cards for the introductory Node. Each Checkpoint question SHALL be limited to a timed quiz of 15 seconds by default, and the Interactive Simulation SHALL be sized at 60-90 seconds.
 
 #### Scenario: Checkpoint timeout
 - **WHEN** the user does not answer a Checkpoint question within the time limit
@@ -40,11 +40,15 @@ The system SHALL size the Theory Primer at one or two short tappable cards for a
 - **THEN** the second question starts with the full time limit
 
 ### Requirement: Checkpoint accessibility
-The system SHALL let the user extend the Checkpoint limit to 10 seconds or turn the timer off in settings, and SHALL use the Checkpoint answer only as feedback in the Debrief, never to block the Interactive Simulation or change the Dog.
+The system SHALL let the user configure the Checkpoint limit to 20 seconds, 15 seconds, 10 seconds, or turn the timer off in settings, and SHALL use the Checkpoint answer only as feedback in the Debrief, never to block the Interactive Simulation or change the Dog.
 
 #### Scenario: Timer off
 - **WHEN** the user has turned the timer off
 - **THEN** every Checkpoint question waits for an answer without a time limit
+
+#### Scenario: Configured timer duration
+- **WHEN** the user has selected a duration of 20 seconds, 15 seconds, or 10 seconds in settings
+- **THEN** each Checkpoint question counts down from the selected number of seconds
 
 #### Scenario: Wrong answer
 - **WHEN** the user answers any or all Checkpoint questions wrongly

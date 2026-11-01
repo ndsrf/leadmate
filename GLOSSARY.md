@@ -153,7 +153,7 @@ The Solve Time of the first solve of a date's Daily Barkdoku. Later solves that 
 _Avoid_: Best Solve Time, best time, record
 
 **Checkpoint**:
-The 5-second timed quiz between the Theory Primer and the Interactive Simulation.
+The timed quiz between the Theory Primer and the Interactive Simulation, timed at 15 seconds by default (configurable in Settings).
 _Avoid_: Quiz, test
 
 **Pause Menu**:
@@ -408,12 +408,16 @@ The bond between a device's Dog and one Dog saved in an account, which keeps the
 _Avoid_: Link, connection, attachment
 
 **Funnel**:
-The first-run sequence a new Dog goes through once: welcome, name and look, Taste Stage with its payoff, Dog setup, Diagnostic, Walk Plan, the guided first Stage and the soft paywall. It ends at the World Map and runs again only after Reset Progress.
+The first-run sequence a new Dog goes through once: welcome, name and look, Taste Briefing, Taste Stage with its payoff, Dog setup, Diagnostic, Walk Plan, the guided first Stage and the soft paywall. It ends at the World Map and runs again only after Reset Progress.
 _Avoid_: Onboarding flow, wizard, tutorial
 
 **Taste Stage**:
 The first Stage a new user plays, before any setup question: a strong Distractor meets a Dog with no Cue skill, built so the Dog ends up Reactive. It makes the user feel the problem the game solves. It never changes the Dog record.
 _Avoid_: Demo, intro level, failure stage
+
+**Taste Briefing**:
+The screen shown before the Taste Stage starts that names the Dog and says what the user is about to do: walk the Dog, another dog will approach, and the goal is to keep the Dog calm by moving it away. The Taste Stage does not start, and its clock does not run, until the user dismisses it.
+_Avoid_: Tutorial, instructions screen, intro screen
 
 **Payoff Screen**:
 The message shown over the Taste Stage, after a zoom on the Handler and the Dog, that says the Dog has reacted, names the Dog and says the game will be tuned to it, whatever the Taste Stage's result.

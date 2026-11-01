@@ -115,6 +115,7 @@ describe('resetProgress', () => {
     expect(reset.name).toBe('');
     expect(reset.coat).toBe('golden');
     expect(reset.breed).toBe('mestizo');
+    expect(reset.checkpointSeconds).toBe(15);
     expect(reset.onboarding.firstStageCompletedAt).toBeNull();
     expect(reset.onboarding.trialStartedAt).toBeNull();
     expect(reset.onboarding.plan).toEqual([]);

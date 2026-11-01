@@ -100,6 +100,8 @@ export interface BackActionParams {
   hasScreenBack: boolean;
   /** The taste payoff is showing. */
   payoff?: boolean;
+  /** The taste briefing is showing. */
+  briefing?: boolean;
   /** The Choose Dog screen is showing. */
   choosingDog?: boolean;
 }
@@ -107,14 +109,14 @@ export interface BackActionParams {
 /**
  * Pure decision for the system back button. First match wins:
  * 1. A Stage whose bundle failed to load: its back closure (the map), or consumed in onboarding.
- * 2. The taste payoff or Choose Dog: consumed, a choice is required.
+ * 2. The taste briefing, payoff or Choose Dog: consumed, a choice is required.
  * 3. The Pause Menu is showing: resume. 4. The Stage is loading: consumed. 5. A running Stage: pause.
  * 6. The screen's own back closure. 7. Splash, the bare map, a funnel step or the onboarding paywall: leave the app.
  * 8. Anything else (a Checkpoint, a Minigame with no exit): consumed.
  */
-export function backAction({ route, playingStage, paused, bundle, hasScreenBack, payoff = false, choosingDog = false }: BackActionParams): BackAction {
+export function backAction({ route, playingStage, paused, bundle, hasScreenBack, payoff = false, briefing = false, choosingDog = false }: BackActionParams): BackAction {
   if (playingStage && bundle === 'error') return hasScreenBack ? 'screen' : 'consume';
-  if (payoff || choosingDog) return 'consume';
+  if (payoff || briefing || choosingDog) return 'consume';
   if (playingStage && paused) return 'resume';
   if (playingStage && bundle === 'loading') return 'consume';
   if (playingStage) return 'pause';

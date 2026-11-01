@@ -26,7 +26,7 @@ import { handlePress } from '../ui/press';
 import { theme, usePalette } from '../ui/theme';
 import { useMotion } from '../ui/useMotion';
 import { Screen } from './Screen';
-import { AdBanner, getAdService } from '../ads';
+import { AdBanner, prepareAds } from '../ads';
 
 export interface WorldMapProps {
   t: Translate;
@@ -1018,7 +1018,7 @@ export function WorldMapScreen({
 
   useEffect(() => {
     if (!plus) {
-      getAdService().showConsentFormIfRequired().catch(() => {});
+      prepareAds();
     }
   }, [plus]);
 
