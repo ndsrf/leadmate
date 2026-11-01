@@ -14,13 +14,13 @@ import { buildPayload, handlingScore, type SimulationDebriefPayload } from './pa
 import { tierFor, type ReactionTier } from './sim';
 import { add, distance, normalize, scale, sub, type Vec2 } from './vec';
 
-/** Visual canine posture in the close view (ADR 0019 / spec). */
+/** Visual canine posture in the close view (ADR 0020 / spec). */
 export type CaninePosture = 'neutral' | 'alert' | 'strained' | 'relaxed' | 'head_turn';
 
 /** Lateral shielding stance relative to the canine's position. */
 export type ShieldSide = 'left' | 'right' | 'none';
 
-/** Declarative control scheme (ADR 0019). */
+/** Declarative control scheme (ADR 0020). */
 export type CloseExerciseControls = 'leash_drill';
 
 export interface ApproachingDistractorConfig {

@@ -1,4 +1,4 @@
-# 0019 Close Exercise View as Modular Phaser Stage
+# 0020 Close Exercise View as Modular Phaser Stage
 
 ## Context
 LeadMate provides a broad isometric walking view in Phaser for route navigation, while static drills (Doorbell Mat, Poste practice) run as React Native SVG Minigames. Close-quarters canine training—such as passing another dog on a narrow street—requires close visual proximity to read subtle canine posture and continuous physical leash dynamics, but without open route navigation.

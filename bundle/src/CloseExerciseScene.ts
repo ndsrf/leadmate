@@ -61,7 +61,7 @@ const CLOSE_CAMERA_ZOOM = 3.2;
 
 /**
  * Dedicated close-view Phaser scene focusing on leash manipulation,
- * handler shielding, and narrow-passage encounters (ADR 0019).
+ * handler shielding, and narrow-passage encounters (ADR 0020).
  */
 export class CloseExerciseScene extends Phaser.Scene {
   sim!: CloseExerciseState;
