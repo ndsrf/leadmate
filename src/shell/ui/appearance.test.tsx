@@ -31,11 +31,16 @@ jest.mock('react-native-reanimated', () => {
   };
 });
 
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 40, bottom: 20, left: 0, right: 0 }),
+  SafeAreaProvider: (p: any) => p.children,
+}));
+
 import React from 'react';
 // @ts-ignore
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createTranslator, es } from '../../i18n';
-import { ResumeOverlay } from '../Overlays';
+import { ResumeOverlay, SimulatorBackButton } from '../Overlays';
 import { BreedArt } from './BreedArt';
 import { Panel } from './components';
 import { colorNight, lightColor, PaletteProvider } from './theme';
@@ -60,6 +65,14 @@ describe('Appearance', () => {
     // the NativeWind variables are reset to Light for the overlay's classes too
     expect(html).toContain('--c-surface');
     expect(html).toContain('255 251 241');
+  });
+
+  it('keeps the simulator back button Light under the Dark Appearance', () => {
+    const html = dark(<SimulatorBackButton onPress={() => {}} label={t('hud.back')} />);
+    expect(html).toContain(lightColor.surface);
+    expect(html).toContain(lightColor.outline);
+    expect(html).not.toContain(colorNight.surface);
+    expect(html).toContain('44');
   });
 
   it('draws the dog illustration in the Light palette under the Dark Appearance', () => {

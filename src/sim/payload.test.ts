@@ -1,7 +1,7 @@
 import { defaultScenario, type ScenarioConfig } from './config';
 import { runScripted } from './harness';
 import { BUNDLE_MESSAGE_TYPES, SHELL_MESSAGE_TYPES, createOutbox, decode, encode, type BundleMessage, type ShellMessage } from './messages';
-import { buildPayload, handlingScore, SCORE_WEIGHTS, type SimulationDebriefPayload } from './payload';
+import { buildPayload, handlingScore, SCORE_WEIGHTS, skippedSimulationPayload, type SimulationDebriefPayload } from './payload';
 import { createState, noInput, tick, type SimInput, type SimState } from './sim';
 
 const scenario = (o: Partial<ScenarioConfig>): ScenarioConfig => ({ ...defaultScenario, ...o });
@@ -193,5 +193,26 @@ describe('Reaction Tier bridge event', () => {
   it('carries the Cue type on playCue', () => {
     const message: BundleMessage = { type: 'playCue', cueType: 'leave-it' };
     expect(decode<BundleMessage>(encode(message), BUNDLE_MESSAGE_TYPES)).toEqual(message);
+  });
+});
+
+describe('skippedSimulationPayload', () => {
+  it('generates a valid baseline payload with 100% slack, 0% pull and 1-star handling score', () => {
+    const payload = skippedSimulationPayload(42);
+    expect(payload.seed).toBe(42);
+    expect(payload.durationSeconds).toBe(30);
+    expect(payload.slackPercentage).toBe(100);
+    expect(payload.tautPercentage).toBe(0);
+    expect(payload.pullPercentage).toBe(0);
+    expect(payload.markerHits).toBe(0);
+    expect(payload.harshStops).toBe(0);
+    expect(payload.handlingScore).toBe(500);
+  });
+
+  it('populates close exercise telemetry when mode is close_exercise', () => {
+    const payload = skippedSimulationPayload(123, 'close_exercise');
+    expect(payload.peakTensionRatio).toBe(0.5);
+    expect(payload.shieldCoverageScore).toBe(100);
+    expect(payload.leashHandlingAccuracy).toBe(100);
   });
 });

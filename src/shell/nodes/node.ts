@@ -86,8 +86,8 @@ export function isAvailable(node: NodeDef, completed: readonly string[]): boolea
 // -- results and the Debrief -------------------------------------------------------------------
 
 export type NodeResult =
-  | { kind: 'stage'; payload: SimulationDebriefPayload }
-  | { kind: 'close_exercise'; payload: SimulationDebriefPayload }
+  | { kind: 'stage'; payload: SimulationDebriefPayload; skipped?: boolean }
+  | { kind: 'close_exercise'; payload: SimulationDebriefPayload; skipped?: boolean }
   /** `handlingScore` (0-1000) is set by an action Minigame, which earns 1 to 3 stars from it; the Poste practice has none. A Barkdoku adds its solved board. */
   | { kind: 'minigame'; metrics: Partial<Record<Metric, number>>; handlingScore?: number; puzzle?: PuzzleSummary };
 
@@ -222,7 +222,8 @@ export function onDebrief(record: DogRecord, run: NodeRun, now: Date): DogRecord
   const result = run.result;
 
   const isStageLike = result.kind === 'stage' || result.kind === 'close_exercise';
-  const base = isStageLike ? applyStage(record, result.payload, now) : record;
+  const isSkipped = isStageLike && result.skipped === true;
+  const base = isStageLike && !isSkipped ? applyStage(record, result.payload, now) : record;
   const score = isStageLike ? result.payload.handlingScore : result.handlingScore;
   const earned = starsFor(score);
 

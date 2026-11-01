@@ -1,4 +1,5 @@
 import { Pressable, Text, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { ARROW_LENGTH, coachMarks, edgeArrow, type CoachMark } from '../hud/coach';
 import type { Translate } from '../i18n';
@@ -35,8 +36,46 @@ export function ResumeOverlay({ t, onResume, onExit }: { t: Translate; onResume:
     <Backdrop>
       <Text className="font-display text-displayM text-ink">{t('pause.title')}</Text>
       <Button label={t('pause.resume')} onPress={onResume} />
-      <Button label={t('node.back')} tone="quiet" onPress={onExit} />
+      <Button label={t('pause.skip')} tone="quiet" onPress={onExit} />
     </Backdrop>
+  );
+}
+
+/** An on-screen back button pinned to the top-left safe area of an active simulation (ADR 0021). */
+export function SimulatorBackButton({ onPress, label = 'Atrás' }: { onPress: () => void; label?: string }) {
+  const insets = useSafeAreaInsets();
+  const top = Math.max(insets?.top ?? 0, 12);
+  const left = Math.max(insets?.left ?? 0, 12);
+  return (
+    <LightRegion pointerEvents="box-none" className="absolute inset-0">
+      <View style={{ position: 'absolute', top, left, zIndex: 20 }}>
+        <Pressable
+          onPress={onPress}
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          aria-label={label}
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: lightColor.surface,
+            borderWidth: 2,
+            borderColor: lightColor.outline,
+            alignItems: 'center',
+            justifyContent: 'center',
+            shadowColor: lightColor.outline,
+            shadowOffset: { width: 2, height: 2 },
+            shadowOpacity: 1,
+            shadowRadius: 0,
+            elevation: 3,
+          }}
+        >
+          <Svg width={24} height={24} viewBox="0 0 24 24">
+            <Path d="M15 5l-7 7 7 7" fill="none" stroke={lightColor.ink} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+          </Svg>
+        </Pressable>
+      </View>
+    </LightRegion>
   );
 }
 

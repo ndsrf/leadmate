@@ -62,7 +62,7 @@ jest.mock('expo-splash-screen', () => ({ hideAsync: () => Promise.resolve(), pre
 jest.mock('expo-status-bar', () => ({ StatusBar: () => null }));
 jest.mock('expo-font', () => ({ useFonts: () => [true] }));
 jest.mock('@expo-google-fonts/fredoka', () => ({ Fredoka_600SemiBold: 1 }));
-jest.mock('react-native-safe-area-context', () => ({ SafeAreaProvider: (p: any) => p.children }));
+jest.mock('react-native-safe-area-context', () => ({ SafeAreaProvider: (p: any) => p.children, useSafeAreaInsets: () => ({ top: 40, bottom: 20, left: 0, right: 0 }) }));
 jest.mock('./shell/ui/feedbackBackends', () => ({ installFeedback: () => {} }));
 jest.mock('./shell/ui/useUiSettings', () => ({ useUiSettings: () => ({ settings: { appearance: 'light' }, change: () => {} }) }));
 jest.mock('./shell/ui/components', () => ({ PaletteRoot: (p: any) => p.children }));
@@ -308,5 +308,55 @@ describe('App - Stage view lifecycle', () => {
     act(() => mockAppStateListeners.forEach((cb) => cb('background')));
     act(() => mockAppStateListeners.forEach((cb) => cb('active')));
     expect(mockSim.posts).toHaveLength(0);
+  });
+
+  it('renders SimulatorBackButton when a Stage is ready, and pressing it pauses the simulation', async () => {
+    await openMap();
+    openStop(WALK_DISTRACTION.id);
+    throughPrimerAndCheckpoint();
+    expect(latest('SimulatorBackButton')).toBeUndefined();
+    await sendFromView({ type: 'ready' });
+    expect(latest('SimulatorBackButton')).toBeDefined();
+
+    act(() => latest('SimulatorBackButton').onPress());
+    expect(posted('pause')).toHaveLength(1);
+
+    await sendFromView({ type: 'paused' });
+    expect(latest('ResumeOverlay')).toBeDefined();
+    expect(latest('SimulatorBackButton')).toBeUndefined();
+  });
+
+  it('skips a Node Stage on Pause Menu Exit and advances to DebriefScreen with 1 star', async () => {
+    await openMap();
+    openStop(WALK_DISTRACTION.id);
+    throughPrimerAndCheckpoint();
+    await sendFromView({ type: 'ready' });
+
+    act(() => latest('SimulatorBackButton').onPress());
+    await sendFromView({ type: 'paused' });
+    expect(latest('ResumeOverlay')).toBeDefined();
+
+    act(() => latest('ResumeOverlay').onExit());
+    expect(latest('ResumeOverlay')).toBeUndefined();
+    expect(latest('DebriefScreen')).toBeDefined();
+    expect(latest('DebriefScreen').best).toBe(1);
+    expect(mockSim.live).toBe(0);
+  });
+
+  it('skips a Daily Stage on Pause Menu Exit and advances to DailyResultScreen', async () => {
+    await openMap();
+    act(() => latest('WorldMapScreen').onDaily());
+    expect(mockSim.live).toBe(1);
+    await sendFromView({ type: 'ready' });
+    expect(latest('SimulatorBackButton')).toBeDefined();
+
+    act(() => latest('SimulatorBackButton').onPress());
+    await sendFromView({ type: 'paused' });
+    expect(latest('ResumeOverlay')).toBeDefined();
+
+    act(() => latest('ResumeOverlay').onExit());
+    expect(latest('ResumeOverlay')).toBeUndefined();
+    expect(latest('DailyResultScreen')).toBeDefined();
+    expect(mockSim.live).toBe(0);
   });
 });

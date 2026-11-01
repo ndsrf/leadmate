@@ -14,7 +14,7 @@ import { PaletteProvider, type ColorScheme } from './src/shell/ui/theme';
 import { defaultScenario, type ScenarioConfig } from './src/sim/config';
 import type { CloseExerciseConfig } from './src/sim/closeExercise';
 import type { LearningSnapshot } from './src/sim/learning';
-import type { SimulationDebriefPayload } from './src/sim/payload';
+import { skippedSimulationPayload, type SimulationDebriefPayload } from './src/sim/payload';
 import { BUNDLE_MESSAGE_TYPES, decode, type BundleMessage, type ShellMessage } from './src/sim/messages';
 import { newSeed } from './src/sim/rng';
 import { playDogSound, playResolvedCue, prepareAudio } from './src/shell/audio';
@@ -25,7 +25,7 @@ import { lookOf } from './src/shell/onboarding/look';
 import { INTRO_NODE } from './src/shell/onboarding/introNode';
 import { celebrationsFor, starsShown, type Celebration } from './src/shell/celebrations';
 import { completeDaily, dateSeed, generateDailyStage, todayString, warmupAfterDaily, type DailyCompletion } from './src/shell/daily';
-import { CoachMarksOverlay, DogWarningOverlay, ErrorOverlay, HintOverlay, LoadingOverlay, ResumeOverlay } from './src/shell/Overlays';
+import { CoachMarksOverlay, DogWarningOverlay, ErrorOverlay, HintOverlay, LoadingOverlay, ResumeOverlay, SimulatorBackButton } from './src/shell/Overlays';
 import { findNode, POSTE_PRACTICE } from './src/shell/nodes/content';
 import { withPull } from './src/shell/nodes/scenarios';
 import { readDogSceneOf } from './src/shell/nodes/readDog';
@@ -836,7 +836,8 @@ export default function App() {
             setIntroRun((r) => (r ? { ...r, step: 'simulation', result: null } : null));
           }}
           onDone={() => {
-            update((r) => completeFirstStage(r, payload, new Date()));
+            const isSkipped = Boolean(introRun.result && 'skipped' in introRun.result && introRun.result.skipped);
+            update((r) => completeFirstStage(r, payload, new Date(), isSkipped));
             accountRef.current.countStage();
             if (accountRef.current.configured && !accountRef.current.signedIn) {
               setFlow({ name: 'register' });
@@ -1256,6 +1257,9 @@ export default function App() {
         <PaletteRoot className="flex-1 bg-bg">
           {viewWanted && <SimView key={attempt} ref={sim} onMessage={onMessage} onLoadError={() => viewFailedRef.current()} />}
           {screen}
+          {playingStage && bundle === 'ready' && !paused && !tastePayoff && (
+            <SimulatorBackButton onPress={() => send({ type: 'pause' })} label={t('hud.back')} />
+          )}
           {playingStage && hint && !dogWarning && !paused && <HintOverlay text={t(HINT_TEXT[hint])} />}
           {playingStage && record && !tastePayoff && !paused && bundle === 'ready' && !isCloseExerciseFlow(route) && (
             <CoachMarksOverlay
@@ -1275,9 +1279,45 @@ export default function App() {
               t={t}
               onResume={resume}
               onExit={() => {
-                // the funnel cannot be left from a Stage; Exit just carries on
-                if (route.name === 'taste' || route.name === 'first-stage') resume();
-                else goHome();
+                setPaused(false);
+                if (route.name === 'taste') {
+                  showTastePayoff();
+                } else if (route.name === 'first-stage') {
+                  const payload = skippedSimulationPayload(newSeed());
+                  setIntroRun((r) => (r ? advance(r, { type: 'finish', result: { kind: 'stage', payload, skipped: true } }) : null));
+                } else if (route.name === 'flow') {
+                  const f = route.flow;
+                  if (f.name === 'warmup') {
+                    setWarmup('completed');
+                    goHome();
+                  } else if (f.name === 'daily' && f.result === null) {
+                    const payload = skippedSimulationPayload(dateSeed(todayString()));
+                    const before = recordRef.current!;
+                    const now = new Date();
+                    const completion = completeDaily(before, payload, now);
+                    update(() => completion.record);
+                    setWarmup((w) => warmupAfterDaily(w));
+                    if (!isPlus(completion.record, now)) {
+                      getAdService().preloadInterstitial().catch(() => {});
+                    }
+                    const list = celebrationsFor(progressAt(before, now), progressAt(completion.record, now), {
+                      kind: 'daily',
+                      improved: completion.improved,
+                      firstOfDay: completion.firstOfDay,
+                      best: completion.best,
+                    });
+                    setFlow({ ...f, result: { payload, completion, celebrations: list } });
+                  } else if (f.name === 'node' && f.run.step === 'simulation') {
+                    accountRef.current.countStage();
+                    const kind = f.run.node.mode === 'close_exercise' ? 'close_exercise' : 'stage';
+                    const payload = skippedSimulationPayload(f.attempt + 1, f.run.node.mode);
+                    act({ type: 'finish', result: { kind, payload, skipped: true } });
+                  } else {
+                    goHome();
+                  }
+                } else {
+                  goHome();
+                }
               }}
             />
           )}

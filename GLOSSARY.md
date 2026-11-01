@@ -181,7 +181,7 @@ The timed quiz between the Theory Primer and the Interactive Simulation, timed a
 _Avoid_: Quiz, test
 
 **Pause Menu**:
-The menu shown over a paused Stage, offering Resume and Exit.
+The menu shown over a paused Stage, offering Resume and Skip (which skips the Stage to its Debrief or results with completion credit).
 _Avoid_: Resume overlay, pause screen
 
 **Arousal**:

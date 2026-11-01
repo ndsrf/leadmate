@@ -107,3 +107,36 @@ export function buildPayload(state: SimState): SimulationDebriefPayload {
   }
   return { ...base, handlingScore: handlingScore(base), configVersion: state.config.configVersion };
 }
+
+/** A valid baseline debrief payload synthesized when a simulation is skipped (ADR 0021). */
+export function skippedSimulationPayload(seed: number = 1, mode?: string): SimulationDebriefPayload {
+  const base: SimulationDebriefPayload = {
+    durationSeconds: 30,
+    slackPercentage: 100,
+    tautPercentage: 0,
+    pullPercentage: 0,
+    markerHits: 0,
+    markerMisses: 0,
+    reactiveMarkers: 0,
+    missedOpportunities: 0,
+    checkInHits: 0,
+    followMarks: 0,
+    posteSuccesses: 0,
+    harshStops: 0,
+    peakArousalScore: 0,
+    calmEncounters: {},
+    marksUsed: 0,
+    markBudget: 5,
+    seed,
+    sintoniaTimeSeconds: 0,
+    goSniffs: 0,
+    handlingScore: 500,
+    configVersion: 'bundled',
+  };
+  if (mode === 'close_exercise') {
+    base.peakTensionRatio = 0.5;
+    base.shieldCoverageScore = 100;
+    base.leashHandlingAccuracy = 100;
+  }
+  return base;
+}

@@ -10,6 +10,8 @@ export const es = {
   'hint.rigid': 'Tirón rígido: no tires del perro, detente y espera.',
   'pause.title': 'Pausa',
   'pause.resume': 'Continuar',
+  'pause.skip': 'Saltar simulación',
+  'hud.back': 'Atrás',
   'results.title': 'Resultados del paseo',
   'results.duration': 'Duración',
   'results.seconds': 's',
