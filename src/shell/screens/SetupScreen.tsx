@@ -11,6 +11,7 @@ import { finishSetup, setupStart, SETUP_PARTS, type SetupPart } from '../onboard
 import { DOG_KG_RANGE, HANDLER_KG_RANGE, isDogKg, isHandlerKg, kgFromText, kgText, parseKg } from '../onboarding/weights';
 import { Panel, TextField } from '../ui/components';
 import { EquipmentCard, SelectChip, Segmented, StepHeader } from '../ui/Pickers';
+import { AgeSexChips, HomeConcernChips } from '../ui/ConcernPickers';
 import { WeightSlider } from '../ui/WeightSlider';
 import { Screen } from './Screen';
 
@@ -81,7 +82,7 @@ export function SetupScreen({ t, record, update }: { t: Translate; record: DogRe
     if (handlerKg === null || !isHandlerKg(handlerKg)) return setError('setup.weights.invalidHandler');
     setError(null);
     update((r) => ({ ...r, weights: { dogKg, handlerKg } }));
-    setPart('questions');
+    setPart('about');
   };
 
   const back = part === 'equipment' ? undefined : () => setPart(SETUP_PARTS[SETUP_PARTS.indexOf(part) - 1]);
@@ -121,9 +122,29 @@ export function SetupScreen({ t, record, update }: { t: Translate; record: DogRe
             tone="quiet"
             onPress={() => {
               setError(null);
-              setPart('questions');
+              setPart('about');
             }}
           />
+        </Panel>
+      )}
+
+      {part === 'about' && (
+        <Panel>
+          <Text className="mb-1 font-display text-title text-ink">{withDogName(t('setup.about.title'), record.name, neutral)}</Text>
+          <Text className="mb-1 text-body text-inkMuted">{t('setup.about.help')}</Text>
+          <AgeSexChips t={t} record={record} update={update} />
+          <Button label={t('setup.next')} onPress={() => setPart('home')} />
+          <Button label={t('setup.skip')} tone="quiet" onPress={() => setPart('home')} />
+        </Panel>
+      )}
+
+      {part === 'home' && (
+        <Panel>
+          <Text className="mb-1 font-display text-title text-ink">{withDogName(t('setup.home.title'), record.name, neutral)}</Text>
+          <Text className="mb-1 text-body text-inkMuted">{t('setup.home.help')}</Text>
+          <HomeConcernChips t={t} record={record} update={update} />
+          <Button label={t('setup.next')} onPress={() => setPart('questions')} />
+          <Button label={t('setup.skip')} tone="quiet" onPress={() => setPart('questions')} />
         </Panel>
       )}
 

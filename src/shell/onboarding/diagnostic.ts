@@ -2,7 +2,7 @@ import { createRng } from '../../sim/rng';
 import type { DogRecord } from '../dogRecord';
 import { nextStep } from './flow';
 import { BAND_LIMITS, type LatencyBand, latencyBand } from './latency';
-import { buildWalkPlan } from './plan';
+import { buildPersonalPlan } from './plan';
 
 export { BAND_LIMITS, type LatencyBand, latencyBand };
 
@@ -79,11 +79,9 @@ export function seedFromLatency(latency: number): number {
  */
 export function recordDiagnostic(record: DogRecord, latency: number): DogRecord {
   if (record.onboarding.diagnosticLatency !== null) return record;
-  return {
-    ...record,
-    attributes: { ...record.attributes, reconnectionLatency: seedFromLatency(latency) },
-    onboarding: { ...record.onboarding, diagnosticLatency: latency, plan: buildWalkPlan(latency, record.triggerProfile), step: record.onboarding.step === 'diagnostic' ? nextStep('diagnostic') : record.onboarding.step },
-  };
+  const onboarding = { ...record.onboarding, diagnosticLatency: latency, step: record.onboarding.step === 'diagnostic' ? nextStep('diagnostic') : record.onboarding.step };
+  const next = { ...record, attributes: { ...record.attributes, reconnectionLatency: seedFromLatency(latency) }, onboarding };
+  return { ...next, onboarding: { ...onboarding, plan: buildPersonalPlan(next) } };
 }
 
 /** Paws in the progress row: the signals a 15-second run is expected to hold. The run still ends on time, never on the paw count. */

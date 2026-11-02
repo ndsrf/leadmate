@@ -3,6 +3,8 @@ import type { DogRecord } from '../dogRecord';
 import type { BreedId } from './breeds';
 import type { DogCoat } from './look';
 import { cleanDogName } from './name';
+import type { Concern } from '../concerns';
+import { chooseMainConcerns } from './questionnaire';
 import { nextStep, type OnboardingStep } from './flow';
 
 /** The record moved on from `from`, unchanged when it is no longer at that step (a late or repeated event). */
@@ -20,6 +22,16 @@ export function leaveWelcome(record: DogRecord): DogRecord {
 export function saveNameAndLook(record: DogRecord, rawName: string, coat: DogCoat, breed: BreedId = record.breed): DogRecord {
   const name = cleanDogName(rawName);
   return name === null ? record : leave(record, 'dog', { name, coat, breed });
+}
+
+/**
+ * The main concern screen: saves up to three answers (none when skipped) and moves to the taste. Each concern picked is also
+ * selected in Dog setup, at the default "often" unless it already has a level.
+ */
+export function saveMainConcerns(record: DogRecord, concerns: readonly Concern[]): DogRecord {
+  if (record.onboarding.step !== 'concern') return record;
+  const next = chooseMainConcerns(record, concerns);
+  return leave(next, 'concern');
 }
 
 /**

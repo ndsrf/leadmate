@@ -60,6 +60,10 @@ Under the Lesson's prefix (`lesson.<n>` or `trail.<id>`):
 | tip | `today` | "Prueba hoy": one small, concrete thing to try on the next walk. 15-35 words. |
 | takeaways | `takeaway.1` ... `takeaway.n` | 2-4 one-line summaries, each 5-15 words. |
 
+A Lesson that needs a safety note up front (the professional-help note of the biting Lessons, the vet note of the
+eating-objects Lesson) passes `notice: '<catalog key>'` to `theoryLesson()`: a `notice` block is emitted before the
+heading, and the note is one shared catalog key reused wherever else it is needed (a Fix, for example).
+
 The title (`title`) stays short (2-6 words); the section headings ("Por qué pasa", "Cómo hacerlo", "Errores comunes")
 are shared catalog keys.
 

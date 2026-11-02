@@ -1,8 +1,10 @@
+import { postureSpec } from '../ui/canine';
 import { BASICS_SCENES, buildScript, correctAction, CORRECT_ACTION, currentState, harnessOn, hintKey, readDogSceneOf, newReadDog, READ_DOG, readDogHandlingScore, readDogMetrics, SCENE_ACTIONS, stepReadDog, type ReadDogAction, type ReadDogRun, type ReadDogScene } from './readDog';
 import { es } from '../../i18n';
 import { starsFor } from '../stars';
 
-const SCENES: ReadDogScene[] = ['harness', 'doorbell', 'affection', 'rest', 'calm'];
+const SCENES: ReadDogScene[] = ['harness', 'doorbell', 'affection', 'rest', 'calm', 'bark-home', 'destroy', 'eat-objects'];
+const HOME: ReadDogScene[] = ['bark-home', 'destroy', 'eat-objects'];
 const BASICS: ReadDogScene[] = ['affection', 'rest', 'calm'];
 
 const right = (run: ReadDogRun) => stepReadDog(run, 0.05, correctAction(run.scene, currentState(run))!);
@@ -306,5 +308,56 @@ describe('Basics scenes results and hints', () => {
 
   it('has help text for every scene', () => {
     for (const scene of SCENES) expect((es as Record<string, string>)[`minigame.${scene}.help`]).toBeTruthy();
+  });
+});
+
+describe('Home Behaviour scenes', () => {
+  it('runs the three Home Minigames on their scenes', () => {
+    expect(readDogSceneOf('bark-home')).toBe('bark-home');
+    expect(readDogSceneOf('destroy')).toBe('destroy');
+    expect(readDogSceneOf('eat-objects')).toBe('eat-objects');
+  });
+
+  it('gives each scene four beats, ends calm, and has exactly one right action for every state it shows', () => {
+    for (const scene of HOME) {
+      expect(READ_DOG.beats[scene]).toBe(4);
+      const scripts = buildScripts(scene);
+      for (const script of scripts) {
+        expect(script).toHaveLength(4);
+        expect(script[3]).toBe('relaxed_lying');
+        for (const state of script) {
+          const rights = SCENE_ACTIONS[scene].filter((a) => a === correctAction(scene, state));
+          expect(rights).toHaveLength(1);
+        }
+      }
+      expect(new Set(scripts.map((x) => x.join())).size).toBeGreaterThan(1);
+    }
+  });
+
+  it('plays a perfect run to timing 1, tension 1 and 1000', () => {
+    for (const scene of HOME) {
+      const run = play(scene);
+      expect(readDogMetrics(run)).toEqual({ timing: 1, tension: 1 });
+      expect(readDogHandlingScore(run)).toBe(1000);
+    }
+  });
+
+  it('shows no state without a posture, a label and a hint for every choice', () => {
+    const touch = /\b(pega|pegar|golpe|patada|empuj|zarande|cachete|agarr|sujeta)/i;
+    for (const scene of HOME) {
+      for (const state of Object.keys(CORRECT_ACTION[scene]) as never[]) {
+        expect(es[postureSpec(state).label]).toBeTruthy();
+        for (const action of [null, ...SCENE_ACTIONS[scene]]) {
+          const text = es[hintKey(scene, state, action)];
+          expect(text).toBeTruthy();
+          expect(text).not.toMatch(touch);
+        }
+      }
+    }
+  });
+
+  it('never tells the user to chase or grab the Dog or what it holds', () => {
+    expect(es['minigame.eat-objects.hint.wait']).toMatch(/no lo persigas/);
+    expect(es['minigame.eat-objects.hint.swap']).toMatch(/no se lo quites/);
   });
 });

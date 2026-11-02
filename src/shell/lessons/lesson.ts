@@ -8,6 +8,8 @@ export type LessonBlock =
   | { type: 'heading'; text: TextKey }
   | { type: 'text'; text: TextKey }
   | { type: 'tip'; text: TextKey }
+  /** A safety note set apart, such as "see a professional" or "see a vet"; a Lesson that has one leads with it. */
+  | { type: 'notice'; text: TextKey }
   | { type: 'image'; art: string; alt: TextKey; caption: TextKey }
   /** A Lesson Video: a Lesson Animation (our hosted clip, by key) or a YouTube video (by id), played after a tap. */
   | { type: 'video'; source: VideoSource; poster: string; alt: TextKey; caption: TextKey }
@@ -48,6 +50,7 @@ export function lessonTextKeys(blocks: readonly LessonBlock[]): TextKey[] {
       case 'heading':
       case 'text':
       case 'tip':
+      case 'notice':
         return [b.text];
       case 'steps':
       case 'takeaways':

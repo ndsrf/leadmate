@@ -1,7 +1,7 @@
 import type { DogRecord } from './dogRecord';
 import type { Stars } from './stars';
 import { shownStreak, type StreakRecord } from './streak';
-import { isNodeOpen, isWorldUnlocked, WORLDS } from './world';
+import { isNodeOpen, isWorldUnlocked, worldsFor } from './world';
 import { NODES } from './nodes/content';
 
 /** What just finished: a Node's Debrief, a Mission check-in or a Daily Stage. */
@@ -47,12 +47,15 @@ export function celebrationsFor(before: DogRecord, after: DogRecord, completion:
     out.push({ type: 'daily-new-best', score: completion.best });
   }
   if (completion.kind !== 'daily') {
-    const worldsOpened = WORLDS.filter((w) => !isWorldUnlocked(w, before) && isWorldUnlocked(w, after));
+    // the Stretches in the order this Dog walks them (the Personal Plan decides it)
+    const beforeWorlds = worldsFor(after.onboarding.plan, before);
+    const afterWorlds = worldsFor(after.onboarding.plan, after);
+    const worldsOpened = afterWorlds.filter((w) => !isWorldUnlocked(w, before, beforeWorlds) && isWorldUnlocked(w, after, afterWorlds));
     for (const world of worldsOpened) out.push({ type: 'unlock-world', worldId: world.id });
     // a Node in a World that just opened is covered by that World's celebration
     for (const node of NODES) {
       if (worldsOpened.some((w) => w.stretches.flat().some((s) => s.kind === 'node' && s.id === node.id))) continue;
-      if (!isNodeOpen(node, before) && isNodeOpen(node, after)) out.push({ type: 'unlock-node', nodeId: node.id });
+      if (!isNodeOpen(node, before, beforeWorlds) && isNodeOpen(node, after, afterWorlds)) out.push({ type: 'unlock-node', nodeId: node.id });
     }
   }
   if (after.streak.lastActiveDate !== before.streak.lastActiveDate && after.streak.lastActiveDate !== '' && after.streak.current > 0) {

@@ -62,6 +62,11 @@ describe('seeding the Dog from the Diagnostic', () => {
     expect(seedFromLatency(0.525)).toBeCloseTo(0.25);
   });
 
+  it('builds the plan from the answers: biting as Main Concern puts its Home Stretch first', () => {
+    const asked = { ...newDogRecord(), mainConcerns: ['bite-owner' as const], onboarding: { ...newDogRecord().onboarding, step: 'diagnostic' as const } };
+    expect(recordDiagnostic(asked, 0.3).onboarding.plan[0]).toEqual({ stretchId: 'theory-bite-owner', concern: 'bite-owner' });
+  });
+
   it('seeds once and moves to the plan', () => {
     const base = { ...newDogRecord(), onboarding: { ...newDogRecord().onboarding, step: 'diagnostic' as const } };
     const first = recordDiagnostic(base, 0.3);

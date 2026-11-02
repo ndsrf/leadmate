@@ -19,6 +19,8 @@ export interface TheorySpec {
   animation?: string;
   /** A YouTube id in the Lesson's language, shown after the do / don't comparison. */
   video?: string;
+  /** A safety note shown as the first block, before the Lesson (the professional-help or vet note). */
+  notice?: TextKey;
   /** Where Lesson Animations are hosted; defaults to the configured `MEDIA_BASE`. */
   mediaBase?: string;
 }
@@ -35,6 +37,7 @@ export function theoryLesson(id: string, spec: TheorySpec): LessonDef {
   const range = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
   const [first, ...more] = spec.images;
   const blocks: LessonBlock[] = [
+    ...(spec.notice ? [{ type: 'notice', text: spec.notice } satisfies LessonBlock] : []),
     { type: 'heading', text: k('heading') },
     { type: 'text', text: k('hook') },
     { type: 'heading', text: 'lesson.section.why' },
@@ -116,8 +119,20 @@ export const TRAIL_LESSONS: readonly LessonDef[] = [
   theoryLesson('theory-park-mix', { keys: 'trail.theory-park-mix', images: ['theory-park-mix-1', 'theory-park-mix-2'], steps: 5, takeaways: 4 }),
 ];
 
-/** Every Lesson of the Theory Library, in Library order: the first week, then the trail. */
-export const LESSONS: readonly LessonDef[] = [...FIRST_WEEK_LESSONS, ...TRAIL_LESSONS];
+/**
+ * The Lessons of the Home Behaviours (`add-home-behaviour-training`), on no World's trail. The biting Lessons lead with the
+ * professional-help note (the plan's own text) and the eating Lesson with the vet note. Their pictures are stand-ins.
+ */
+export const HOME_LESSONS: readonly LessonDef[] = [
+  theoryLesson('theory-bite-owner', { keys: 'trail.theory-bite-owner', notice: 'plan.note.professional', images: ['body-language-1', 'theory-dog-as-dog-1'], steps: 6, takeaways: 4 }),
+  theoryLesson('theory-bite-others', { keys: 'trail.theory-bite-others', notice: 'plan.note.professional', images: ['body-language-2', 'theory-visual-shields-1'], steps: 6, takeaways: 4 }),
+  theoryLesson('theory-bark-home', { keys: 'trail.theory-bark-home', images: ['theory-calm-first-1', 'theory-calm-first-2'], steps: 6, takeaways: 4 }),
+  theoryLesson('theory-destroy', { keys: 'trail.theory-destroy', images: ['theory-home-rest-1', 'theory-home-rest-2'], steps: 5, takeaways: 4 }),
+  theoryLesson('theory-eat-objects', { keys: 'trail.theory-eat-objects', notice: 'lesson.note.vet', images: ['theory-leave-it-1', 'theory-leave-it-2'], steps: 6, takeaways: 4 }),
+];
+
+/** Every Lesson of the Theory Library, in Library order: the first week, then the trail, then the Home Behaviours. */
+export const LESSONS: readonly LessonDef[] = [...FIRST_WEEK_LESSONS, ...TRAIL_LESSONS, ...HOME_LESSONS];
 
 export function findLesson(id: string): LessonDef | undefined {
   return LESSONS.find((l) => l.id === id);

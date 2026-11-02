@@ -11,3 +11,5 @@ A new user plays a Taste Stage before any setup question: a strong Distractor me
 ## Consequences
 
 The scenario can drift as simulation tunables change, so a test asserts that scripted default input (a still Handler and a straight-walking Handler, across several seeds) reaches Reactive within the time limit. A first impression of failure is deliberate; the Payoff Screen frames it and names the Dog.
+
+Narrowed by ADR 0019: the Main Concern is asked before the Taste Stage and picks its Distractor kind.

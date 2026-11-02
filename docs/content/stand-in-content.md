@@ -55,6 +55,25 @@ tone, especially against the no-physical-correction rule of the `dog-basics-worl
 The tap card of `howto-tap-hold` was shortened to a reminder, since tapping is now taught in `howto-choose-action`.
 None of the Basics Lessons has a Lesson Animation or a YouTube video yet.
 
+## Home Behaviour training
+
+Added by `add-home-behaviour-training`; all of it needs a review for training accuracy and tone, and the biting and
+eating-objects Lessons and Missions need the named safety review (task 6.2 of the change) before they leave this list.
+Text in `src/i18n/es.home.ts`. None of the Lessons has a Lesson Animation or a YouTube video.
+
+| Item | Kind | Pictures |
+| --- | --- | --- |
+| `theory-bite-owner` | Theory Lesson "Si te muerde a ti", leads with the professional-help note | stand-ins `body-language-1`, `theory-dog-as-dog-1` |
+| `theory-bite-others` | Theory Lesson "Si muerde a otras personas", leads with the professional-help note | stand-ins `body-language-2`, `theory-visual-shields-1` |
+| `theory-bark-home` | Theory Lesson "Ladra en casa" | stand-ins `theory-calm-first-1`, `-2` |
+| `theory-destroy` | Theory Lesson "Destroza cosas" | stand-ins `theory-home-rest-1`, `-2` |
+| `theory-eat-objects` | Theory Lesson "Se come lo que no es comida", leads with the vet note (`lesson.note.vet`) | stand-ins `theory-leave-it-1`, `-2` |
+| `bark-home`, `destroy`, `eat-objects` | Exercise Nodes (read-the-Dog scenes) with recaps and Checkpoints (`node.barkhome.*`, `node.destroy.*`, `node.eatobjects.*`) and Minigame text (`minigame.<scene>.*`) | recap pictures `theory-calm-first-1`, `theory-home-rest-2`, `theory-leave-it-1`; the five new Dog states (`barking_window`, `barking_at_you`, `chewing_object`, `eyeing_item`, `holding_item`) reuse the existing Dog drawing with their own pose |
+| `mission-bite-owner`, `mission-bite-others`, `mission-bark-home`, `mission-destroy`, `mission-eat-objects` | Home Missions with Fixes (`fix/<slug>/<problem>` is not drawn: `biteowner`, `biteothers`, `barkhome`, `destroy`, `eatobjects`; problems as in `missions/content.ts`, plus `general`) | none yet |
+
+The pictures of the five Lessons are existing illustrations used as stand-ins (their captions and alt texts describe
+the idea, not the picture); each needs its own drawing following [lesson-guide.md](lesson-guide.md).
+
 ## YouTube videos still wanted
 
 A Lesson's YouTube video must be spoken in the user's language: `lessonMedia.ts` keys each id by language, and a

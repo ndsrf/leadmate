@@ -40,6 +40,13 @@ export function LessonBlockView({
           <Text className="mt-1 text-body text-ink">{t(block.text)}</Text>
         </Panel>
       );
+    case 'notice':
+      return (
+        <Panel tone="warn" className="mt-4">
+          <Text className="font-display text-caption text-ink">{t('lesson.noticeLabel')}</Text>
+          <Text className="mt-1 text-body text-ink">{t(block.text)}</Text>
+        </Panel>
+      );
     case 'image':
       return <LessonImage t={t} block={block} />;
     case 'video':

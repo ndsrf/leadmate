@@ -1,16 +1,18 @@
 import { loadDogRecord, newDogRecord, saveDogRecord, type DogRecord, type KeyValueStore } from '../dogRecord';
-import { completeTaste, leaveWelcome, namedTranslator, renameDog, saveNameAndLook, withDogName } from './intro';
+import { completeTaste, leaveWelcome, namedTranslator, renameDog, saveMainConcerns, saveNameAndLook, withDogName } from './intro';
 import type { OnboardingStep } from './flow';
 
 const at = (step: OnboardingStep): DogRecord => ({ ...newDogRecord(), onboarding: { ...newDogRecord().onboarding, step } });
 
 describe('the funnel before setup', () => {
-  it('goes welcome, dog, taste, setup', () => {
+  it('goes welcome, dog, concern, taste, setup', () => {
     let r = newDogRecord();
     expect(r.onboarding.step).toBe('welcome');
     r = leaveWelcome(r);
     expect(r.onboarding.step).toBe('dog');
     r = saveNameAndLook(r, 'Luna', 'black');
+    expect(r.onboarding.step).toBe('concern');
+    r = saveMainConcerns(r, ['bite-owner']);
     expect(r.onboarding.step).toBe('taste');
     r = completeTaste(r);
     expect(r.onboarding.step).toBe('setup');
@@ -44,6 +46,46 @@ describe('the funnel before setup', () => {
     expect(after.streak).toEqual(before.streak);
     expect(after.walkDiary).toEqual([]);
     expect(after.lastStageDate).toBeNull();
+  });
+});
+
+describe('the main concern step', () => {
+  it('saves the answer once and moves on to the taste', () => {
+    const r = saveMainConcerns(at('concern'), ['react-bicycle']);
+    expect(r.mainConcerns).toEqual(['react-bicycle']);
+    expect(r.onboarding.step).toBe('taste');
+    expect(saveMainConcerns(r, ['bark-home'])).toBe(r);
+  });
+
+  it('saves up to three picks in order and selects each one', () => {
+    const r = saveMainConcerns(at('concern'), ['eat-objects', 'react-food', 'bark-home', 'destroy']);
+    expect(r.mainConcerns).toEqual(['eat-objects', 'react-food', 'bark-home']);
+    expect(r.homeConcerns).toEqual({ 'eat-objects': 2, 'bark-home': 2 });
+    expect(r.homeConcerns.destroy).toBeUndefined();
+  });
+
+  it('moves on when skipped, leaving the answer unset', () => {
+    const r = saveMainConcerns(at('concern'), []);
+    expect([r.mainConcerns, r.onboarding.step]).toEqual([[], 'taste']);
+  });
+
+  it('shows a home concern preselected in setup, without lowering one that is set', () => {
+    expect(saveMainConcerns(at('concern'), ['eat-objects']).homeConcerns).toEqual({ 'eat-objects': 2 });
+    const set = { ...at('concern'), homeConcerns: { destroy: 3 as const } };
+    expect(saveMainConcerns(set, ['destroy']).homeConcerns).toEqual({ destroy: 3 });
+  });
+
+  it('selects an outdoor concern in the Trigger Profile without a second copy', () => {
+    const off = { ...at('concern'), triggerProfile: { ...newDogRecord().triggerProfile, bicycle: 0 as const } };
+    const r = saveMainConcerns(off, ['react-bicycle']);
+    expect(r.triggerProfile.bicycle).toBe(2);
+    expect(r.homeConcerns).toEqual({});
+    expect(saveMainConcerns({ ...off, triggerProfile: { ...off.triggerProfile, bicycle: 3 } }, ['react-bicycle']).triggerProfile.bicycle).toBe(3);
+  });
+
+  it('does nothing for a record somewhere else', () => {
+    const later = at('setup');
+    expect(saveMainConcerns(later, ['bite-owner'])).toBe(later);
   });
 });
 
@@ -94,7 +136,7 @@ describe('the breed on the name-and-look screen', () => {
   it('stores the breed with the name and coat', () => {
     const r = saveNameAndLook(at('dog'), 'Luna', 'black', 'collie');
     expect(r).toMatchObject({ name: 'Luna', coat: 'black', breed: 'collie' });
-    expect(r.onboarding.step).toBe('taste');
+    expect(r.onboarding.step).toBe('concern');
   });
 
   it('keeps the Mestizo when the breed is never touched', () => {

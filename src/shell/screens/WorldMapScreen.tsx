@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, Text, View, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useLive } from '../ui/useAppActive';
@@ -10,7 +10,10 @@ import type { Stars } from '../stars';
 import type { StreakRecord } from '../streak';
 import type { DailyBarkdokuSolve } from '../dogRecord';
 import { formatClock, solveTimeText } from '../puzzle/engine';
-import { worldTitle, type Progress, type Stop } from '../world';
+import { HOME_BEHAVIOUR_CONTENT } from '../homeBehaviours';
+import { HomeBehavioursSection } from './HomeBehavioursSection';
+import type { HomeConcern, HomeConcerns } from '../concerns';
+import { worldsFor, worldTitle, type Progress, type Stop } from '../world';
 import type { DogRecord } from '../dogRecord';
 import { isPlus, plusEndsAt, trialDaysRemaining, trialState, type TrialState } from '../plus';
 import { Backdrop, Button } from '../Overlays';
@@ -30,6 +33,8 @@ import { AdBanner, prepareAds } from '../ads';
 
 export interface WorldMapProps {
   t: Translate;
+  /** The Home Behaviours section: the Dog's home concerns and what "this is a concern now" does. Absent hides the section. */
+  home?: { concerns: HomeConcerns; onBecomeConcern: (concern: HomeConcern) => void };
   /** What of the Dog record the trail reads. */
   progress: Progress;
   /** Whose LeadMate Plus the map checks with `isPlus` against its own clock: Plus Worlds open, and close when the trial ends. */
@@ -659,7 +664,7 @@ type WorldBlockProps = {
 /** A world's header and trail sit on its scenery, so they stay Light whatever the Appearance. */
 function WorldBlock(props: WorldBlockProps) {
   const folded = props.entry.complete && !props.completedOpen;
-  const active = !folded && (props.entry.unlocked || props.isFirstLocked || props.isExpanded);
+  const active = !folded && (props.entry.unlocked || props.isExpanded);
   return (
     <LightRegion className={active ? 'mb-6' : undefined} onLayout={props.onLayout} style={active ? { opacity: props.entry.unlocked ? 1 : 0.9 } : undefined}>
       <WorldArena {...props} />
@@ -687,7 +692,8 @@ function WorldArena({
   restingAt,
 }: WorldBlockProps) {
   const color = usePalette();
-  const isArenaActive = entry.unlocked || isFirstLocked || isExpanded;
+  // the first locked World starts folded to its header; a tap opens its preview
+  const isArenaActive = entry.unlocked || isExpanded;
   const palette =
 worldPalette(entry.world.id);
 
@@ -982,6 +988,7 @@ export function TrialStatusModal({
 
 export function WorldMapScreen({
   t,
+  home,
   progress,
   membership,
   stars,
@@ -1044,7 +1051,10 @@ export function WorldMapScreen({
     }
   };
 
-  const model = useMemo(() => mapModel(plus ? { ...progress, plus } : progress, stars, at), [progress, plus, stars, at]);
+  const plan = membership?.onboarding.plan;
+  // the Worlds are composed per Dog (Personal Plan, Home Stretches); with neither, the static trail
+  const composed = (plan?.length ?? 0) > 0 || Object.keys(progress.homeConcerns ?? {}).length > 0 || (progress.worldHome?.length ?? 0) > 0;
+  const model = useMemo(() => mapModel(plus ? { ...progress, plus } : progress, stars, at, { plan, worlds: composed ? worldsFor(plan ?? [], progress) : undefined }), [progress, plus, stars, at, plan, composed]);
   const scroll = useRef<ScrollViewInstance>(null);
   const [width, setWidth] = useState(theme.size.readableWidth);
   const [lockNote, setLockNote] = useState<string | null>(null);
@@ -1053,6 +1063,8 @@ export function WorldMapScreen({
   const focus = model.nextUp ?? model.waitingAt ?? null;
   const focusKey = focus ? `${focus.worldId}:${focus.stop.kind}:${focus.stop.id}` : undefined;
 
+  // the Home Stretches in World 1 for this Dog; the others are Other Home Behaviours
+  const inWorldOne = (concern: HomeConcern) => model.worlds[0]?.world.stretches.some((stops) => stops.some((s) => s.kind === 'lesson' && s.id === HOME_BEHAVIOUR_CONTENT[concern].lesson)) ?? false;
   const firstLockedWorldId = model.worlds.find((w) => !w.unlocked)?.world.id;
 
   // open the map where the user left it, or else scrolled to the next-up Stop (or the waiting Mission)
@@ -1147,9 +1159,9 @@ export function WorldMapScreen({
       {skippedWarmup && <Text className="mb-4 text-body text-ink">{t('rusty.skipped')}</Text>}
       {model.allComplete && <Text className="mb-4 text-body text-inkMuted">{t('map.allDone')}</Text>}
       <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
-        {model.worlds.map((world) => (
+        {model.worlds.map((world, index) => (
+          <Fragment key={world.world.id}>
           <WorldBlock
-            key={world.world.id}
             t={t}
             entry={world}
             width={width}
@@ -1169,6 +1181,8 @@ export function WorldMapScreen({
             coat={coat}
             restingAt={model.waitingAt?.worldId === world.world.id ? model.waitingAt.stop : undefined}
           />
+          {index === 0 && home && <HomeBehavioursSection t={t} concerns={home.concerns} inWorld={inWorldOne} done={progress} onOpen={onOpenStop} onBecomeConcern={home.onBecomeConcern} />}
+          </Fragment>
         ))}
       </View>
       {isTrialModalOpen && (

@@ -1,8 +1,11 @@
 import type { TextKey, Translate } from '../i18n';
 import type { DogRecord } from './dogRecord';
+import type { HomeConcern, HomeConcerns } from './concerns';
+import { homeConcernOfStop, homeStretchStops, homeStretchesInWorldOne } from './homeBehaviours';
 import { canCheckIn, checkInOpensAt, isOwed } from './missions/mission';
-import { NODES } from './nodes/content';
+import { ALL_NODES as NODES } from './nodes/content';
 import type { NodeDef } from './nodes/node';
+import { requiredLessonsOf } from './nodes/readDog';
 
 /** One place on a World's trail: a Lesson to read, a Node to play or a Mission to do on a real walk. */
 export type Stop = { kind: 'lesson'; id: string } | { kind: 'node'; id: string } | { kind: 'mission'; id: string };
@@ -34,7 +37,7 @@ export const WORLDS: readonly WorldDef[] = [
   {
     id: 'basics', title: 'world.basics.title', worldNumber: 1, topics: 'world.basics.topics', tier: 'free',
     stretches: [
-      [lesson('theory-named-behaviours'), lesson('theory-dog-as-dog'), lesson('howto-choose-action'), node('dog-as-dog'), mission('mission-dog-as-dog')],
+      [lesson('howto-choose-action'), lesson('theory-named-behaviours'), lesson('theory-dog-as-dog'), node('dog-as-dog'), mission('mission-dog-as-dog')],
       [lesson('theory-home-rest'), node('home-rest'), mission('mission-home-rest')],
       [lesson('theory-calm-first'), node('calm-first'), mission('mission-calm-first')],
     ],
@@ -80,7 +83,12 @@ export const WORLDS: readonly WorldDef[] = [
  * What of the Dog record the trail reads, and whether the user has LeadMate Plus right now (`isPlus`), which opens
  * Plus Worlds; absent means a free user.
  */
-export type Progress = Pick<DogRecord, 'completedNodes' | 'readLessons' | 'missions' | 'legacyNodes'> & { plus?: boolean };
+export type Progress = Pick<DogRecord, 'completedNodes' | 'readLessons' | 'missions' | 'legacyNodes'> & {
+  plus?: boolean;
+  /** The Dog's Home Concerns and the Home Stretches that belong to World 1; read by `worldsFor` only. */
+  homeConcerns?: HomeConcerns;
+  worldHome?: DogRecord['worldHome'];
+};
 
 /** Progress with only these Nodes completed (and nothing read, started or grandfathered). */
 export function progressOf(completedNodes: readonly string[], more: Partial<Progress> = {}): Progress {
@@ -108,6 +116,24 @@ export function nodeIdsOf(world: WorldDef): string[] {
 
 export const sameStop = (a: Stop, b: Stop) => a.kind === b.kind && a.id === b.id;
 
+/** The id of a Stretch: the id of its first Stop. */
+export const stretchIdOf = (stretch: readonly Stop[]): string => stretch[0].id;
+
+/** The Stretch a plan item names, with its World; undefined for an unknown id. */
+export function findStretch(stretchId: string, worlds: readonly WorldDef[] = WORLDS): { world: WorldDef; stretch: number; stops: Stop[] } | undefined {
+  for (const world of worlds) {
+    const stretch = world.stretches.findIndex((stops) => stops.length > 0 && stretchIdOf(stops) === stretchId);
+    if (stretch >= 0) return { world, stretch, stops: world.stretches[stretch] };
+  }
+  return undefined;
+}
+
+/** The id of the Stretch holding the Stop with this id (a Node id of an old plan, for one); undefined when none does. */
+export function stretchIdContaining(stopId: string, worlds: readonly WorldDef[] = WORLDS): string | undefined {
+  for (const world of worlds) for (const stops of world.stretches) if (stops.some((s) => s.id === stopId)) return stretchIdOf(stops);
+  return undefined;
+}
+
 /** Where a Stop sits: its World, its Stretch (0-based) and its index in that Stretch. */
 export interface StopPlace {
   world: WorldDef;
@@ -134,9 +160,15 @@ export function placeOfLesson(lessonId: string, worlds: readonly WorldDef[] = WO
 /** The Mission that ends a Stop's Stretch. */
 export function missionOfStop(stop: Stop, worlds: readonly WorldDef[] = WORLDS): string | undefined {
   const place = placeOf(stop, worlds);
-  const stretch = place?.world.stretches[place.stretch];
+  // a Home Stretch is a Stretch of World 1 only for a Dog that has the Concern; off the trail it still ends in its Mission
+  const stretch = place ? place.world.stretches[place.stretch] : homeStretchOfStop(stop);
   const last = stretch?.[stretch.length - 1];
   return last?.kind === 'mission' ? last.id : undefined;
+}
+
+/** The Home Stretch holding a Stop, whether or not it is in World 1; undefined for any other Stop. */
+function homeStretchOfStop(stop: Stop): Stop[] | undefined {
+  return homeStretchStops().map((h) => h.stops).find((stops) => stops.some((s) => sameStop(s, stop)));
 }
 
 /** True when the Mission ends the last Stretch of its World: skipping it would open nothing, so it has no Day Skip. */
@@ -150,9 +182,10 @@ export function isLastMissionOfWorld(missionId: string, worlds: readonly WorldDe
 /** True when the Node is the last Node Stop of its Stretch, so closing its Debrief opens the Mission brief. */
 export function isLastNodeOfStretch(nodeId: string, worlds: readonly WorldDef[] = WORLDS): boolean {
   const place = placeOf({ kind: 'node', id: nodeId }, worlds);
-  if (!place) return false;
-  const stretch = place.world.stretches[place.stretch];
-  return stretch.slice(place.index + 1).every((s) => s.kind !== 'node');
+  const stretch = place ? place.world.stretches[place.stretch] : homeStretchOfStop({ kind: 'node', id: nodeId });
+  if (!stretch) return false;
+  const index = stretch.findIndex((s) => s.kind === 'node' && s.id === nodeId);
+  return stretch.slice(index + 1).every((s) => s.kind !== 'node');
 }
 
 /**
@@ -164,7 +197,8 @@ function isGrandfathered(world: WorldDef, stretch: number, progress: Progress): 
   const own = world.stretches[stretch];
   const id = own[own.length - 1].id;
   if (progress.missions[id]?.startedAt) return false;
-  const after = world.stretches.slice(stretch + 1).flat().filter((s) => s.kind === 'node');
+  // a Home Node played from Other Home Behaviours before it joined World 1 says nothing about the Stops before it
+  const after = world.stretches.slice(stretch + 1).flat().filter((s) => s.kind === 'node' && !homeConcernOfStop(s));
   if (after.length > 0) return after.some((s) => progress.completedNodes.includes(s.id));
   const nodes = own.filter((s) => s.kind === 'node');
   return nodes.length > 0 && nodes.every((s) => progress.legacyNodes.includes(s.id));
@@ -184,7 +218,7 @@ function doneness(world: WorldDef, stretch: number, index: number, progress: Pro
   }
   if (stop.kind === 'node' ? progress.completedNodes.includes(stop.id) : progress.readLessons.includes(stop.id)) return { done: true };
   const later = [...world.stretches[stretch].slice(index + 1), ...world.stretches.slice(stretch + 1).flat()];
-  const satisfied = later.some((s) => s.kind === 'node' && progress.completedNodes.includes(s.id));
+  const satisfied = later.some((s) => s.kind === 'node' && !homeConcernOfStop(s) && progress.completedNodes.includes(s.id));
   return satisfied ? { done: true, satisfied: true } : { done: false };
 }
 
@@ -220,10 +254,17 @@ export type StopLock =
   | { kind: 'world' }
   /** An earlier Mission of the World is not passed. */
   | { kind: 'mission'; id: string }
-  /** Earlier Stops of the same Stretch are not done. */
+  /** Earlier Stops of the same Stretch are not done (a Lesson is never locked this way), or a Lesson the Node requires is unread. */
   | { kind: 'stops'; stops: Stop[] }
   /** The Node's own prerequisite Nodes are missing. */
   | { kind: 'nodes'; ids: string[] };
+
+/** True when a Lesson is read, or done for gating on the trail (left unread behind a completed Node). */
+function lessonDone(id: string, progress: Progress, worlds: readonly WorldDef[]): boolean {
+  if (progress.readLessons.includes(id)) return true;
+  const place = placeOf({ kind: 'lesson', id }, worlds);
+  return !!place && doneness(place.world, place.stretch, place.index, progress).done;
+}
 
 /** Whether a Stop can be opened, independent of the time of day; null when it can. */
 export function stopLock(stop: Stop, progress: Progress, worlds: readonly WorldDef[] = WORLDS, nodes: readonly NodeDef[] = NODES): StopLock | null {
@@ -240,10 +281,15 @@ export function stopLock(stop: Stop, progress: Progress, worlds: readonly WorldD
     const last = world.stretches[s].length - 1;
     if (!doneness(world, s, last, progress).done) return { kind: 'mission', id: world.stretches[s][last].id };
   }
-  const missing = world.stretches[stretch].slice(0, index).filter((_, i) => !doneness(world, stretch, i, progress).done);
-  if (missing.length > 0) return { kind: 'stops', stops: missing };
+  // the Lessons of a Stretch are all open at once; a Node or Mission needs every Stop before it done
+  if (stop.kind !== 'lesson') {
+    const missing = world.stretches[stretch].slice(0, index).filter((_, i) => !doneness(world, stretch, i, progress).done);
+    if (missing.length > 0) return { kind: 'stops', stops: missing };
+  }
   if (stop.kind === 'node') {
     const def = nodes.find((n) => n.id === stop.id);
+    const unread = def ? requiredLessonsOf(def).filter((id) => !lessonDone(id, progress, worlds)).map((id): Stop => ({ kind: 'lesson', id })) : [];
+    if (unread.length > 0) return { kind: 'stops', stops: unread };
     const ids = def ? def.prerequisites.filter((id) => !progress.completedNodes.includes(id)) : [];
     if (ids.length > 0) return { kind: 'nodes', ids };
   }
@@ -302,4 +348,68 @@ export function isNodeOpen(node: NodeDef, progress: Progress, worlds: readonly W
 export function currentWorld(progress: Progress, worlds: readonly WorldDef[] = WORLDS): WorldDef {
   const playable = worlds.filter((w) => !w.preview);
   return playable.find((w) => !isWorldComplete(w, progress)) ?? (playable[playable.length - 1] ?? worlds[0]);
+}
+
+/** True when the user has done anything in the Stretch: read a Lesson, completed a Node or started a Mission. */
+function touched(stops: readonly Stop[], progress: Progress): boolean {
+  return stops.some((s) => (s.kind === 'lesson' ? progress.readLessons.includes(s.id) : s.kind === 'node' ? progress.completedNodes.includes(s.id) : !!progress.missions[s.id]?.startedAt));
+}
+
+/**
+ * The Worlds as this Dog walks them (ADR 0021): the Home Stretches of the Dog's Concerns join World 1, and inside each
+ * World the Stretches the Personal Plan names come first, in plan order, after any Stretch the user has already started
+ * (those keep their place so no progress moves). A Home Stretch the plan does not name follows the plan's, biting first.
+ * A Stretch never moves before the Stretch holding a prerequisite Node of one of its Nodes, or the how-to-play Lesson one of them requires. In World 1 the order is fixed: biting Home Stretches, the first Basics Stretch, the other Home Stretches, the other Basics. The Worlds, their locks,
+ * their unlocks and the order of Stops inside a Stretch do not change. With no plan and no Home Stretch this is `WORLDS`.
+ */
+export function worldsFor(plan: readonly { stretchId: string }[], progress: Progress, worlds: readonly WorldDef[] = WORLDS, nodes: readonly NodeDef[] = NODES): readonly WorldDef[] {
+  const firstId = worlds.find((w) => !w.unlockedBy && !w.preview)?.id;
+  const home = homeStretchesInWorldOne(progress.homeConcerns ?? {}, progress.worldHome, (stops) => touched(stops, progress)).map((h) => h.stops);
+  if (plan.length === 0 && home.length === 0) return worlds;
+  let changed = false;
+  const out = worlds.map((world) => {
+    const own = world.id === firstId ? home.filter((h) => !world.stretches.some((s) => stretchIdOf(s) === stretchIdOf(h))) : [];
+    const all = [...world.stretches, ...own];
+    if (all.length < 2) return world;
+    const levelOf = (stops: Stop[]) => progress.homeConcerns?.[homeConcernOfStop(stops[0]) as HomeConcern] ?? 0;
+    // a Home Stretch the plan does not name (it holds at most five) follows the plan's, the stronger Concern first
+    const indexInPlan = (stops: Stop[]) => {
+      const i = plan.findIndex((p) => p.stretchId === stretchIdOf(stops));
+      return i >= 0 ? i : plan.length + (own.includes(stops) ? (4 - levelOf(stops)) / 10 : 1);
+    };
+    // World 1 for a Dog: biting Home Stretches, the first Basics Stretch (it teaches how to play), the other Home
+    // Stretches in plan order, then the rest of the Basics in trail order; the plan does not reorder the Basics there
+    const BITING_HOME = ['bite-owner', 'bite-others'];
+    const group = (stops: Stop[], original: number) => {
+      if (world.id !== firstId) return 0;
+      if (own.includes(stops)) return BITING_HOME.includes(homeConcernOfStop(stops[0]) ?? '') ? 0 : 2;
+      return original === 0 ? 1 : 3;
+    };
+    // started Stretches first, then the plan's Stretches in plan order, then the rest in trail order
+    const sorted = all
+      .map((stops, original) => {
+        const started = touched(stops, progress);
+        if (world.id !== firstId) return { stops, key: started || plan.length === 0 ? [0, 0, 0, original] : [1, 0, indexInPlan(stops), original] };
+        return { stops, key: [started ? 0 : 1, group(stops, original), own.includes(stops) ? indexInPlan(stops) : 0, original] };
+      })
+      .sort((a, b) => a.key[0] - b.key[0] || a.key[1] - b.key[1] || a.key[2] - b.key[2] || a.key[3] - b.key[3]);
+    // a Stretch never moves before the Stretch that holds a prerequisite Node, or a Lesson required by one of its Nodes, or it could not be opened
+    const placed: Stop[][] = [];
+    const pending = sorted.map((s) => s.stops);
+    const holds = (stops: Stop[], stop: Stop) => stops.some((x) => sameStop(x, stop));
+    const needs = (stops: Stop[]) => all.filter((other) => other !== stops && stops.some((x) => {
+      const def = x.kind === 'node' ? nodes.find((n) => n.id === x.id) : undefined;
+      return def !== undefined
+        && (def.prerequisites.some((pre) => holds(other, { kind: 'node', id: pre })) || requiredLessonsOf(def).some((id) => holds(other, { kind: 'lesson', id })));
+    }));
+    while (pending.length > 0) {
+      const next = pending.findIndex((stops) => needs(stops).every((dep) => placed.includes(dep)));
+      placed.push(...pending.splice(next < 0 ? 0 : next, 1));
+    }
+    const stretches = placed;
+    if (stretches.length === world.stretches.length && stretches.every((s, i) => s === world.stretches[i])) return world;
+    changed = true;
+    return { ...world, stretches };
+  });
+  return changed ? out : worlds;
 }

@@ -4,6 +4,7 @@
 Defines the Dog's Trigger Profile, which makes the virtual Dog resemble the owner's real dog by setting how strongly it reacts to each kind of Distractor.
 
 ## Requirements
+
 ### Requirement: Trigger Profile levels
 The system SHALL hold, for the Dog, a Trigger Profile that gives each kind of Distractor a reactivity level from 0 (none) to 3 (strong), and SHALL store it in the Dog's local record.
 
@@ -42,3 +43,14 @@ The system SHALL let the user view and edit the Trigger Profile in settings. The
 #### Scenario: Edit
 - **WHEN** the user changes the level for dogs from 1 to 3 in settings
 - **THEN** the next Stage uses level 3 for dogs
+
+### Requirement: Home-behaviour concerns
+The Dog setup questionnaire SHALL also ask which home behaviours are a problem (biting the owner, biting other people, barking at home, destroying things, eating non-food things such as socks) as selectable chips with the same three intensities, saved as the Dog's home concerns and not in the Trigger Profile. The settings editor SHALL let the user change them, the main concern, age band and sex, and the plan SHALL be rebuilt on save.
+
+#### Scenario: Concern saved
+- **WHEN** the user selects "eats socks" at "a lot"
+- **THEN** the Dog's home concerns hold level 3 for eating objects and the Trigger Profile is unchanged
+
+#### Scenario: Edited later
+- **WHEN** the user changes the main concern in settings
+- **THEN** the plan is rebuilt and the World Map's next-up follows it

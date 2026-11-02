@@ -8,6 +8,7 @@ jest.mock('react-native', () => {
       return React.createElement('button', props, body);
     },
     ScrollView: (props: any) => React.createElement('div', props, props.children),
+    Image: (props: any) => React.createElement('img', { alt: props.accessibilityLabel }),
     Linking: { openURL: jest.fn().mockResolvedValue(true) },
     Platform: { OS: 'web' },
   };
@@ -54,6 +55,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createTranslator, es } from '../../i18n';
 import type { LessonDef } from '../lessons/lesson';
+import { HOME_LESSONS } from '../lessons/content';
 import { LessonScreen } from './LessonScreens';
 
 describe('LessonScreen video gating and text readability', () => {
@@ -116,5 +118,35 @@ describe('LessonScreen video gating and text readability', () => {
     );
     expect(markup).toContain('Desbloqueado con Plus');
     expect(markup).not.toContain('Desbloquear con');
+  });
+});
+
+describe('Home Behaviour Lessons', () => {
+  const t = createTranslator(es);
+  const render = (lesson: LessonDef) =>
+    renderToStaticMarkup(<LessonScreen t={t} lesson={lesson} isPlus={false} trialState="unstarted" onDone={() => {}} onBack={() => {}} />);
+
+  it('has the five Home Lessons, theory ones, readable by a free user', () => {
+    expect(HOME_LESSONS.map((l) => l.id)).toEqual(['theory-bite-owner', 'theory-bite-others', 'theory-bark-home', 'theory-destroy', 'theory-eat-objects']);
+    for (const lesson of HOME_LESSONS) {
+      expect(lesson.kind).toBe('theory');
+      const markup = render(lesson);
+      expect(markup).toContain(es[lesson.title]);
+      expect(markup).toContain(es['lesson.takeawaysLabel']);
+    }
+  });
+
+  it('leads both biting Lessons with the professional-help note, and the eating Lesson with the vet note', () => {
+    for (const id of ['theory-bite-owner', 'theory-bite-others']) {
+      const lesson = HOME_LESSONS.find((l) => l.id === id)!;
+      expect(lesson.blocks[0]).toEqual({ type: 'notice', text: 'plan.note.professional' });
+      const markup = render(lesson);
+      const heading = lesson.blocks[1];
+      expect(heading.type).toBe('heading');
+      expect(markup.indexOf(es['lesson.noticeLabel'])).toBeGreaterThanOrEqual(0);
+      expect(markup.indexOf(es['lesson.noticeLabel'])).toBeLessThan(markup.indexOf(es[(heading as { text: keyof typeof es }).text]));
+    }
+    expect(HOME_LESSONS.find((l) => l.id === 'theory-eat-objects')!.blocks[0]).toEqual({ type: 'notice', text: 'lesson.note.vet' });
+    for (const id of ['theory-bark-home', 'theory-destroy']) expect(HOME_LESSONS.find((l) => l.id === id)!.blocks[0].type).toBe('heading');
   });
 });

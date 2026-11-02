@@ -3,7 +3,7 @@ import { AccessibilityInfo, Text, View } from 'react-native';
 import type { Translate } from '../../i18n';
 import type { DogCoat } from '../../sim/config';
 import { Button } from '../Overlays';
-import { harnessOn, hintKey, isBasicsScene, newReadDog, readDogHandlingScore, readDogMetrics, SCENE_ACTIONS, stepReadDog, currentState, type BeatOutcome, type ReadDogAction, type ReadDogEvent, type ReadDogRun, type ReadDogScene } from '../nodes/readDog';
+import { harnessOn, hintKey, isLivingRoomScene, newReadDog, readDogHandlingScore, readDogMetrics, SCENE_ACTIONS, stepReadDog, currentState, type BeatOutcome, type ReadDogAction, type ReadDogEvent, type ReadDogRun, type ReadDogScene } from '../nodes/readDog';
 import { AGITATION_SECONDS, postureSpec, sendsAway, wrongReaction, type CaninePosture } from '../ui/canine';
 import { ActionButtonRow, CueCaption, DoorbellScene, HarnessScene, LivingRoomScene, ResultChip, RoundPips } from '../ui/MinigameProps';
 import { useTicker } from '../ui/useTicker';
@@ -20,6 +20,9 @@ const HELP_KEYS = {
   affection: 'minigame.affection.help',
   rest: 'minigame.rest.help',
   calm: 'minigame.calm.help',
+  'bark-home': 'minigame.bark-home.help',
+  destroy: 'minigame.destroy.help',
+  'eat-objects': 'minigame.eat-objects.help',
 } as const satisfies Record<ReadDogScene, string>;
 
 export interface ReadDogResult {
@@ -100,7 +103,7 @@ export function ReadDogView({ t, scene, seed, coat = 'golden', onCue, onFinish }
         <RoundPips t={t} total={view.script.length} results={view.outcomes.map((o: BeatOutcome) => o === 'correct')} />
       </View>
       <Text className="mb-4 text-bodyL text-ink">{t(HELP_KEYS[scene])}</Text>
-      {isBasicsScene(scene) ? (
+      {isLivingRoomScene(scene) ? (
         <LivingRoomScene t={t} posture={posture} sending={sending} coat={coat} />
       ) : scene === 'doorbell' ? (
         <DoorbellScene t={t} posture={posture} ringing={started && view.index === 0 && !view.done} coat={coat} />

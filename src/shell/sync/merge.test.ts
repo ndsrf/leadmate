@@ -187,7 +187,7 @@ describe('the Basics World across an update', () => {
 
   it('keeps the Basics World complete when a migrated version 7 remote copy merges with a local version 8 copy', () => {
     const local = migrateRecord({ ...oldCopy, updatedAt: '2026-05-04T00:00:00.000Z', completedNodes: ['harness-ritual'] });
-    expect(local.version).toBe(8);
+    expect(local.version).toBe(9);
     expect(isWorldComplete(basics, progress(local))).toBe(true);
     const remote = migrateRecord(oldCopy);
     for (const merged of [resolve(local, remote), resolve(remote, local)]) {

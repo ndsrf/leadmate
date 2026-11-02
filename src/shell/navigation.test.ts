@@ -1,7 +1,7 @@
 import { ONBOARDING_STEPS } from './onboarding/flow';
 import { canSkipDay, missionAfterDebrief, missionEntryOf, missionEntryView, missionForDebrief } from './missions/missionView';
 import type { MissionState } from './missions/mission';
-import { findWorld, isLastMissionOfWorld, progressOf, stopsOf } from './world';
+import { findWorld, isLastMissionOfWorld, missionOfStop, progressOf, stopsOf, worldsFor } from './world';
 import { withBasicsDone } from './testProgress';
 import { backAction, isReadyToLeaveSplash, onStageViewFailure, routeFor, stageViewWanted, type BackActionParams } from './navigation';
 
@@ -16,7 +16,7 @@ describe('routeFor', () => {
   });
 
   it('funnel wins over a left-over flow and settings', () => {
-    for (const step of ['welcome', 'dog', 'setup', 'diagnostic', 'plan'] as const) {
+    for (const step of ['welcome', 'dog', 'concern', 'setup', 'diagnostic', 'plan'] as const) {
       expect(
         routeFor({
           ready: true,
@@ -301,6 +301,38 @@ describe('Mission flows', () => {
     });
     expect(missionEntryOf('mission-poste', all, at(20, 1))).toBe('waiting');
     expect(canSkipDay('mission-poste', all, at(20, 1))).toBe(false);
+  });
+
+  it('offers a Day Skip on a waiting Home Mission of World 1 (not its last), none off the trail, and opens it like any Mission', () => {
+    const home = progressOf([], { missions: { 'mission-bark-home': started } });
+    expect(missionEntryOf('mission-bark-home', progressOf([]), at(9))).toBe('brief');
+    expect(missionEntryOf('mission-bark-home', home, at(20, 1))).toBe('waiting');
+    expect(canSkipDay('mission-bark-home', home, at(20, 1))).toBe(false); // Other Home Behaviours: not on a trail
+    // the Basics Stretch that teaches how to play comes first in World 1, so it is done before the Home Stretch is reached
+    const basics = stopsOf(findWorld('basics')!);
+    const mine = progressOf(['bark-home', ...basics.filter((s) => s.kind === 'node').map((s) => s.id)], {
+      readLessons: ['theory-bark-home', ...basics.filter((s) => s.kind === 'lesson').map((s) => s.id)],
+      missions: { 'mission-bark-home': started, 'mission-dog-as-dog': { ...started, passedOn: '2026-05-02' } },
+      homeConcerns: { 'bark-home': 1 },
+    });
+    const worlds = worldsFor([{ stretchId: 'theory-bark-home' }], mine);
+    expect(canSkipDay('mission-bark-home', mine, at(20, 1), worlds)).toBe(true);
+    expect(missionEntryOf('mission-bark-home', home, at(9, 2))).toBe('checkin');
+    const passed = progressOf([], { missions: { 'mission-bark-home': { ...started, passedOn: '2026-05-02' } } });
+    expect(missionEntryOf('mission-bark-home', passed, at(9, 3))).toBe('passed');
+  });
+
+  it('names the Home Mission a Home Node\'s Debrief practises, on or off the trail', () => {
+    expect(missionForDebrief('bark-home')).toBe('mission-bark-home');
+    expect(missionForDebrief('eat-objects')).toBe('mission-eat-objects');
+    expect(missionOfStop({ kind: 'node', id: 'bark-home' })).toBe('mission-bark-home');
+    // off the trail (Other Home Behaviours) the Mission is open and follows the Debrief like any Stretch's
+    expect(missionAfterDebrief('bark-home', progressOf(['bark-home']), at(9))).toBe('mission-bark-home');
+    // in World 1 the Dog's own worlds find it too, once the Stretch is reachable
+    const worlds = worldsFor([], progressOf([], { homeConcerns: { 'bark-home': 1 } }));
+    const done = progressOf(['dog-as-dog', 'home-rest', 'calm-first', 'bark-home'], { homeConcerns: { 'bark-home': 1 } });
+    expect(missionForDebrief('bark-home', worlds)).toBe('mission-bark-home');
+    expect(missionAfterDebrief('bark-home', done, at(9), worlds)).toBeNull(); // locked behind the Basics Missions
   });
 
   it('names the Mission a Debrief is practice for', () => {

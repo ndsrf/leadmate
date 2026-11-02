@@ -130,7 +130,7 @@ A short word the Person says in a Lesson Animation, such as «vamos» or «bien�
 _Avoid_: Cue, subtitle cue
 
 **How-to-play Lesson**:
-A Lesson that teaches the simulator's controls and how to read the virtual Dog, placed on the trail before the first Node that needs them.
+A Lesson that teaches the simulator's controls and how to read the virtual Dog, the first Stop of World 1, which every Node that asks the user to read the virtual Dog needs read first.
 _Avoid_: Tutorial, controls screen
 
 **Theory Library**:
@@ -198,13 +198,22 @@ The Dog's state after a gap of days. An optional easy warm-up walk restores its 
 **Trigger Profile**:
 The Dog's starting personality: for each kind of Distractor, how strongly this Dog reacts to it, taken from what the owner reports about their real dog. Training can lower a level over time but never raises it.
 
+**Concern**:
+Anything the owner reports about their real dog as a problem: a reaction to a kind of Distractor (kept in the Trigger Profile) or a Home Behaviour. Each has a level from a little to a lot.
+
+**Home Behaviour**:
+A Concern that happens at home rather than on a walk: biting the owner, biting other people, barking at home, destroying things, eating things that are not food such as socks. It never enters a Stage; all but the two biting ones have a Minigame Node. Its Stretch is a Home Stretch.
+
+**Main Concern**:
+The up to three Concerns the owner picks as their biggest problems, most worrying first. They are asked once, before the Taste Stage; the first outdoor one decides which Distractor the Taste Stage uses, and together they decide what the Personal Plan puts first.
+
 **Diagnostic**:
 The 15-second onboarding Minigame that measures the user's reaction latency. It seeds the Dog's starting reconnection latency once and is not a Stage.
 _Avoid_: Mini-playtest, test
 
-**Walk Plan**:
-The personalized sequence of Nodes suggested to a new user after the Diagnostic, shown with the diagnostic card before the guided first Stage.
-_Avoid_: Curriculum, schedule
+**Personal Plan**:
+The ordered list of Stretches suggested to a new user after the Diagnostic, built from their Concerns, the Dog's age and the Diagnostic result, with the reason for each item. It is shown with the diagnostic card before the guided first Stage and decides where the World Map says to start. Biting always comes first.
+_Avoid_: Walk Plan, curriculum, schedule
 
 **Hint**:
 A one-shot, non-blocking message shown over a Stage the first time a simulation event happens (the leash first Taut, the Dog first Fixated, the leash first at its limit). A seen Hint is not shown again.
@@ -261,8 +270,15 @@ _Avoid_: Quirk, problem behaviour, vice
 The Handler walking calmly into the Dog's space, with no eye contact, words or touch, until the Dog moves off; "Send to bed" is the same, until it goes to its bed. Never a physical correction.
 _Avoid_: Push away, shoo, block
 
+**Home Stretch**:
+A Stretch about one Home Behaviour: a Lesson, a Node (none for the two biting ones) and a Mission. It is a Stop run of World 1 while the Dog has that Concern, so it gates World 1 like any Stretch, and otherwise it sits in Other Home Behaviours. A Home Stretch the user has started stays in World 1 even if the Concern is removed, and one declared after World 1 is complete stays in Other Home Behaviours.
+_Avoid_: Home trail
+
+**Other Home Behaviours**:
+The optional, collapsed-by-default section between World 1 and World 2 that holds the Home Stretches of the Home Behaviours the Dog does not have as a Concern. It gates and counts toward nothing, all its Lessons, Nodes and Missions are playable, and "Ahora es un problema" moves a Home Stretch into World 1 at level 1. It is hidden when it would be empty.
+
 **Home Mission**:
-A Mission whose target is practised at home rather than on a walk; its brief, check-in question and success sign are worded for home.
+A Mission whose target is practised at home rather than on a walk; its brief, check-in question and success sign are worded for home. A Home Stretch's Mission is passed, owed and skipped like any other.
 _Avoid_: Indoor homework
 
 **Stop**:
@@ -270,7 +286,7 @@ One point on a World's trail: a Lesson, a Node or a Mission.
 _Avoid_: Step, item, level
 
 **Stretch**:
-The run of Stops on a trail up to and including one Mission; the most a user can advance in a day without a Day Skip.
+The run of Stops on a trail up to and including one Mission; the most a user can advance in a day without a Day Skip. Its Lessons are all open at once; its Node needs the Lessons read, and its Mission needs the Node.
 _Avoid_: Session, leg, chapter
 
 **Mission**:
@@ -432,11 +448,11 @@ The bond between a device's Dog and one Dog saved in an account, which keeps the
 _Avoid_: Link, connection, attachment
 
 **Funnel**:
-The first-run sequence a new Dog goes through once: welcome, name and look, Taste Briefing, Taste Stage with its payoff, Dog setup, Diagnostic, Walk Plan, the guided first Stage and the soft paywall. It ends at the World Map and runs again only after Reset Progress.
+The first-run sequence a new Dog goes through once: welcome, name and look, Main Concern, Taste Briefing, Taste Stage with its payoff, Dog setup, Diagnostic, Personal Plan, the guided first Stage and the soft paywall. It ends at the World Map and runs again only after Reset Progress.
 _Avoid_: Onboarding flow, wizard, tutorial
 
 **Taste Stage**:
-The first Stage a new user plays, before any setup question: a strong Distractor meets a Dog with no Cue skill, built so the Dog ends up Reactive. It makes the user feel the problem the game solves. It never changes the Dog record.
+The first Stage a new user plays, before any setup question other than the Main Concern: a strong Distractor of the kind the Main Concern names (a dog when none is named) meets a Dog with no Cue skill, built so the Dog ends up Reactive. It makes the user feel the problem the game solves. It never changes the Dog record.
 _Avoid_: Demo, intro level, failure stage
 
 **Taste Briefing**:

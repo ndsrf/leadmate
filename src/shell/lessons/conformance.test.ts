@@ -8,13 +8,13 @@ import { BASICS_SCENES, CORRECT_ACTION, hintKey, SCENE_ACTIONS, type DogState } 
 import { findWorld, stopsOf } from '../world';
 import { lineTextKey, parseAnimationTimeline, type AnimationTimeline } from './animationTimeline';
 import { isAnimationKey } from '../ui/media';
-import { findLesson, firstWeekLessons, theoryLesson, TRAIL_LESSONS } from './content';
+import { findLesson, firstWeekLessons, HOME_LESSONS, theoryLesson, TRAIL_LESSONS } from './content';
 import { countWords, lessonArtNames, lessonTextKeys, type LessonDef } from './lesson';
 import { LESSON_ART } from './lessonArtRegistry';
 import { LESSON_MEDIA } from './lessonMedia';
 
 /** The teaching pattern as a sequence of block types (see docs/content/lesson-guide.md). */
-const PATTERN = /^heading text heading text image heading steps (video )?example (image )*heading compare (video )?tip takeaways$/;
+const PATTERN = /^(notice )?heading text heading text image heading steps (video )?example (image )*heading compare (video )?tip takeaways$/;
 const SECTIONS = ['lesson.section.why', 'lesson.section.how', 'lesson.section.mistakes'];
 
 /** Why a theory Lesson does not meet the guide; empty when it does. */
@@ -39,7 +39,7 @@ function problems(lesson: LessonDef, t: Translate, art: Readonly<Record<string, 
 }
 
 /** Every theory Lesson, built with a media base so its Lesson Animations are checked too. */
-const THEORY = [...firstWeekLessons('https://media.example.com'), ...TRAIL_LESSONS].filter((l) => l.kind === 'theory');
+const THEORY = [...firstWeekLessons('https://media.example.com'), ...TRAIL_LESSONS, ...HOME_LESSONS].filter((l) => l.kind === 'theory');
 
 describe('theory Lessons follow the guide', () => {
   it('every theory Lesson conforms', () => {
@@ -166,5 +166,39 @@ describe('World 1 teaches no physical correction', () => {
   it('catches a banned word when one slips in', () => {
     expect(BANNED.test('Dale un cachete si salta')).toBe(true);
     expect(BANNED.test('Camina con calma hacia su espacio, sin tocarlo')).toBe(false);
+  });
+});
+
+describe('Home Behaviour content method rules', () => {
+  const BANNED = /(pega\b|pegar|golpe|patada|empujar|zarandear|cachete|castigar con|collar de|bozal|descarga)/i;
+  const t = createTranslator();
+  const lessonKeys = HOME_LESSONS.flatMap((l) => [l.title, ...lessonTextKeys(l.blocks)]);
+  const missionKeys = ['mission-bite-owner', 'mission-bite-others', 'mission-bark-home', 'mission-destroy', 'mission-eat-objects'].flatMap((id) => {
+    const m = findMission(id)!;
+    const fixes = [...m.problems.map((p) => p.fix), m.generalFix];
+    return [m.title, m.target, m.successSign, ...m.problems.map((p) => p.label), ...fixes.flatMap((f) => [...lessonTextKeys(f.blocks), f.easierTarget])];
+  });
+  const nodeKeys = ['bark-home', 'destroy', 'eat-objects'].flatMap((id) => {
+    const n = findNode(id)!;
+    return [n.title, ...n.primerCards.map((c) => primerCardOf(c).text), ...n.checkpoint.flatMap((q) => [q.question, q.explanation, ...q.options.map((o) => o.text)]), ...n.exercises.map((e) => e.key)];
+  });
+  const sceneKeys = (['bark-home', 'destroy', 'eat-objects'] as const).flatMap((scene) =>
+    (Object.keys(CORRECT_ACTION[scene]) as DogState[]).flatMap((state) => [null, ...SCENE_ACTIONS[scene]].map((action) => hintKey(scene, state, action))),
+  );
+
+  it('covers a lot of text', () => {
+    expect(lessonKeys.length).toBeGreaterThan(80);
+    expect(missionKeys.length).toBeGreaterThan(100);
+  });
+
+  it('never names hitting, kicking, shoving, shock or other aversive methods', () => {
+    const found = [...new Set([...lessonKeys, ...missionKeys, ...nodeKeys, ...sceneKeys])].filter((key) => BANNED.test(t(key))).map((key) => `${key}: ${t(key)}`);
+    expect(found).toEqual([]);
+  });
+
+  it('shows the same shared vet note, one catalog key, in the eating Lesson and in every Remediation of the eating Mission', () => {
+    expect(HOME_LESSONS.find((l) => l.id === 'theory-eat-objects')!.blocks[0]).toEqual({ type: 'notice', text: 'lesson.note.vet' });
+    const m = findMission('mission-eat-objects')!;
+    for (const f of [...m.problems.map((p) => p.fix), m.generalFix]) expect(f.blocks.some((b) => b.type === 'text' && b.text === 'lesson.note.vet')).toBe(true);
   });
 });

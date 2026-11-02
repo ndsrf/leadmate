@@ -6,8 +6,8 @@ describe('setup', () => {
     expect(setupStart(newDogRecord())).toBe('equipment');
   });
 
-  it('resumes at the questionnaire once weights were entered', () => {
-    expect(setupStart({ ...newDogRecord(), weights: { dogKg: 20, handlerKg: 70 } })).toBe('questions');
+  it('resumes at the age and sex part once weights were entered', () => {
+    expect(setupStart({ ...newDogRecord(), weights: { dogKg: 20, handlerKg: 70 } })).toBe('about');
   });
 
   it('moves on to the Diagnostic when finished and keeps the answers', () => {
@@ -18,8 +18,8 @@ describe('setup', () => {
 });
 
 describe('setup parts', () => {
-  it('counts three parts in order, so the stepper reads 1 of 3 to 3 of 3', () => {
-    expect(SETUP_PARTS).toEqual(['equipment', 'weights', 'questions']);
+  it('counts five parts in order, so the stepper reads 1 of 5 to 5 of 5', () => {
+    expect(SETUP_PARTS).toEqual(['equipment', 'weights', 'about', 'home', 'questions']);
   });
 
   it('keeps back inside setup: it changes no persisted step', () => {
