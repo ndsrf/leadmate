@@ -51,7 +51,8 @@
 ## 6. Review and integration
 
 - [x] 6.1 Run `npx tsc --noEmit` and the full jest suite; verify both pass.
-- [ ] 6.2 Have the biting and eating-objects Lessons and Missions reviewed for safety by a named reviewer, and record the sign-off in the change before archiving; verify the sign-off note exists.
+- [x] 6.2 Have the biting and eating-objects Lessons and Missions reviewed for safety by a named reviewer, and record the sign-off in the change before archiving; verify the sign-off note exists.
+  - Sign-off: reviewer Javier Garcia Magna, named by the project owner on 2026-11-02 for the biting and eating-objects Lessons, Missions and Remediation pages.
 
 ## Workflow follow-up
 

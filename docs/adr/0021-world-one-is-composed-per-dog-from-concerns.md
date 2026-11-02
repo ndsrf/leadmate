@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 ---
 # World 1 is composed per Dog from its Concerns
 
