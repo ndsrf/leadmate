@@ -3,7 +3,7 @@ import { DEFAULT_ATTRIBUTES } from '../../sim/learning';
 import { newDogRecord } from '../dogRecord';
 import { DIARY_OUTCOMES } from '../streak';
 import { payloadWith } from '../testPayload';
-import { BARKDOKU_INTRO_NODE, CALM_FIRST_NODE, DOG_AS_DOG_NODE, DOORBELL_MAT_NODE, HOME_REST_NODE, HARNESS_RITUAL_NODE, LEAVE_IT_NODE, NODES, POSTE_PRACTICE, SCOOTER_NODE, URBAN_MIX_NODE, WALK_DISTRACTION } from './content';
+import { BARKDOKU_INTRO_NODE, CALM_FIRST_NODE, DOG_AS_DOG_NODE, DOORBELL_MAT_NODE, HOME_REST_NODE, HARNESS_RITUAL_NODE, HOME_NODES, findNode, LEAVE_IT_NODE, NODES, POSTE_PRACTICE, SCOOTER_NODE, URBAN_MIX_NODE, WALK_DISTRACTION } from './content';
 import { placeOf, worldOfNode } from '../world';
 import { findLesson } from '../lessons/content';
 import { INTRO_NODE } from '../onboarding/introNode';
@@ -490,5 +490,23 @@ describe('structured Primer cards', () => {
         for (const key of [q.question, q.explanation, ...q.options.map((o) => o.text)]) expect({ key, text: es[key] }).toEqual({ key, text: expect.any(String) });
       }
     }
+  });
+});
+
+describe('Home Behaviour Nodes', () => {
+  it('are three minigame-mode Nodes found by id, with no prerequisite, in no World', () => {
+    expect(HOME_NODES.map((n) => n.id)).toEqual(['bark-home', 'destroy', 'eat-objects']);
+    for (const node of HOME_NODES) {
+      expect(findNode(node.id)).toBe(node);
+      expect(node.mode).toBe('minigame');
+      expect(node.prerequisites).toEqual([]);
+      expect(worldOfNode(node.id)).toBeUndefined();
+      expect(NODES).not.toContain(node);
+      expect(node.checkpoint).toHaveLength(3);
+      expect(node.exercises.map((e) => e.metric)).toEqual(['timing', 'tension']);
+      for (const text of [node.title, ...node.primerCards.map((c) => primerCardOf(c).text), ...node.exercises.map((e) => e.key)]) expect(es[text]).toBeTruthy();
+      for (const q of node.checkpoint) for (const key of [q.question, q.explanation, ...q.options.map((o) => o.text)]) expect(es[key]).toBeTruthy();
+    }
+    expect(HOME_NODES.map((n) => n.simulation.minigame)).toEqual(['bark-home', 'destroy', 'eat-objects']);
   });
 });

@@ -3,7 +3,7 @@ import type { Metric, NodeDef, PrimerCardDef } from './node';
 import { BLIND_CORNER, ELEVATOR_LOBBY, HALLWAY, LEAVE_IT_INTRO, NARROW_STREET_PASS, PARK_JOGGER, PARK_MIX, SCOOTER_CROSSING, SLACK_U, URBAN_MIX } from './scenarios';
 
 /** Slugs of the Nodes whose texts follow the `node.<slug>.*` pattern (see the catalog). */
-type Slug = 'dogasdog' | 'homerest' | 'calmfirst' | 'harness' | 'doorbell' | 'corner' | 'u' | 'leaveit' | 'scooter' | 'urban' | 'jogger' | 'park' | 'barkdoku' | 'closepass';
+type Slug = 'dogasdog' | 'homerest' | 'calmfirst' | 'harness' | 'doorbell' | 'corner' | 'u' | 'leaveit' | 'scooter' | 'urban' | 'jogger' | 'park' | 'barkdoku' | 'closepass' | 'barkhome' | 'destroy' | 'eatobjects';
 
 /** Where the web-hosted full guides live (EXPO_PUBLIC_TUTORIAL_BASE); unset, the cards show no guide button. */
 const TUTORIAL_BASE = (process.env.EXPO_PUBLIC_TUTORIAL_BASE ?? '').replace(/\/+$/, '');
@@ -224,6 +224,32 @@ export const PARK_MIX_NODE = textNode('park', 'park-mix', {
   prerequisites: [PARK_JOGGER_NODE.id],
 });
 
+// -- Home Behaviours: exercises, outside every World -------------------------------------------------
+
+export const BARK_HOME_NODE = textNode('barkhome', 'bark-home', {
+  mode: 'minigame',
+  primer: recapPrimer('barkhome', { art: 'theory-calm-first-1' }),
+  simulation: { minigame: 'bark-home' },
+  exercises: [{ metric: 'timing', n: 1 }, { metric: 'tension', n: 2 }],
+  prerequisites: [],
+});
+
+export const DESTROY_NODE = textNode('destroy', 'destroy', {
+  mode: 'minigame',
+  primer: recapPrimer('destroy', { art: 'theory-home-rest-2' }),
+  simulation: { minigame: 'destroy' },
+  exercises: [{ metric: 'timing', n: 1 }, { metric: 'tension', n: 2 }],
+  prerequisites: [],
+});
+
+export const EAT_OBJECTS_NODE = textNode('eatobjects', 'eat-objects', {
+  mode: 'minigame',
+  primer: recapPrimer('eatobjects', { art: 'theory-leave-it-1' }),
+  simulation: { minigame: 'eat-objects' },
+  exercises: [{ metric: 'timing', n: 1 }, { metric: 'tension', n: 2 }],
+  prerequisites: [],
+});
+
 export const NODES: readonly NodeDef[] = [
   DOG_AS_DOG_NODE,
   HOME_REST_NODE,
@@ -243,6 +269,12 @@ export const NODES: readonly NodeDef[] = [
   PARK_MIX_NODE,
 ];
 
+/** The exercises of the Home Behaviours: on no World's trail, so they gate and complete nothing. */
+export const HOME_NODES: readonly NodeDef[] = [BARK_HOME_NODE, DESTROY_NODE, EAT_OBJECTS_NODE];
+
+/** Every Node a Stop can name: the trail's Nodes and the Home Behaviour Nodes. */
+export const ALL_NODES: readonly NodeDef[] = [...NODES, ...HOME_NODES];
+
 export function findNode(id: string): NodeDef | undefined {
-  return NODES.find((n) => n.id === id);
+  return NODES.find((n) => n.id === id) ?? HOME_NODES.find((n) => n.id === id);
 }

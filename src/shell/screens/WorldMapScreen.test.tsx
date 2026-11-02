@@ -159,8 +159,8 @@ describe('WorldMapScreen - Trail Scenery Integration (Task 4.2 & 4.3)', () => {
     // World 1 active block contains Trail Scenery, environmental backdrop, and World 1 landmark
     expect(markup).toContain('testID="world-scenery-background"');
     expect(markup).toContain('testID="environmental-backdrop"');
-    expect(markup).toContain('testID="environmental-backdrop-home"');
-    expect(markup).toContain('testID="top-landmark-home"');
+    expect(markup).toContain('testID="environmental-backdrop-basics"');
+    expect(markup).toContain('testID="top-landmark-basics"');
     // Middle row margin scenery
     expect(markup).toContain('testID="margin-scenery"');
     expect(markup).toContain('testID="margin-row-1"');
@@ -188,7 +188,12 @@ describe('WorldMapScreen - Trail Scenery Integration (Task 4.2 & 4.3)', () => {
       />
     );
 
-    // World 3 & World 4 are collapsed when progress is empty, so their Top Landmarks and backdrops are omitted
+    // World 2 (the first locked World) starts folded to its header, and so do the Worlds after it
+    expect(markup).not.toContain('testID="top-landmark-home"');
+    expect(markup).not.toContain('testID="environmental-backdrop-home"');
+    expect(markup).toContain(worldTitle(findWorld('home')!, t));
+    expect(markup).not.toContain('Termina «');
+    expect(markup).not.toContain(es['world.unlockGeneric']);
     expect(markup).not.toContain('testID="top-landmark-urban"');
     expect(markup).not.toContain('testID="top-landmark-park"');
     expect(markup).not.toContain('testID="environmental-backdrop-urban"');
@@ -454,7 +459,8 @@ describe('WorldMapScreen - a Completed Plus World after Plus lapses', () => {
         }),
       );
       expect(mockPressables.filter((p) => String(p.accessibilityLabel ?? '').includes(es['map.worldCompleted']))).toEqual([]);
-      expect(markup).toContain(es['world.unlockPlus']);
+      // locked again, and the first locked World starts folded to its header, whose tap opens the preview
+      expect(markup).toContain(`Mundo 1 · Un perro es un perro. ${es['map.openPreview']}`);
     });
   });
 });
@@ -632,5 +638,53 @@ describe('WorldMapScreen - Next Up pulse', () => {
   it('pulses a bounded number of cycles, never forever', () => {
     expect(Number.isFinite(NEXT_UP_PULSE_CYCLES)).toBe(true);
     expect(NEXT_UP_PULSE_CYCLES).toBe(4);
+  });
+});
+
+describe('WorldMapScreen - Home Behaviours section', () => {
+  const t = createTranslator(es);
+  const base = {
+    t,
+    progress: progressOf([]),
+    stars: {},
+    now: new Date('2026-10-28T09:00:00'),
+    streak: NO_STREAK,
+    today: '2026-10-28',
+    dailyBest: undefined,
+    rustyPrompt: false,
+    rusty: false,
+    skippedWarmup: false,
+    onWarmup: () => {},
+    onSkipWarmup: () => {},
+    onDaily: () => {},
+    onBarkdoku: () => {},
+    onOpenStop: () => {},
+    onSettings: () => {},
+  };
+
+  it('shows the section with its five rows, none of them "coming soon", when given the home props', () => {
+    const markup = renderToStaticMarkup(<WorldMapScreen {...base} home={{ concerns: { 'bark-home': 2 }, onBecomeConcern: () => {} }} />);
+    expect(markup).toContain(es['home.title']);
+    expect(markup).not.toContain(es['home.comingSoon']);
+  });
+
+  it('shows the section collapsed (header only) between World 1 and World 2, and hides it when every Home Stretch is in World 1', () => {
+    const markup = renderToStaticMarkup(<WorldMapScreen {...base} home={{ concerns: {}, onBecomeConcern: () => {} }} />);
+    expect(markup.match(/Otros comportamientos en casa/g)).toHaveLength(2); // title + accessibility label
+    expect(markup).not.toContain(es['home.help']);
+    expect(markup.indexOf(es['home.title'])).toBeGreaterThan(markup.indexOf('testID="top-landmark-basics"'));
+    expect(markup.indexOf(es['home.title'])).toBeLessThan(markup.indexOf(worldTitle(findWorld('home')!, t)));
+    const all = { 'bite-owner': 1, 'bite-others': 1, 'bark-home': 1, destroy: 1, 'eat-objects': 1 } as const;
+    expect(renderToStaticMarkup(<WorldMapScreen {...base} progress={progressOf([], { homeConcerns: all })} home={{ concerns: all, onBecomeConcern: () => {} }} />)).not.toContain(es['home.title']);
+  });
+
+  it('shows the Home Stretches of the Dog\'s Concerns as Stretches of World 1', () => {
+    const progress = progressOf([], { homeConcerns: { 'bark-home': 1 } });
+    const markup = renderToStaticMarkup(<WorldMapScreen {...base} progress={progress} home={{ concerns: { 'bark-home': 1 }, onBecomeConcern: () => {} }} />);
+    expect(markup).toContain('Ladra en casa');
+  });
+
+  it('hides the section without the home props', () => {
+    expect(renderToStaticMarkup(<WorldMapScreen {...base} />)).not.toContain(es['home.title']);
   });
 });

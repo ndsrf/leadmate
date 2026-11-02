@@ -1,3 +1,4 @@
+import { esHome } from './es.home';
 import { esTrail } from './es.trail';
 
 /** Spanish text catalog, the only language shipped and the fallback for every other one. */
@@ -1068,8 +1069,8 @@ export const es = {
   'settings.about': 'Sobre tu perro',
   'settings.about.help': 'Cambia tus respuestas y reharemos el plan.',
   'settings.about.main': 'Lo que más te preocupa (hasta 3)',
-  'home.title': 'Comportamientos en casa',
-  'home.help': 'Lo que pasa en casa, aparte del paseo. No bloquea el avance por los mundos.',
+  'home.title': 'Otros comportamientos en casa',
+  'home.help': 'Lo que pasa en casa y hoy no es un problema para tu perro. Es opcional: no bloquea el avance por los mundos.',
   'home.notConcern': '{behaviour} · no es un problema para {name}',
   'home.concern': '{behaviour} · es un problema para {name}',
   'home.open': 'Mostrar',
@@ -1077,6 +1078,7 @@ export const es = {
   'home.comingSoon': 'Próximamente: lecciones, ejercicios y misión para este comportamiento.',
   'home.becomeConcern': 'Ahora es un problema',
   ...esTrail,
+  ...esHome,
 } as const;
 
 export type TextKey = keyof typeof es;

@@ -5,6 +5,7 @@ import { tasteKind } from './onboarding/taste';
 import { findLesson } from './lessons/content';
 import { findMission } from './missions/content';
 import { findNode } from './nodes/content';
+import { homeConcernOfStop } from './homeBehaviours';
 import { findStretch } from './world';
 
 export const CONCERN_KEYS: Record<Concern, TextKey> = {
@@ -62,6 +63,8 @@ export function whoKey(sex: Sex | null): TextKey {
 
 /** The text key naming a Stretch: the title of its first Stop (a Lesson, normally); undefined for an unknown Stretch. */
 export function stretchTitleKey(stretchId: string): TextKey | undefined {
+  // a Home Stretch is named by its Lesson and is in no World
+  if (homeConcernOfStop({ kind: 'lesson', id: stretchId })) return findLesson(stretchId)?.title;
   const found = findStretch(stretchId);
   const first = found?.stops[0];
   if (!first) return undefined;

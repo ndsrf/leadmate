@@ -1,5 +1,6 @@
 import type { DogRecord } from '../dogRecord';
-import { isLastMissionOfWorld, isLastNodeOfStretch, missionOfStop, stopStatus, WORLDS, type Progress, type WorldDef } from '../world';
+import { homeMissionOfNode } from '../homeBehaviours';
+import { isLastMissionOfWorld, isLastNodeOfStretch, missionOfStop, placeOf, stopStatus, WORLDS, type Progress, type WorldDef } from '../world';
 import { canCheckIn, type MissionState } from './mission';
 
 /**
@@ -22,9 +23,10 @@ export function missionEntryOf(missionId: string, progress: Progress, now: Date)
 
 /**
  * Whether "Saltar el día" is offered: the Mission is started and waiting for its check-in, not owed already, and not
- * its World's last Mission. It says nothing about Plus; a free user sees it too and is sent to the paywall.
+ * its World's last Mission, and on the trail (a Home Stretch in Other Home Behaviours has no Day Skip). It says nothing about Plus; a free user sees it too and is sent to the paywall.
  */
 export function canSkipDay(missionId: string, progress: Progress, now: Date, worlds: readonly WorldDef[] = WORLDS): boolean {
+  if (!placeOf({ kind: 'mission', id: missionId }, worlds)) return false;
   return stopStatus({ kind: 'mission', id: missionId }, progress, now, worlds).state === 'waiting' && !isLastMissionOfWorld(missionId, worlds);
 }
 
@@ -32,17 +34,17 @@ export function canSkipDay(missionId: string, progress: Progress, now: Date, wor
  * The Mission whose brief opens when a Node's Debrief is closed: the Mission of the Stretch, when the Node is the
  * Stretch's last Node and the Mission has not been started or passed. Null means back to the map.
  */
-export function missionAfterDebrief(nodeId: string, record: Progress, now: Date): string | null {
-  if (!isLastNodeOfStretch(nodeId)) return null;
-  const missionId = missionOfStop({ kind: 'node', id: nodeId });
+export function missionAfterDebrief(nodeId: string, record: Progress, now: Date, worlds: readonly WorldDef[] = WORLDS): string | null {
+  if (!isLastNodeOfStretch(nodeId, worlds)) return null;
+  const missionId = missionOfStop({ kind: 'node', id: nodeId }, worlds);
   if (!missionId) return null;
-  const status = stopStatus({ kind: 'mission', id: missionId }, record, now);
+  const status = stopStatus({ kind: 'mission', id: missionId }, record, now, worlds);
   return status.state === 'open' && !record.missions[missionId]?.startedAt ? missionId : null;
 }
 
 /** The Mission a Node's Debrief names in "Practise this for: «Mission»". */
-export function missionForDebrief(nodeId: string): string | undefined {
-  return missionOfStop({ kind: 'node', id: nodeId });
+export function missionForDebrief(nodeId: string, worlds: readonly WorldDef[] = WORLDS): string | undefined {
+  return missionOfStop({ kind: 'node', id: nodeId }, worlds) ?? homeMissionOfNode(nodeId);
 }
 
 /** The Mission state on the record, or undefined before its brief is first used. */

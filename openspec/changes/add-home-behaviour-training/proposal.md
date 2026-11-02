@@ -6,13 +6,13 @@
 
 ## What Changes
 
-- Write a theory Lesson and a real-world Mission for each Home Behaviour, plus an exercise for each except the two biting ones, one Stretch each, shown only as needed by the Home Behaviours map section.
-- The biting Stretches lead with the professional-help note and teach safe handling first.
+- Write a theory Lesson and a real-world Mission for each Home Behaviour, plus an exercise for each except the two biting ones, one Home Stretch each, shown only as needed by the Home Behaviours map section.
+- The biting Home Stretches lead with the professional-help note and teach safe handling first.
 - Remove each Home Behaviour from `KNOWN_GAPS` as its content lands.
 - Exercises are minigame-mode Nodes, preferably one shared data-driven choose-the-action view rather than a bespoke minigame per behaviour. The close practice sim view (`Simulator-close-view`) is out of scope: it is a leash drill and none of these behaviours fit it.
 - The biting behaviours have no exercise: a simulation that can be failed is the wrong way to teach bite handling, so they are a Lesson and a Mission only.
 - Coverage model: the coverage test currently requires a Node for every Home Behaviour, so it changes to let a part be intentionally absent (e.g. a required-parts list per concern) without a permanent known gap.
-- Open questions to settle before design: which behaviours share a Stretch (biting the owner vs other people), how eating objects is split between training and vet advice, and who reviews the content for safety. Scoring of the choose-the-action Node is left to design and is not a priority.
+- Open questions to settle before design: which behaviours share a Home Stretch (biting the owner vs other people), how eating objects is split between training and vet advice, and who reviews the content for safety. Scoring of the choose-the-action Node is left to design and is not a priority.
 
 ## Capabilities
 

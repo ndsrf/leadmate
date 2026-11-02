@@ -41,6 +41,7 @@ import { findLesson, LESSONS } from './src/shell/lessons/content';
 import { findFix, findMission } from './src/shell/missions/content';
 import { acceptEasier, canMoveOn, fixFor, moveOn, startMission } from './src/shell/missions/mission';
 import type { DiaryOutcome } from './src/shell/streak';
+import { homeMissionAfter } from './src/shell/homeBehaviours';
 import { canSkipDay, missionAfterDebrief, missionEntryOf, missionForDebrief } from './src/shell/missions/missionView';
 import { getBillingService } from './src/shell/billing';
 import { applyBillingSubscription, canStartTrial, computeTrialRecap, isPlus, pendingSkipMission, progressAt, startTrialThen, subscribeThen, trialState, type PendingPlusAction } from './src/shell/plus';
@@ -1011,7 +1012,10 @@ export default function App() {
             onUnlockVideo={() => setFlow({ name: 'paywall', then: { kind: 'video', lessonId: lesson.id, returnTo: f.returnTo } })}
             onDone={() => {
               update((r) => markLessonRead(r, lesson.id, new Date()));
-              back();
+              // reading the Lesson of a biting Home Behaviour (it has no exercise) opens its Mission brief
+              const next = f.returnTo === 'map' ? homeMissionAfter({ kind: 'lesson', id: lesson.id }, record) : null;
+              if (next) setFlow({ name: 'mission', id: next, view: 'brief' });
+              else back();
             }}
             onBack={back}
           />
@@ -1232,14 +1236,15 @@ export default function App() {
             t={t}
             run={run}
             showPosteLink={shouldShowPosteLink(record, run.node.id)}
-            mission={findMission(missionForDebrief(run.node.id) ?? '')?.title}
+            mission={findMission(missionForDebrief(run.node.id, worldsFor(record.onboarding.plan, record)) ?? '')?.title}
             best={starsShown(record, run.node.id) ?? 1}
             celebrations={celebrations?.id === `${run.node.id}:${f.attempt}` ? celebrations.list : []}
             onPosteLink={() => startNodeRun(POSTE_PRACTICE)}
             onPlayAgain={() => setFlow({ ...f, run: { ...run, step: 'simulation', result: null }, attempt: f.attempt + 1 })}
             onDone={withBack(async () => {
               // the Debrief of a Stretch's last Node opens its Mission brief
-              const next = missionAfterDebrief(run.node.id, progressAt(record, new Date()), new Date());
+              // a Home Node's Debrief opens its Home Mission's brief; a Stretch's last Node opens the Stretch's Mission
+              const next = homeMissionAfter({ kind: 'node', id: run.node.id }, record) ?? missionAfterDebrief(run.node.id, progressAt(record, new Date()), new Date(), worldsFor(record.onboarding.plan, record));
               if (next) {
                 setFlow({ name: 'mission', id: next, view: 'brief' });
               } else {

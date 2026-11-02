@@ -1,5 +1,6 @@
 import { newDogRecord, setHomeConcern, setMainConcerns, setAgeBand, setSex, type DogRecord } from '../dogRecord';
 import { DEFAULT_TRIGGER_PROFILE } from '../../sim/learning';
+import { isHomeStretchId } from '../homeBehaviours';
 import { findStretch, stopsOf, WORLDS } from '../world';
 import { setTriggerLevel } from '../dogRecord';
 import { buildPersonalPlan, CONCERN_STRETCHES, planNotes, rebuildPlan } from './plan';
@@ -21,11 +22,12 @@ describe('Personal Plan', () => {
     expect(buildPersonalPlan(blank(0.7))[0].because).toBe('slow');
   });
 
-  it('puts biting first: an at-home Stretch leads even over a reaction to dogs at level 3', () => {
+  it('puts biting first: its Home Stretch leads even over a reaction to dogs at level 3', () => {
     const r = setTriggerLevel(setMainConcerns(blank(), ['bite-owner']), 'dog', 3);
     const plan = buildPersonalPlan(r);
-    expect(plan[0]).toEqual({ stretchId: 'theory-home-rest', concern: 'bite-owner' });
-    expect(plan.map((i) => i.stretchId)).toContain('theory-named-behaviours');
+    expect(plan[0]).toEqual({ stretchId: 'theory-bite-owner', concern: 'bite-owner' });
+    expect(plan.map((i) => i.stretchId)).toContain('theory-home-rest');
+    expect(plan.map((i) => i.stretchId)).not.toContain('theory-named-behaviours');
     expect(plan.findIndex((i) => i.stretchId === 'theory-slack-u')).toBeGreaterThan(0);
   });
 
@@ -43,7 +45,7 @@ describe('Personal Plan', () => {
   it('plans for the other Concerns by level, and only outdoor reactions at level 3', () => {
     expect(ids(setTriggerLevel(blank(), 'food', 3))).toContain('theory-leave-it');
     expect(ids(setTriggerLevel(blank(), 'food', 2))).toEqual(DEFAULT);
-    expect(ids(setHomeConcern(blank(), 'bark-home', 1))[0]).toBe('theory-home-rest');
+    expect(ids(setHomeConcern(blank(), 'bark-home', 1))[0]).toBe('theory-bark-home');
   });
 
   it('ranks the at-home Stretches above leash-heavy ones for a puppy', () => {
@@ -64,9 +66,9 @@ describe('Personal Plan', () => {
     expect(buildPersonalPlan(setSex(base, 'male'))).toEqual(buildPersonalPlan(base));
   });
 
-  it('keeps the slow-latency Poste after the biting Stretches', () => {
+  it('keeps the slow-latency Poste after the biting Home Stretch', () => {
     const plan = ids(setMainConcerns(blank(0.7), ['bite-owner']));
-    expect(plan.indexOf('theory-poste')).toBeGreaterThan(plan.indexOf('theory-named-behaviours'));
+    expect(plan.indexOf('theory-poste')).toBeGreaterThan(plan.indexOf('theory-bite-owner'));
   });
 
   it.each([null, 0.1, 0.3, 0.7])('has 3 to 5 distinct existing Stretches at latency %s', (latency) => {
@@ -76,20 +78,24 @@ describe('Personal Plan', () => {
       expect(plan.length).toBeGreaterThanOrEqual(3);
       expect(plan.length).toBeLessThanOrEqual(5);
       expect(new Set(plan).size).toBe(plan.length);
-      for (const id of plan) expect(findStretch(id)).toBeDefined();
+      for (const id of plan) expect(findStretch(id) ?? isHomeStretchId(id)).toBeTruthy();
     }
     r = setAgeBand(setHomeConcern(setHomeConcern(r, 'bite-owner', 3), 'destroy', 3), 'puppy');
     expect(ids(r).length).toBeLessThanOrEqual(5);
   });
 
-  it('maps every Concern to existing Stretches', () => {
+  it('maps every Concern to existing Stretches, a home Concern to its own Home Stretch first', () => {
     const lead = new Set(WORLDS.flatMap((w) => w.stretches.filter((s) => s.length).map((s) => stopsOf({ ...w, stretches: [s] })[0].id)));
-    for (const list of Object.values(CONCERN_STRETCHES)) for (const id of list) expect(lead.has(id)).toBe(true);
+    for (const list of Object.values(CONCERN_STRETCHES)) for (const id of list) expect(lead.has(id) || isHomeStretchId(id)).toBe(true);
+    for (const c of ['bite-owner', 'bite-others', 'bark-home', 'destroy', 'eat-objects'] as const) {
+      expect(isHomeStretchId(CONCERN_STRETCHES[c][0])).toBe(true);
+      expect(CONCERN_STRETCHES[c]).not.toContain('theory-named-behaviours');
+    }
   });
 
   it('rebuilds the plan onto the record', () => {
     const r = rebuildPlan(setMainConcerns(blank(), ['bite-owner']));
-    expect(r.onboarding.plan[0].stretchId).toBe('theory-home-rest');
+    expect(r.onboarding.plan[0].stretchId).toBe('theory-bite-owner');
   });
 
   it('keeps the old default for an existing Dog with a default Trigger Profile and no answers', () => {
@@ -102,7 +108,7 @@ describe('several Main Concerns', () => {
   it('plans for each in the order picked, after biting', () => {
     const r = setMainConcerns(blank(), ['react-food', 'react-bicycle', 'bark-home']);
     expect(buildPersonalPlan(r).slice(0, 4).map((i) => i.concern)).toEqual(['react-food', 'react-bicycle', 'bark-home', 'bark-home']);
-    expect(ids(setMainConcerns(blank(), ['react-bicycle', 'bite-owner']))[0]).toBe('theory-home-rest');
+    expect(ids(setMainConcerns(blank(), ['react-bicycle', 'bite-owner']))[0]).toBe('theory-bite-owner');
   });
 
   it('keeps at most three, drops repeats, and ignores a fourth pick', () => {
@@ -143,7 +149,7 @@ describe('editing the answers later', () => {
     const before = rebuildPlan(blank(0.7));
     expect(before.onboarding.plan[0].stretchId).toBe('theory-poste');
     const after = rebuildPlan(chooseMainConcerns(before, ['bite-owner']));
-    expect(after.onboarding.plan[0]).toEqual({ stretchId: 'theory-home-rest', concern: 'bite-owner' });
+    expect(after.onboarding.plan[0]).toEqual({ stretchId: 'theory-bite-owner', concern: 'bite-owner' });
     expect(after.onboarding.diagnosticLatency).toBe(0.7);
     expect(after.mainConcerns).toEqual(['bite-owner']);
   });

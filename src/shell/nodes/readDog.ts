@@ -1,6 +1,6 @@
 import type { TextKey } from '../../i18n';
 import { createRng } from '../../sim/rng';
-import type { MinigameKind } from './node';
+import type { MinigameKind, NodeDef } from './node';
 
 /**
  * The "read the Dog, pick the action" Minigame behind the Harness Ritual, the Doorbell Mat and the three
@@ -11,17 +11,18 @@ export const READ_DOG = {
   /** Seconds the user has to decide on a beat; generous, nobody should panic. */
   decisionSeconds: 5,
   /** Beats in a scene. */
-  beats: { harness: 4, doorbell: 5, affection: 4, rest: 4, calm: 4 },
+  beats: { harness: 4, doorbell: 5, affection: 4, rest: 4, calm: 4, 'bark-home': 4, destroy: 4, 'eat-objects': 4 },
 } as const;
 
 /** `affection` is "Dog as a dog", `rest` is "Home rest", `calm` is "Calm first": the Basics World scenes. */
-export type ReadDogScene = 'harness' | 'doorbell' | 'affection' | 'rest' | 'calm';
-export type ReadDogAction = 'wait' | 'cue' | 'marker' | 'harness' | 'mat' | 'ignore' | 'send-bed' | 'send-away' | 'go-outside' | 'cuddle';
+export type ReadDogScene = 'harness' | 'doorbell' | 'affection' | 'rest' | 'calm' | 'bark-home' | 'destroy' | 'eat-objects';
+export type ReadDogAction = 'wait' | 'cue' | 'marker' | 'harness' | 'mat' | 'ignore' | 'send-bed' | 'send-away' | 'go-outside' | 'cuddle' | 'block-view' | 'tidy' | 'swap';
 
 /** What the Dog shows in a beat; each is also a posture in `ui/canine.ts`. */
 export type DogState =
   | 'jumping' | 'alert_barking' | 'staring_door' | 'sniffing' | 'sitting_attentive' | 'unsettled_on_mat' | 'relaxed_lying'
-  | 'begging_lift' | 'on_furniture' | 'nudging_attention' | 'toy_indoors' | 'resting' | 'barking_nonstop' | 'zoomies';
+  | 'begging_lift' | 'on_furniture' | 'nudging_attention' | 'toy_indoors' | 'resting' | 'barking_nonstop' | 'zoomies'
+  | 'barking_window' | 'barking_at_you' | 'chewing_object' | 'eyeing_item' | 'holding_item';
 
 /** The buttons of a scene, in the order they are laid out. */
 export const SCENE_ACTIONS: Record<ReadDogScene, readonly ReadDogAction[]> = {
@@ -30,6 +31,9 @@ export const SCENE_ACTIONS: Record<ReadDogScene, readonly ReadDogAction[]> = {
   affection: ['ignore', 'send-bed', 'marker', 'cuddle'],
   rest: ['ignore', 'send-away', 'marker', 'go-outside'],
   calm: ['wait', 'send-away', 'marker', 'cue'],
+  'bark-home': ['block-view', 'ignore', 'wait', 'marker'],
+  destroy: ['tidy', 'swap', 'ignore', 'marker'],
+  'eat-objects': ['tidy', 'swap', 'wait', 'marker'],
 };
 
 /**
@@ -43,6 +47,9 @@ export const CORRECT_ACTION: { readonly [S in ReadDogScene]: Partial<Record<DogS
   affection: { begging_lift: 'ignore', on_furniture: 'send-bed', relaxed_lying: 'marker' },
   rest: { nudging_attention: 'send-away', toy_indoors: 'go-outside', resting: 'ignore', relaxed_lying: 'marker' },
   calm: { barking_nonstop: 'wait', zoomies: 'send-away', sitting_attentive: 'cue', relaxed_lying: 'marker' },
+  'bark-home': { barking_window: 'block-view', barking_at_you: 'ignore', barking_nonstop: 'wait', relaxed_lying: 'marker' },
+  destroy: { sniffing: 'tidy', chewing_object: 'swap', resting: 'ignore', relaxed_lying: 'marker' },
+  'eat-objects': { eyeing_item: 'tidy', holding_item: 'swap', zoomies: 'wait', relaxed_lying: 'marker' },
 };
 
 /** The right action for a state in a scene; undefined for a state the scene never shows. */
@@ -57,6 +64,9 @@ export const SCENE_OF_MINIGAME = {
   'dog-as-dog': 'affection',
   'home-rest': 'rest',
   'calm-first': 'calm',
+  'bark-home': 'bark-home',
+  destroy: 'destroy',
+  'eat-objects': 'eat-objects',
 } as const satisfies Partial<Record<MinigameKind, ReadDogScene>>;
 
 /** The read-dog scene a Minigame runs, or undefined for a Minigame on another engine. */
@@ -69,23 +79,40 @@ export const BASICS_SCENES: readonly ReadDogScene[] = ['affection', 'rest', 'cal
 
 export const isBasicsScene = (scene: ReadDogScene) => BASICS_SCENES.includes(scene);
 
+/** The Home Behaviour scenes (barking at home, destroying things, eating non-food things), also set in a living room. */
+export const HOME_SCENES: readonly ReadDogScene[] = ['bark-home', 'destroy', 'eat-objects'];
+
+export const isHomeScene = (scene: ReadDogScene) => HOME_SCENES.includes(scene);
+
+/** Scenes drawn in the living room and hinted per scene and right action. */
+export const isLivingRoomScene = (scene: ReadDogScene) => isBasicsScene(scene) || isHomeScene(scene);
+
+/** The how-to-play Lesson that explains "read the Dog, pick the action"; every living-room Node needs it read. */
+export const HOWTO_ACTION_LESSON = 'howto-choose-action';
+
+/** The Lessons that must be read before a Node can be played: the how-to-play Lesson for a living-room read-the-Dog Node. */
+export function requiredLessonsOf(node: Pick<NodeDef, 'simulation'>): string[] {
+  const scene = readDogSceneOf(node.simulation.minigame);
+  return scene && isLivingRoomScene(scene) ? [HOWTO_ACTION_LESSON] : [];
+}
+
 /** States in which a Dog is too aroused to learn: a Cue is ignored. */
 const OVER_AROUSED: readonly DogState[] = ['barking_nonstop', 'zoomies'];
 
 /**
  * The one-line hint after a wrong choice or a missed beat. The Harness Ritual and Doorbell Mat name what to look
- * for in the state (`minigame.hint.<state>`). A Basics scene names it per scene and right action
+ * for in the state (`minigame.hint.<state>`). A Basics or Home Behaviour scene names it per scene and right action
  * (`minigame.<scene>.hint.<action>`), except that a Cuddle says it treats the Dog like a toy and a Cue to a Dog
  * barking nonstop or racing around says it cannot learn yet.
  */
 export function hintKey(scene: ReadDogScene, state: DogState, action: ReadDogAction | null): TextKey {
-  if (!isBasicsScene(scene)) return `minigame.hint.${state}` as TextKey;
+  if (!isLivingRoomScene(scene)) return `minigame.hint.${state}` as TextKey;
   if (action === 'cuddle') return 'minigame.hint.cuddle';
   if (scene === 'calm' && action === 'cue' && OVER_AROUSED.includes(state)) return 'minigame.calm.hint.tooAroused';
   return `minigame.${scene}.hint.${correctAction(scene, state)}` as TextKey;
 }
 
-const SCENE_SALT: Record<ReadDogScene, number> = { harness: 7, doorbell: 13, affection: 17, rest: 19, calm: 23 };
+const SCENE_SALT: Record<ReadDogScene, number> = { harness: 7, doorbell: 13, affection: 17, rest: 19, calm: 23, 'bark-home': 29, destroy: 31, 'eat-objects': 37 };
 
 /**
  * The beats of a scene for a seed. Harness Ritual: jumping (Wait), sniffing (Cue), sitting and looking
@@ -95,11 +122,24 @@ const SCENE_SALT: Record<ReadDogScene, number> = { harness: 7, doorbell: 13, aff
  * again, then lying on its own bed (Marker). Home rest: nudging (Send away) and a toy indoors (Go outside)
  * in some order, resting (Ignore), then lying on its bed after being sent (Marker). Calm first: barking
  * nonstop (Wait) and zoomies (Send away) in some order, sitting calm (Cue), then lying relaxed (Marker).
+ * Barking at home: barking at the window (Block the view), barking at you for attention (Ignore) and barking
+ * nonstop (Wait) in a seeded order, then lying relaxed (Marker). Destroying things: sniffing around things within reach
+ * (Put away) and chewing one (Swap) in some order, resting (Ignore), then relaxed (Marker). Eating non-food things:
+ * eyeing an item (Put away), holding one (Swap) and running off with it (Wait, never chase) in a seeded order, then
+ * relaxed (Marker).
  * The seed changes the order and the opening state; every scene ends with the Dog calm.
  */
 export function buildScript(scene: ReadDogScene, seed: number): DogState[] {
   const rng = createRng(seed * 131 + SCENE_SALT[scene]);
   const pair = (a: DogState, b: DogState): DogState[] => (rng.next() < 0.5 ? [a, b] : [b, a]);
+  const shuffle = (states: DogState[]): DogState[] => {
+    const out = [...states];
+    for (let i = out.length - 1; i > 0; i--) {
+      const j = Math.floor(rng.next() * (i + 1));
+      [out[i], out[j]] = [out[j], out[i]];
+    }
+    return out;
+  };
   switch (scene) {
     case 'harness':
       return [...pair('jumping', 'sniffing'), 'sitting_attentive', 'relaxed_lying'];
@@ -111,6 +151,12 @@ export function buildScript(scene: ReadDogScene, seed: number): DogState[] {
       return [...pair('nudging_attention', 'toy_indoors'), 'resting', 'relaxed_lying'];
     case 'calm':
       return [...pair('barking_nonstop', 'zoomies'), 'sitting_attentive', 'relaxed_lying'];
+    case 'bark-home':
+      return [...shuffle(['barking_window', 'barking_at_you', 'barking_nonstop']), 'relaxed_lying'];
+    case 'destroy':
+      return [...pair('sniffing', 'chewing_object'), 'resting', 'relaxed_lying'];
+    case 'eat-objects':
+      return [...shuffle(['eyeing_item', 'holding_item', 'zoomies']), 'relaxed_lying'];
     case 'doorbell':
       break;
   }

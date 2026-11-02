@@ -6,7 +6,7 @@ import { requiredProps, routePoints, validateScenario } from '../sim/scenery';
 import { activeDistractor, routeOf, type SimInput, type SimState } from '../sim/sim';
 import { distance } from '../sim/vec';
 import {
-  BLIND_CORNER_NODE, DOORBELL_MAT_NODE, HARNESS_RITUAL_NODE, LEAVE_IT_NODE, NODES, PARK_JOGGER_NODE, PARK_MIX_NODE, POSTE_PRACTICE, SCOOTER_NODE, SLACK_U_NODE, URBAN_MIX_NODE, WALK_DISTRACTION,
+  ALL_NODES, BLIND_CORNER_NODE, DOORBELL_MAT_NODE, HARNESS_RITUAL_NODE, LEAVE_IT_NODE, NODES, PARK_JOGGER_NODE, PARK_MIX_NODE, POSTE_PRACTICE, SCOOTER_NODE, SLACK_U_NODE, URBAN_MIX_NODE, WALK_DISTRACTION,
 } from './nodes/content';
 import { isAvailable, primerCardOf, type NodeDef } from './nodes/node';
 import { currentWorld, findWorld, isLastNodeOfStretch, isNodeOpen, isWorldComplete, isWorldUnlocked, missionOfStop, nodeIdsOf, nodesOfWorld, placeOfLesson, progressOf, sameStop, stopLock, stopsOf, stopStatus, WORLDS, worldOfNode, worldsFor, worldTitle, type Progress, type Stop, type WorldDef } from './world';
@@ -14,8 +14,12 @@ import { findNode } from './nodes/content';
 import { findLesson } from './lessons/content';
 import { MISSIONS } from './missions/content';
 import type { MissionDef, MissionState } from './missions/mission';
-import { migrateRecord } from './dogRecord';
+import { migrateRecord, newDogRecord, setHomeConcern } from './dogRecord';
+import { buildPersonalPlan, rebuildPlan } from './onboarding/plan';
+import { HOME_CONCERNS, type HomeConcern } from './concerns';
+import { HOME_BEHAVIOUR_CONTENT } from './homeBehaviours';
 import { isPlus } from './plus';
+import { requiredLessonsOf } from './nodes/readDog';
 import type { ScenarioConfig } from '../sim/config';
 import { defaultScenario } from '../sim/config';
 
@@ -571,7 +575,7 @@ describe('World 1: the Basics World', () => {
     expect(basics.worldNumber).toBe(1);
     expect(basics.unlockedBy).toBeUndefined();
     expect(basics.stretches.map((s) => s.map((x) => x.id))).toEqual([
-      ['theory-named-behaviours', 'theory-dog-as-dog', 'howto-choose-action', 'dog-as-dog', 'mission-dog-as-dog'],
+      ['howto-choose-action', 'theory-named-behaviours', 'theory-dog-as-dog', 'dog-as-dog', 'mission-dog-as-dog'],
       ['theory-home-rest', 'home-rest', 'mission-home-rest'],
       ['theory-calm-first', 'calm-first', 'mission-calm-first'],
     ]);
@@ -583,11 +587,11 @@ describe('World 1: the Basics World', () => {
     expect(nodesOfWorld(basics).map((n) => [n.mode, n.simulation.minigame])).toEqual([['minigame', 'dog-as-dog'], ['minigame', 'home-rest'], ['minigame', 'calm-first']]);
   });
 
-  it('opens a new Dog on the Basics World with "Tiene nombre" as the only open Stop', () => {
+  it('opens a new Dog on the Basics World with the Lessons of its first Stretch as the only open Stops, how to play first', () => {
     const p = progressOf([]);
     expect(currentWorld(p).id).toBe('basics');
     const open = WORLDS.flatMap(stopsOf).filter((s) => stopStatus(s, p, at(9)).state === 'open');
-    expect(open).toEqual([{ kind: 'lesson', id: 'theory-named-behaviours' }]);
+    expect(open).toEqual([{ kind: 'lesson', id: 'howto-choose-action' }, { kind: 'lesson', id: 'theory-named-behaviours' }, { kind: 'lesson', id: 'theory-dog-as-dog' }]);
   });
 
   it('keeps Home locked until the Basics World is complete, and Home keeps its own look', () => {
@@ -607,8 +611,46 @@ describe('worldTitle and the Dog name', () => {
   });
 });
 
+describe('Lessons of a Stretch and the how-to-play Lesson', () => {
+  const lessonStop = (id: string): Stop => ({ kind: 'lesson', id });
+  it('opens every Lesson of a Stretch at once, but not the Node or Mission until they are read', () => {
+    const p = progressOf([]);
+    for (const id of ['howto-choose-action', 'theory-named-behaviours', 'theory-dog-as-dog']) expect(stopLock(lessonStop(id), p)).toBeNull();
+    expect(stopLock({ kind: 'node', id: 'dog-as-dog' }, p)).toMatchObject({ kind: 'stops' });
+    expect(stopLock({ kind: 'node', id: 'dog-as-dog' }, progressOf([], { readLessons: ['theory-dog-as-dog', 'theory-named-behaviours'] }))).toMatchObject({ kind: 'stops', stops: [lessonStop('howto-choose-action')] });
+    expect(stopLock({ kind: 'node', id: 'dog-as-dog' }, progressOf([], { readLessons: ['howto-choose-action', 'theory-dog-as-dog', 'theory-named-behaviours'] }))).toBeNull();
+    expect(stopLock({ kind: 'mission', id: 'mission-dog-as-dog' }, progressOf([], { readLessons: ['howto-choose-action', 'theory-dog-as-dog', 'theory-named-behaviours'] }))).toMatchObject({ kind: 'stops' });
+  });
+  it('still closes a Lesson behind an unpassed earlier Mission or a locked World', () => {
+    expect(stopLock(lessonStop('theory-home-rest'), progressOf([]))).toMatchObject({ kind: 'mission', id: 'mission-dog-as-dog' });
+    expect(stopLock(lessonStop('theory-harness'), progressOf([]))).toEqual({ kind: 'world' });
+  });
+  it('makes how to play the first Stop of World 1, and every living-room Node requires it', () => {
+    expect(stopsOf(world('basics'))[0]).toEqual(lessonStop('howto-choose-action'));
+    const needing = ALL_NODES.filter((n) => requiredLessonsOf(n).length > 0).map((n) => n.id);
+    expect(needing.sort()).toEqual(['bark-home', 'calm-first', 'destroy', 'dog-as-dog', 'eat-objects', 'home-rest']);
+  });
+  it('cannot play a Home Node in World 1 before how to play is read, and places its Stretch after the one holding it', () => {
+    const p = progressOf([], {
+      homeConcerns: { destroy: 1 },
+      readLessons: ['theory-destroy', 'theory-named-behaviours', 'theory-dog-as-dog', 'theory-home-rest', 'theory-calm-first'],
+      missions: Object.fromEntries(['mission-dog-as-dog', 'mission-home-rest', 'mission-calm-first'].map(passed)),
+    });
+    const worlds = worldsFor([{ stretchId: 'theory-destroy' }], p);
+    expect(stopLock({ kind: 'node', id: 'destroy' }, p, worlds)).toMatchObject({ kind: 'stops' });
+    const ids = worlds.find((w) => w.id === 'basics')!.stretches.map((s) => s[0].id);
+    expect(ids.indexOf('howto-choose-action')).toBeLessThan(ids.indexOf('theory-destroy'));
+  });
+  it('lets a Home Node played from Other Home Behaviours (off the trail) open without the Lesson', () => {
+    expect(stopLock({ kind: 'node', id: 'destroy' }, progressOf([]))).toBeNull();
+  });
+});
+
 describe('worldsFor', () => {
   const lead = (w: WorldDef) => w.stretches.map((s) => s[0].id);
+  const lesson = (id: string): Stop => ({ kind: 'lesson', id });
+  const node = (id: string): Stop => ({ kind: 'node', id });
+  const mission = (id: string): Stop => ({ kind: 'mission', id });
   const basics = (worlds: readonly WorldDef[]) => worlds.find((w) => w.id === 'basics')!;
 
   it('is the shipped Worlds for an empty plan', () => {
@@ -616,13 +658,18 @@ describe('worldsFor', () => {
   });
 
   it('puts the plan Stretches first inside their World, in plan order', () => {
+    const worlds = worldsFor([{ stretchId: 'theory-home-rest' }, { stretchId: 'theory-calm-first' }], progressOf([]));
+    expect(lead(basics(worlds))).toEqual(['howto-choose-action', 'theory-home-rest', 'theory-calm-first']);
+  });
+
+  it('never moves a Stretch before the Stretch that holds a prerequisite Node of its Nodes', () => {
     const worlds = worldsFor([{ stretchId: 'theory-calm-first' }, { stretchId: 'theory-home-rest' }], progressOf([]));
-    expect(lead(basics(worlds))).toEqual(['theory-calm-first', 'theory-home-rest', 'theory-named-behaviours']);
+    expect(lead(basics(worlds))).toEqual(['howto-choose-action', 'theory-home-rest', 'theory-calm-first']);
   });
 
   it('keeps Stretches the user started where they are', () => {
     const started = progressOf([], { readLessons: ['theory-named-behaviours'] });
-    expect(lead(basics(worldsFor([{ stretchId: 'theory-home-rest' }], started)))).toEqual(['theory-named-behaviours', 'theory-home-rest', 'theory-calm-first']);
+    expect(lead(basics(worldsFor([{ stretchId: 'theory-home-rest' }], started)))).toEqual(['howto-choose-action', 'theory-home-rest', 'theory-calm-first']);
   });
 
   it('leaves the World list, the locks and the Stops of each Stretch alone', () => {
@@ -632,13 +679,207 @@ describe('worldsFor', () => {
     for (const [i, w] of worlds.entries()) expect(stopsOf(w).map((s) => s.id).sort()).toEqual(stopsOf(WORLDS[i]).map((s) => s.id).sort());
   });
 
-  it('opens the plan Stretch first for a Dog with no progress', () => {
+  it('opens the first Stretch a Dog can finish, even when the plan names a later one', () => {
     const worlds = worldsFor([{ stretchId: 'theory-home-rest' }], progressOf([]));
-    expect(stopLock({ kind: 'lesson', id: 'theory-home-rest' }, progressOf([]), worlds)).toBeNull();
-    expect(stopLock({ kind: 'lesson', id: 'theory-named-behaviours' }, progressOf([]), worlds)).toMatchObject({ kind: 'mission' });
+    expect(stopLock({ kind: 'lesson', id: 'howto-choose-action' }, progressOf([]), worlds)).toBeNull();
+    expect(stopLock({ kind: 'lesson', id: 'theory-home-rest' }, progressOf([]), worlds)).toMatchObject({ kind: 'mission' });
   });
 
   it('ignores an unknown Stretch', () => {
     expect(worldsFor([{ stretchId: 'nope' }], progressOf([]))).toBe(WORLDS);
+  });
+});
+
+describe('Home Behaviour content and the trail', () => {
+  it('counts in no static World (they join World 1 per Dog, below): no Home Lesson, Node or Mission is a Stop, so none completes, unlocks or gates anything', () => {
+    const stopIds = new Set(WORLDS.flatMap((w) => stopsOf(w).map((s) => s.id)));
+    for (const id of ['theory-bite-owner', 'theory-bite-others', 'theory-bark-home', 'theory-destroy', 'theory-eat-objects', 'bark-home', 'destroy', 'eat-objects', 'mission-bite-owner', 'mission-bite-others', 'mission-bark-home', 'mission-destroy', 'mission-eat-objects']) {
+      expect(stopIds.has(id)).toBe(false);
+    }
+    expect(nodeIdsOf(findWorld('basics')!)).not.toContain('bark-home');
+    const homeDone = progressOf(['bark-home', 'destroy', 'eat-objects'], { readLessons: ['theory-bark-home'], missions: { 'mission-bark-home': { target: 'full', skipRun: 0, attempts: [], passedOn: '2026-11-01' } } });
+    expect(WORLDS.map((w) => isWorldComplete(w, homeDone))).toEqual(WORLDS.map((w) => isWorldComplete(w, progressOf([]))));
+    expect(WORLDS.map((w) => isWorldUnlocked(w, homeDone))).toEqual(WORLDS.map((w) => isWorldUnlocked(w, progressOf([]))));
+  });
+});
+
+describe('worldsFor never makes a Stop unreachable', () => {
+  test.each([['theory-home-rest'], ['theory-calm-first'], ['theory-calm-first', 'theory-home-rest']])('plan %s', (...ids) => {
+    const worlds = worldsFor(ids.map((stretchId) => ({ stretchId })), progressOf([]));
+    const progress = progressOf([]);
+    for (const world of worlds.filter((w) => !w.preview)) {
+      for (const stops of world.stretches) {
+        for (const stop of stops) {
+          expect(stopLock(stop, progress, worlds)).toBeNull();
+          if (stop.kind === 'lesson') progress.readLessons.push(stop.id);
+          else if (stop.kind === 'node') progress.completedNodes.push(stop.id);
+          else progress.missions[stop.id] = { startedAt: 1, passedOn: '2026-01-01' } as unknown as MissionState;
+        }
+      }
+    }
+  });
+});
+
+describe('World 1 is composed per Dog from its Concerns (ADR 0021)', () => {
+  const basics = (worlds: readonly WorldDef[]) => worlds.find((w) => w.id === 'basics')!;
+  const lesson = (id: string): Stop => ({ kind: 'lesson', id });
+  const node = (id: string): Stop => ({ kind: 'node', id });
+  const mission = (id: string): Stop => ({ kind: 'mission', id });
+  const firsts = (w: WorldDef) => w.stretches.map((s) => s[0].id);
+  const lessonOf = (c: HomeConcern) => HOME_BEHAVIOUR_CONTENT[c].lesson!;
+  const withConcerns = (levels: Partial<Record<HomeConcern, 1 | 2 | 3>>, more: Partial<Progress> = {}) => progressOf([], { homeConcerns: levels, ...more });
+  const mark = (p: Progress, stop: Stop): Progress => {
+    if (stop.kind === 'lesson') return { ...p, readLessons: [...p.readLessons, stop.id] };
+    if (stop.kind === 'node') return { ...p, completedNodes: [...p.completedNodes, stop.id] };
+    return { ...p, missions: { ...p.missions, ...Object.fromEntries([passed(stop.id)]) } };
+  };
+
+  it('is the static Basics World for a Dog with no home Concern', () => {
+    expect(worldsFor([], withConcerns({}))).toBe(WORLDS);
+  });
+
+  it('adds the Home Stretch of each Concern to World 1, and only those', () => {
+    const w = basics(worldsFor([], withConcerns({ 'bark-home': 1, destroy: 2 })));
+    expect(firsts(w)).toEqual(['howto-choose-action', lessonOf('destroy'), lessonOf('bark-home'), 'theory-home-rest', 'theory-calm-first']);
+    expect(w.stretches[2]).toEqual([lesson(lessonOf('bark-home')), node('bark-home'), mission('mission-bark-home')]);
+    expect(WORLDS.map((x) => x.stretches.length)).toEqual(WORLDS.map((x) => x.stretches.length)); // the static trail is untouched
+    expect(stopsOf(basics(WORLDS)).some((s) => s.id === 'theory-bark-home')).toBe(false);
+  });
+
+  it('orders them by the Personal Plan with biting first, ahead of the Basics Stretches the plan does not name', () => {
+    const record = rebuildPlan({ ...newDogRecord(), homeConcerns: { 'bark-home': 1, 'bite-others': 1, 'eat-objects': 2 } });
+    const w = basics(worldsFor(record.onboarding.plan, record));
+    const homeOrder = firsts(w).filter((id) => HOME_CONCERNS.some((c) => lessonOf(c) === id));
+    expect(homeOrder).toEqual(record.onboarding.plan.map((p) => p.stretchId).filter((id) => homeOrder.includes(id)));
+    expect(homeOrder[0]).toBe(lessonOf('bite-others'));
+    expect(firsts(w).indexOf(lessonOf('bite-others'))).toBeLessThan(firsts(w).indexOf('theory-named-behaviours') + 1 + 2);
+  });
+
+  it('puts the ones the plan does not name after the plan\'s and before the unnamed Basics Stretches, biting first', () => {
+    const w = basics(worldsFor([], withConcerns({ 'bark-home': 1, 'bite-owner': 1 })));
+    expect(firsts(w)).toEqual([lessonOf('bite-owner'), 'howto-choose-action', lessonOf('bark-home'), 'theory-home-rest', 'theory-calm-first']);
+  });
+
+  it('never places a Stretch before the Stretch holding a prerequisite Node of its Nodes', () => {
+    const nodes = ALL_NODES.map((n) => (n.id === 'bark-home' ? { ...n, prerequisites: ['calm-first'] } : n));
+    const w = basics(worldsFor([{ stretchId: lessonOf('bark-home') }], withConcerns({ 'bark-home': 1 }), WORLDS, nodes));
+    expect(firsts(w).indexOf(lessonOf('bark-home'))).toBeGreaterThan(firsts(w).indexOf('theory-calm-first'));
+  });
+
+  it('gates World 1 and World 2: a declared Home Stretch not passed keeps World 1 incomplete and World 2 locked', () => {
+    const p = withConcerns({ 'bark-home': 1 });
+    const done = { ...finished('basics'), homeConcerns: p.homeConcerns };
+    const worlds = worldsFor([], done);
+    expect(isWorldComplete(basics(worlds), done)).toBe(false);
+    expect(isWorldUnlocked(worlds.find((w) => w.id === 'home')!, done, worlds)).toBe(false);
+    let finishedHome: Progress = done;
+    for (const stop of basics(worlds).stretches.find((x) => x[0].id === lessonOf('bark-home'))!) finishedHome = mark(finishedHome, stop);
+    expect(isWorldComplete(basics(worlds), finishedHome)).toBe(true);
+    expect(isWorldUnlocked(worlds.find((w) => w.id === 'home')!, finishedHome, worlds)).toBe(true);
+  });
+
+  it('an Owed Home Mission is done for gating but does not complete World 1 (a normal Mission)', () => {
+    const owed: MissionState = { target: 'full', skipRun: 0, attempts: [], startedAt: '2026-05-01T08:00:00.000Z', skippedAt: '2026-05-01T20:00:00.000Z' } as MissionState;
+    let p: Progress = { ...finished('basics'), homeConcerns: { 'bark-home': 1 } };
+    const worlds = worldsFor([], p);
+    for (const stop of basics(worlds).stretches.find((x) => x[0].id === lessonOf('bark-home'))!.slice(0, 2)) p = mark(p, stop);
+    p = { ...p, missions: { ...p.missions, 'mission-bark-home': owed } };
+    expect(isWorldComplete(basics(worlds), p)).toBe(false);
+    expect(stopStatus(mission('mission-bark-home'), p, at(9, 3), worlds).state).toBe('owed');
+  });
+
+  it('missionOfStop finds a Home Mission through World 1', () => {
+    const worlds = worldsFor([], withConcerns({ destroy: 1 }));
+    expect(missionOfStop(node('destroy'), worlds)).toBe('mission-destroy');
+    expect(missionOfStop(lesson('theory-destroy'), worlds)).toBe('mission-destroy');
+    expect(isLastNodeOfStretch('destroy', worlds)).toBe(true);
+  });
+
+  it('keeps a started Home Stretch in World 1 when its Concern is removed, and moves an untouched one back', () => {
+    const started = withConcerns({}, { readLessons: [lessonOf('destroy')], worldHome: ['destroy', 'bark-home'] });
+    const ids = firsts(basics(worldsFor([], started)));
+    expect(ids).toContain(lessonOf('destroy'));
+    expect(ids).not.toContain(lessonOf('bark-home'));
+  });
+
+  it('does not pull a Home Stretch started from Other Home Behaviours into World 1 unless it joined', () => {
+    const optional = withConcerns({}, { readLessons: [lessonOf('destroy')], worldHome: [] });
+    expect(worldsFor([], optional)).toBe(WORLDS);
+    const legacy = withConcerns({}, { readLessons: [lessonOf('destroy')] });
+    expect(worldsFor([], legacy)).toBe(WORLDS);
+  });
+
+  it('a Home Node played early does not make the Basics Missions count as passed', () => {
+    const p = withConcerns({ destroy: 1 }, { completedNodes: ['destroy'] });
+    const worlds = worldsFor([], p);
+    expect(stopStatus(mission('mission-dog-as-dog'), p, at(9), worlds).state).not.toBe('done');
+  });
+
+  it('a Concern declared after World 1 is complete stays in Other Home Behaviours and World 1 stays complete', () => {
+    const done = { ...newDogRecord(), ...finished('basics') } as ReturnType<typeof newDogRecord> & Progress;
+    const late = setHomeConcern(done, 'bark-home', 1);
+    expect(late.homeConcerns['bark-home']).toBe(1);
+    expect(late.worldHome).toEqual([]);
+    const worlds = worldsFor([], late);
+    expect(firsts(basics(worlds))).not.toContain(lessonOf('bark-home'));
+    expect(isWorldComplete(basics(worlds), late)).toBe(true);
+  });
+
+  it('a Concern declared while World 1 is open joins it, level 1 included', () => {
+    const joined = setHomeConcern(newDogRecord(), 'bark-home', 1);
+    expect(joined.worldHome).toEqual(['bark-home']);
+    expect(firsts(basics(worldsFor([], joined)))).toContain(lessonOf('bark-home'));
+    const removed = setHomeConcern(joined, 'bark-home', 0);
+    expect(removed.worldHome).toEqual(['bark-home']); // kept, so a started Stretch stays
+    expect(firsts(basics(worldsFor([], removed)))).not.toContain(lessonOf('bark-home')); // untouched, so it moves back
+  });
+
+  describe('World 1 order for a Dog', () => {
+    const orderFor = (levels: Partial<Record<HomeConcern, 1 | 2 | 3>>) => {
+      const record = rebuildPlan({ ...newDogRecord(), homeConcerns: levels });
+      return firsts(basics(worldsFor(record.onboarding.plan, record)));
+    };
+    it('is the shipped Basics order with no Home Concern', () => {
+      expect(orderFor({})).toEqual(['howto-choose-action', 'theory-home-rest', 'theory-calm-first']);
+    });
+    it('puts biting first, then the Basics Stretch that teaches how to play', () => {
+      expect(orderFor({ 'bite-owner': 2 })).toEqual([lessonOf('bite-owner'), 'howto-choose-action', 'theory-home-rest', 'theory-calm-first']);
+    });
+    it('puts the other Home Stretches by level after how to play and before home-rest and calm-first', () => {
+      expect(orderFor({ 'bark-home': 1, destroy: 2 })).toEqual(['howto-choose-action', lessonOf('destroy'), lessonOf('bark-home'), 'theory-home-rest', 'theory-calm-first']);
+    });
+    it('orders all five', () => {
+      expect(orderFor({ 'bite-owner': 1, 'bite-others': 3, 'bark-home': 1, destroy: 2, 'eat-objects': 3 })).toEqual([
+        lessonOf('bite-others'), lessonOf('bite-owner'), 'howto-choose-action', lessonOf('eat-objects'), lessonOf('destroy'), lessonOf('bark-home'), 'theory-home-rest', 'theory-calm-first',
+      ]);
+    });
+    it('never puts a Home Stretch with a Node before how to play, even one already started', () => {
+      const started = withConcerns({ 'bark-home': 1 }, { readLessons: [lessonOf('bark-home')] });
+      const ids = firsts(basics(worldsFor([], started)));
+      expect(ids.indexOf('howto-choose-action')).toBeLessThan(ids.indexOf(lessonOf('bark-home')));
+    });
+  });
+
+  describe('reachability: every Stop of World 1 can be completed in trail order', () => {
+    const combos: HomeConcern[][] = [[], ...HOME_CONCERNS.map((c) => [c]), ['bark-home', 'destroy'], [...HOME_CONCERNS]];
+    test.each(combos.map((c) => [c.join('+'), c] as const))('Dog with %s', (_name, concerns) => {
+      const levels = Object.fromEntries(concerns.map((c) => [c, 1])) as Partial<Record<HomeConcern, 1 | 2 | 3>>;
+      const record = rebuildPlan({ ...newDogRecord(), homeConcerns: levels });
+      const plan = buildPersonalPlan(record);
+      let p: Progress = { ...progressOf([]), homeConcerns: levels };
+      for (let guard = 0; guard < 100; guard++) {
+        const worlds = worldsFor(plan, p);
+        const w = basics(worlds);
+        const next = stopsOf(w).find((s) => !(s.kind === 'lesson' ? p.readLessons.includes(s.id) : s.kind === 'node' ? p.completedNodes.includes(s.id) : !!p.missions[s.id]?.passedOn));
+        if (!next) break;
+        const status = stopStatus(next, p, at(9), worlds);
+        expect({ stop: next.id, state: status.state, lock: status.lock }).toEqual({ stop: next.id, state: 'open', lock: undefined });
+        p = mark(p, next);
+      }
+      const worlds = worldsFor(plan, p);
+      for (const c of concerns) expect(firsts(basics(worlds))).toContain(lessonOf(c));
+      expect(isWorldComplete(basics(worlds), p)).toBe(true);
+      expect(isWorldUnlocked(worlds.find((x) => x.id === 'home')!, p, worlds)).toBe(true);
+    });
   });
 });

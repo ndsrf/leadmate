@@ -1,5 +1,6 @@
 import { CONCERNS, isHomeConcern, KIND_OF_OUTDOOR, type Concern, type PlanBecause, type PlanItem } from '../concerns';
 import type { DogRecord } from '../dogRecord';
+import { isHomeStretchId } from '../homeBehaviours';
 import { findStretch } from '../world';
 import { latencyBand } from './latency';
 
@@ -10,20 +11,20 @@ const DEFAULT_PLAN = ['theory-harness', 'theory-doorbell', 'theory-poste', 'theo
 export const POSTE_STRETCH_ID = 'theory-poste';
 export const POSTE_NODE_ID = 'poste-practice';
 
-/** The Stretches about being at home, which a puppy and every biting Concern start with. */
+/** The Stretches about being at home, which a puppy and every home Concern follow. */
 const AT_HOME = ['theory-home-rest', 'theory-calm-first'] as const;
-const REDIRECTED_BITING = 'theory-named-behaviours';
 
 /**
- * The Stretches that train each Concern, in the order they are worth doing, named by their first Stop. Home Behaviours
- * have no Lessons of their own yet (see `KNOWN_GAPS`), so they point to the nearest existing material.
+ * The Stretches that train each Concern, in the order they are worth doing, named by their first Stop. A home Concern
+ * leads with its own Home Stretch (named by its Lesson, see `HOME_BEHAVIOUR_CONTENT`), then the at-home Stretches of
+ * the Basics World.
  */
 export const CONCERN_STRETCHES: Record<Concern, readonly string[]> = {
-  'bite-owner': [...AT_HOME, REDIRECTED_BITING],
-  'bite-others': [...AT_HOME, REDIRECTED_BITING],
-  'bark-home': [...AT_HOME],
-  destroy: [...AT_HOME],
-  'eat-objects': [REDIRECTED_BITING, 'theory-home-rest'],
+  'bite-owner': ['theory-bite-owner', ...AT_HOME],
+  'bite-others': ['theory-bite-others', ...AT_HOME],
+  'bark-home': ['theory-bark-home', ...AT_HOME],
+  destroy: ['theory-destroy', ...AT_HOME],
+  'eat-objects': ['theory-eat-objects', 'theory-home-rest'],
   'react-dog': ['theory-slack-u'],
   'react-child': ['theory-slack-u'],
   'react-bicycle': ['theory-blind-corner'],
@@ -48,15 +49,15 @@ function otherConcerns(record: DogRecord): Concern[] {
 }
 
 /**
- * The Personal Plan: an ordered list of 3 to 5 existing Stretches. Biting comes first (the at-home Stretches and the
- * redirected-biting Lesson), then eating non-food things, then what age or a slow reaction time call for, then the
+ * The Personal Plan: an ordered list of 3 to 5 existing Stretches. Biting comes first (its Home Stretch, then the at-home
+ * Stretches), then eating non-food things, then what age or a slow reaction time call for, then the
  * Main Concern, the other Concerns by level, and the default trail order. Sex never changes the order. Pure.
  */
 export function buildPersonalPlan(record: DogRecord): PlanItem[] {
   const items: PlanItem[] = [];
   const add = (stretchIds: readonly string[], why: { concern?: Concern; because?: PlanBecause }) => {
     for (const stretchId of stretchIds) {
-      if (!items.some((i) => i.stretchId === stretchId) && findStretch(stretchId)) items.push({ stretchId, ...why });
+      if (!items.some((i) => i.stretchId === stretchId) && (findStretch(stretchId) || isHomeStretchId(stretchId))) items.push({ stretchId, ...why });
     }
   };
 

@@ -1,7 +1,7 @@
 import type { DogRecord } from './dogRecord';
 import type { Stars } from './stars';
 import { shownStreak, type StreakRecord } from './streak';
-import { isNodeOpen, isWorldUnlocked, WORLDS, worldsFor } from './world';
+import { isNodeOpen, isWorldUnlocked, worldsFor } from './world';
 import { NODES } from './nodes/content';
 
 /** What just finished: a Node's Debrief, a Mission check-in or a Daily Stage. */
@@ -50,7 +50,7 @@ export function celebrationsFor(before: DogRecord, after: DogRecord, completion:
     // the Stretches in the order this Dog walks them (the Personal Plan decides it)
     const beforeWorlds = worldsFor(after.onboarding.plan, before);
     const afterWorlds = worldsFor(after.onboarding.plan, after);
-    const worldsOpened = WORLDS.filter((w) => !isWorldUnlocked(w, before) && isWorldUnlocked(w, after));
+    const worldsOpened = afterWorlds.filter((w) => !isWorldUnlocked(w, before, beforeWorlds) && isWorldUnlocked(w, after, afterWorlds));
     for (const world of worldsOpened) out.push({ type: 'unlock-world', worldId: world.id });
     // a Node in a World that just opened is covered by that World's celebration
     for (const node of NODES) {

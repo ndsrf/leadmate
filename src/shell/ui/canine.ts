@@ -23,7 +23,12 @@ export type CaninePosture =
   | 'toy_indoors'
   | 'resting'
   | 'barking_nonstop'
-  | 'zoomies';
+  | 'zoomies'
+  | 'barking_window'
+  | 'barking_at_you'
+  | 'chewing_object'
+  | 'eyeing_item'
+  | 'holding_item';
 
 export const CANINE_POSTURES: readonly CaninePosture[] = [
   'standing_waiting',
@@ -46,12 +51,18 @@ export const CANINE_POSTURES: readonly CaninePosture[] = [
   'resting',
   'barking_nonstop',
   'zoomies',
+  'barking_window',
+  'barking_at_you',
+  'chewing_object',
+  'eyeing_item',
+  'holding_item',
 ];
 
 /** The postures the user reads in the action Minigames; they must tell apart at a glance. */
 export const READABLE_POSTURES: readonly DogState[] = [
   'jumping', 'alert_barking', 'staring_door', 'sniffing', 'sitting_attentive', 'unsettled_on_mat', 'relaxed_lying',
   'begging_lift', 'on_furniture', 'nudging_attention', 'toy_indoors', 'resting', 'barking_nonstop', 'zoomies',
+  'barking_window', 'barking_at_you', 'chewing_object', 'eyeing_item', 'holding_item',
 ];
 
 export type Eyes = 'open' | 'wide' | 'closed';
@@ -95,6 +106,12 @@ const SPECS: Record<CaninePosture, PostureSpec> = {
   toy_indoors: { leanDeg: 4, height: 1.05, tail: 'wag', earsUp: true, mouthOpen: true, eyes: 'open', emote: 'toy', label: 'minigame.dog.toy_indoors', cue: 'minigame.cue.toy_indoors' },
   resting: { leanDeg: 0, height: 0.4, tail: 'curled', earsUp: false, mouthOpen: false, eyes: 'closed', emote: 'sleepy', label: 'minigame.dog.resting', cue: 'minigame.cue.resting' },
   barking_nonstop: { leanDeg: -4, height: 1, tail: 'up', earsUp: true, mouthOpen: true, eyes: 'open', emote: 'bark', label: 'minigame.dog.barking_nonstop', cue: 'minigame.cue.barking_nonstop' },
+  // Home Behaviour states: no art of their own yet, each is a distinct pose of the existing Dog drawing
+  barking_window: { leanDeg: 16, height: 1.05, tail: 'down', earsUp: true, mouthOpen: true, eyes: 'open', emote: 'bark', label: 'minigame.dog.barking_window', cue: 'minigame.cue.barking_window' },
+  barking_at_you: { leanDeg: -14, height: 0.9, tail: 'wag', earsUp: false, mouthOpen: true, eyes: 'wide', emote: 'please', label: 'minigame.dog.barking_at_you', cue: 'minigame.cue.barking_at_you' },
+  chewing_object: { leanDeg: 18, height: 0.6, tail: 'down', earsUp: false, mouthOpen: true, eyes: 'open', emote: 'toy', label: 'minigame.dog.chewing_object', cue: 'minigame.cue.chewing_object' },
+  eyeing_item: { leanDeg: 8, height: 0.9, tail: 'wag', earsUp: true, mouthOpen: false, eyes: 'wide', emote: 'distracted', label: 'minigame.dog.eyeing_item', cue: 'minigame.cue.eyeing_item' },
+  holding_item: { leanDeg: 2, height: 0.95, tail: 'down', earsUp: false, mouthOpen: false, eyes: 'wide', emote: 'toy', label: 'minigame.dog.holding_item', cue: 'minigame.cue.holding_item' },
   zoomies: { leanDeg: 20, height: 0.85, tail: 'up', earsUp: false, mouthOpen: true, eyes: 'wide', emote: 'zoom', label: 'minigame.dog.zoomies', cue: 'minigame.cue.zoomies' },
 };
 
@@ -106,7 +123,7 @@ export function postureSpec(posture: CaninePosture): PostureSpec {
 export const AGITATION_SECONDS = 1.2;
 
 /** States in which the Dog is aroused: a wrong action leaves it so instead of changing its posture. */
-const AROUSED: readonly DogState[] = ['jumping', 'alert_barking', 'staring_door', 'barking_nonstop', 'zoomies'];
+const AROUSED: readonly DogState[] = ['jumping', 'alert_barking', 'staring_door', 'barking_nonstop', 'zoomies', 'barking_window', 'barking_at_you'];
 
 /**
  * How the Dog answers a wrong action for `AGITATION_SECONDS`: a harness is refused (the Dog backs away
@@ -172,6 +189,11 @@ export const COLLAR_POINT: Record<CaninePosture, { x: number; y: number }> = {
   resting: { x: 100, y: 84 },
   barking_nonstop: { x: 110, y: 46 },
   zoomies: { x: 118, y: 62 },
+  barking_window: { x: 112, y: 44 },
+  barking_at_you: { x: 100, y: 42 },
+  chewing_object: { x: 114, y: 72 },
+  eyeing_item: { x: 110, y: 56 },
+  holding_item: { x: 108, y: 50 },
 };
 
 /** Where an emote bubble sits, in `DOG_VIEW` units: the top-right corner, clear of the head, and higher for a Dog that stands taller. */

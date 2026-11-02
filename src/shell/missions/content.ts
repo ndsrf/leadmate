@@ -6,7 +6,7 @@ import type { Fix, MissionDef } from './mission';
  * A Fix from the catalog's `fix.<slug>.<problem>.*` keys, in the fixed order: reassurance, the likely cause, then
  * the corrections with one illustration. The easier target and the Stop to practise follow on the Fix page.
  */
-function fix(slug: string, problem: string, practise: Stop): Fix {
+function fix(slug: string, problem: string, practise: Stop, shared?: TextKey): Fix {
   const k = (name: string) => `fix.${slug}.${problem}.${name}` as TextKey;
   return {
     id: `fix-${slug}-${problem}`,
@@ -14,7 +14,8 @@ function fix(slug: string, problem: string, practise: Stop): Fix {
       { type: 'text', text: k('reassure') },
       { type: 'text', text: k('cause') },
       { type: 'text', text: k('c1') },
-      { type: 'text', text: k('c2') },
+      // a shared key (the professional-help or vet note) takes the place of the second correction in every Fix
+      { type: 'text', text: shared ?? k('c2') },
       { type: 'image', art: `fix/${slug}/${problem}`, alt: k('alt'), caption: k('caption') },
     ],
     easierTarget: k('easier'),
@@ -22,8 +23,12 @@ function fix(slug: string, problem: string, practise: Stop): Fix {
   };
 }
 
-/** A Mission from the catalog's `mission.<slug>.*` keys; every Fix practises `practise` unless a problem names its own Stop. */
-function mission(id: string, slug: string, technique: string, reps: number, trains: Stop[], problems: (string | [string, Stop])[], place?: 'home'): MissionDef {
+/**
+ * A Mission from the catalog's `mission.<slug>.*` keys; every Fix practises `practise` unless a problem names its own Stop.
+ * `sharedNote` is one catalog key shown in every Fix of the Mission as its second correction (the professional-help note
+ * of the biting Missions, the vet note of eating non-food things).
+ */
+function mission(id: string, slug: string, technique: string, reps: number, trains: Stop[], problems: (string | [string, Stop])[], place?: 'home', sharedNote?: TextKey): MissionDef {
   const k = (name: string) => `mission.${slug}.${name}` as TextKey;
   const practise = trains[trains.length - 1];
   return {
@@ -36,15 +41,29 @@ function mission(id: string, slug: string, technique: string, reps: number, trai
     trains,
     problems: problems.map((p) => {
       const [problem, stop] = typeof p === 'string' ? [p, practise] : p;
-      return { id: problem, label: k(`${problem}.label`), fix: fix(slug, problem, stop) };
+      return { id: problem, label: k(`${problem}.label`), fix: fix(slug, problem, stop, sharedNote) };
     }),
-    generalFix: fix(slug, 'general', practise),
+    generalFix: fix(slug, 'general', practise, sharedNote),
     ...(place ? { place } : {}),
   };
 }
 
 const node = (id: string): Stop => ({ kind: 'node', id });
 const lesson = (id: string): Stop => ({ kind: 'lesson', id });
+
+/**
+ * The Missions of the Home Behaviours (`add-home-behaviour-training`). They are not in `WORLDS`: they end no Stretch and
+ * close no Stops. The biting ones train a Lesson Stop (their Home Behaviour has no exercise); the others train their Node.
+ */
+function homeMissions(): MissionDef[] {
+  return [
+    mission('mission-bite-owner', 'biteowner', 'bite-owner', 3, [lesson('theory-bite-owner')], ['growls', 'bit', 'cantavoid'], 'home', 'plan.note.professional'),
+    mission('mission-bite-others', 'biteothers', 'bite-others', 3, [lesson('theory-bite-others')], ['approach', 'growl', 'cantmanage'], 'home', 'plan.note.professional'),
+    mission('mission-bark-home', 'barkhome', 'bark-home', 5, [node('bark-home')], ['nonstop', 'shout', 'trigger'], 'home'),
+    mission('mission-destroy', 'destroy', 'destroy', 3, [node('destroy')], ['ignores', 'again', 'alone'], 'home'),
+    mission('mission-eat-objects', 'eatobjects', 'eat-objects', 3, [node('eat-objects')], ['swallowed', 'runs', 'again'], 'home', 'lesson.note.vet'),
+  ];
+}
 
 /** The Missions that end each Stretch of the playable Worlds; the Basics World's are done at home. */
 export const MISSIONS: readonly MissionDef[] = [
@@ -62,6 +81,7 @@ export const MISSIONS: readonly MissionDef[] = [
   mission('mission-cue-choice', 'cuechoice', 'cue-choice', 2, [node('close-narrow-street-pass'), node('urban-mix')], [['mixup', lesson('theory-choosing-cue')], 'toomuch', 'nothing']),
   mission('mission-park-jogger', 'jogger', 'long-leash', 2, [node('park-jogger')], ['chases', ['tangle', lesson('howto-long-leash')], 'surprise']),
   mission('mission-park-mix', 'parkmix', 'park-mix', 1, [node('park-mix')], ['overwhelmed', 'food', 'me']),
+  ...homeMissions(),
 ];
 
 export function findMission(id: string): MissionDef | undefined {

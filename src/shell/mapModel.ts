@@ -5,7 +5,7 @@ import { LESSONS } from './lessons/content';
 import type { LessonDef } from './lessons/lesson';
 import { MISSIONS } from './missions/content';
 import { checkInOpensAt, opensAtMidnight, type MissionDef, type MissionState } from './missions/mission';
-import { NODES } from './nodes/content';
+import { ALL_NODES as NODES } from './nodes/content';
 import type { NodeDef } from './nodes/node';
 import type { Stars } from './stars';
 import { findStretch, isWorldComplete, isWorldUnlocked, stopStatus, type Progress, type Stop, type StopLock, type WorldDef, WORLDS } from './world';
