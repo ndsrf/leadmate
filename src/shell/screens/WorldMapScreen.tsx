@@ -1144,6 +1144,16 @@ export function WorldMapScreen({
     <Screen
       header={header}
       footer={!plus ? <AdBanner isPlus={plus} /> : undefined}
+      overlay={
+        isTrialModalOpen && (
+          <TrialStatusModal
+            t={t}
+            daysRemaining={days}
+            isSubscribed={isSubscribed}
+            onDismiss={closeTrialModal}
+          />
+        )
+      }
       scrollRef={scroll}
       onScroll={onScroll ? (e) => onScroll(e.nativeEvent.contentOffset.y) : undefined}
     >
@@ -1185,14 +1195,6 @@ export function WorldMapScreen({
           </Fragment>
         ))}
       </View>
-      {isTrialModalOpen && (
-        <TrialStatusModal
-          t={t}
-          daysRemaining={days}
-          isSubscribed={isSubscribed}
-          onDismiss={closeTrialModal}
-        />
-      )}
     </Screen>
   );
 }

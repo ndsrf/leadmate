@@ -13,6 +13,7 @@ export function Screen({
   children,
   header,
   footer,
+  overlay,
   scrollRef,
   onScroll,
 }: {
@@ -21,6 +22,8 @@ export function Screen({
   header?: React.ReactNode;
   /** A fixed bar pinned at the bottom outside the scrolling content. */
   footer?: React.ReactNode;
+  /** A fixed layer pinned to the viewport above the scrolling content, header, and footer. */
+  overlay?: React.ReactNode;
   scrollRef?: React.Ref<ScrollViewInstance>;
   onScroll?: (e: NativeSyntheticEvent<NativeScrollEvent>) => void;
 }) {
@@ -56,6 +59,7 @@ export function Screen({
           </View>
         )}
       </Animated.View>
+      {overlay}
     </View>
   );
 }

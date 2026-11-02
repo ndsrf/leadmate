@@ -15,7 +15,7 @@ jest.mock('react-native', () => {
           : props.children,
       );
     },
-    ScrollView: (props: any) => React.createElement('div', props, props.children),
+    ScrollView: (props: any) => React.createElement('div', { ...props, 'data-testid': 'map-scroll-view' }, props.children),
     AppState: {
       currentState: 'active',
       addEventListener: () => ({ remove: () => {} }),
@@ -535,6 +535,77 @@ describe('PlusChip and TrialStatusModal', () => {
     expect(markup).toContain('Activo');
     expect(markup).toContain('Disfruta de todas las ventajas incluidas con tu suscripción.');
     expect(markup).toContain('Demostraciones en vídeo desbloqueadas');
+  });
+
+  it('renders TrialStatusModal via viewport overlay outside scroll container when trialModalOpen is true', () => {
+    const markup = renderToStaticMarkup(
+      <WorldMapScreen
+        t={t}
+        progress={progressOf([])}
+        membership={
+          {
+            onboarding: {
+              trialStartedAt: '2026-10-27T09:00:00Z',
+              mockSubscribed: false,
+            },
+          } as any
+        }
+        stars={{}}
+        now={new Date('2026-10-28T09:00:00Z')}
+        streak={NO_STREAK}
+        today="2026-10-28"
+        dailyBest={undefined}
+        rustyPrompt={false}
+        rusty={false}
+        skippedWarmup={false}
+        onWarmup={() => {}}
+        onSkipWarmup={() => {}}
+        onDaily={() => {}}
+        onBarkdoku={() => {}}
+        onOpenStop={() => {}}
+        onSettings={() => {}}
+        trialModalOpen={true}
+      />
+    );
+
+    expect(markup).toContain('LeadMate Plus activo');
+    const scrollMatch = markup.match(/<div[^>]*data-testid="map-scroll-view"[^>]*>([\s\S]*?)<\/div>/);
+    expect(scrollMatch).not.toBeNull();
+    expect(scrollMatch![1]).not.toContain('LeadMate Plus activo');
+  });
+
+  it('does not render TrialStatusModal when trialModalOpen is false', () => {
+    const markup = renderToStaticMarkup(
+      <WorldMapScreen
+        t={t}
+        progress={progressOf([])}
+        membership={
+          {
+            onboarding: {
+              trialStartedAt: '2026-10-27T09:00:00Z',
+              mockSubscribed: false,
+            },
+          } as any
+        }
+        stars={{}}
+        now={new Date('2026-10-28T09:00:00Z')}
+        streak={NO_STREAK}
+        today="2026-10-28"
+        dailyBest={undefined}
+        rustyPrompt={false}
+        rusty={false}
+        skippedWarmup={false}
+        onWarmup={() => {}}
+        onSkipWarmup={() => {}}
+        onDaily={() => {}}
+        onBarkdoku={() => {}}
+        onOpenStop={() => {}}
+        onSettings={() => {}}
+        trialModalOpen={false}
+      />
+    );
+
+    expect(markup).not.toContain('LeadMate Plus activo');
   });
 
   describe('WorldMapScreen - Anchored Banner Integration', () => {
