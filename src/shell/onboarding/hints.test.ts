@@ -1,6 +1,6 @@
 import { STAGE_SIGNALS } from '../../sim/messages';
 import { loadDogRecord, newDogRecord, saveDogRecord, type KeyValueStore } from '../dogRecord';
-import { hintFor, HINT_IDS, hintsRemain, markHintSeen } from './hints';
+import { closeMarksOn, COACH_ID, hintFor, HINT_IDS, hintsRemain, markHintSeen } from './hints';
 
 describe('hints', () => {
   it('maps each Stage signal to one hint', () => {
@@ -37,7 +37,7 @@ describe('hints', () => {
     const rest = ['leash-colors', 'marker', 'poste'];
     expect(hintsRemain(rest)).toBe(true);
     expect(hintsRemain([...rest, 'dog-approaching', 'coach-move'])).toBe(true);
-    expect(hintsRemain([...rest, 'dog-approaching', 'coach-move', 'coach-mark'])).toBe(false);
+    expect(hintsRemain([...rest, 'dog-approaching', 'coach-move', 'coach-mark', 'coach-gather', 'coach-poste', 'coach-close-mark'])).toBe(false);
   });
 
   it('never turns a control-used signal into a hint', () => {
@@ -47,5 +47,35 @@ describe('hints', () => {
   it('knows when nothing is left to show', () => {
     expect(hintsRemain([])).toBe(true);
     expect(hintsRemain([...HINT_IDS])).toBe(false);
+  });
+});
+
+describe('close-view Coach marks', () => {
+  it('show all three on a first run', () => {
+    expect(closeMarksOn([], {}, false)).toEqual({ gather: true, poste: true, marker: true });
+  });
+
+  it('drops a mark at the first press of its control, leaving the others', () => {
+    expect(closeMarksOn([], { gather: true }, false)).toEqual({ gather: false, poste: true, marker: true });
+  });
+
+  it('drops every mark after the timeout', () => {
+    expect(closeMarksOn([], {}, true)).toEqual({ gather: false, poste: false, marker: false });
+  });
+
+  it('does not show a mark again once it is recorded as seen (replay)', () => {
+    const seen = [COACH_ID.gather, COACH_ID.poste, COACH_ID['close-mark']];
+    expect(closeMarksOn(seen, {}, false)).toEqual({ gather: false, poste: false, marker: false });
+  });
+
+  it('does not count the walking Marker mark for the close Marker', () => {
+    expect(closeMarksOn([COACH_ID.mark, COACH_ID.move], { mark: true, move: true }, false).marker).toBe(true);
+  });
+
+  it('records each in seenHints with its own id, and has ids in HINT_IDS', () => {
+    let r = newDogRecord();
+    r = markHintSeen(r, COACH_ID.gather);
+    expect(r.seenHints).toEqual(['coach-gather']);
+    for (const id of Object.values(COACH_ID)) expect(HINT_IDS).toContain(id);
   });
 });

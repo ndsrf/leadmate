@@ -1,9 +1,11 @@
 import type { TextKey } from '../../i18n';
 import type { Metric, NodeDef, PrimerCardDef } from './node';
-import { BLIND_CORNER, ELEVATOR_LOBBY, HALLWAY, LEAVE_IT_INTRO, NARROW_STREET_PASS, PARK_JOGGER, PARK_MIX, SCOOTER_CROSSING, SLACK_U, URBAN_MIX } from './scenarios';
+import { es } from '../../i18n/es';
+import type { AgeBand } from '../concerns';
+import { BLIND_CORNER, ELEVATOR_LOBBY, HALLWAY, handDrillScenario, LEAVE_IT_INTRO, NARROW_STREET_PASS, PARK_JOGGER, PARK_MIX, SCOOTER_CROSSING, SLACK_U, URBAN_MIX } from './scenarios';
 
 /** Slugs of the Nodes whose texts follow the `node.<slug>.*` pattern (see the catalog). */
-type Slug = 'dogasdog' | 'homerest' | 'calmfirst' | 'harness' | 'doorbell' | 'corner' | 'u' | 'leaveit' | 'scooter' | 'urban' | 'jogger' | 'park' | 'barkdoku' | 'closepass' | 'barkhome' | 'destroy' | 'eatobjects';
+type Slug = 'dogasdog' | 'homerest' | 'calmfirst' | 'harness' | 'doorbell' | 'corner' | 'u' | 'leaveit' | 'scooter' | 'urban' | 'jogger' | 'park' | 'barkdoku' | 'closepass' | 'barkhome' | 'destroy' | 'eatobjects' | 'calmhands';
 
 /** Where the web-hosted full guides live (EXPO_PUBLIC_TUTORIAL_BASE); unset, the cards show no guide button. */
 const TUTORIAL_BASE = (process.env.EXPO_PUBLIC_TUTORIAL_BASE ?? '').replace(/\/+$/, '');
@@ -49,7 +51,7 @@ function recapCheckpoint(slug: RecapSlug): NodeDef['checkpoint'] {
 function textNode<S extends Slug>(
   slug: S,
   id: string,
-  rest: Pick<NodeDef, 'mode' | 'simulation' | 'prerequisites'> & { exercises: { metric: Metric; n: 1 | 2 | 3 }[]; primer?: PrimerCardDef[] },
+  rest: Pick<NodeDef, 'mode' | 'simulation' | 'prerequisites'> & Partial<Pick<NodeDef, 'opensAfterLesson' | 'debrief'>> & { exercises: { metric: Metric; n: 1 | 2 | 3 }[]; primer?: PrimerCardDef[] },
 ): NodeDef {
   const key = (suffix: string) => `node.${slug}.${suffix}` as TextKey;
   return {
@@ -61,6 +63,8 @@ function textNode<S extends Slug>(
     simulation: rest.simulation,
     exercises: rest.exercises.map((e) => ({ metric: e.metric, key: key(`exercise${e.n}`) })),
     prerequisites: rest.prerequisites,
+    ...(rest.opensAfterLesson ? { opensAfterLesson: rest.opensAfterLesson } : {}),
+    ...(rest.debrief ? { debrief: rest.debrief } : {}),
   };
 }
 
@@ -97,6 +101,57 @@ export const WALK_DISTRACTION: NodeDef = {
 };
 
 // -- Basics World: a dog is a dog ------------------------------------------------------------------
+
+/**
+ * The first playable Node of World 1: keep the Dog calm around an offered hand with the leash (the close view's
+ * `hand_drill`). It opens once the how-to-play Lesson is read. Its text and tuning follow the Dog's age band (`nodeForDog`).
+ */
+export const CALM_HANDS_NODE = textNode('calmhands', 'calm-hands', {
+  mode: 'close_exercise',
+  primer: recapPrimer('calmhands', { controls: true, art: 'theory-dog-as-dog-1' }),
+  simulation: { closeScenario: handDrillScenario(null) },
+  exercises: [{ metric: 'tension', n: 1 }, { metric: 'timing', n: 2 }],
+  prerequisites: [],
+  opensAfterLesson: 'howto-choose-action',
+  debrief: { calm: 'node.calmhands.debrief.calm', notCalm: 'node.calmhands.debrief.notcalm' },
+});
+
+/** The text keys of the "calm hands and leash" Node that have a variant per age band (`<key>.<band>`). */
+export const CALM_HANDS_VARIANT_KEYS: readonly TextKey[] = [
+  'node.calmhands.recap1',
+  'node.calmhands.recap2',
+  'node.calmhands.tq1.question',
+  'node.calmhands.tq1.why',
+  'node.calmhands.exercise1',
+  'node.calmhands.debrief.calm',
+  'node.calmhands.debrief.notcalm',
+];
+
+/**
+ * The Node as this Dog plays it. The "calm hands and leash" Node takes its copy keys and its tuning from the age band
+ * (`null`: neutral copy and middle-of-the-road numbers), and a gentler first-run tuning until it has been completed;
+ * every other Node is returned as it is.
+ */
+export function nodeForDog(node: NodeDef, dog: { ageBand: AgeBand | null; completedNodes: readonly string[] }): NodeDef {
+  if (node.id !== CALM_HANDS_NODE.id) return node;
+  const { ageBand } = dog;
+  const variant = (key: TextKey): TextKey => {
+    const keyed = `${key}.${ageBand}` as TextKey;
+    return ageBand && CALM_HANDS_VARIANT_KEYS.includes(key) && keyed in es ? keyed : key;
+  };
+  return {
+    ...node,
+    primerCards: node.primerCards.map((c) => {
+      // (a legacy text key is a real-world card; `primerCardOf` lives in node.ts, which this file must not import at runtime)
+      const card: PrimerCardDef = typeof c === 'string' ? { kind: 'real-world', text: c } : c;
+      return { ...card, text: variant(card.text) };
+    }),
+    checkpoint: node.checkpoint.map((q) => ({ ...q, question: variant(q.question), explanation: variant(q.explanation) })),
+    exercises: node.exercises.map((e) => ({ ...e, key: variant(e.key) })),
+    debrief: node.debrief && { calm: variant(node.debrief.calm), notCalm: variant(node.debrief.notCalm) },
+    simulation: { ...node.simulation, closeScenario: handDrillScenario(ageBand, !dog.completedNodes.includes(node.id)) },
+  };
+}
 
 export const DOG_AS_DOG_NODE = textNode('dogasdog', 'dog-as-dog', {
   mode: 'minigame',
@@ -251,6 +306,7 @@ export const EAT_OBJECTS_NODE = textNode('eatobjects', 'eat-objects', {
 });
 
 export const NODES: readonly NodeDef[] = [
+  CALM_HANDS_NODE,
   DOG_AS_DOG_NODE,
   HOME_REST_NODE,
   CALM_FIRST_NODE,

@@ -38,6 +38,7 @@ const KIND_KEYS = {
   skateboard: 'settings.kind.skateboard',
   food: 'settings.kind.food',
   other: 'settings.kind.other',
+  hand: 'settings.kind.hand',
 } as const;
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

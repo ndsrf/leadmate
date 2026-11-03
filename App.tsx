@@ -15,7 +15,7 @@ import { defaultScenario, type ScenarioConfig } from './src/sim/config';
 import type { CloseExerciseConfig } from './src/sim/closeExercise';
 import type { LearningSnapshot } from './src/sim/learning';
 import { skippedSimulationPayload, type SimulationDebriefPayload } from './src/sim/payload';
-import { BUNDLE_MESSAGE_TYPES, decode, type BundleMessage, type ShellMessage } from './src/sim/messages';
+import { BUNDLE_MESSAGE_TYPES, decode, type BundleMessage, type ShellMessage, type StageControl } from './src/sim/messages';
 import { newSeed } from './src/sim/rng';
 import { playDogSound, playResolvedCue, prepareAudio } from './src/shell/audio';
 import { createVocalizer } from './src/shell/vocalize';
@@ -26,8 +26,8 @@ import { lookOf } from './src/shell/onboarding/look';
 import { INTRO_NODE } from './src/shell/onboarding/introNode';
 import { celebrationsFor, starsShown, type Celebration } from './src/shell/celebrations';
 import { completeDaily, dateSeed, generateDailyStage, todayString, warmupAfterDaily, type DailyCompletion } from './src/shell/daily';
-import { CoachMarksOverlay, DogWarningOverlay, ErrorOverlay, HintOverlay, LoadingOverlay, ResumeOverlay, SimulatorBackButton } from './src/shell/Overlays';
-import { findNode, POSTE_PRACTICE } from './src/shell/nodes/content';
+import { CloseCoachMarksOverlay, CoachMarksOverlay, DogWarningOverlay, ErrorOverlay, HintOverlay, LoadingOverlay, ResumeOverlay, SimulatorBackButton } from './src/shell/Overlays';
+import { findNode, nodeForDog, POSTE_PRACTICE } from './src/shell/nodes/content';
 import { withPull } from './src/shell/nodes/scenarios';
 import { readDogSceneOf } from './src/shell/nodes/readDog';
 import { advance, onDebrief, shouldShowPosteLink, startNode, type Metric, type NodeAction, type NodeDef, type NodeRun } from './src/shell/nodes/node';
@@ -70,7 +70,7 @@ import { dogStore } from './src/shell/storage';
 import { completeFirstStage } from './src/shell/onboarding/firstStage';
 import { nextStep } from './src/shell/onboarding/flow';
 import { recordDiagnostic } from './src/shell/onboarding/diagnostic';
-import { COACH_ID, HINT_TEXT, hintFor, markHintSeen, type HintId } from './src/shell/onboarding/hints';
+import { closeMarksOn, COACH_ID, HINT_TEXT, hintFor, markHintSeen, type HintId } from './src/shell/onboarding/hints';
 import { completeTaste, leaveWelcome, namedTranslator, saveMainConcerns, saveNameAndLook, withDogName } from './src/shell/onboarding/intro';
 import { passPaywall } from './src/shell/onboarding/paywall';
 import { TASTE_LINGER_MS, tasteKind, tasteScenarioFor, tasteSnapshot } from './src/shell/onboarding/taste';
@@ -106,6 +106,11 @@ type MissionView = 'brief' | 'waiting' | 'checkin' | 'problem' | 'fix' | 'passed
 
 function isCloseExerciseFlow(route: Route<Flow>): boolean {
   return route.name === 'flow' && route.flow.name === 'node' && route.flow.run.node.mode === 'close_exercise';
+}
+
+/** True in a close exercise that offers the hand drill's controls, the one whose controls get Coach marks. */
+function isHandDrillFlow(route: Route<Flow>): boolean {
+  return route.name === 'flow' && route.flow.name === 'node' && route.flow.run.node.mode === 'close_exercise' && route.flow.run.node.simulation.closeScenario?.controls === 'hand_drill';
 }
 
 /** The shell owns the active language; Spanish is the only one shipped. */
@@ -159,7 +164,7 @@ export default function App() {
   // the approaching-dog warning: where the dog comes from on screen, while it is shown
   const [dogWarning, setDogWarning] = useState<{ bearing: number | null } | null>(null);
   // Coach marks: which controls were used in this Stage, and the Stage's run number (restarts the Marker timeout)
-  const [controlsUsed, setControlsUsed] = useState({ move: false, mark: false });
+  const [controlsUsed, setControlsUsed] = useState<Partial<Record<StageControl, boolean>>>({});
   const [markExpired, setMarkExpired] = useState(false);
   const [stageRun, setStageRun] = useState(0);
   const [warmup, setWarmup] = useState<WarmupOutcome>('none');
@@ -267,7 +272,7 @@ export default function App() {
       setPaused(false);
       setHint(null);
       setDogWarning(null);
-      setControlsUsed({ move: false, mark: false });
+      setControlsUsed({});
       setStageRun((n) => n + 1);
       if (bundleReady.current) send(message);
       else pendingStart.current = message;
@@ -289,7 +294,7 @@ export default function App() {
       setPaused(false);
       setHint(null);
       setDogWarning(null);
-      setControlsUsed({ move: false, mark: false });
+      setControlsUsed({});
       setStageRun((n) => n + 1);
       if (bundleReady.current) send(message);
       else pendingStart.current = message;
@@ -561,7 +566,9 @@ export default function App() {
 
   const startNodeRun = (node: NodeDef) => {
     setSettingsOpen(false);
-    setFlow({ name: 'node', run: startNode(node), attempt: 0 });
+    // the node as this Dog plays it: copy and tuning by age band for the hand drill
+    const dog = recordRef.current;
+    setFlow({ name: 'node', run: startNode(dog ? nodeForDog(node, dog) : node), attempt: 0 });
   };
 
   // where the map was scrolled, so a Stop's flow returns to the same place
@@ -1272,13 +1279,19 @@ export default function App() {
           {playingStage && bundle === 'ready' && !paused && !tastePayoff && (
             <SimulatorBackButton onPress={() => send({ type: 'pause' })} label={t('hud.back')} />
           )}
-          {playingStage && hint && !dogWarning && !paused && <HintOverlay text={t(HINT_TEXT[hint])} />}
+          {playingStage && hint && !dogWarning && !paused && !isCloseExerciseFlow(route) && <HintOverlay text={t(HINT_TEXT[hint])} />}
           {playingStage && record && !tastePayoff && !paused && bundle === 'ready' && !isCloseExerciseFlow(route) && (
             <CoachMarksOverlay
               moveText={t('coach.controls.move')}
               markText={t('coach.controls.mark')}
               showMove={!controlsUsed.move && !record.seenHints.includes(COACH_ID.move)}
               showMark={!controlsUsed.mark && !markExpired && !record.seenHints.includes(COACH_ID.mark)}
+            />
+          )}
+          {playingStage && record && !paused && bundle === 'ready' && isHandDrillFlow(route) && (
+            <CloseCoachMarksOverlay
+              texts={{ gather: t('coach.close.gather'), poste: t('coach.close.poste'), marker: t('coach.close.mark') }}
+              show={closeMarksOn(record.seenHints, controlsUsed, markExpired)}
             />
           )}
           {playingStage && record && dogWarning && !paused && (

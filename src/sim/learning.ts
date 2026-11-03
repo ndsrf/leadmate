@@ -4,7 +4,7 @@
  */
 
 /** Kinds of Distractor the Trigger Profile has a level for. */
-export const DISTRACTOR_KINDS = ['child', 'bicycle', 'dog', 'skateboard', 'food', 'other'] as const;
+export const DISTRACTOR_KINDS = ['child', 'bicycle', 'dog', 'skateboard', 'food', 'other', 'hand'] as const;
 export type DistractorKind = (typeof DISTRACTOR_KINDS)[number];
 
 /** Reactivity of the Dog to one kind of Distractor: 0 none, 1 mild, 2 usual, 3 strong. */
@@ -58,7 +58,7 @@ export const DEFAULT_ATTRIBUTES: LearningAttributes = {
   checkInFrequency: 0.2,
 };
 
-export const DEFAULT_TRIGGER_PROFILE: TriggerProfile = { child: 2, bicycle: 2, dog: 2, skateboard: 2, food: 2, other: 2 };
+export const DEFAULT_TRIGGER_PROFILE: TriggerProfile = { child: 2, bicycle: 2, dog: 2, skateboard: 2, food: 2, other: 2, hand: 2 };
 
 export const DEFAULT_SNAPSHOT: LearningSnapshot = {
   attributes: DEFAULT_ATTRIBUTES,

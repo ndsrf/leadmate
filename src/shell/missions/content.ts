@@ -67,7 +67,7 @@ function homeMissions(): MissionDef[] {
 
 /** The Missions that end each Stretch of the playable Worlds; the Basics World's are done at home. */
 export const MISSIONS: readonly MissionDef[] = [
-  mission('mission-dog-as-dog', 'dogasdog', 'dog-as-dog', 1, [node('dog-as-dog')], ['cries', 'family', 'bed'], 'home'),
+  mission('mission-dog-as-dog', 'dogasdog', 'dog-as-dog', 1, [node('calm-hands'), node('dog-as-dog')], ['cries', 'family', 'bed'], 'home'),
   mission('mission-home-rest', 'homerest', 'home-rest', 3, [node('home-rest')], ['insists', 'barks', 'comesback'], 'home'),
   mission('mission-calm-first', 'calmfirst', 'calm-first', 2, [node('calm-first')], ['neverstops', 'escalates', 'givein'], 'home'),
   mission('mission-harness', 'harness', 'harness', 3, [node('harness-ritual')], ['excited', 'runs', 'bites']),

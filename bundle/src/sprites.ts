@@ -2,7 +2,7 @@ import atlasUrl from '../assets/kenney/sprites.png';
 import atlas from '../assets/kenney/sprites.json';
 import closeAtlasUrl from '../assets/close/sprites.png';
 import closeAtlas from '../assets/close/sprites.json';
-import type { CaninePosture, ShieldSide } from '../../src/sim/closeExercise';
+import type { CaninePosture, CloseExerciseControls, ShieldSide } from '../../src/sim/closeExercise';
 import type { ReactionTier } from '../../src/sim/sim';
 import type { SceneryItem } from '../../src/sim/geometry';
 import type { DogCoat } from '../../src/sim/config';
@@ -44,6 +44,12 @@ export function caninePostureFrame(posture: CaninePosture): string {
     default:
       return 'dog_close_neutral';
   }
+}
+
+/** Which close-view controls a control scheme offers: the hand drill has no shielding and no cue. */
+export function closeControlsOffered(controls: CloseExerciseControls): { gather: boolean; poste: boolean; marker: boolean; shield: boolean; cue: boolean } {
+  const hand = controls === 'hand_drill';
+  return { gather: true, poste: true, marker: true, shield: !hand, cue: !hand };
 }
 
 export function handlerStanceFrame(

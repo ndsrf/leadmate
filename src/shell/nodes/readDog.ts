@@ -91,7 +91,8 @@ export const isLivingRoomScene = (scene: ReadDogScene) => isBasicsScene(scene) |
 export const HOWTO_ACTION_LESSON = 'howto-choose-action';
 
 /** The Lessons that must be read before a Node can be played: the how-to-play Lesson for a living-room read-the-Dog Node. */
-export function requiredLessonsOf(node: Pick<NodeDef, 'simulation'>): string[] {
+export function requiredLessonsOf(node: Pick<NodeDef, 'simulation' | 'opensAfterLesson'>): string[] {
+  if (node.opensAfterLesson) return [node.opensAfterLesson];
   const scene = readDogSceneOf(node.simulation.minigame);
   return scene && isLivingRoomScene(scene) ? [HOWTO_ACTION_LESSON] : [];
 }

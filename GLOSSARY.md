@@ -15,7 +15,7 @@ The virtual dog on the other end of the leash, with its own behavior.
 _Avoid_: Pet, puppy
 
 **Distractor**:
-Anything in the scene that draws the dog's attention, such as a skateboarder.
+Anything in the scene that draws the dog's attention, such as a skateboarder or a hand offered to the Dog.
 _Avoid_: Stimulus, trigger
 
 **Stage**:
@@ -104,6 +104,18 @@ _Avoid_: Level
 **Close Exercise Stage**:
 A specialized close-view Stage focused on close-quarters canine exercises (such as leash handling drills) with exercise-specific controls rather than open-route joystick movement.
 _Avoid_: Minigame, drill level, close drill
+
+**Hand Drill**:
+A Close Exercise Stage in World 1 whose Distractor is a hand held near the Handler. The Handler keeps the Dog calm around it with Gather, Poste and the Marker, then releases for a reward. It cannot be failed: a lunge lowers the score and never ends it.
+_Avoid_: Bite exercise, bite training
+
+**Gather**:
+Shortening the working leash with the Handler's hands so the Dog stays close, without a jerk or a lift.
+_Avoid_: Reel in, yank, pull back
+
+**Age Band**:
+The Dog's life stage, chosen once in Dog setup and optional: puppy, adolescent, adult or senior. It changes copy and tuning only, never the controls; a Dog with no Age Band gets neutral copy.
+_Avoid_: Age group
 
 **Theory Primer**:
 The first step of a Node: one or two short cards recapping the Lessons that precede the Node on the trail.

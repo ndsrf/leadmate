@@ -28,6 +28,33 @@ export const CUE_LABEL_WIDTH = CUE_RADIUS * 2.4;
 
 export type HudCue = 'lets-go' | 'leave-it';
 
+/** A close-view button: its center and size, in pixels. */
+export interface CloseButton extends Point {
+  w: number;
+  h: number;
+}
+
+/** Where the close view's thumb controls go; the Phaser scene builds its buttons from this and the Coach marks point at it. */
+export interface CloseHudLayout {
+  gather: CloseButton;
+  poste: CloseButton;
+  marker: CloseButton;
+}
+
+export const CLOSE_HUD_MARGIN = 24;
+
+/**
+ * Round buttons as in design 18: Recoger bottom-left (84), Marcar bottom-right (84) and Poste (64) above Marcar.
+ * The HTML view (`handDrillView.ts`) positions its buttons at these same centers.
+ */
+export function closeHudLayout(width: number, height: number): CloseHudLayout {
+  return {
+    gather: { x: width - 58, y: height - 86, w: 84, h: 84 },
+    marker: { x: 58, y: height - 86, w: 84, h: 84 },
+    poste: { x: width - 58, y: height - 186, w: 64, h: 64 },
+  };
+}
+
 export interface HudLayout {
   joyHome: Point;
   markerHome: Point;

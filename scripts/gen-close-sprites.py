@@ -34,11 +34,37 @@ WALL_COLOR = (170, 110, 90, 255)
 
 frames_dict = {}
 
+SS = 4  # supersampling factor: PIL draws without antialiasing, so draw big and shrink
+
+
+class ScaledDraw:
+    """Forwards ImageDraw calls with every coordinate and width multiplied by SS."""
+
+    def __init__(self, draw):
+        self._d = draw
+
+    def _pts(self, xy):
+        flat = [v for p in xy for v in (p if isinstance(p, (tuple, list)) else (p,))]
+        scaled = [v * SS for v in flat]
+        return scaled
+
+    def _call(self, name, xy, kwargs):
+        kw = dict(kwargs)
+        if "width" in kw:
+            kw["width"] = max(1, round(kw["width"] * SS))
+        getattr(self._d, name)(self._pts(xy), **kw)
+
+    def ellipse(self, xy, **kw): self._call("ellipse", xy, kw)
+    def rectangle(self, xy, **kw): self._call("rectangle", xy, kw)
+    def polygon(self, xy, **kw): self._call("polygon", xy, kw)
+    def line(self, xy, **kw): self._call("line", xy, kw)
+    def arc(self, xy, **kw): self._call("arc", xy, kw)
+
+
 def create_sprite(draw_fn):
-    im = Image.new("RGBA", (FRAME_SIZE, FRAME_SIZE), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(im)
-    draw_fn(draw)
-    return im
+    big = Image.new("RGBA", (FRAME_SIZE * SS, FRAME_SIZE * SS), (0, 0, 0, 0))
+    draw_fn(ScaledDraw(ImageDraw.Draw(big)))
+    return big.resize((FRAME_SIZE, FRAME_SIZE), Image.LANCZOS)
 
 def draw_dog_neutral(draw):
     # Body

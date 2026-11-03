@@ -21,6 +21,9 @@ import {
   type CloseExerciseState,
 } from '../../src/sim/closeExercise';
 import { mapCloseKeyboardEvent } from '../../src/hud/input';
+import { CLOSE_HUD_MARGIN, closeHudLayout } from '../../src/hud/layout';
+import { HandDrillView } from './handDrillView';
+import { createSignalGate } from '../../src/sim/messages';
 import type { CueType } from '../../src/sim/config';
 import type { SimulationDebriefPayload } from '../../src/sim/payload';
 import type { ReactionTier } from '../../src/sim/sim';
@@ -37,6 +40,7 @@ import {
   caninePostureFrame,
   handlerStanceFrame,
   distractorCloseFrame,
+  closeControlsOffered,
   DOG_COATS,
 } from './sprites';
 
@@ -57,7 +61,16 @@ const TENSION_COLORS: Record<TensionState, number> = {
   rigid: HUD_TENSION_NUM.rigid,
 };
 
-const CLOSE_CAMERA_ZOOM = 3.2;
+/** Scene pixels the close view must show side by side (Handler, Dog and the offered hand, sprites included). */
+const CLOSE_VIEW_W = 260;
+const CLOSE_VIEW_H = 300;
+const CLOSE_ZOOM_MIN = 1;
+const CLOSE_ZOOM_MAX = 1.4;
+
+/** Zoom that keeps the whole encounter on screen at any size, as sharp as the 128 px sprites allow. */
+export function closeZoom(width: number, height: number): number {
+  return Math.min(CLOSE_ZOOM_MAX, Math.max(CLOSE_ZOOM_MIN, Math.min(width / CLOSE_VIEW_W, height / CLOSE_VIEW_H)));
+}
 
 /**
  * Dedicated close-view Phaser scene focusing on leash manipulation,
@@ -87,8 +100,16 @@ export class CloseExerciseScene extends Phaser.Scene {
   private distractorSprite!: Phaser.GameObjects.Sprite;
   private leashGfx!: Phaser.GameObjects.Graphics;
   private auraGfx!: Phaser.GameObjects.Graphics;
+  private signalGate = createSignalGate();
   private sceneryGfx!: Phaser.GameObjects.Graphics;
   private hudContainer!: Phaser.GameObjects.Container;
+  /** The HUD has its own unzoomed camera so the buttons stay in screen pixels, as in the Stage. */
+  /** Hand drill: the HTML/SVG view that draws it (design 18); the Phaser world is not built for that scheme. */
+  private view?: HandDrillView;
+  /** Hand drill: the "how to play" card is up, the sim waits for "Empezar". */
+  private introOpen = false;
+  private shadowGfx!: Phaser.GameObjects.Graphics;
+  private hudCam!: Phaser.Cameras.Scene2D.Camera;
 
   // HUD buttons
   private gatherBtn!: Phaser.GameObjects.Container;
@@ -110,6 +131,8 @@ export class CloseExerciseScene extends Phaser.Scene {
     this.isEnded = false;
     this.simSteps = 0;
     this.simAccumulator = 0;
+    this.signalGate = createSignalGate();
+    this.introOpen = this.sim.config.controls === 'hand_drill';
     this.inputState = {
       gather: false,
       shieldSide: 'none',
@@ -131,8 +154,18 @@ export class CloseExerciseScene extends Phaser.Scene {
   }
 
   create(): void {
-    // 1. Build narrow corridor scenery
+    // the game renders without antialiasing; zoomed sprites need smoothing
+    this.textures.get(CLOSE_ATLAS).setFilter(Phaser.Textures.FilterMode.LINEAR);
+
+    if (this.sim.config.controls === 'hand_drill') {
+      this.createDrillView();
+      return;
+    }
+
+    // 1. Build the narrow street scenery
     this.buildNarrowCorridorScenery();
+    this.shadowGfx = this.add.graphics();
+    this.shadowGfx.setDepth(5);
 
     // 2. Leash graphics (rendered between characters)
     this.leashGfx = this.add.graphics();
@@ -147,7 +180,7 @@ export class CloseExerciseScene extends Phaser.Scene {
     const dPivot = closePivotOf('dog_close_neutral');
     this.dogSprite = this.add.sprite(0, 0, CLOSE_ATLAS, 'dog_close_neutral');
     this.dogSprite.setOrigin(dPivot.x, dPivot.y);
-    this.dogSprite.setDepth(15);
+    this.dogSprite.setDepth(21); // in front of the Handler, who stands behind it
 
     const distPivot = closePivotOf('distractor_close_walk0');
     this.distractorSprite = this.add.sprite(0, 0, CLOSE_ATLAS, 'distractor_close_walk0');
@@ -162,6 +195,7 @@ export class CloseExerciseScene extends Phaser.Scene {
     this.setupCamera();
 
     // 6. Build specialized leash HUD controls
+    this.hudCam = this.cameras.add(0, 0, this.scale.width, this.scale.height);
     this.buildHud();
 
     // 7. Setup Keyboard Bindings
@@ -173,6 +207,29 @@ export class CloseExerciseScene extends Phaser.Scene {
     // Initial position update
     this.updateVisuals();
 
+    this.options.onReady?.();
+  }
+
+  /** The hand drill is drawn by `HandDrillView` (design 18); the scene keeps the clock, the sim and the input. */
+  private createDrillView(): void {
+    const input = this.inputState;
+    this.view = new HandDrillView(
+      this.t,
+      this.sim.config.reward === 'toy' ? 'toy' : 'treat',
+      {
+        onGather: (down) => { input.gather = down; },
+        onPoste: (down) => { input.poste = down; },
+        onMark: () => { input.marker = true; },
+        onStart: () => { this.introOpen = false; },
+      },
+      this.introOpen,
+    );
+    this.setupKeyboard();
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.view?.destroy();
+      this.view = undefined;
+    });
+    this.view.render(this.sim, performance.now());
     this.options.onReady?.();
   }
 
@@ -214,12 +271,15 @@ export class CloseExerciseScene extends Phaser.Scene {
 
   private setupCamera(): void {
     const cam = this.cameras.main;
-    cam.setZoom(CLOSE_CAMERA_ZOOM);
     this.centerCamera();
   }
 
   private centerCamera(): void {
     const cam = this.cameras.main;
+    const { width, height } = this.scale;
+    cam.setSize(width, height);
+    cam.setZoom(closeZoom(width, height));
+    // frame the Handler and the Dog, a little above the ground for the thumb controls
     const midX = (this.sim.handler.x + this.sim.dog.x) / 2;
     const midY = (this.sim.handler.y + this.sim.dog.y) / 2;
     const screenMid = project({ x: midX, y: midY });
@@ -247,7 +307,9 @@ export class CloseExerciseScene extends Phaser.Scene {
     this.hudContainer.setDepth(100);
 
     const { width, height } = this.scale;
-    const margin = 24;
+    this.hudCam.setSize(width, height);
+    const margin = CLOSE_HUD_MARGIN;
+    const layout = closeHudLayout(width, height);
     const t = this.options.t;
     const gatherLabel = t ? t('hud.gather').toUpperCase() : 'RECOGER';
     const shieldLLabel = t ? `${t('hud.shield').toUpperCase()} I` : 'ESCUDO I';
@@ -256,13 +318,15 @@ export class CloseExerciseScene extends Phaser.Scene {
     const posteLabel = t ? t('hud.poste').toUpperCase() : 'POSTE';
     const cueLabel = t ? t('hud.letsGo').toUpperCase() : 'VAMOS';
 
+    const offered = closeControlsOffered(this.sim.config.controls);
+
     // --- LEFT THUMB: Gather & Shield ---
     // Gather Leash Button (Hold to shorten)
     this.gatherBtn = this.createHudButton(
-      margin + 50,
-      height - margin - 50,
-      100,
-      60,
+      layout.gather.x,
+      layout.gather.y,
+      layout.gather.w,
+      layout.gather.h,
       gatherLabel,
       HUD_COLOR_NUM.brand,
       () => { this.inputState.gather = true; },
@@ -299,10 +363,10 @@ export class CloseExerciseScene extends Phaser.Scene {
     // --- RIGHT THUMB: Poste, Cue & Marker ---
     // Marker Button
     this.markerBtn = this.createHudButton(
-      width - margin - 50,
-      height - margin - 50,
-      100,
-      60,
+      layout.marker.x,
+      layout.marker.y,
+      layout.marker.w,
+      layout.marker.h,
       markerLabel,
       HUD_COLOR_NUM.accent,
       () => { this.inputState.marker = true; },
@@ -310,10 +374,10 @@ export class CloseExerciseScene extends Phaser.Scene {
 
     // Poste Button
     this.posteBtn = this.createHudButton(
-      width - margin - 50,
-      height - margin - 130,
-      100,
-      48,
+      layout.poste.x,
+      layout.poste.y,
+      layout.poste.w,
+      layout.poste.h,
       posteLabel,
       HUD_COLOR_NUM.brandDeep,
       () => { this.inputState.poste = true; },
@@ -334,13 +398,26 @@ export class CloseExerciseScene extends Phaser.Scene {
       },
     );
 
-    this.hudContainer.add([
-      this.gatherBtn,
-      this.shieldLBtn,
-      this.shieldRBtn,
-      this.posteBtn,
-      this.cueBtn,
-      this.markerBtn,
+    const controls = [this.gatherBtn, this.posteBtn, this.markerBtn];
+    if (offered.shield) controls.push(this.shieldLBtn, this.shieldRBtn);
+    else {
+      this.shieldLBtn.destroy();
+      this.shieldRBtn.destroy();
+    }
+    if (offered.cue) controls.push(this.cueBtn);
+    else this.cueBtn.destroy();
+    this.hudContainer.add(controls);
+
+    // the world is drawn by the zoomed camera only, the HUD by the unzoomed one only
+    this.cameras.main.ignore(this.hudContainer);
+    this.hudCam.ignore([
+      this.sceneryGfx,
+      this.leashGfx,
+      this.handlerSprite,
+      this.dogSprite,
+      this.distractorSprite,
+      this.auraGfx,
+      this.shadowGfx,
     ]);
   }
 
@@ -406,6 +483,7 @@ export class CloseExerciseScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     if (this.isPaused || this.isEnded) return;
+    if (this.introOpen) return; // the hand drill's how-to-play card is up: the clock waits for "Empezar"
 
     // Fixed step loop
     this.simAccumulator += Math.min(delta / 1000, 0.1);
@@ -415,6 +493,16 @@ export class CloseExerciseScene extends Phaser.Scene {
       this.simAccumulator -= dt;
       this.simSteps += 1;
 
+      // a press counts even if it changes nothing: the Coach mark is about learning the control
+      const inp = this.inputState;
+      if (inp.gather) this.signal('gather');
+      if (inp.poste) this.signal('poste');
+      if (inp.marker) this.signal('close-mark');
+      if (this.sim.config.controls === 'hand_drill') {
+        // Keyboard shortcuts must not reach controls this scheme does not offer.
+        this.inputState.shieldSide = 'none';
+        this.inputState.cue = false;
+      }
       const events = tickCloseExercise(this.sim, this.inputState);
 
       // Process lifecycle events
@@ -423,10 +511,15 @@ export class CloseExerciseScene extends Phaser.Scene {
           this.options.onCue?.(e.cueType);
         } else if (e.type === 'reaction-tier-change') {
           this.options.onTier?.(e.tier, e.time);
+        } else if (e.type === 'marker-hit') {
+          this.view?.celebrate(performance.now());
         } else if (e.type === 'exercise-complete') {
           this.isEnded = true;
           const payload = buildCloseExercisePayload(this.sim);
-          this.options.onEnd?.(payload);
+          // the hand drill holds its last frame (the reward and the sparkles) for a moment before the Debrief
+          const celebrate = this.view && e.outcome === 'calm' ? 1300 : 0;
+          if (celebrate) this.view!.render(this.sim, performance.now());
+          setTimeout(() => this.options.onEnd?.(payload), celebrate);
         }
       }
 
@@ -436,7 +529,14 @@ export class CloseExerciseScene extends Phaser.Scene {
     }
 
     // Render updates
-    this.updateVisuals();
+    if (this.view) this.view.render(this.sim, performance.now());
+    else this.updateVisuals();
+  }
+
+  /** Each control is reported to the shell once per exercise. */
+  private signal(control: StageControl): void {
+    if (!this.signalGate('control-used', control)) return;
+    this.options.onSignal?.('control-used', this.sim.time, { control });
   }
 
   private updateVisuals(): void {
@@ -450,7 +550,9 @@ export class CloseExerciseScene extends Phaser.Scene {
 
     // 2. Update Dog Sprite
     const dPos = project(s.dog);
-    this.dogSprite.setPosition(dPos.x, dPos.y);
+    // a straining or excited Dog bobs, so the view is never a still picture
+    const bob = s.arousal > 5 ? Math.abs(Math.sin(this.time.now / 110)) * Math.min(5, s.arousal / 8) : 0;
+    this.dogSprite.setPosition(dPos.x, dPos.y - bob);
     const dFrame = caninePostureFrame(s.dogPosture);
     this.dogSprite.setFrame(dFrame);
 
@@ -471,11 +573,21 @@ export class CloseExerciseScene extends Phaser.Scene {
       this.distractorSprite.setVisible(false);
     }
 
+    this.renderShadows(hPos, dPos);
+
     // 4. Render Dynamic Leash Bézier curve (Task 2.3)
     this.renderCloseLeash();
 
     // 5. Render Dog Arousal & Reactive Feedback (Task 3.3)
     this.renderArousalFeedback(dPos);
+  }
+
+  private renderShadows(hPos: Vec2, dPos: Vec2): void {
+    const g = this.shadowGfx;
+    g.clear();
+    g.fillStyle(0x1e2a3a, 0.22);
+    g.fillEllipse(hPos.x, hPos.y, 40, 15);
+    g.fillEllipse(dPos.x, dPos.y, 34, 13);
   }
 
   /**
@@ -498,10 +610,11 @@ export class CloseExerciseScene extends Phaser.Scene {
     const pulse = s.tension === 'slack' ? 1.0 : 0.75 + 0.25 * Math.sin(this.time.now / (s.tension === 'rigid' ? 60 : 150));
     const width = s.tension === 'rigid' ? 6 : s.tension === 'taut' ? 5 : 4;
 
-    g.lineStyle(width, color, pulse);
-    g.beginPath();
-
     const SEGMENTS = 20;
+    for (const pass of [0, 1]) {
+      // an ink outline first, so the leash reads against any floor
+      g.lineStyle(pass === 0 ? width + 4 : width, pass === 0 ? HUD_COLOR_NUM.ink : color, pass === 0 ? 0.55 : pulse);
+      g.beginPath();
     for (let i = 0; i <= SEGMENTS; i++) {
       const t = i / SEGMENTS;
       const u = 1 - t;
@@ -513,8 +626,8 @@ export class CloseExerciseScene extends Phaser.Scene {
       if (i === 0) g.moveTo(screenPt.x, screenPt.y);
       else g.lineTo(screenPt.x, screenPt.y);
     }
-
     g.strokePath();
+    }
   }
 
   private renderArousalFeedback(dogPos: Vec2): void {

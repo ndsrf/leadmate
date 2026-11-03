@@ -130,7 +130,7 @@ jest.mock('./shell/Overlays', () => mockScreens());
 
 import App from '../App';
 import { newDogRecord, NEW_ONBOARDING, RECORD_KEY, RECORD_VERSION } from './shell/dogRecord';
-import { BARKDOKU_INTRO_NODE, CLOSE_PASS_NODE, WALK_DISTRACTION } from './shell/nodes/content';
+import { BARKDOKU_INTRO_NODE, CALM_HANDS_NODE, CLOSE_PASS_NODE, WALK_DISTRACTION } from './shell/nodes/content';
 
 const LOAD_TIMEOUT_MS = 20000;
 const latest = (name: string) => mockProps[name];
@@ -297,6 +297,40 @@ describe('App - Stage view lifecycle', () => {
     await sendFromView({ type: 'ready' });
     expect(posted('start')).toHaveLength(1);
     expect(posted('start')[0].scenario.mode).toBe('close_exercise');
+
+    await sendFromView({ type: 'debrief', payload: {} });
+    expect(latest('DebriefScreen')).toBeDefined();
+    expect(mockSim.live).toBe(0);
+  });
+
+  it('opens the hand drill for a puppy with its copy, tuning and first-run Coach marks, and reaches the Debrief', async () => {
+    const record = { ...newDogRecord(), ageBand: 'puppy' as const, onboarding: { ...NEW_ONBOARDING, step: 'done' as const }, version: RECORD_VERSION };
+    mockStore.set(RECORD_KEY, JSON.stringify(record));
+    await act(async () => {
+      renderer = create(<App />);
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(2500);
+    });
+    openStop(CALM_HANDS_NODE.id);
+    expect(latest('PrimerScreen')).toBeDefined();
+    throughPrimerAndCheckpoint();
+    await sendFromView({ type: 'ready' });
+
+    const [start] = posted('start');
+    expect(start.scenario).toMatchObject({ mode: 'close_exercise', controls: 'hand_drill', reward: 'toy', distractor: { kind: 'hand' } });
+    expect(start.scenario.markBudget).toBe(8); // the gentle first-run tuning
+
+    // all three close-view Coach marks are on, and a press of one removes only that mark
+    expect(latest('CloseCoachMarksOverlay').show).toEqual({ gather: true, poste: true, marker: true });
+    await sendFromView({ type: 'stage-signal', signal: 'control-used', time: 1, control: 'gather' });
+    expect(latest('CloseCoachMarksOverlay').show).toEqual({ gather: false, poste: true, marker: true });
+    // the walking Marker mark has its own overlay and does not count for the close Marker
+    expect(latest('CoachMarksOverlay')).toBeUndefined();
+
+    // paused: the marks are hidden
+    await sendFromView({ type: 'paused' });
+    expect(latest('CloseCoachMarksOverlay')).toBeUndefined();
 
     await sendFromView({ type: 'debrief', payload: {} });
     expect(latest('DebriefScreen')).toBeDefined();

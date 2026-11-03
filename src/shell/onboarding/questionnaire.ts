@@ -3,7 +3,7 @@ import { HOME_CONCERNS, isHomeConcern, KIND_OF_OUTDOOR, MAX_MAIN_CONCERNS, type 
 import { setHomeConcern, setMainConcerns, setTriggerLevel, type DogRecord } from '../dogRecord';
 
 /** The kinds the questionnaire asks about: every kind the simulation supports, and not `other`. */
-export const QUESTION_KINDS: readonly DistractorKind[] = DISTRACTOR_KINDS.filter((k) => k !== 'other');
+export const QUESTION_KINDS: readonly DistractorKind[] = DISTRACTOR_KINDS.filter((k) => k !== 'other' && k !== 'hand');
 
 /** The four answers, in the order shown; each is the Trigger Profile level it maps to. */
 export const ANSWERS = [

@@ -1,6 +1,6 @@
-import { coachMarks, edgeArrow, LABEL_MAX_WIDTH, type Rect } from './coach';
+import { closeCoachMarks, coachMarks, edgeArrow, LABEL_MAX_WIDTH, type Rect } from './coach';
 import type { Point } from './layout';
-import { hudLayout, MARKER_RADIUS } from './layout';
+import { closeHudLayout, hudLayout, MARKER_RADIUS } from './layout';
 import { withDogName } from '../shell/onboarding/intro';
 import { es } from '../i18n/es';
 
@@ -74,5 +74,33 @@ describe('approaching dog warning', () => {
     const neutral = withDogName(es['coach.dog.warning'], '', es['dog.neutral']);
     expect(neutral).toContain(es['dog.neutral']);
     expect(neutral).not.toContain('{name}');
+  });
+});
+
+describe.each(SIZES)('close-view Coach marks at %i x %i', (w, h) => {
+  const marks = closeCoachMarks(w, h);
+  const layout = closeHudLayout(w, h);
+  const buttonRect = (b: { x: number; y: number; w: number; h: number }): Rect => ({ x: b.x - b.w / 2, y: b.y - b.h / 2, width: b.w, height: b.h });
+  const overlap = (a: Rect, b: Rect) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+
+  it('keep their labels on screen', () => {
+    for (const m of Object.values(marks)) {
+      expect(m.label.x).toBeGreaterThanOrEqual(0);
+      expect(m.label.y).toBeGreaterThanOrEqual(0);
+      expect(m.label.x + m.label.width).toBeLessThanOrEqual(w);
+      expect(m.label.y + m.label.height).toBeLessThanOrEqual(h);
+    }
+  });
+
+  it('point at their own control without covering any of the three', () => {
+    expect(marks.gather.tip.y).toBe(layout.gather.y);
+    expect(marks.marker.tip.y).toBe(layout.marker.y);
+    expect(marks.poste.tip.y).toBe(layout.poste.y);
+    // on a very narrow portrait screen there is no room beside the Marker, so only the own control stays clear
+    const own = { gather: layout.gather, poste: layout.poste, marker: layout.marker };
+    for (const [key, m] of Object.entries(marks) as [keyof typeof marks, (typeof marks)[keyof typeof marks]][]) {
+      const against = w >= 480 ? Object.values(layout) : [own[key]];
+      for (const b of against) expect(overlap(m.label, buttonRect(b))).toBe(false);
+    }
   });
 });

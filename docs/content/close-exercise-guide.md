@@ -59,7 +59,7 @@ Close exercises are configured via `CloseExerciseConfig` in `src/sim/closeExerci
 
 ```typescript
 export interface CloseExerciseConfig {
-  controls: CloseExerciseControls;           // 'leash_drill'
+  controls: CloseExerciseControls;           // 'leash_drill' | 'hand_drill'
   fixedStep: number;                         // Simulation step (default: 1 / 60)
   leashMinLength: number;                    // Shortest gathered length in meters (e.g. 0.5)
   leashMaxLength: number;                    // Max relaxed length in meters (e.g. 2.0)
@@ -73,7 +73,10 @@ export interface CloseExerciseConfig {
   dogOffset: Vec2;                           // Dog offset relative to handler { x, y }
   distractor: ApproachingDistractorConfig;   // Approaching distractor path and trigger settings
   cues: CueType[];                           // Available cue buttons (e.g. ['lets-go'])
-  calmSeconds: number;                       // Calm duration required after distractor passes
+  calmSeconds: number;                       // Calm duration required after distractor passes (hand drill: the calm hold)
+  maxSeconds: number;                        // Hand drill only: the run ends here even if the Dog never settled (60)
+  settleSeconds: number;                     // Hand drill only: the calm hold counts from this time (4)
+  reward: 'toy' | 'treat';                   // Hand drill only: the reward drawn after a calm mark
   rewardWindowSeconds: number;               // Reward window length after disengagement (e.g. 1.1s)
   markBudget: number;                        // Maximum marks allowed before scoring penalty
   checkInWindow: number;                     // Interval for spontaneous handler check-ins
@@ -184,3 +187,21 @@ npx jest src/sim/closeExercise.test.ts
 # 4. Build single-file embedded bundle
 npm run sim:embed
 ```
+
+---
+
+## 5. The Hand Drill (`controls: 'hand_drill'`)
+
+World 1 uses a second control scheme, the **Hand Drill** ("calm hands and leash", node id `calm-hands`). It reuses the same scene, sim and Debrief plumbing as the leash drill and differs in four ways:
+
+- **Distractor.** A stationary `hand` (`kind: 'hand'`, `startPos == endPos`, `speed: 0`, `salience` sets how hard it pulls) is held just beyond the end of an ungathered lunge. Gather keeps the Dog out of reach and lets it settle; an ungathered lunge stops at the leash end and never touches the hand. The hand and the toy or treat reward are drawn from shapes in `CloseExerciseScene.ts`.
+- **Controls.** Gather, Poste and Marker only. The shield and cue controls are not built for `hand_drill` (`closeControlsOffered` in `bundle/src/sprites.ts`).
+- **No-fail result.** The run ends on a calm hold for `calmSeconds` (followed by the reward window, in which a calm mark applies the usual marker-hit arousal drop) or at `maxSeconds` (60 s). Neither is a failure: both emit `exercise-complete` with `success: true` and an `outcome` of `'calm'` or `'not_calm'`, the payload carries `handDrillOutcome` and `lunges`, and each lunge lowers `handlingScore` (`SCORE_LUNGE_PENALTY`). Reaching the Debrief completes the Node with at least one star.
+- **Coach marks.** On first run the shell draws a mark on each control (`closeCoachMarks` in `src/hud/coach.ts`, positions from `closeHudLayout`). A mark goes at the first press of its control (the scene reports it once as a `control-used` signal with control `gather`, `poste` or `close-mark`) or after 20 s, is hidden while paused, and is remembered in `seenHints` as `coach-gather`, `coach-poste` and `coach-close-mark`. The walking Marker mark (`coach-mark`) is a different id and does not count.
+
+### Age-band presets
+
+`handDrillScenario(ageBand, firstRun)` in `src/shell/nodes/scenarios.ts` returns the scenario for a Dog's age band (`puppy`, `adolescent`, `adult`, `senior`; `null` is the neutral preset). A preset changes numbers (`salience`, `calmSeconds`) and the reward (toy for a puppy, treat otherwise), never the control set; `firstRun` softens the hand, lengthens the calm window and raises `markBudget`. `nodeForDog(node, dog)` in `src/shell/nodes/content.ts` picks the matching copy keys: for each key in `CALM_HANDS_VARIANT_KEYS` it uses `<key>.<band>` when the Dog has an age band, and the neutral key otherwise. To add a varying line, add the neutral key, its four variants and list it in `CALM_HANDS_VARIANT_KEYS`.
+
+The node opens after the how-to-play Lesson only (`opensAfterLesson`), and `mission-dog-as-dog` trains both this node and `dog-as-dog`. The copy never suggests a physical correction and never mentions biting; the biting Lessons and Missions point to the drill instead.
+

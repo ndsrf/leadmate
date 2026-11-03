@@ -17,11 +17,24 @@ import { add, distance, normalize, scale, sub, type Vec2 } from './vec';
 /** Visual canine posture in the close view (ADR 0020 / spec). */
 export type CaninePosture = 'neutral' | 'alert' | 'strained' | 'relaxed' | 'head_turn';
 
+/** The reward shown after a calm mark in the hand drill. */
+export type HandDrillReward = 'toy' | 'treat';
+
+/** Hand drill: arousal decays this many times faster while the leash is gathered and the hand is out of reach. */
+export const HAND_GATHER_DECAY_FACTOR = 2.5;
+
+/** How a hand drill ended: the Dog settled, or the time ran out first (neither is a failure). */
+export type HandDrillOutcome = 'calm' | 'not_calm';
+
 /** Lateral shielding stance relative to the canine's position. */
 export type ShieldSide = 'left' | 'right' | 'none';
 
 /** Declarative control scheme (ADR 0020). */
-export type CloseExerciseControls = 'leash_drill';
+/** Trigger level the hand drill uses for the hand, whatever the Dog's record says. */
+const HAND_DRILL_TRIGGER_LEVEL = 2;
+
+/** 'hand_drill': a stationary hand is offered, there is no shielding and the run cannot fail. */
+export type CloseExerciseControls = 'leash_drill' | 'hand_drill';
 
 export interface ApproachingDistractorConfig {
   kind: DistractorKind;
@@ -53,6 +66,12 @@ export interface CloseExerciseConfig {
   cue: CueConfig;
   cues: CueType[];
   calmSeconds: number;
+  /** Hand drill: the run stops at this time even if the Dog never settled (no failure result). */
+  maxSeconds: number;
+  /** Hand drill: what the Dog is rewarded with after a calm mark (a toy for a puppy). Visual only. */
+  reward: HandDrillReward;
+  /** Hand drill: the calm hold only starts counting from this time, so the hand is really offered. */
+  settleSeconds: number;
   rewardWindowSeconds: number;
   markBudget: number;
   checkInWindow: number;
@@ -91,7 +110,7 @@ export type CloseExerciseEvent =
   | { type: 'marker-reactive'; time: number }
   | { type: 'missed-opportunity'; time: number }
   | { type: 'cue'; time: number; strength: number; cueType: CueType }
-  | { type: 'exercise-complete'; time: number; success: boolean };
+  | { type: 'exercise-complete'; time: number; success: boolean; outcome?: HandDrillOutcome };
 
 export interface CloseExerciseTelemetry {
   slackTime: number;
@@ -110,6 +129,8 @@ export interface CloseExerciseTelemetry {
   marksUsed: number;
   calmEncounters: Partial<Record<DistractorKind, number>>;
   lungesPrevented: number;
+  /** Times the Dog went reactive toward the hand (hand drill only). */
+  lunges: number;
 }
 
 export interface LeashDrillSubState {
@@ -119,6 +140,8 @@ export interface LeashDrillSubState {
   wasInTriggerRadius: boolean;
   lungePreventedThisEncounter: boolean;
   naturalDisengaged: boolean;
+  /** Hand drill: the Dog stayed calm for `calmSeconds` and the reward window was opened. */
+  calmHeld: boolean;
 }
 
 export interface CloseExerciseState {
@@ -151,6 +174,8 @@ export interface CloseExerciseState {
   lastCueAt: number;
   completed: boolean;
   success: boolean;
+  /** Hand drill only; undefined until the run ends. */
+  outcome?: HandDrillOutcome;
   telemetry: CloseExerciseTelemetry;
   dogTraits: ResolvedDog;
   subState: LeashDrillSubState;
@@ -209,10 +234,36 @@ export const defaultCloseExerciseConfig: CloseExerciseConfig = {
   },
   cues: ['lets-go'],
   calmSeconds: 2.5,
+  maxSeconds: 60,
+  reward: 'treat',
+  settleSeconds: 4,
   rewardWindowSeconds: 1.1,
   markBudget: 5,
   checkInWindow: 1.0,
   configVersion: 'close-exercise-v1',
+};
+
+/**
+ * The hand-and-leash drill: a hand is held still just beyond the end of an ungathered lunge, so the
+ * Dog strains toward it but never touches it. Gathering takes the Dog out of reach and lets it settle.
+ */
+export const handDrillConfig: Partial<CloseExerciseConfig> = {
+  controls: 'hand_drill',
+  distractor: {
+    kind: 'hand',
+    speed: 0,
+    salience: 0.35,
+    triggerRadius: 6.0,
+    startPos: { x: 1.8, y: 1.8 },
+    endPos: { x: 1.8, y: 1.8 },
+  },
+  learning: { ...DEFAULT_SNAPSHOT, triggerProfile: { ...DEFAULT_SNAPSHOT.triggerProfile, hand: 2 } },
+  cues: [],
+  calmSeconds: 2.5,
+  maxSeconds: 60,
+  settleSeconds: 4,
+  markBudget: 5,
+  configVersion: 'hand-drill-v1',
 };
 
 /**
@@ -245,6 +296,14 @@ export function createCloseExerciseState(
 
   const handler = { ...config.handlerBase };
   const dog = add(handler, config.dogOffset);
+  // The hand drill always offers a hand the Dog cares about: the Dog's own Trigger Profile may have
+  // faded 'hand' to 0 after calm runs, which would leave nothing to practise.
+  if (config.controls === 'hand_drill') {
+    config.learning = {
+      ...config.learning,
+      triggerProfile: { ...config.learning.triggerProfile, hand: HAND_DRILL_TRIGGER_LEVEL },
+    };
+  }
   const dogTraits = resolveDog(config.learning);
   const totalDist = distance(config.distractor.startPos, config.distractor.endPos);
 
@@ -299,6 +358,7 @@ export function createCloseExerciseState(
       marksUsed: 0,
       calmEncounters: {},
       lungesPrevented: 0,
+      lunges: 0,
     },
     dogTraits,
     subState: {
@@ -308,6 +368,7 @@ export function createCloseExerciseState(
       wasInTriggerRadius: false,
       lungePreventedThisEncounter: false,
       naturalDisengaged: false,
+      calmHeld: false,
     },
   };
 }
@@ -477,7 +538,11 @@ export function updateArousalAndPosture(
   const a = config.arousal;
 
   const distToDog = distance(state.dog, distractor.pos);
-  const inTrigger = distractor.active && !distractor.finished && distToDog <= config.distractor.triggerRadius;
+  const handDrill = config.controls === 'hand_drill';
+  // A gathered leash keeps the Dog out of reach of the hand, so the hand stops pulling at it.
+  const handOutOfReach = handDrill && state.isGathering;
+  const inTrigger =
+    distractor.active && !distractor.finished && distToDog <= config.distractor.triggerRadius && !handOutOfReach;
 
   let arousalRate = 0;
 
@@ -508,11 +573,14 @@ export function updateArousalAndPosture(
     arousalRate += a.rigidPullRate * dogTraits.equipment.rigidPull * pullMultiplier;
   }
 
+  if (handOutOfReach && state.dogMode === 'fixated') state.dogMode = 'goal';
+
   if (arousalRate > 0) {
     state.arousal = Math.min(100, state.arousal + arousalRate * dt);
   } else {
     // Natural decay when no triggers or fully shielded
-    state.arousal = Math.max(0, state.arousal - a.decayPerSecond * dt);
+    const decay = handOutOfReach ? a.decayPerSecond * HAND_GATHER_DECAY_FACTOR : a.decayPerSecond;
+    state.arousal = Math.max(0, state.arousal - decay * dt);
   }
 
   if (state.arousal > state.telemetry.peakArousal) {
@@ -523,7 +591,25 @@ export function updateArousalAndPosture(
   const newTier = tierFor(state.arousal, dogTraits.reactivityThreshold, config.reaction.alertFraction);
   if (newTier !== state.tier) {
     state.tier = newTier;
+    if (handDrill && newTier === 'reactive') state.telemetry.lunges += 1;
     events.push({ type: 'reaction-tier-change', tier: newTier, time: state.time });
+  }
+
+  if (handDrill) {
+    // The Dog can settle again after a lunge: nothing in this drill is final.
+    if (state.tier !== 'reactive' && state.dogMode === 'lunging') state.dogMode = 'goal';
+    if (!state.subState.calmHeld) {
+      if (state.tier !== 'calm') {
+        state.calmElapsed = 0;
+      } else if (state.time >= config.settleSeconds) {
+        state.calmElapsed += dt;
+      }
+      if (state.calmElapsed >= config.calmSeconds) {
+        state.subState.calmHeld = true;
+        state.rewardWindow = { openedAt: state.time, closesAt: state.time + config.rewardWindowSeconds };
+        events.push({ type: 'disengagement', time: state.time });
+      }
+    }
   }
 
   // Update dog mode
@@ -669,6 +755,7 @@ export function buildCloseExercisePayload(state: CloseExerciseState): Simulation
     peakTensionRatio: Math.round(t.peakTensionRatio * 100) / 100,
     shieldCoverageScore: Math.round(t.shieldCoverageScore * 100) / 100,
     leashHandlingAccuracy: meanAccuracy ?? 0,
+    ...(state.config.controls === 'hand_drill' ? { lunges: t.lunges, ...(state.outcome ? { handDrillOutcome: state.outcome } : {}) } : {}),
   };
 
   return {
@@ -709,7 +796,9 @@ export function updateLeashGathering(
   }
 
   // If dog is reactive or lunging, it strains outward toward distractor
-  const isLunging = state.tier === 'reactive' || state.dogMode === 'lunging';
+  // In the hand drill, gathering always wins over a lunge: the leash is how the Dog settles again.
+  const gatherOverrides = config.controls === 'hand_drill' && input.gather;
+  const isLunging = (state.tier === 'reactive' || state.dogMode === 'lunging') && !gatherOverrides;
   if (isLunging) {
     const toDistractor = normalize(sub(state.distractor.pos, state.dog));
     const lungeDist = state.config.reaction.lungeMaxSpeed * dt * 0.5;
@@ -813,7 +902,16 @@ export function tickCloseExercise(
   updateMarkersAndCues(state, input, events);
 
   // Check stage completion
-  if (state.distractor.finished && !state.completed) {
+  if (state.config.controls === 'hand_drill') {
+    // No fail state: the run ends on a rewarded calm hold or on the time limit, and both reach the Debrief.
+    const rewarded = state.subState.calmHeld && state.rewardWindow === null;
+    if (!state.completed && (rewarded || state.time >= state.config.maxSeconds)) {
+      state.completed = true;
+      state.success = true;
+      state.outcome = state.subState.calmHeld ? 'calm' : 'not_calm';
+      events.push({ type: 'exercise-complete', success: true, outcome: state.outcome, time: state.time });
+    }
+  } else if (state.distractor.finished && !state.completed) {
     state.completed = true;
     state.success = state.tier !== 'reactive';
     events.push({

@@ -298,6 +298,11 @@ function DebriefBody({
               {result.metrics.tension !== undefined && <Row label={t(actionMinigame ? 'results.minigame.calmChoices' : 'results.minigame.tension')} value={`${Math.round(result.metrics.tension * 100)}%`} />}
             </>
           )}
+          {run.node.debrief && result.kind === 'close_exercise' && result.payload.handDrillOutcome && (
+            <Panel tone="info" className="mt-4">
+              <Text className="text-bodyL text-ink">{t(result.payload.handDrillOutcome === 'calm' ? run.node.debrief.calm : run.node.debrief.notCalm)}</Text>
+            </Panel>
+          )}
           <Panel tone="warn" className="mt-4">
             <Text className="font-display text-label text-ink">{t('results.exercise')}</Text>
             <Text className="mt-1 text-bodyL text-ink">{t(exercise.key)}</Text>

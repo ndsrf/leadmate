@@ -169,3 +169,40 @@ describe('Home Behaviour navigation', () => {
     expect(homeMissionAfter({ kind: 'node', id: 'calm-first' }, record(1))).toBeNull();
   });
 });
+
+describe('biting content points to the hand drill (task 3.5)', () => {
+  const { es: catalog } = require('../i18n/es');
+  const { findLesson } = require('./lessons/content');
+  const { findMission } = require('./missions/content');
+  const { findNode } = require('./nodes/content');
+  const { stopsOf, WORLDS } = require('./world');
+
+  it('mentions the drill in both biting Lessons, after their professional-help note, as calm practice and not as a bite exercise', () => {
+    for (const id of ['theory-bite-owner', 'theory-bite-others']) {
+      const blocks = findLesson(id).blocks as { type: string; text?: string }[];
+      const notice = blocks.findIndex((b) => b.type === 'notice' && b.text === 'plan.note.professional');
+      const tip = blocks.findIndex((b) => b.type === 'tip');
+      expect(notice).toBeGreaterThanOrEqual(0);
+      expect(tip).toBeGreaterThan(notice);
+      const text = catalog[blocks[tip].text as keyof typeof catalog] as string;
+      expect(text).toContain('Manos y correa en calma');
+      expect(text).toMatch(/no un ejercicio contra mordiscos/);
+    }
+  });
+
+  it('mentions the drill in both biting Missions', () => {
+    for (const id of ['mission-bite-owner', 'mission-bite-others']) expect(catalog[findMission(id).target as keyof typeof catalog]).toContain('primer ejercicio del Mundo 1');
+  });
+
+  it('keeps the required parts and gives no biting Home Stretch a Node', () => {
+    expect(REQUIRED_PARTS['bite-owner']).toEqual(['lesson', 'mission']);
+    expect(REQUIRED_PARTS['bite-others']).toEqual(['lesson', 'mission']);
+    for (const c of ['bite-owner', 'bite-others'] as const) expect(hasContent(c, 'node')).toBe(false);
+    expect(findNode('calm-hands')).toBeDefined();
+    expect(stopsOf(WORLDS[0]).some((s: { id: string }) => s.id === 'calm-hands')).toBe(true);
+  });
+
+  it('keeps the drill free of any mention of biting', () => {
+    for (const key of Object.keys(catalog).filter((k) => k.startsWith('node.calmhands.'))) expect(catalog[key as keyof typeof catalog]).not.toMatch(/mord|muerd|mordisc/i);
+  });
+});

@@ -44,8 +44,11 @@ export type BundleMessage =
 export const STAGE_SIGNALS = ['first-taut', 'first-fixation', 'leash-limit', 'first-input', 'dog-approaching', 'control-used'] as const;
 export type StageSignal = (typeof STAGE_SIGNALS)[number];
 
-/** The controls a Coach mark can point at: the joystick (`move`) and the Marker button (`mark`). */
-export type StageControl = 'move' | 'mark';
+/**
+ * The controls a Coach mark can point at: the joystick (`move`) and the Marker button (`mark`) of the walking Stage,
+ * and the leash, Poste and Marker controls of the close view (`gather`, `poste`, `close-mark`).
+ */
+export type StageControl = 'move' | 'mark' | 'gather' | 'poste' | 'close-mark';
 
 /** Lets each signal through once per Stage; `control-used` once per control. */
 export function createSignalGate(): (signal: StageSignal, control?: StageControl) => boolean {

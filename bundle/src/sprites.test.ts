@@ -59,3 +59,11 @@ describe('close exercise sprite loader and frame mapping (Task 2.2)', () => {
     expect(hasCloseFrame('street_curb')).toBe(true);
   });
 });
+
+describe('control scheme offers (task 2.1)', () => {
+  it('hides the shield and cue controls for the hand drill, and keeps the three drill controls', () => {
+    const { closeControlsOffered } = require('./sprites');
+    expect(closeControlsOffered('hand_drill')).toEqual({ gather: true, poste: true, marker: true, shield: false, cue: false });
+    expect(closeControlsOffered('leash_drill').shield).toBe(true);
+  });
+});

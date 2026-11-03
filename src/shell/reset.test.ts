@@ -70,7 +70,7 @@ describe('resetProgress', () => {
   const populatedRecord: DogRecord = {
     version: 9,
     attributes: { reconnectionLatency: 0.8, reactivityThreshold: 0.7, followChance: 0.9, checkInFrequency: 0.8 },
-    triggerProfile: { dog: 2, child: 1, bicycle: 0, skateboard: 3, food: 1, other: 0 },
+    triggerProfile: { dog: 2, child: 1, bicycle: 0, skateboard: 3, food: 1, other: 0, hand: 2 },
     calmCounts: { dog: 4 },
     equipment: 'harness',
     name: 'Luna',
@@ -324,5 +324,22 @@ describe('the Basics World and Reset Progress', () => {
     await loadDogRecord(createMemoryStore({ [RECORD_KEY]: raw }));
     expect(spy).not.toHaveBeenCalled();
     spy.mockRestore();
+  });
+});
+
+describe('reset and the hand drill (task 3.3)', () => {
+  it('clears the "calm hands and leash" completion and shows the close-view Coach marks again', () => {
+    const played = {
+      ...newDogRecord(),
+      completedNodes: ['calm-hands'],
+      stars: { 'calm-hands': 2 },
+      seenHints: ['coach-gather', 'coach-poste', 'coach-close-mark'],
+    } as DogRecord;
+    const reset = createResetRecord(played);
+    expect(reset.completedNodes).not.toContain('calm-hands');
+    expect(reset.seenHints).toEqual([]);
+    const { closeMarksOn } = require('./onboarding/hints');
+    expect(closeMarksOn(played.seenHints, {}, false)).toEqual({ gather: false, poste: false, marker: false });
+    expect(closeMarksOn(reset.seenHints, {}, false)).toEqual({ gather: true, poste: true, marker: true });
   });
 });

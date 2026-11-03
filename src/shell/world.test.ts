@@ -575,7 +575,7 @@ describe('World 1: the Basics World', () => {
     expect(basics.worldNumber).toBe(1);
     expect(basics.unlockedBy).toBeUndefined();
     expect(basics.stretches.map((s) => s.map((x) => x.id))).toEqual([
-      ['howto-choose-action', 'theory-named-behaviours', 'theory-dog-as-dog', 'dog-as-dog', 'mission-dog-as-dog'],
+      ['howto-choose-action', 'theory-named-behaviours', 'theory-dog-as-dog', 'calm-hands', 'dog-as-dog', 'mission-dog-as-dog'],
       ['theory-home-rest', 'home-rest', 'mission-home-rest'],
       ['theory-calm-first', 'calm-first', 'mission-calm-first'],
     ]);
@@ -584,7 +584,7 @@ describe('World 1: the Basics World', () => {
   });
 
   it('runs only static action Minigames, with no walking', () => {
-    expect(nodesOfWorld(basics).map((n) => [n.mode, n.simulation.minigame])).toEqual([['minigame', 'dog-as-dog'], ['minigame', 'home-rest'], ['minigame', 'calm-first']]);
+    expect(nodesOfWorld(basics).map((n) => [n.mode, n.simulation.minigame])).toEqual([['close_exercise', undefined], ['minigame', 'dog-as-dog'], ['minigame', 'home-rest'], ['minigame', 'calm-first']]);
   });
 
   it('opens a new Dog on the Basics World with the Lessons of its first Stretch as the only open Stops, how to play first', () => {
@@ -617,9 +617,12 @@ describe('Lessons of a Stretch and the how-to-play Lesson', () => {
     const p = progressOf([]);
     for (const id of ['howto-choose-action', 'theory-named-behaviours', 'theory-dog-as-dog']) expect(stopLock(lessonStop(id), p)).toBeNull();
     expect(stopLock({ kind: 'node', id: 'dog-as-dog' }, p)).toMatchObject({ kind: 'stops' });
-    expect(stopLock({ kind: 'node', id: 'dog-as-dog' }, progressOf([], { readLessons: ['theory-dog-as-dog', 'theory-named-behaviours'] }))).toMatchObject({ kind: 'stops', stops: [lessonStop('howto-choose-action')] });
-    expect(stopLock({ kind: 'node', id: 'dog-as-dog' }, progressOf([], { readLessons: ['howto-choose-action', 'theory-dog-as-dog', 'theory-named-behaviours'] }))).toBeNull();
-    expect(stopLock({ kind: 'mission', id: 'mission-dog-as-dog' }, progressOf([], { readLessons: ['howto-choose-action', 'theory-dog-as-dog', 'theory-named-behaviours'] }))).toMatchObject({ kind: 'stops' });
+    expect(stopLock({ kind: 'node', id: 'dog-as-dog' }, progressOf([], { readLessons: ['theory-dog-as-dog', 'theory-named-behaviours'] }))).toMatchObject({ kind: 'stops', stops: [lessonStop('howto-choose-action'), { kind: 'node', id: 'calm-hands' }] });
+    const allRead = progressOf([], { readLessons: ['howto-choose-action', 'theory-dog-as-dog', 'theory-named-behaviours'] });
+    // the choose-the-action Node also needs the hand drill before it
+    expect(stopLock({ kind: 'node', id: 'dog-as-dog' }, allRead)).toMatchObject({ kind: 'stops', stops: [{ kind: 'node', id: 'calm-hands' }] });
+    expect(stopLock({ kind: 'node', id: 'dog-as-dog' }, { ...allRead, completedNodes: ['calm-hands'] })).toBeNull();
+    expect(stopLock({ kind: 'mission', id: 'mission-dog-as-dog' }, allRead)).toMatchObject({ kind: 'stops' });
   });
   it('still closes a Lesson behind an unpassed earlier Mission or a locked World', () => {
     expect(stopLock(lessonStop('theory-home-rest'), progressOf([]))).toMatchObject({ kind: 'mission', id: 'mission-dog-as-dog' });
@@ -628,7 +631,7 @@ describe('Lessons of a Stretch and the how-to-play Lesson', () => {
   it('makes how to play the first Stop of World 1, and every living-room Node requires it', () => {
     expect(stopsOf(world('basics'))[0]).toEqual(lessonStop('howto-choose-action'));
     const needing = ALL_NODES.filter((n) => requiredLessonsOf(n).length > 0).map((n) => n.id);
-    expect(needing.sort()).toEqual(['bark-home', 'calm-first', 'destroy', 'dog-as-dog', 'eat-objects', 'home-rest']);
+    expect(needing.sort()).toEqual(['bark-home', 'calm-first', 'calm-hands', 'destroy', 'dog-as-dog', 'eat-objects', 'home-rest']);
   });
   it('cannot play a Home Node in World 1 before how to play is read, and places its Stretch after the one holding it', () => {
     const p = progressOf([], {
@@ -881,5 +884,53 @@ describe('World 1 is composed per Dog from its Concerns (ADR 0021)', () => {
       expect(isWorldComplete(basics(worlds), p)).toBe(true);
       expect(isWorldUnlocked(worlds.find((x) => x.id === 'home')!, p, worlds)).toBe(true);
     });
+  });
+});
+
+describe('the "calm hands and leash" Node in the first Basics Stretch', () => {
+  const calm: Stop = { kind: 'node', id: 'calm-hands' };
+  const howTo = ['howto-choose-action'];
+
+  it('runs after the Stretch Lessons and before the choose-the-action Node and the Mission', () => {
+    expect(stopsOf(world('basics')).slice(0, 6).map((x) => x.id)).toEqual(['howto-choose-action', 'theory-named-behaviours', 'theory-dog-as-dog', 'calm-hands', 'dog-as-dog', 'mission-dog-as-dog']);
+    expect(findNode('calm-hands')!.mode).toBe('close_exercise');
+  });
+
+  it('opens once only the how-to-play Lesson is read, while the choose-the-action Node and Mission stay closed', () => {
+    const p = progressOf([], { readLessons: howTo });
+    expect(stopLock(calm, p)).toBeNull();
+    expect(stopLock(calm, progressOf([]))).toMatchObject({ kind: 'stops', stops: [{ kind: 'lesson', id: 'howto-choose-action' }] });
+    expect(stopLock({ kind: 'node', id: 'dog-as-dog' }, p)).toMatchObject({ kind: 'stops' });
+    expect(stopLock({ kind: 'mission', id: 'mission-dog-as-dog' }, p)).toMatchObject({ kind: 'stops' });
+  });
+
+  it('is done by a completion, which a skipped simulation records like a played one', () => {
+    const p = progressOf(['calm-hands'], { readLessons: howTo });
+    expect(stopStatus(calm, p, at(9)).state).toBe('done');
+  });
+
+  it('keeps the Mission closed until both Nodes are complete, in either order of completing them', () => {
+    const read = ['howto-choose-action', 'theory-named-behaviours', 'theory-dog-as-dog'];
+    const mission: Stop = { kind: 'mission', id: 'mission-dog-as-dog' };
+    expect(stopLock(mission, progressOf(['calm-hands'], { readLessons: read }))).toMatchObject({ kind: 'stops' });
+    // the other way round is only reachable from progress saved before the drill existed: that Dog is not locked out (the drill counts as satisfied)
+    expect(stopLock(mission, progressOf(['dog-as-dog'], { readLessons: read }))).toBeNull();
+    expect(stopLock({ kind: 'node', id: 'dog-as-dog' }, progressOf([], { readLessons: read }))).toMatchObject({ kind: 'stops', stops: [calm] });
+    expect(stopLock(mission, progressOf(['calm-hands', 'dog-as-dog'], { readLessons: read }))).toBeNull();
+    expect(MISSIONS.find((m) => m.id === 'mission-dog-as-dog')!.trains).toEqual([calm, { kind: 'node', id: 'dog-as-dog' }]);
+  });
+
+  it('stays in the first Basics Stretch for a Dog with biting and home Concerns, after the biting Home Stretches', () => {
+    let r = newDogRecord();
+    r = setHomeConcern(r, 'bite-owner', 2);
+    r = setHomeConcern(r, 'destroy', 1);
+    const worlds = worldsFor(r.onboarding.plan, r);
+    const first = worlds.find((w) => w.id === 'basics')!;
+    const holders = first.stretches.filter((st) => st.some((x) => x.id === 'calm-hands'));
+    expect(holders).toHaveLength(1);
+    expect(holders[0].map((x) => x.id)[0]).toBe('howto-choose-action');
+    const order = first.stretches.map((st) => st[0].id);
+    expect(order.indexOf('howto-choose-action')).toBeGreaterThan(order.indexOf('theory-bite-owner'));
+    expect(order.indexOf('howto-choose-action')).toBeLessThan(order.indexOf('theory-destroy'));
   });
 });

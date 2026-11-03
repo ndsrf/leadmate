@@ -1,4 +1,4 @@
-import { hudLayout, JOY_RADIUS, MARKER_RADIUS, type HudCue, type Point } from './layout';
+import { closeHudLayout, hudLayout, JOY_RADIUS, MARKER_RADIUS, type HudCue, type Point } from './layout';
 
 /** Length of a Coach mark's arrow, in pixels. */
 export const ARROW_LENGTH = 30;
@@ -62,6 +62,30 @@ export function coachMarks(width: number, height: number, cues: readonly HudCue[
     label: onScreen({ x: labelRight - markWidth, y: markTip.y - LABEL_HEIGHT / 2, width: markWidth, height: LABEL_HEIGHT }, width, height),
   };
   return { move, mark };
+}
+
+/**
+ * Where the close view's three Coach marks go: "Gather" and "Poste" left of their right-hand buttons pointing right, and "Marker" right of the left-hand button pointing left. Positions come from `closeHudLayout`, so each sits
+ * beside the real control and never covers it.
+ */
+export function closeCoachMarks(width: number, height: number): { gather: CoachMark; poste: CoachMark; marker: CoachMark } {
+  const { gather, poste, marker } = closeHudLayout(width, height);
+  const labelWidth = Math.min(LABEL_MAX_WIDTH, Math.max(LABEL_MIN_WIDTH, width * 0.3));
+
+  const beside = (b: { x: number; y: number; w: number }): CoachMark => {
+    const tip = { x: b.x - b.w / 2 - TIP_GAP, y: b.y };
+    const right = tip.x - ARROW_LENGTH - 4;
+    return { tip, angle: 0, label: onScreen({ x: right - labelWidth, y: tip.y - LABEL_HEIGHT / 2, width: labelWidth, height: LABEL_HEIGHT }, width, height) };
+  };
+  // Marker sits on the left (left hand), so its mark goes right of the button pointing left.
+  const markerTip = { x: marker.x + marker.w / 2 + TIP_GAP, y: marker.y };
+  const markerLeft = markerTip.x + ARROW_LENGTH + 4;
+  const markerMark: CoachMark = {
+    tip: markerTip,
+    angle: Math.PI,
+    label: onScreen({ x: markerLeft, y: markerTip.y - LABEL_HEIGHT / 2, width: labelWidth, height: LABEL_HEIGHT }, width, height),
+  };
+  return { gather: beside(gather), poste: beside(poste), marker: markerMark };
 }
 
 /**

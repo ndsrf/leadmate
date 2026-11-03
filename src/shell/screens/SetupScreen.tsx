@@ -22,6 +22,7 @@ const KIND_KEYS: Record<DistractorKind, TextKey> = {
   skateboard: 'settings.kind.skateboard',
   food: 'settings.kind.food',
   other: 'settings.kind.other',
+  hand: 'settings.kind.hand',
 };
 
 const ANSWER_KEYS: Record<AnswerId, TextKey> = {

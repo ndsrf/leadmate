@@ -37,7 +37,7 @@ export const WORLDS: readonly WorldDef[] = [
   {
     id: 'basics', title: 'world.basics.title', worldNumber: 1, topics: 'world.basics.topics', tier: 'free',
     stretches: [
-      [lesson('howto-choose-action'), lesson('theory-named-behaviours'), lesson('theory-dog-as-dog'), node('dog-as-dog'), mission('mission-dog-as-dog')],
+      [lesson('howto-choose-action'), lesson('theory-named-behaviours'), lesson('theory-dog-as-dog'), node('calm-hands'), node('dog-as-dog'), mission('mission-dog-as-dog')],
       [lesson('theory-home-rest'), node('home-rest'), mission('mission-home-rest')],
       [lesson('theory-calm-first'), node('calm-first'), mission('mission-calm-first')],
     ],
@@ -282,8 +282,10 @@ export function stopLock(stop: Stop, progress: Progress, worlds: readonly WorldD
     if (!doneness(world, s, last, progress).done) return { kind: 'mission', id: world.stretches[s][last].id };
   }
   // the Lessons of a Stretch are all open at once; a Node or Mission needs every Stop before it done
+  // a Node that opens after one Lesson (the close-view drill) does not wait for the Stretch's other Lessons
+  const opensAfterLesson = stop.kind === 'node' ? nodes.find((n) => n.id === stop.id)?.opensAfterLesson : undefined;
   if (stop.kind !== 'lesson') {
-    const missing = world.stretches[stretch].slice(0, index).filter((_, i) => !doneness(world, stretch, i, progress).done);
+    const missing = world.stretches[stretch].slice(0, index).filter((s, i) => !(opensAfterLesson && s.kind === 'lesson') && !doneness(world, stretch, i, progress).done);
     if (missing.length > 0) return { kind: 'stops', stops: missing };
   }
   if (stop.kind === 'node') {

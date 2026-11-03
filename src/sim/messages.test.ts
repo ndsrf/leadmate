@@ -27,6 +27,8 @@ describe('signal gate', () => {
     expect(gate('control-used', 'move')).toBe(false);
     expect(gate('control-used', 'mark')).toBe(true);
     expect(gate('control-used', 'mark')).toBe(false);
+    expect(gate('control-used', 'close-mark')).toBe(true);
+    expect(gate('control-used', 'close-mark')).toBe(false);
   });
 
   it('starts fresh for a new Stage', () => {

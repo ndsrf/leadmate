@@ -36,6 +36,10 @@ export interface SimulationDebriefPayload {
   peakTensionRatio?: number;
   shieldCoverageScore?: number;
   leashHandlingAccuracy?: number;
+  /** Hand drill: times the Dog lunged at the hand; each one lowers the handling score. */
+  lunges?: number;
+  /** Hand drill: whether the Dog settled or the time ran out first; neither is a failure. */
+  handDrillOutcome?: 'calm' | 'not_calm';
   /** Composite handling score, 0 to 1000 (see `handlingScore`). */
   handlingScore: number;
   /** 'bundled' or the version of the remote level config the Stage ran on. */
@@ -49,6 +53,8 @@ export const SCORE_WEIGHTS = { composure: 400, slack: 300, markerAccuracy: 200, 
 export const STAR_THRESHOLDS = { two: 650, three: 850 } as const;
 /** A Marker hit this slow scores nothing for accuracy: the Reward Window is about 1.1 s. */
 export const SCORE_SLOWEST_HIT_MS = 1100;
+/** Handling score points each lunge costs in the hand drill, up to the cap. */
+export const SCORE_LUNGE_PENALTY = { each: 60, cap: 300 } as const;
 /** Sintonía for this share of the Stage scores the full points. */
 export const SCORE_SINTONIA_SHARE = 0.4;
 
@@ -68,7 +74,8 @@ export function handlingScore(p: Omit<SimulationDebriefPayload, 'handlingScore' 
     marker = p.markerAccuracyMs === undefined ? 0 : clamp01(1 - p.markerAccuracyMs / SCORE_SLOWEST_HIT_MS) * SCORE_WEIGHTS.markerAccuracy;
   }
   const sintonia = p.durationSeconds > 0 ? clamp01(p.sintoniaTimeSeconds / (SCORE_SINTONIA_SHARE * p.durationSeconds)) * SCORE_WEIGHTS.sintonia : 0;
-  return Math.round(composure + slack + marker + sintonia);
+  const lungePenalty = Math.min(SCORE_LUNGE_PENALTY.cap, (p.lunges ?? 0) * SCORE_LUNGE_PENALTY.each);
+  return Math.max(0, Math.round(composure + slack + marker + sintonia - lungePenalty));
 }
 
 export function buildPayload(state: SimState): SimulationDebriefPayload {

@@ -1,7 +1,7 @@
 import { Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
-import { ARROW_LENGTH, coachMarks, edgeArrow, type CoachMark } from '../hud/coach';
+import { ARROW_LENGTH, closeCoachMarks, coachMarks, edgeArrow, type CoachMark } from '../hud/coach';
 import type { Translate } from '../i18n';
 import { GameButton, LightRegion, Panel } from './ui/components';
 import type { ButtonVariant } from './ui/styles';
@@ -158,6 +158,25 @@ export function CoachMarksOverlay({ moveText, markText, showMove, showMark }: { 
           <CoachLabel mark={mark} text={markText} />
           <Arrow tip={mark.tip} angle={mark.angle} fill={lightColor.accent} />
         </>
+      )}
+    </LightRegion>
+  );
+}
+
+/** The close view's Coach marks (Gather, Poste, Marker). Like the walking ones they take no touch. */
+export function CloseCoachMarksOverlay({ texts, show }: { texts: { gather: string; poste: string; marker: string }; show: { gather: boolean; poste: boolean; marker: boolean } }) {
+  const { width, height } = useWindowDimensions();
+  const marks = closeCoachMarks(width, height);
+  return (
+    <LightRegion pointerEvents="none" className="absolute inset-0">
+      {(['gather', 'poste', 'marker'] as const).map(
+        (key) =>
+          show[key] && (
+            <View key={key} pointerEvents="none" className="absolute inset-0">
+              <CoachLabel mark={marks[key]} text={texts[key]} />
+              <Arrow tip={marks[key].tip} angle={marks[key].angle} fill={lightColor.accent} />
+            </View>
+          ),
       )}
     </LightRegion>
   );

@@ -9,7 +9,7 @@ import { chooseMainConcerns, toggleMainConcern } from './questionnaire';
 /** A record with the Trigger Profile at 0 everywhere (nothing answered), at the given diagnostic latency. */
 function blank(latency: number | null = 0.3): DogRecord {
   const r = newDogRecord();
-  return { ...r, triggerProfile: { child: 0, bicycle: 0, dog: 0, skateboard: 0, food: 0, other: 0 }, onboarding: { ...r.onboarding, diagnosticLatency: latency } };
+  return { ...r, triggerProfile: { child: 0, bicycle: 0, dog: 0, skateboard: 0, food: 0, other: 0, hand: 0 }, onboarding: { ...r.onboarding, diagnosticLatency: latency } };
 }
 const ids = (r: DogRecord) => buildPersonalPlan(r).map((i) => i.stretchId);
 const DEFAULT = ['theory-harness', 'theory-doorbell', 'theory-poste', 'theory-loose-leash'];

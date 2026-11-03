@@ -73,6 +73,10 @@ export interface NodeDef {
   };
   exercises: NodeExercise[];
   prerequisites: string[];
+  /** A close-view Node that needs only this Lesson of its Stretch read (the how-to-play Lesson), not every Lesson before it. */
+  opensAfterLesson?: string;
+  /** What the Debrief says about a hand drill: the Dog settled, or the time ran out first (never a failure). */
+  debrief?: { calm: TextKey; notCalm: TextKey };
 }
 
 export function missingPrerequisites(node: NodeDef, completed: readonly string[]): string[] {

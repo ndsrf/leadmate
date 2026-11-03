@@ -4,7 +4,7 @@ import { ANSWERS, answerOf, applyAnswer, chipsOf, homeChipsOf, INTENSITIES, leve
 
 describe('Trigger Profile questionnaire', () => {
   it('asks about every supported kind and not about other', () => {
-    expect(QUESTION_KINDS).toEqual(DISTRACTOR_KINDS.filter((k) => k !== 'other'));
+    expect(QUESTION_KINDS).toEqual(DISTRACTOR_KINDS.filter((k) => k !== 'other' && k !== 'hand'));
     expect(QUESTION_KINDS).not.toContain('other');
   });
 

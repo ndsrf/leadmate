@@ -33,7 +33,7 @@ export const esHome = {
   'trail.theory-bite-owner.example.text': 'Tarde de sábado en el salón. {name} mordisquea un hueso en el sofá y, cuando te acercas, pone el cuerpo rígido y gruñe. En vez de quitárselo, retrocedes un paso y lanzas una golosina lejos del sofá. Cuando baja a comérsela, recoges el hueso y lo guardas. Desde entonces le das los huesos en su cama, a solas y con la puerta cerrada. Al cabo de unas semanas gruñe menos, pero lo anotas todo y lo consultas con un profesional del comportamiento.',
   'trail.theory-bite-owner.do': 'Retroceder, dar espacio a {name} y pedir ayuda a un profesional del comportamiento si ha mordido con fuerza o más de una vez.',
   'trail.theory-bite-owner.dont': 'Reñirle, castigarle o forzarle cuando gruñe: aprende a no avisar y el siguiente mordisco puede llegar sin aviso.',
-  'trail.theory-bite-owner.today': 'Hoy: anota en el móvil las tres últimas veces que mordió o gruñó, con la hora y lo que pasaba justo antes. Te servirá para evitarlas y para el profesional.',
+  'trail.theory-bite-owner.today': 'Hoy: anota en el móvil las tres últimas veces que mordió o gruñó, con la hora y lo que pasaba justo antes. Te servirá para evitarlas y para el profesional. Para practicar la calma con las manos cerca, juega «Manos y correa en calma», en el Mundo 1: es práctica de calma, no un ejercicio contra mordiscos.',
   'trail.theory-bite-owner.takeaway.1': 'La seguridad de las personas va primero.',
   'trail.theory-bite-owner.takeaway.2': 'Un gruñido es un aviso: respétalo.',
   'trail.theory-bite-owner.takeaway.3': 'Evita las situaciones que disparan el mordisco.',
@@ -58,7 +58,7 @@ export const esHome = {
   'trail.theory-bite-others.example.text': 'Llega una amiga a cenar. Antes de abrir la puerta, llevas a {name} a otra habitación con un juguete relleno y cierras la puerta. Tu amiga entra sin mirar al perro. Más tarde, con {name} a unos metros y la correa puesta, tu amiga lanza una golosina al suelo sin acercarse. {name} la come con calma y te mira. Hoy no hay más: la visita termina antes de que aparezca el miedo, y eso también es un éxito.',
   'trail.theory-bite-others.do': 'Dar espacio a {name} en cuanto aparezcan los avisos y presentar a las personas poco a poco, con un profesional del comportamiento si ya ha mordido.',
   'trail.theory-bite-others.dont': 'Obligarle a saludar o dejar que un desconocido lo acaricie «para que se acostumbre»: aumenta el miedo y el riesgo de mordisco.',
-  'trail.theory-bite-others.today': 'Hoy: anota las tres situaciones con personas que más le cuestan a {name} y decide cómo evitar cada una esta semana.',
+  'trail.theory-bite-others.today': 'Hoy: anota las tres situaciones con personas que más le cuestan a {name} y decide cómo evitar cada una esta semana. Para practicar la calma con las manos cerca, juega «Manos y correa en calma», en el Mundo 1: es práctica de calma, no un ejercicio contra mordiscos.',
   'trail.theory-bite-others.takeaway.1': 'La seguridad de las personas va primero.',
   'trail.theory-bite-others.takeaway.2': 'Casi siempre muerde por miedo, no por maldad.',
   'trail.theory-bite-others.takeaway.3': 'Respeta los avisos y aumenta la distancia.',
@@ -235,7 +235,7 @@ export const esHome = {
 
   // -- Missions and Fixes ------------------------------------------------------------------
   'mission.biteowner.title': 'Evitar el mordisco',
-  'mission.biteowner.target': 'Durante tres días, anota cada vez que {name} gruña o muerde, y evita una de las situaciones que lo provocan; por ejemplo, dale el hueso en otra habitación con la puerta cerrada.',
+  'mission.biteowner.target': 'Durante tres días, anota cada vez que {name} gruña o muerde, y evita una de las situaciones que lo provocan; por ejemplo, dale el hueso en otra habitación con la puerta cerrada. Para practicar la calma con las manos cerca, juega el primer ejercicio del Mundo 1.',
   'mission.biteowner.success': 'Has anotado cada aviso, has evitado la situación que elegiste y no ha habido mordiscos.',
   'mission.biteowner.growls.label': 'Sigue gruñendo',
   'mission.biteowner.bit.label': 'Ha vuelto a morder',
@@ -266,7 +266,7 @@ export const esHome = {
   'fix.biteowner.general.easier': 'Anotar los avisos de un solo día.',
 
   'mission.biteothers.title': 'Proteger a los demás',
-  'mission.biteothers.target': 'Durante tres días, evita las situaciones con personas que más le cuestan a {name}; cuando no puedas evitarlas, pon una puerta cerrada o una valla entre ellas y {name}, y anota los avisos que veas.',
+  'mission.biteothers.target': 'Durante tres días, evita las situaciones con personas que más le cuestan a {name}; cuando no puedas evitarlas, pon una puerta cerrada o una valla entre ellas y {name}, y anota los avisos que veas. Para practicar la calma con las manos cerca, juega el primer ejercicio del Mundo 1.',
   'mission.biteothers.success': 'Nadie se ha acercado a {name} sin permiso y has anotado sus avisos sin mordiscos.',
   'mission.biteothers.approach.label': 'Alguien se acercó igualmente',
   'mission.biteothers.growl.label': 'Ha gruñido o se ha lanzado',

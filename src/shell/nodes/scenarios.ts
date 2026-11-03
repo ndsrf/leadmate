@@ -1,7 +1,8 @@
 import type { DistractorConfig, ScenarioConfig } from '../../sim/config';
 import { defaultScenario } from '../../sim/config';
 import type { CloseExerciseConfig } from '../../sim/closeExercise';
-import { defaultCloseExerciseConfig } from '../../sim/closeExercise';
+import { defaultCloseExerciseConfig, handDrillConfig } from '../../sim/closeExercise';
+import type { AgeBand } from '../concerns';
 import type { SceneryItem, SceneryTheme, Wall } from '../../sim/geometry';
 import { routePoints, scatterScenery } from '../../sim/scenery';
 import type { Vec2 } from '../../sim/vec';
@@ -256,3 +257,44 @@ export const NARROW_STREET_PASS: CloseExerciseConfig = {
   },
 };
 
+
+// -- World 1: the hand-and-leash drill ------------------------------------------------------------
+
+/** What the age band changes in the hand drill: numbers only, never the controls. */
+interface HandDrillTuning {
+  /** How hard the hand pulls at the Dog (the stationary hand's salience). */
+  salience: number;
+  /** Seconds of calm the Dog must hold. */
+  calmSeconds: number;
+  reward: 'toy' | 'treat';
+}
+
+const HAND_DRILL_TUNING: Record<AgeBand | 'unknown', HandDrillTuning> = {
+  puppy: { salience: 0.4, calmSeconds: 2.5, reward: 'toy' },
+  adolescent: { salience: 0.45, calmSeconds: 3, reward: 'treat' },
+  adult: { salience: 0.35, calmSeconds: 2.5, reward: 'treat' },
+  senior: { salience: 0.25, calmSeconds: 2, reward: 'treat' },
+  unknown: { salience: 0.35, calmSeconds: 2.5, reward: 'treat' },
+};
+
+/** First run of a close exercise: a gentler hand, a longer calm window and a generous mark budget. */
+const HAND_DRILL_FIRST_RUN = { salienceFactor: 0.7, extraCalmSeconds: 1, markBudget: 8 } as const;
+
+/**
+ * The "calm hands and leash" scenario for a Dog of this age band (`null`: neutral tuning). Only numbers
+ * change: the control set is the same for every band.
+ */
+export function handDrillScenario(ageBand: AgeBand | null, firstRun = false): Partial<CloseExerciseConfig> {
+  const tuning = HAND_DRILL_TUNING[ageBand ?? 'unknown'];
+  const gentle = firstRun;
+  return {
+    ...handDrillConfig,
+    distractor: {
+      ...handDrillConfig.distractor!,
+      salience: tuning.salience * (gentle ? HAND_DRILL_FIRST_RUN.salienceFactor : 1),
+    },
+    calmSeconds: tuning.calmSeconds + (gentle ? HAND_DRILL_FIRST_RUN.extraCalmSeconds : 0),
+    reward: tuning.reward,
+    markBudget: gentle ? HAND_DRILL_FIRST_RUN.markBudget : handDrillConfig.markBudget,
+  };
+}
