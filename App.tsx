@@ -80,7 +80,7 @@ import { resolveScenario } from './src/shell/sync/configs';
 import { useAccount } from './src/shell/sync/useAccount';
 import { AccountBanner, AuthScreen, ChooseDogScreen, RegisterPrompt } from './src/shell/screens/AccountScreens';
 import { resolveCue, type Language } from './src/shell/voice';
-import { backAction, isReadyToLeaveSplash, onStageViewFailure, routeFor, stageViewWanted, type BackActionParams, type Route } from './src/shell/navigation';
+import { backAction, isReadyToLeaveSplash, trialModalOwnsBack, onStageViewFailure, routeFor, stageViewWanted, type BackActionParams, type Route } from './src/shell/navigation';
 import { resetProgress } from './src/shell/reset';
 
 // Hold native splash on cold start until ready
@@ -723,6 +723,9 @@ export default function App() {
   // the map with an optional overlay over it; Settings, the Library and Lessons keep the map mounted underneath, so it is where it was on return
   const mapWith = (overlay: 'settings' | React.ReactNode) => {
     if (!record) return null;
+    const closeTrialModal = () => setTrialModalOpen(false);
+    // the map stays mounted under its overlays; registering unconditionally would replace the overlay's back
+    if (trialModalOwnsBack({ trialModalOpen, hasOverlay: overlay !== null })) withBack(closeTrialModal);
     return (
       <View className="absolute inset-0">
         <WorldMapScreen
@@ -756,7 +759,7 @@ export default function App() {
           onPaywall={() => setFlow({ name: 'paywall' })}
           trialModalOpen={trialModalOpen}
           onOpenTrialModal={() => setTrialModalOpen(true)}
-          onCloseTrialModal={withBack(() => setTrialModalOpen(false))}
+          onCloseTrialModal={closeTrialModal}
           covered={overlay !== null}
           banner={
             account.signedIn && account.sync.paused === 'verify' ? (

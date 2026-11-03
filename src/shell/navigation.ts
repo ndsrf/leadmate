@@ -125,6 +125,15 @@ export function backAction({ route, playingStage, paused, bundle, hasScreenBack,
   return 'consume';
 }
 
+/**
+ * Whether the World Map registers the Plus trial modal's close as the system back. Only while the modal is
+ * open and no screen sits over the map: the map stays mounted under Settings, the Library, the Diary and
+ * Lessons, and its registration would otherwise replace theirs (withBack is last-write-wins).
+ */
+export function trialModalOwnsBack({ trialModalOpen, hasOverlay }: { trialModalOpen: boolean; hasOverlay: boolean }): boolean {
+  return trialModalOpen && !hasOverlay;
+}
+
 /** Just enough of a flow to decide whether the Stage view is needed (a Node run, a Daily, or a warm-up). */
 export interface StageViewFlow {
   name: string;

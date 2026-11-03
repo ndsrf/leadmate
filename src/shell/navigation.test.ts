@@ -3,7 +3,7 @@ import { canSkipDay, missionAfterDebrief, missionEntryOf, missionEntryView, miss
 import type { MissionState } from './missions/mission';
 import { findWorld, isLastMissionOfWorld, missionOfStop, progressOf, stopsOf, worldsFor } from './world';
 import { withBasicsDone } from './testProgress';
-import { backAction, isReadyToLeaveSplash, onStageViewFailure, routeFor, stageViewWanted, type BackActionParams } from './navigation';
+import { backAction, isReadyToLeaveSplash, trialModalOwnsBack, onStageViewFailure, routeFor, stageViewWanted, type BackActionParams } from './navigation';
 
 describe('routeFor', () => {
   it('returns splash until ready', () => {
@@ -394,6 +394,36 @@ describe('backAction', () => {
   it("runs a flow's own back closure, and consumes the press when it has none", () => {
     expect(backAction({ ...base, route: { name: 'flow', flow: { name: 'diary' } }, hasScreenBack: true })).toBe('screen');
     expect(backAction({ ...base, route: { name: 'flow', flow: { name: 'node' } } })).toBe('consume');
+  });
+});
+
+describe('trialModalOwnsBack', () => {
+  // mirrors App.tsx: withBack is last-write-wins and mapWith runs after the overlay registered its own back
+  const currentBack = (modalOpen: boolean, overlayBack: (() => void) | null, modalBack: () => void) => {
+    let current = overlayBack;
+    if (trialModalOwnsBack({ trialModalOpen: modalOpen, hasOverlay: overlayBack !== null })) current = modalBack;
+    return current;
+  };
+  const modalBack = () => {};
+  const overlayBack = () => {};
+
+  it('keeps the Library, Diary and Lesson back current when the modal is closed', () => {
+    expect(currentBack(false, overlayBack, modalBack)).toBe(overlayBack);
+  });
+
+  it('leaves the bare map with no back, so system back exits the app', () => {
+    const current = currentBack(false, null, modalBack);
+    expect(current).toBeNull();
+    expect(backAction({ route: { name: 'map' }, playingStage: false, paused: false, bundle: 'ready', hasScreenBack: current !== null })).toBe('exit');
+  });
+
+  it('makes the open modal close on back when nothing is over the map', () => {
+    expect(currentBack(true, null, modalBack)).toBe(modalBack);
+  });
+
+  it('never replaces an overlay screen back, modal open or not', () => {
+    expect(currentBack(true, overlayBack, modalBack)).toBe(overlayBack);
+    expect(currentBack(false, overlayBack, modalBack)).toBe(overlayBack);
   });
 });
 
