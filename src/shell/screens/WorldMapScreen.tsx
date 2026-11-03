@@ -1143,7 +1143,7 @@ export function WorldMapScreen({
   return (
     <Screen
       header={header}
-      footer={!plus ? <AdBanner isPlus={plus} /> : undefined}
+      footer={!plus ? <AdBanner isPlus={plus} active={live} /> : undefined}
       overlay={
         isTrialModalOpen && (
           <TrialStatusModal

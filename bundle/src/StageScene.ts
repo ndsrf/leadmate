@@ -234,6 +234,10 @@ export class StageScene extends Phaser.Scene {
     return this.ended;
   }
 
+  /** A Stage never waits behind a card and always draws the canvas (the hand drill does neither). */
+  readonly isWaitingToStart = false;
+  readonly drawsCanvas = true;
+
   private layout(): void {
     const { width, height } = this.scale;
     ({ joyHome: this.joyHome, markerHome: this.markerHome, cueHome: this.cueHome, leaveItHome: this.leaveItHome, sniffHome: this.sniffHome } = hudLayout(width, height, this.options.scenario.cues));

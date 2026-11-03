@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback } from 'react';
 import { Pressable, Text, useWindowDimensions, View } from 'react-native';
 import Animated, { cancelAnimation, Easing, FadeIn, FadeOut, useAnimatedProps, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
@@ -9,28 +9,27 @@ import { LightRegion, Raised } from '../ui/components';
 // The Splash stays Light whatever the Appearance (a dark Splash is a follow-up).
 import { lightColor as color, theme } from '../ui/theme';
 import { useMotion } from '../ui/useMotion';
-import { useLive } from '../ui/useAppActive';
+import { useEndlessLoop, useMotionGate } from '../ui/useMotionGate';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const LOADER_PATH = 'M8 14H50C64 14 70 38 80 38S96 14 110 14H152';
 
 /**
  * The Lead drawing itself while the app loads; under reduced motion, or while the app is in the background, it is a
- * static, fully drawn line.
+ * static, fully drawn line (the value rests at 0; `start` is what hides and redraws it).
  */
-function LoaderLead({ animate }: { animate: boolean }) {
-  const live = useLive();
-  const offset = useSharedValue(animate ? 200 : 0);
-  useEffect(() => {
-    if (!animate || !live) {
-      cancelAnimation(offset);
-      offset.value = 0;
-      return;
-    }
+export function LoaderLead({ animate }: { animate: boolean }) {
+  const gate = useMotionGate(animate);
+  const offset = useSharedValue(0);
+  const start = useCallback(() => {
     offset.value = 200;
     offset.value = withRepeat(withTiming(0, { duration: theme.motion.duration.loop + 800, easing: Easing.inOut(Easing.ease) }), -1, false);
-    return () => cancelAnimation(offset);
-  }, [animate, live, offset]);
+  }, [offset]);
+  const stop = useCallback(() => {
+    cancelAnimation(offset);
+    offset.value = 0;
+  }, [offset]);
+  useEndlessLoop('splash-loader', gate, start, stop);
   const props = useAnimatedProps(() => ({ strokeDashoffset: offset.value }));
   return (
     <Svg width={72} height={24} viewBox="0 0 160 50" aria-hidden>

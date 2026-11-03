@@ -144,6 +144,110 @@ if (await page.evaluate(() => window.__leadmate.scene().isEnded)) {
   ok('ended does not wake the loop', endedRate.wakes === 0);
 } else console.log('SKIP ended (could not end the Stage quickly)');
 
+// ---- close view (the hand drill, HTML/SVG over the page): playing, how-to card, paused, ended ----
+{
+  const close = await (await browser.newContext({ viewport: { width: 400, height: 800 } })).newPage();
+  close.on('pageerror', (e) => console.log('pageerror', e.message));
+  await close.goto(url);
+  await close.waitForFunction(() => window.__leadmate?.scene()?.sim);
+  const cwait = (ms) => close.waitForTimeout(ms);
+  const ccounts = () => close.evaluate(() => { const p = window.__leadmate.perf; return { wakes: p.wakes, frames: p.frames, steps: p.steps(), dom: p.domRenders, anims: p.animations() }; });
+  const crate = async (ms = 2000) => {
+    const a = await ccounts();
+    await cwait(ms);
+    const b = await ccounts();
+    return { wakes: b.wakes - a.wakes, frames: b.frames - a.frames, steps: b.steps - a.steps, dom: b.dom - a.dom, anims: b.anims, sps: ((b.steps - a.steps) * 1000) / ms, wps: ((b.wakes - a.wakes) * 1000) / ms, dps: ((b.dom - a.dom) * 1000) / ms };
+  };
+  await close.evaluate(() => window.__leadmate.startStage({ type: 'start', seed: 1, scenario: { mode: 'close_exercise', controls: 'hand_drill', reward: 'treat' } }));
+  await close.waitForSelector('#hd .go');
+  await cwait(500);
+
+  const card = await crate();
+  console.log(`close, how-to card open: ${card.wakes} wakes, ${card.frames} frames, ${card.dom} renders, ${card.anims} animations`);
+  ok('close card open: loop asleep (no wakes)', card.wakes === 0);
+  ok('close card open: no frames drawn', card.frames === 0);
+  ok('close card open: no simulation steps', card.steps === 0);
+  ok('close card open: no DOM renders', card.dom === 0);
+  ok('close card open: no running animation', card.anims === 0);
+
+  await close.click('#hd .go');
+  await cwait(500);
+  const playing = await crate();
+  console.log(`close, playing: ${playing.wps.toFixed(1)} wakes/s, ${playing.frames} frames, ${playing.sps.toFixed(1)} steps/s, ${playing.dps.toFixed(1)} renders/s, ${playing.anims} animations`);
+  ok('close playing: at most 33 wakes/s', playing.wps <= 33);
+  ok('close playing: no empty canvas frame drawn', playing.frames === 0);
+  ok('close playing: simulation still steps at ~60/s', playing.sps > 50 && playing.sps < 70);
+  ok('close playing: DOM view renders at most ~30/s', playing.dps > 20 && playing.dps <= 33);
+
+  // a worked-up Dog makes the Gather button pulse: the one endless CSS animation left, and the counter must see it
+  await close.evaluate(() => { window.__leadmate.scene().sim.arousal = 1000; });
+  await cwait(500);
+  ok('close playing: the button pulse runs when the Dog is worked up', (await ccounts()).anims > 0);
+
+  // 2.3: the nudge and bob are not display-rate SVG animations; they move through the 30 Hz render path
+  const svgAnims = await close.evaluate(() => document.getAnimations().filter((a) => a.playState === 'running' && a.effect?.target?.closest?.('svg.bg')).length);
+  ok('close playing: no running CSS animation inside the SVG scene', svgAnims === 0);
+  const nudgeA = await close.evaluate(() => document.getElementById('hd-tempt').getAttribute('transform'));
+  await cwait(400);
+  const nudgeB = await close.evaluate(() => document.getElementById('hd-tempt').getAttribute('transform'));
+  ok('close playing: the tempting hand still moves', nudgeA !== nudgeB);
+
+  // 2.4: a frame with unchanged state and clock performs no DOM writes and no queries
+  const idleFrame = await close.evaluate(() => {
+    const sc = window.__leadmate.scene();
+    const view = sc.view;
+    const root = document.getElementById('hd');
+    const T = performance.now();
+    view.render(sc.sim, T); // settle every cached value for this state and clock
+    let queries = 0;
+    const qs = Element.prototype.querySelector, qa = Element.prototype.querySelectorAll, gi = Document.prototype.getElementById;
+    Element.prototype.querySelector = function (...a) { queries++; return qs.apply(this, a); };
+    Element.prototype.querySelectorAll = function (...a) { queries++; return qa.apply(this, a); };
+    Document.prototype.getElementById = function (...a) { queries++; return gi.apply(this, a); };
+    const obs = new MutationObserver(() => {});
+    obs.observe(root, { subtree: true, attributes: true, childList: true, characterData: true });
+    view.render(sc.sim, T);
+    const writes = obs.takeRecords().length;
+    obs.disconnect();
+    Element.prototype.querySelector = qs; Element.prototype.querySelectorAll = qa; Document.prototype.getElementById = gi;
+    return { writes, queries };
+  });
+  ok('close playing: an unchanged frame writes nothing to the DOM', idleFrame.writes === 0);
+  ok('close playing: an unchanged frame runs no querySelector', idleFrame.queries === 0);
+
+  await close.evaluate(() => window.postMessage(JSON.stringify({ type: 'pause' }), '*'));
+  await cwait(400);
+  const cpaused = await crate();
+  console.log(`close, paused: ${cpaused.wakes} wakes, ${cpaused.frames} frames, ${cpaused.dom} renders, ${cpaused.anims} animations`);
+  ok('close paused: loop asleep', cpaused.wakes === 0);
+  ok('close paused: no frames drawn', cpaused.frames === 0);
+  ok('close paused: no DOM renders', cpaused.dom === 0);
+  ok('close paused: no running animation', cpaused.anims === 0);
+
+  await close.evaluate(() => window.postMessage(JSON.stringify({ type: 'resume' }), '*'));
+  await cwait(500);
+  const resumed = await crate(1000);
+  ok('close resumed: renders and animations run again', resumed.dps > 20 && resumed.anims > 0);
+
+  // ended: force the end of the exercise, then nothing repeats
+  await close.evaluate(() => {
+    const sc = window.__leadmate.scene();
+    sc.sim.time = 1e6;
+    sc.sim.config.maxSeconds = 1;
+  });
+  await close.waitForFunction(() => window.__leadmate.scene().isEnded, null, { timeout: 15000 }).catch(() => {});
+  if (await close.evaluate(() => window.__leadmate.scene().isEnded)) {
+    await cwait(2500); // the result hold, then the loop sleeps
+    const cended = await crate();
+    console.log(`close, ended: ${cended.wakes} wakes, ${cended.frames} frames, ${cended.dom} renders, ${cended.anims} animations`);
+    ok('close ended: loop asleep', cended.wakes === 0);
+    ok('close ended: no frames drawn', cended.frames === 0);
+    ok('close ended: no DOM renders', cended.dom === 0);
+    ok('close ended: no running animation', cended.anims === 0);
+  } else console.log('SKIP close ended (could not end the exercise quickly)');
+  await close.close();
+}
+
 await browser.close();
 console.log(failed ? `${failed} check(s) failed` : 'all checks passed');
 process.exit(failed ? 1 : 0);

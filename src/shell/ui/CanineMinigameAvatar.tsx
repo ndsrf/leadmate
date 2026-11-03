@@ -1,12 +1,11 @@
-import { useEffect } from 'react';
+import { useCallback } from 'react';
 import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import Svg, { Circle, Ellipse, G, Line, Path, Rect } from 'react-native-svg';
 import type { Translate } from '../../i18n';
 import type { DogCoat } from '../../sim/config';
 import { COAT_PALETTE, COLLAR_POINT, DOG_VIEW, emotePoint, postureSpec, type CaninePosture, type CoatPalette, type Emote, type Eyes } from './canine';
 import { lightColor } from './theme';
-import { useLive } from './useAppActive';
-import { useMotion } from './useMotion';
+import { useEndlessLoop, useMotionGate } from './useMotionGate';
 
 type Ears = 'up' | 'down' | 'back';
 
@@ -357,31 +356,36 @@ function Harness({ posture }: { posture: CaninePosture }) {
   );
 }
 
-/** How a posture moves while it is held: the bark and the jump bounce, the strain and the unrest shake, nothing else moves (nor anything in the background). Reduced motion holds still. */
-function useWobble(posture: CaninePosture) {
-  const { reduced } = useMotion();
-  const live = useLive();
+/** How a posture moves while it is held: the axis, the two ends, the half-cycle length (ms) and whether it swings back and forth (otherwise it bounces from 0). */
+const WOBBLES: Partial<Record<CaninePosture, { axis: 'x' | 'y'; from: number; to: number; ms: number; reverse: boolean }>> = {
+  alert_barking: { axis: 'y', from: -5, to: 0, ms: 140, reverse: false },
+  jumping: { axis: 'y', from: -9, to: 0, ms: 200, reverse: false },
+  unsettled_on_mat: { axis: 'x', from: -3, to: 3, ms: 160, reverse: true },
+  barking_nonstop: { axis: 'y', from: -4, to: 0, ms: 110, reverse: false },
+  zoomies: { axis: 'x', from: -6, to: 6, ms: 120, reverse: true },
+  begging_lift: { axis: 'y', from: -3, to: 0, ms: 240, reverse: false },
+  sniffing: { axis: 'x', from: -2, to: 2, ms: 260, reverse: true },
+  straining: { axis: 'x', from: -2, to: 2, ms: 70, reverse: true },
+};
+
+/** How a posture moves while it is held: the bark and the jump bounce, the strain and the unrest shake, nothing else moves (nor anything in the background). Reduced motion, the background and a posture that holds still keep it still. */
+export function useWobble(posture: CaninePosture) {
+  const wobble = WOBBLES[posture];
+  const gate = useMotionGate(wobble !== undefined);
   const x = useSharedValue(0);
   const y = useSharedValue(0);
-  useEffect(() => {
+  const start = useCallback(() => {
+    if (!wobble) return;
+    const v = wobble.axis === 'x' ? x : y;
+    v.value = withRepeat(withSequence(withTiming(wobble.from, { duration: wobble.ms }), withTiming(wobble.to, { duration: wobble.ms })), -1, wobble.reverse);
+  }, [wobble, x, y]);
+  const stop = useCallback(() => {
     cancelAnimation(x);
     cancelAnimation(y);
     x.value = 0;
     y.value = 0;
-    if (reduced || !live) return;
-    if (posture === 'alert_barking') y.value = withRepeat(withSequence(withTiming(-5, { duration: 140 }), withTiming(0, { duration: 140 })), -1, false);
-    if (posture === 'jumping') y.value = withRepeat(withSequence(withTiming(-9, { duration: 200 }), withTiming(0, { duration: 200 })), -1, false);
-    if (posture === 'unsettled_on_mat') x.value = withRepeat(withSequence(withTiming(-3, { duration: 160 }), withTiming(3, { duration: 160 })), -1, true);
-    if (posture === 'barking_nonstop') y.value = withRepeat(withSequence(withTiming(-4, { duration: 110 }), withTiming(0, { duration: 110 })), -1, false);
-    if (posture === 'zoomies') x.value = withRepeat(withSequence(withTiming(-6, { duration: 120 }), withTiming(6, { duration: 120 })), -1, true);
-    if (posture === 'begging_lift') y.value = withRepeat(withSequence(withTiming(-3, { duration: 240 }), withTiming(0, { duration: 240 })), -1, false);
-    if (posture === 'sniffing') x.value = withRepeat(withSequence(withTiming(-2, { duration: 260 }), withTiming(2, { duration: 260 })), -1, true);
-    if (posture === 'straining') x.value = withRepeat(withSequence(withTiming(-2, { duration: 70 }), withTiming(2, { duration: 70 })), -1, true);
-    return () => {
-      cancelAnimation(x);
-      cancelAnimation(y);
-    };
-  }, [posture, reduced, live, x, y]);
+  }, [x, y]);
+  useEndlessLoop(`avatar:${posture}`, gate, start, stop);
   return useAnimatedStyle(() => ({ transform: [{ translateX: x.value }, { translateY: y.value }] }));
 }
 

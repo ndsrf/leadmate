@@ -40,7 +40,7 @@ export function DiagnosticView({ t, record, seed, onFinish }: { t: Translate; re
       finished.current = true;
       finish.current(diagnosticLatency(state.current));
     }
-  });
+  }, 'diagnostic');
 
   const posture = diagnosticPosture(showing);
   return (

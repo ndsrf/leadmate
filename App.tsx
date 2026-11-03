@@ -9,6 +9,8 @@ import { Fredoka_600SemiBold } from '@expo-google-fonts/fredoka';
 import { createTranslator, es } from './src/i18n';
 import { installFeedback } from './src/shell/ui/feedbackBackends';
 import { useUiSettings } from './src/shell/ui/useUiSettings';
+import { DevPerfOverlay } from './src/shell/ui/DevPerfOverlay';
+import { setDevAppState, setDevScreen } from './src/shell/ui/devPerf';
 import { PaletteRoot } from './src/shell/ui/components';
 import { PaletteProvider, type ColorScheme } from './src/shell/ui/theme';
 import { defaultScenario, type ScenarioConfig } from './src/sim/config';
@@ -534,6 +536,15 @@ export default function App() {
     const timer = setTimeout(() => viewFailedRef.current(), LOAD_TIMEOUT_MS);
     return () => clearTimeout(timer);
   }, [bundle, attempt, viewWanted]);
+
+  // dev-only counters: which screen is in front and the app state (no-ops in production)
+  const devScreen = route.name === 'flow' ? `flow:${route.flow.name}` : route.name;
+  useEffect(() => setDevScreen(devScreen), [devScreen]);
+  useEffect(() => {
+    setDevAppState(AppState.currentState ?? '-');
+    const sub = AppState.addEventListener('change', setDevAppState);
+    return () => sub.remove();
+  }, []);
 
   // leaving the app pauses the Stage; no Stage time elapses until the user chooses Resume
   useEffect(() => {
@@ -1347,6 +1358,7 @@ export default function App() {
             />
           )}
           {playingStage && bundle === 'error' && <ErrorOverlay t={t} onRetry={retry} />}
+          <DevPerfOverlay />
           <StatusBar style="dark" hidden />
         </PaletteRoot>
       </PaletteProvider>
