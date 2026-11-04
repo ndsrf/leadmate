@@ -754,6 +754,7 @@ export default function App() {
           onSettings={() => setSettingsOpen(true)}
           breed={record.breed}
           coat={record.coat}
+          ageBand={record.ageBand}
           onPaywall={() => setFlow({ name: 'paywall' })}
           trialModalOpen={trialModalOpen}
           onOpenTrialModal={() => setTrialModalOpen(true)}
@@ -808,7 +809,7 @@ export default function App() {
             actions={{ onStart: () => update(leaveWelcome), onLogIn: account.configured ? () => setFlow({ name: 'auth', mode: 'login', returnTo: 'map' }) : undefined }}
           />
         );
-      else if (route.step === 'dog') screen = <DogLookScreen t={t} record={record} onDone={(name, coat, breed) => update((r) => saveNameAndLook(r, name, coat, breed))} />;
+      else if (route.step === 'dog') screen = <DogLookScreen t={t} record={record} onDone={(name, coat, breed, ageBand) => update((r) => saveNameAndLook(r, name, coat, breed, ageBand))} />;
       else if (route.step === 'concern') screen = <ConcernScreen t={t} record={record} onDone={(concerns) => update((r) => saveMainConcerns(r, concerns))} />;
       else if (route.step === 'setup') screen = <SetupScreen t={t} record={record} update={update} />;
       else if (route.step === 'diagnostic')

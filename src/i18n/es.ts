@@ -299,6 +299,8 @@ export const es = {
   'map.dog': 'Tu perro',
   'map.dogRusty': 'Tu perro está oxidado',
   'map.allDone': 'Has completado todas las lecciones. Repite cualquiera para mejorar tus estrellas.',
+  'map.satellite.puppy': 'Parada satélite de cachorro',
+  'map.satellite.done': 'Completada',
   'reveal.newBest': '¡Nuevo récord de estrellas!',
   'reveal.noScore': 'Esta lección no tiene puntuación de paseo: completarla vale 1 estrella.',
   'reveal.best': 'Tu mejor',

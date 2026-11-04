@@ -131,8 +131,15 @@ export const HOME_LESSONS: readonly LessonDef[] = [
   theoryLesson('theory-eat-objects', { keys: 'trail.theory-eat-objects', notice: 'lesson.note.vet', images: ['theory-leave-it-1', 'theory-leave-it-2'], steps: 6, takeaways: 4 }),
 ];
 
-/** Every Lesson of the Theory Library, in Library order: the first week, then the trail, then the Home Behaviours. */
-export const LESSONS: readonly LessonDef[] = [...FIRST_WEEK_LESSONS, ...TRAIL_LESSONS, ...HOME_LESSONS];
+/** Dedicated companion lessons for puppies under 6 months (Satellite Stops in World 1). */
+export const PUPPY_LESSONS: readonly LessonDef[] = [
+  theoryLesson('puppy-bite', { keys: 'trail.puppy-bite', images: ['body-language-1', 'theory-dog-as-dog-1'], steps: 5, takeaways: 4 }),
+  theoryLesson('puppy-sound', { keys: 'trail.puppy-sound', images: ['theory-calm-first-1', 'theory-home-rest-1'], steps: 5, takeaways: 4 }),
+  theoryLesson('puppy-vet', { keys: 'trail.puppy-vet', images: ['calm-leash-1', 'body-language-2'], steps: 5, takeaways: 4 }),
+];
+
+/** Every Lesson of the Theory Library, in Library order: the first week, then the trail, the Home Behaviours, and the puppy track. */
+export const LESSONS: readonly LessonDef[] = [...FIRST_WEEK_LESSONS, ...TRAIL_LESSONS, ...HOME_LESSONS, ...PUPPY_LESSONS];
 
 export function findLesson(id: string): LessonDef | undefined {
   return LESSONS.find((l) => l.id === id);

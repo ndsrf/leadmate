@@ -20,11 +20,13 @@ import { Backdrop, Button } from '../Overlays';
 import { Badge, Chip, GearGlyph, IconChip, LightRegion, Panel, ProgressBar, Raised, StarRow } from '../ui/components';
 import { WorldSceneryBackground, HouseLandmark, worldPalette } from '../ui/WorldSceneryBackground';
 export { HouseLandmark };
-import { connector, connectorVisual, labelOnRight, labelWidth, NODE_SIZE, nodeCenterX, nodeVisual, ROW_HEIGHT, stretchFlag, type NodeGlyph } from '../ui/mapLayout';
+import { connector, connectorVisual, labelOnRight, labelWidth, NODE_SIZE, nodeCenterX, nodeVisual, ROW_HEIGHT, SATELLITE_SIZE, satelliteCenterX, satelliteConnector, satelliteVisual, stretchFlag, type NodeGlyph } from '../ui/mapLayout';
 import { lockMessage, owedItemLabel, stopAccessibilityLabel, stopBadge, stopMarks, worldUnlockBanner, worldWalkSubtitle } from '../mapText';
 import { BreedArt } from '../ui/BreedArt';
 import type { BreedId } from '../onboarding/breeds';
 import type { DogCoat } from '../onboarding/look';
+import type { AgeBand } from '../concerns';
+import { isPuppyRecord, satelliteStopForParent, type PuppySatelliteStopDef } from '../puppyTrack';
 import { handlePress } from '../ui/press';
 import { theme, usePalette } from '../ui/theme';
 import { useMotion } from '../ui/useMotion';
@@ -83,6 +85,8 @@ export interface WorldMapProps {
   expandedCompleted?: ReadonlySet<string>;
   /** Tapping a Completed World's header: open or fold its trail. */
   onToggleCompleted?: (worldId: string) => void;
+  /** The Dog's age band, used to render life-stage tracks such as puppy companion satellite stops. */
+  ageBand?: AgeBand | null;
   /** Whether the LeadMate Plus active trial status modal is open. */
   trialModalOpen?: boolean;
   onOpenTrialModal?: () => void;
@@ -121,12 +125,12 @@ function LockIcon({ tint }: { tint: string }) {
 }
 
 /** The glyph on a Stop's disc: its kind when open (book, controller, paw, flag), a moon while waiting, an hourglass while owed. */
-function KindGlyph({ glyph, tint }: { glyph: Exclude<NodeGlyph, 'check' | 'lock'>; tint: string }) {
+function KindGlyph({ glyph, tint, size = 26 }: { glyph: Exclude<NodeGlyph, 'check' | 'lock'>; tint: string; size?: number }) {
   const color = usePalette();
   // the tint is the glyph colour that reads on the disc; the faces are paper
   const ink = tint;
   return (
-    <Svg width={26} height={26} viewBox="0 0 24 24" aria-hidden>
+    <Svg width={size} height={size} viewBox="0 0 24 24" aria-hidden>
       {glyph === 'book' && (
         <>
           <Path d="M3 5c3-1.5 6-1.5 9 0v14c-3-1.5-6-1.5-9 0z" fill={color.surface} stroke={ink} strokeWidth={1.8} strokeLinejoin="round" />
@@ -356,6 +360,9 @@ function NodeRow({
   coat,
   dogResting,
   onPress,
+  satellite,
+  satDone,
+  onOpenSatellite,
 }: {
   t: Translate;
   entry: MapStop;
@@ -372,6 +379,9 @@ function NodeRow({
   /** The Dog rests beside this waiting Mission, because nothing is next-up. */
   dogResting: boolean;
   onPress: (entry: MapStop) => void;
+  satellite?: PuppySatelliteStopDef;
+  satDone?: boolean;
+  onOpenSatellite?: (satellite: PuppySatelliteStopDef) => void;
 }) {
   const color = usePalette();
   const c = nodeVisual(color, entry.state, entry.kind, entry.optional);
@@ -387,9 +397,79 @@ function NodeRow({
   const marks = stopMarks(entry, t);
   const nodeSize = NODE_SIZE * c.scale;
   const offsetDiff = (nodeSize - NODE_SIZE) / 2;
+  const satX = satellite ? satelliteCenterX(index, width) : 0;
+  const satSeg = satellite ? satelliteConnector(index, width) : null;
+  const satVis = satellite ? satelliteVisual(color, satDone ?? false) : null;
 
   return (
     <View style={{ height: ROW_HEIGHT }}>
+      {satellite && satSeg && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: satSeg.left - 2,
+            top: satSeg.top - satSeg.length / 2,
+            width: 4,
+            height: satSeg.length,
+            borderColor: color.outline,
+            borderStyle: 'dashed',
+            borderWidth: 2,
+            backgroundColor: 'transparent',
+            transform: [{ rotate: `${satSeg.angle}deg` }],
+          }}
+        />
+      )}
+      {satellite && satVis && (
+        <Pressable
+          onPress={() => handlePress(() => onOpenSatellite?.(satellite))}
+          accessibilityRole="button"
+          accessibilityLabel={
+            satDone
+              ? `${t(satellite.title)} · ${t('map.satellite.puppy')} · ${t('map.satellite.done')}`
+              : `${t(satellite.title)} · ${t('map.satellite.puppy')}`
+          }
+          style={{
+            position: 'absolute',
+            left: satX - SATELLITE_SIZE / 2,
+            top: NODE_SIZE / 2 - SATELLITE_SIZE / 2,
+            width: SATELLITE_SIZE,
+            height: SATELLITE_SIZE,
+          }}
+        >
+          <Raised
+            fill={satVis.fill}
+            edge={satVis.edge}
+            radius={SATELLITE_SIZE / 2}
+            offset={theme.depth.sm.x}
+            faceStyle={{
+              width: SATELLITE_SIZE - theme.depth.sm.x,
+              height: SATELLITE_SIZE - theme.depth.sm.x,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <KindGlyph glyph={satVis.glyph} tint={satVis.ink} size={18} />
+            {satDone && (
+              <View
+                style={{
+                  position: 'absolute',
+                  top: -2,
+                  right: -2,
+                  width: 14,
+                  height: 14,
+                  borderRadius: 7,
+                  backgroundColor: color.brand,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ color: color.onBrand, fontSize: 10, fontWeight: 'bold' }}>✓</Text>
+              </View>
+            )}
+          </Raised>
+        </Pressable>
+      )}
       {hasNext && (
         <>
           <View
@@ -659,6 +739,9 @@ type WorldBlockProps = {
   onPathLayout: (e: LayoutChangeEvent) => void;
   breed?: BreedId;
   coat?: DogCoat;
+  isPuppy?: boolean;
+  readLessons?: readonly string[];
+  onOpenSatellite?: (satellite: PuppySatelliteStopDef) => void;
 };
 
 /** A world's header and trail sit on its scenery, so they stay Light whatever the Appearance. */
@@ -690,6 +773,9 @@ function WorldArena({
   breed,
   coat,
   restingAt,
+  isPuppy,
+  readLessons,
+  onOpenSatellite,
 }: WorldBlockProps) {
   const color = usePalette();
   // the first locked World starts folded to its header; a tap opens its preview
@@ -822,25 +908,32 @@ worldPalette(entry.world.id);
           </View>
         ) : (
           <View onLayout={onPathLayout} style={{ height: entry.stops.length * ROW_HEIGHT, paddingHorizontal: 0 }}>
-            {entry.stops.map((stop, i) => (
-              <NodeRow
-                key={`${stop.stop.kind}:${stop.stop.id}`}
-                t={t}
-                entry={stop}
-                index={i}
-                width={width - 2 * theme.border.ink}
-                hasNext={i < entry.stops.length - 1}
-                nextState={entry.stops[i + 1]?.state}
-                dogResting={!!restingAt && restingAt.kind === stop.stop.kind && restingAt.id === stop.stop.id}
-                rusty={rusty}
-                worldUnlocked={entry.unlocked}
-                pulse={pulse}
-                live={live}
-                breed={breed}
-                coat={coat}
-                onPress={onPressNode}
-              />
-            ))}
+            {entry.stops.map((stop, i) => {
+              const satellite = isPuppy && entry.world.id === 'basics' ? satelliteStopForParent(stop.stop.id) : undefined;
+              const satDone = satellite ? !!readLessons?.includes(satellite.lessonId) : false;
+              return (
+                <NodeRow
+                  key={`${stop.stop.kind}:${stop.stop.id}`}
+                  t={t}
+                  entry={stop}
+                  index={i}
+                  width={width - 2 * theme.border.ink}
+                  hasNext={i < entry.stops.length - 1}
+                  nextState={entry.stops[i + 1]?.state}
+                  dogResting={!!restingAt && restingAt.kind === stop.stop.kind && restingAt.id === stop.stop.id}
+                  rusty={rusty}
+                  worldUnlocked={entry.unlocked}
+                  pulse={pulse}
+                  live={live}
+                  breed={breed}
+                  coat={coat}
+                  onPress={onPressNode}
+                  satellite={satellite}
+                  satDone={satDone}
+                  onOpenSatellite={onOpenSatellite}
+                />
+              );
+            })}
           </View>
         )}
       </View>
@@ -1014,6 +1107,7 @@ export function WorldMapScreen({
   banner,
   breed,
   coat,
+  ageBand,
   onPaywall = () => {},
   covered = false,
   expandedCompleted,
@@ -1022,6 +1116,7 @@ export function WorldMapScreen({
   onOpenTrialModal,
   onCloseTrialModal,
 }: WorldMapProps) {
+  const isPuppy = isPuppyRecord({ ageBand });
   const color = usePalette();
   const motion = useMotion();
   const live = useLive(covered);
@@ -1190,6 +1285,9 @@ export function WorldMapScreen({
             breed={breed}
             coat={coat}
             restingAt={model.waitingAt?.worldId === world.world.id ? model.waitingAt.stop : undefined}
+            isPuppy={isPuppy}
+            readLessons={progress.readLessons}
+            onOpenSatellite={(sat) => onOpenStop({ kind: 'lesson', id: sat.lessonId })}
           />
           {world.world.id === 'home' && home && <HomeBehavioursSection t={t} concerns={home.concerns} inWorld={inWorldTwo} done={progress} onOpen={onOpenStop} onBecomeConcern={home.onBecomeConcern} />}
           </Fragment>

@@ -114,7 +114,7 @@ Shortening the working leash with the Handler's hands so the Dog stays close, wi
 _Avoid_: Reel in, yank, pull back
 
 **Age Band**:
-The Dog's life stage, chosen once in Dog setup and optional: puppy, adolescent, adult or senior. It changes copy and tuning only, never the controls; a Dog with no Age Band gets neutral copy.
+The Dog's life stage, chosen in early onboarding (and editable in Dog setup) and optional: puppy, adolescent, adult or senior. It tailors copy, tuning, and adds life-stage companion Satellite Stops; a Dog with no Age Band gets neutral copy.
 _Avoid_: Age group
 
 **Theory Primer**:
@@ -296,6 +296,10 @@ _Avoid_: Indoor homework
 **Stop**:
 One point on a World's trail: a Lesson, a Node or a Mission.
 _Avoid_: Step, item, level
+
+**Satellite Stop**:
+A companion Lesson stop anchored alongside a Stretch's primary Stop on the World Map for specific life stages (such as puppy records). It does not belong to the linear spine, never gates Missions or World completion, and can be read at any time.
+_Avoid_: Satellite waypoint, side quest, bonus stop, branch node
 
 **Stretch**:
 The run of Stops on a trail up to and including one Mission; the most a user can advance in a day without a Day Skip. Its Lessons are all open at once; its Node needs the Lessons read, and its Mission needs the Node.

@@ -62,4 +62,14 @@ describe('page for each step', () => {
     expect(pageForStep('paywall')).not.toBe('funnel');
     expect(ONBOARDING_STEPS.indexOf('paywall')).toBe(ONBOARDING_STEPS.indexOf('first-stage') + 1);
   });
+
+  it('persists ageBand recorded during early onboarding across reload', async () => {
+    const store = memoryStore();
+    const record = { ...newDogRecord(), name: 'Rocky', ageBand: 'puppy' as const, onboarding: { ...newDogRecord().onboarding, step: 'concern' as const } };
+    await saveDogRecord(store, record);
+    const loaded = await loadDogRecord(store);
+    expect(loaded.name).toBe('Rocky');
+    expect(loaded.ageBand).toBe('puppy');
+    expect(loaded.onboarding.step).toBe('concern');
+  });
 });
