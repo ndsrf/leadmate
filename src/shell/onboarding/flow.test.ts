@@ -7,8 +7,8 @@ function memoryStore(): KeyValueStore {
 }
 
 describe('onboarding flow', () => {
-  it('goes welcome, dog, concern, taste, setup, diagnostic, plan, first-stage, paywall, done', () => {
-    expect(ONBOARDING_STEPS).toEqual(['welcome', 'dog', 'concern', 'taste', 'setup', 'diagnostic', 'plan', 'first-stage', 'paywall', 'done']);
+  it('goes welcome, dog, concern, taste, setup, diagnostic, plan, method, first-stage, paywall, done', () => {
+    expect(ONBOARDING_STEPS).toEqual(['welcome', 'dog', 'concern', 'taste', 'setup', 'diagnostic', 'plan', 'method', 'first-stage', 'paywall', 'done']);
     let step: OnboardingStep = ONBOARDING_STEPS[0];
     const seen: OnboardingStep[] = [step];
     while (nextStep(step) !== step) seen.push((step = nextStep(step)));
@@ -20,11 +20,12 @@ describe('onboarding flow', () => {
   });
 
   it('shows the funnel until the paywall screen is passed', () => {
-    expect(ONBOARDING_STEPS.filter(inFunnel)).toEqual(['welcome', 'dog', 'concern', 'taste', 'setup', 'diagnostic', 'plan', 'first-stage', 'paywall']);
+    expect(ONBOARDING_STEPS.filter(inFunnel)).toEqual(['welcome', 'dog', 'concern', 'taste', 'setup', 'diagnostic', 'plan', 'method', 'first-stage', 'paywall']);
   });
 
   it('rejects unknown steps', () => {
     expect(isOnboardingStep('plan')).toBe(true);
+    expect(isOnboardingStep('method')).toBe(true);
     expect(isOnboardingStep('welcome')).toBe(true);
     expect(isOnboardingStep('nope')).toBe(false);
   });
@@ -45,6 +46,7 @@ describe('page for each step', () => {
     ['setup', 'funnel'],
     ['diagnostic', 'funnel'],
     ['plan', 'funnel'],
+    ['method', 'funnel'],
     ['first-stage', 'first-stage'],
     ['paywall', 'paywall'],
     ['done', 'home'],

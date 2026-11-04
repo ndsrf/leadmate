@@ -62,7 +62,7 @@ export interface HomeBehaviourEntry {
   concern: HomeConcern;
   /** The Dog's level for it, 0 when it is not a Concern. */
   level: 0 | 1 | 2 | 3;
-  /** True when it is a Concern for the Dog (one declared after World 1 was complete stays in the section with its level). */
+  /** True when it is a Concern for the Dog (one declared after World 2 was complete stays in the section with its level). */
   isConcern: boolean;
   /** No Lesson of its own yet: the row is a "coming soon" placeholder. */
   comingSoon: boolean;
@@ -70,7 +70,7 @@ export interface HomeBehaviourEntry {
 
 /**
  * The rows of Other Home Behaviours: one per Home Behaviour in the usual order, except those whose Home Stretch is a
- * Stretch of World 1 for this Dog (`inWorld`). These Stretches gate nothing and count in no total of the trail.
+ * Stretch of World 2 for this Dog (`inWorld`). These Stretches gate nothing and count in no total of the trail.
  */
 export function homeBehaviourEntries(
   homeConcerns: Readonly<Partial<Record<HomeConcern, 1 | 2 | 3>>>,
@@ -82,7 +82,7 @@ export function homeBehaviourEntries(
   });
 }
 
-/** The Stops of a Home Behaviour's Stretch (ADR 0021): its Lesson, its Node when it has one, and its Mission. */
+/** The Stops of a Home Behaviour's Stretch (ADR 0023): its Lesson, its Node when it has one, and its Mission. */
 export function homeStretchOf(concern: HomeConcern): { kind: 'lesson' | 'node' | 'mission'; id: string }[] {
   const own = HOME_BEHAVIOUR_CONTENT[concern];
   const stops: { kind: 'lesson' | 'node' | 'mission'; id: string }[] = [];
@@ -99,10 +99,10 @@ export function homeStretchStops(): { concern: HomeConcern; stops: { kind: 'less
 }
 
 /**
- * The Home Stretches that are Stretches of World 1 for a Dog: those of a Concern it has that belong to World 1
+ * The Home Stretches that are Stretches of World 2 for a Dog: those of a Concern it has that belong to World 2
  * (`worldHome`; absent means every Concern it has), and any of those already started when the Concern was removed.
  */
-export function homeStretchesInWorldOne(
+export function homeStretchesInWorldTwo(
   homeConcerns: Readonly<Partial<Record<HomeConcern, 1 | 2 | 3>>>,
   worldHome: readonly HomeConcern[] | undefined,
   started: (stops: { kind: 'lesson' | 'node' | 'mission'; id: string }[]) => boolean,

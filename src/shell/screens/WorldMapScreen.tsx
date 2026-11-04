@@ -1063,8 +1063,8 @@ export function WorldMapScreen({
   const focus = model.nextUp ?? model.waitingAt ?? null;
   const focusKey = focus ? `${focus.worldId}:${focus.stop.kind}:${focus.stop.id}` : undefined;
 
-  // the Home Stretches in World 1 for this Dog; the others are Other Home Behaviours
-  const inWorldOne = (concern: HomeConcern) => model.worlds[0]?.world.stretches.some((stops) => stops.some((s) => s.kind === 'lesson' && s.id === HOME_BEHAVIOUR_CONTENT[concern].lesson)) ?? false;
+  // the Home Stretches in World 2 for this Dog; the others are Other Home Behaviours
+  const inWorldTwo = (concern: HomeConcern) => model.worlds.find((w) => w.world.id === 'home')?.world.stretches.some((stops) => stops.some((s) => s.kind === 'lesson' && s.id === HOME_BEHAVIOUR_CONTENT[concern].lesson)) ?? false;
   const firstLockedWorldId = model.worlds.find((w) => !w.unlocked)?.world.id;
 
   // open the map where the user left it, or else scrolled to the next-up Stop (or the waiting Mission)
@@ -1191,7 +1191,7 @@ export function WorldMapScreen({
             coat={coat}
             restingAt={model.waitingAt?.worldId === world.world.id ? model.waitingAt.stop : undefined}
           />
-          {index === 0 && home && <HomeBehavioursSection t={t} concerns={home.concerns} inWorld={inWorldOne} done={progress} onOpen={onOpenStop} onBecomeConcern={home.onBecomeConcern} />}
+          {world.world.id === 'home' && home && <HomeBehavioursSection t={t} concerns={home.concerns} inWorld={inWorldTwo} done={progress} onOpen={onOpenStop} onBecomeConcern={home.onBecomeConcern} />}
           </Fragment>
         ))}
       </View>

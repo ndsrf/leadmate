@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: superseded by ADR-0023
 ---
 # World 1 is composed per Dog from its Concerns
 

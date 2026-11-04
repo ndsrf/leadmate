@@ -28,7 +28,7 @@ export interface RouteForParams<F = unknown> {
  *
  * Precedence:
  * 1. Splash until ready.
- * 2. Funnel steps ('welcome', 'dog', 'setup', 'diagnostic', 'plan'), the 'taste' and
+ * 2. Funnel steps ('welcome', 'dog', 'concern', 'setup', 'diagnostic', 'plan', 'method'), the 'taste' and
  *    'first-stage' Stages and the 'paywall' win over any leftover flow/settings. The one exception is
  *    an account flow (login from 'welcome', registration at 'paywall'), which shows over its step.
  * 3. Active flow (node, daily, warmup, auth, register) over map/settings/recap.

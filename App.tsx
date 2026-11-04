@@ -59,6 +59,7 @@ import { DiagnosticView } from './src/shell/screens/DiagnosticView';
 import { PaywallScreen } from './src/shell/screens/PaywallScreen';
 import { ValueRecapScreen } from './src/shell/screens/ValueRecapScreen';
 import { PlanScreen } from './src/shell/screens/PlanScreen';
+import { MethodOverviewScreen } from './src/shell/screens/MethodOverviewScreen';
 import { ConcernScreen, DogLookScreen, PayoffOverlay, TasteBriefScreen } from './src/shell/screens/IntroScreens';
 import { SetupScreen } from './src/shell/screens/SetupScreen';
 import { SettingsScreen } from './src/shell/screens/SettingsScreen';
@@ -814,6 +815,8 @@ export default function App() {
         screen = <DiagnosticView key="diagnostic" t={t} record={record} seed={newSeed()} onFinish={(latency) => update((r) => recordDiagnostic(r, latency))} />;
       else if (route.step === 'plan')
         screen = <PlanScreen t={t} dog={record} latency={record.onboarding.diagnosticLatency ?? 0.5} plan={record.onboarding.plan} onContinue={() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: nextStep('plan') } }))} />;
+      else if (route.step === 'method')
+        screen = <MethodOverviewScreen t={t} dog={record} onContinue={() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: nextStep('method') } }))} onBack={withBack(() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: 'plan' } })))} />;
     }
   } else if (route.name === 'taste') {
     screen = tasteBriefed || !record ? null : <TasteBriefScreen t={t} name={record.name} onStart={() => setTasteBriefed(true)} />;
@@ -824,7 +827,7 @@ export default function App() {
           t={t}
           run={introRun}
           onNext={() => setIntroRun((r) => (r ? advance(r, { type: 'next' }) : null))}
-          onExit={withBack(() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: 'plan' } })))}
+          onExit={withBack(() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: 'method' } })))}
         />
       );
     } else if (introRun?.step === 'checkpoint') {
