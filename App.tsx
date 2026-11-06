@@ -386,7 +386,7 @@ export default function App() {
 
   useEffect(() => {
     if (route.name === 'first-stage' && introRun?.step === 'simulation' && introRun.result === null) {
-      startStage({});
+      startStage(INTRO_NODE.simulation.scenario ?? {});
     }
   }, [route.name, introRun?.step, introRun?.result, startStage]);
 
