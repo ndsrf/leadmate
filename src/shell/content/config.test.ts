@@ -69,6 +69,14 @@ describe('Content base configuration & URL resolver', () => {
       });
       expect(resolved).toBe('https://cdn.example.com/content');
     });
+
+    it('falls back to Supabase public content bucket if contentBase is unset', () => {
+      const resolved = resolveContentBase({
+        supabaseUrl: 'https://xyz.supabase.co',
+        isDev: false,
+      });
+      expect(resolved).toBe('https://xyz.supabase.co/storage/v1/object/public/content');
+    });
   });
 
   describe('channel URL helpers', () => {

@@ -12,6 +12,7 @@
 export interface ContentBaseOptions {
   contentBase?: string;
   contentDevUrl?: string;
+  supabaseUrl?: string;
   isDev?: boolean;
 }
 
@@ -60,9 +61,24 @@ export function resolveContentBase(options: ContentBaseOptions = {}): string {
     }
   }
 
-  // Otherwise (or in production), strictly use HTTPS content base
-  const base = options.contentBase ?? process.env.EXPO_PUBLIC_CONTENT_BASE;
-  return cleanHttpsContentBase(base);
+  // If an explicit contentBase option was provided, use it directly (allowing tests to pass empty string)
+  if (options.contentBase !== undefined) {
+    return cleanHttpsContentBase(options.contentBase);
+  }
+
+  // Otherwise check environment variable EXPO_PUBLIC_CONTENT_BASE
+  const envBase = cleanHttpsContentBase(process.env.EXPO_PUBLIC_CONTENT_BASE);
+  if (envBase) {
+    return envBase;
+  }
+
+  // Fallback to Supabase Storage public content bucket if EXPO_PUBLIC_SUPABASE_URL is set
+  const supabaseUrl = cleanHttpsContentBase(options.supabaseUrl ?? process.env.EXPO_PUBLIC_SUPABASE_URL);
+  if (supabaseUrl) {
+    return `${supabaseUrl}/storage/v1/object/public/content`;
+  }
+
+  return '';
 }
 
 /**
