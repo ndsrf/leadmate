@@ -303,7 +303,7 @@ export function clockFace(t: Translate, state: BarkdokuState, now: number): { ti
 /** The Solve Time clock; it re-renders only when the shown second changes, and only while running and in the foreground. */
 function PuzzleClock({ t, state }: { t: Translate; state: BarkdokuState }) {
   const [, setSecond] = useState(0);
-  useTicker(state.runningSince !== null, 250, () => setSecond(Math.floor(elapsedMs(state, Date.now()) / 1000)), 'barkdoku-clock');
+  useTicker(state.runningSince !== null, 500, () => setSecond(Math.floor(elapsedMs(state, Date.now()) / 1000)), 'barkdoku-clock');
   const face = clockFace(t, state, Date.now());
   return (
     <View className="items-end" testID="puzzle-clock" accessibilityLabel={face.label}>

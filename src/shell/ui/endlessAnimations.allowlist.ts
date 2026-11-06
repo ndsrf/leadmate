@@ -14,7 +14,6 @@ export interface AllowedEndless {
 
 export const ENDLESS_ALLOWLIST: AllowedEndless[] = [
   { file: 'src/shell/ui/ticker.ts', kind: 'setInterval', count: 1, reason: 'the one shared repeating timer, started only through useTicker while its screen is running and the app is in front; users: Diagnostic, Read-the-Dog and Poste minigame clocks and Node countdown (end with the minigame), reveal (ends when done), Barkdoku puzzle clock (a visible running clock; one tick per 250 ms, re-renders only when the second changes, stops when the puzzle is not running)' },
-  { file: 'src/shell/ui/DevPerfOverlay.tsx', kind: 'setInterval', count: 1, reason: 'dev-only readout, not mounted in production builds' },
   { file: 'bundle/main.ts', kind: 'setInterval', count: 1, reason: 'dev-only `?perf=1` readout, created only when the page address asks for it' },
   { file: 'src/shell/screens/SplashScreen.tsx', kind: 'withRepeat', count: 1, reason: 'loader line while the app loads; gated by useMotionGate (app active, screen in front, reduced motion)' },
   { file: 'src/shell/ui/MinigameProps.tsx', kind: 'withRepeat', count: 1, reason: 'bell ripple only while the bell rings; gated by useMotionGate (app active, screen in front, reduced motion)' },

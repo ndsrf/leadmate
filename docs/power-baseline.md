@@ -25,7 +25,7 @@ A static full-screen page with the display on, nothing animating and no app work
 6. Android: reset with `adb shell dumpsys batterystats --reset`, run, then `adb shell dumpsys batterystats --checkin` or Battery Historian, and read the app's estimated mAh (and the screen/display share, to subtract the reference). iPhone: Xcode Energy Log (or Instruments Energy Log) attached for the 10 minutes; read the average Energy Impact and the CPU/GPU/overhead split, and compare with the reference screen.
 7. Also record fps (UI / JS) from the performance monitor and how warm the phone feels.
 
-Regression counters (frames, loop wakeups, running animations, live loops, timers, DOM renders) are checked per change by `node scripts/power.mjs` and the dev readout (`?perf=1` in the Stage bundle, the shell dev overlay). Devices are the acceptance test.
+Regression counters (frames, loop wakeups, running animations, live loops, timers, DOM renders) are checked per change by `node scripts/power.mjs` and the dev readout (`?perf=1` in the Stage bundle, the shell dev overlay, shown with `EXPO_PUBLIC_DEV_PERF_OVERLAY=1`). Devices are the acceptance test.
 
 ## Baseline tables
 

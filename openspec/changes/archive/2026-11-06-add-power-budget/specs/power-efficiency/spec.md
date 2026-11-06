@@ -16,7 +16,7 @@ The system SHALL stay within an energy budget measured against a static referenc
 - **THEN** pass or fail uses the platform's energy measure (milliamp-hours on Android, Energy Impact on iPhone), and battery percent is kept only as a sanity check
 
 ### Requirement: Whole-app activity readout
-The system SHALL offer a development-only readout covering the shell, the in-WebView DOM views and the Stage bundle: shell JS-thread rate, live looping animations, active timers, running CSS animations, DOM view renders per second, loop wakeups, frames and simulation steps, plus the current screen and app state. It SHALL NOT collect or send field telemetry.
+The system SHALL offer a development-only readout covering the shell, the in-WebView DOM views and the Stage bundle: live looping animations, active timers, running CSS animations, DOM view renders per second, loop wakeups, frames and simulation steps, plus the current screen and app state. It SHALL NOT collect or send field telemetry.
 
 #### Scenario: Readout on a resting screen
 - **WHEN** a resting shell screen is shown
@@ -25,6 +25,17 @@ The system SHALL offer a development-only readout covering the shell, the in-Web
 #### Scenario: No production collection
 - **WHEN** a production build runs
 - **THEN** no performance data is collected or uploaded
+
+### Requirement: Readout panel is opt-in
+The shell's on-screen readout panel SHALL be hidden by default and shown only when `EXPO_PUBLIC_DEV_PERF_OVERLAY=1` is set at bundle time. The counters SHALL keep running in development either way so scripted checks can read them, and the panel SHALL NOT run a loop or timer of its own.
+
+#### Scenario: Panel hidden by default
+- **WHEN** a development build starts without `EXPO_PUBLIC_DEV_PERF_OVERLAY=1`
+- **THEN** no readout panel is drawn, and the counters are still readable by scripted checks
+
+#### Scenario: Panel adds no activity
+- **WHEN** the panel is shown on a resting screen
+- **THEN** it adds no animation frame callback or repeating timer of its own
 
 ### Requirement: Scenario regression check
 The system SHALL have an automated scenario check that walks the World Map, Barkdoku, the hand drill and a Stage for fixed durations and fails if the activity counters exceed the budgeted values for the scenario, including a paused, covered, backgrounded or ended state of each.
@@ -35,7 +46,11 @@ The system SHALL have an automated scenario check that walks the World Map, Bark
 
 #### Scenario: Resting screens
 - **WHEN** the check waits on the World Map and on Barkdoku
-- **THEN** it fails if any looping animation or repeating timer is active
+- **THEN** it fails if any looping animation or repeating timer is active, except the visible Barkdoku puzzle clock while a started puzzle is in front
+
+#### Scenario: Visible puzzle clock
+- **WHEN** a Barkdoku puzzle has started and is in front of the app
+- **THEN** its clock may tick at most twice a second, and stops when the puzzle is backgrounded, paused or finished
 
 ### Requirement: No endless animation on a resting view
 The system SHALL NOT run an endless animation, in the shell or in a DOM view inside the Stage bundle, while its view is resting, paused, ended, covered by another screen, behind a card that stops the clock, or the app is in the background. Bounded animations that settle are allowed.

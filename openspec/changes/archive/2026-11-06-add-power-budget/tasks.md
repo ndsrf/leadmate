@@ -4,7 +4,7 @@
 
 - [x] 1.1 Write the budget, the reference screen and the measurement method (fixed brightness, production-like build, three runs, median) into `docs/power-baseline.md`; verify the doc states 0.3% / 2% over 10 minutes and how energy is read on Android and iPhone.
 - [x] 1.2 Add `document.getAnimations()` count and a DOM-render counter to the Stage bundle's `?perf=1` readout and `window.__leadmate.perf`; verify with a unit or script check that the values change when the hand drill animates and read zero when it rests.
-- [x] 1.3 Add a development-only shell counter module (live endless animations, active timers, current screen, app state, JS-thread rate) with an on-screen dev overlay compiled out of production builds; verify with a test that it reports a started and a cancelled loop, and that the production flag removes it.
+- [x] 1.3 Add a development-only shell counter module (live endless animations, active timers, current screen, app state) with an on-screen dev overlay compiled out of production builds, hidden by default and shown with `EXPO_PUBLIC_DEV_PERF_OVERLAY=1`; verify with a test that it reports a started and a cancelled loop, and that the production flag removes it.
 - [x] 1.4 Add the endless-animation guardrail test and allow-list file (each entry with a reason); verify the test passes on the current allow-list and fails when an unlisted `withRepeat(..., -1)` is added.
 
 ## 2. Close view (hand drill)
