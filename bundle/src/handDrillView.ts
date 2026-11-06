@@ -3,6 +3,7 @@ import type { CloseExerciseState } from '../../src/sim/closeExercise';
 import { distance } from '../../src/sim/vec';
 import fredokaUrl from '@expo-google-fonts/fredoka/600SemiBold/Fredoka_600SemiBold.ttf';
 import { HD_DEFS } from './handDrillArt';
+import { domPerf } from './perfCounters';
 
 /**
  * The hand drill's close view, drawn as HTML and SVG over the Phaser canvas to match design 18 ("Close-up
@@ -65,15 +66,12 @@ const CSS = `
 #hd .row b{width:34px;height:34px;border-radius:99px;border:2.5px solid ${INK};display:flex;align-items:center;justify-content:center;flex:none;font-family:'Fredoka',system-ui,sans-serif;font-size:18px}
 #hd .go{margin-top:2px;min-height:52px;border-radius:16px;border:3px solid ${INK};background:#6FAF73;box-shadow:4px 4px 0 ${INK};font-size:20px;cursor:pointer;color:${INK}}
 #hd .go:active{transform:translate(3px,3px);box-shadow:1px 1px 0 ${INK}}
-@keyframes hd-nudge{0%,100%{transform:translate(0,0)}50%{transform:translate(5px,-5px)}}
-@keyframes hd-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
 @keyframes hd-pop{0%{transform:scale(.2);opacity:0}30%{opacity:1}100%{transform:scale(1);opacity:0}}
 @keyframes hd-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
-#hd .nudge{animation:hd-nudge 1.6s ease-in-out infinite}
-#hd .bob{animation:hd-bob 2.4s ease-in-out infinite}
 #hd .pulse{animation:hd-pulse .7s ease-in-out infinite}
 #hd .pop{transform-box:fill-box;transform-origin:center;animation:hd-pop .9s ease-out forwards}
-@media (prefers-reduced-motion:reduce){#hd .nudge,#hd .bob,#hd .pulse,#hd .pop{animation:none}}
+#hd.still .pulse{animation-play-state:paused}
+@media (prefers-reduced-motion:reduce){#hd .pulse,#hd .pop{animation:none}}
 `;
 
 /** Where the leash clips to the collar, in scene units, for each pose (from the symbols' collar tag). */
@@ -85,6 +83,9 @@ const PULL: [number, number] = [46, 26];
 
 type Pose = 'stand' | 'sit' | 'open';
 
+/** 0 to 1 and back every `periodMs`, eased like the old CSS ease-in-out. */
+const wave = (now: number, periodMs: number): number => (1 - Math.cos((2 * Math.PI * now) / periodMs)) / 2;
+
 const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
 
 const icon = (id: string): string => `<svg class="ic" aria-hidden="true"><use href="#hd-${id}"/></svg>`;
@@ -92,10 +93,15 @@ const icon = (id: string): string => `<svg class="ic" aria-hidden="true"><use hr
 export class HandDrillView {
   private root: HTMLDivElement;
   private q = <T extends Element>(sel: string): T => this.root.querySelector(sel) as T;
+  /** Every element `render` writes, resolved once so a frame never queries the document. */
+  private el!: {
+    dogUse: Element; dog: Element; dogBob: Element; lo: Element; lp: Element; tempt: Element; reach: Element; reward: Element;
+    sa: HTMLElement[]; sc: HTMLElement[]; steps: HTMLElement[]; bub: Element; chip: Element; gather: HTMLElement; mark: HTMLElement; ring: Element;
+    sparks: Element[];
+  };
   private markedAt = -Infinity;
   private reduceMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   private cache = new WeakMap<Element, Record<string, string>>();
-  private last: Record<string, string> = {};
 
   constructor(
     private t: Translate,
@@ -114,15 +120,29 @@ export class HandDrillView {
     root.innerHTML = this.markup();
     document.body.appendChild(root);
     this.root = root;
+    const all = (sel: string) => Array.from(root.querySelectorAll<HTMLElement>(sel));
+    this.el = {
+      dogUse: this.q('#hd-dog-use'), dog: this.q('#hd-dog'), dogBob: this.q('#hd-dogbob'), lo: this.q('#hd-lo'), lp: this.q('#hd-lp'),
+      tempt: this.q('#hd-tempt'), reach: this.q('#hd-reach'), reward: this.q('#hd-reward'),
+      sa: Array.from(this.q('#hd-sa').children) as HTMLElement[], sc: Array.from(this.q('#hd-sc').children) as HTMLElement[],
+      steps: all('.stp'), bub: this.q('#hd-bub'), chip: this.q('#hd-chip'), gather: this.q('#hd-gather'), mark: this.q('#hd-mark'), ring: this.q('#hd-ring'),
+      sparks: all('.spark'),
+    };
     this.labels();
     this.bindButtons(hooks);
     const intro = this.q<HTMLElement>('.intro');
+    this.setStill(introOpen);
     if (introOpen) {
       this.q<HTMLButtonElement>('.go').addEventListener('click', () => {
         intro.remove();
         hooks.onStart();
       });
     } else intro.remove();
+  }
+
+  /** Pauses every endless animation (drill paused, ended or behind the how-to card); false lets them run again. */
+  setStill(still: boolean): void {
+    this.root.classList.toggle('still', still);
   }
 
   destroy(): void {
@@ -132,7 +152,7 @@ export class HandDrillView {
   /** The Dog was rewarded: the reward and a burst of sparkles show for a moment. */
   celebrate(now: number): void {
     this.markedAt = now;
-    for (const s of Array.from(this.root.querySelectorAll('.spark'))) {
+    for (const s of this.el.sparks) {
       s.classList.remove('pop');
       void (s as SVGElement).getBoundingClientRect();
       s.classList.add('pop');
@@ -153,7 +173,7 @@ export class HandDrillView {
 <ellipse cx="80" cy="410" rx="8" ry="20" fill="#6FAF73"/>
 <polygon points="65,436 95,436 90,462 70,462" fill="#E8795C"/>
 </g>
-<g id="hd-dog"><g class="bob" id="hd-dogbob"><use id="hd-dog-use" href="#hd-dog-sit" x="61" y="250" width="300" height="275"/></g></g>
+<g id="hd-dog"><g id="hd-dogbob"><use id="hd-dog-use" href="#hd-dog-sit" x="61" y="250" width="300" height="275"/></g></g>
 <g id="hd-leash"><path id="hd-lo" fill="none" stroke="${INK}" stroke-width="10" stroke-linecap="round"/><path id="hd-lp" fill="none" stroke="#6FAF73" stroke-width="5" stroke-linecap="round"/></g>
 <g id="hd-handler">
 <path d="M126 900C138 810 158 760 165 716" fill="none" stroke="${INK}" stroke-width="34" stroke-linecap="round"/>
@@ -161,7 +181,7 @@ export class HandDrillView {
 <ellipse cx="${FIST[0]}" cy="${FIST[1]}" rx="19" ry="16" fill="#F3D9B8" stroke="${INK}" stroke-width="3"/>
 </g>
 <path id="hd-reach" d="M132 318C146 300 168 298 184 312" fill="none" stroke="${INK}" stroke-width="4" stroke-linecap="round" stroke-dasharray="1 10"/>
-<g id="hd-tempt-wrap"><g class="nudge" id="hd-tempt">
+<g id="hd-tempt-wrap"><g id="hd-tempt">
 <path d="M-30 560C0 520 44 430 88 356" fill="none" stroke="${INK}" stroke-width="34" stroke-linecap="round"/>
 <path d="M-30 560C0 520 44 430 88 356" fill="none" stroke="#E8795C" stroke-width="26" stroke-linecap="round"/>
 <use href="#hd-hand" x="66" y="326" width="80" height="48"/>
@@ -254,23 +274,37 @@ export class HandDrillView {
   private set(el: Element, name: string, value: string): void {
     let seen = this.cache.get(el);
     if (!seen) this.cache.set(el, (seen = {}));
-    if (seen[name] === value) return;
-    seen[name] = value;
+    const key = `attr-${name}`; // apart from toggle's `cls-` keys; never mix set(el,'class') and toggle on one element
+    if (seen[key] === value) return;
+    seen[key] = value;
     if (name === 'text') el.textContent = value;
+    else if (name === 'html') el.innerHTML = value;
+    else if (name === 'bg') (el as HTMLElement).style.background = value;
     else el.setAttribute(name, value);
   }
 
-  private fillSegs(id: string, n: number, color: string): void {
-    const segs = Array.from(this.q(id).children) as HTMLElement[];
+  private fillSegs(segs: HTMLElement[], n: number, color: string): void {
     segs.forEach((seg, i) => {
       const on = i < n;
       this.set(seg, 'class', on ? 'on' : '');
-      seg.style.background = on ? color : '';
+      this.set(seg, 'bg', on ? color : '');
     });
+  }
+
+  /** Toggles a class only when its state changed (the cache key is the class name). */
+  private toggle(el: Element, cls: string, on: boolean): void {
+    let seen = this.cache.get(el);
+    if (!seen) this.cache.set(el, (seen = {}));
+    const key = `cls-${cls}`;
+    const value = on ? '1' : '0';
+    if (seen[key] === value) return;
+    seen[key] = value;
+    el.classList.toggle(cls, on);
   }
 
   /** Draws the simulation's current state. `now` is the wall clock in ms, for the wobble of the Dog and the reward. */
   render(s: CloseExerciseState, now: number): void {
+    domPerf.renders++;
     const cfg = s.config;
     const open = s.rewardWindow !== null;
     const justMarked = now - this.markedAt < 1000;
@@ -279,7 +313,7 @@ export class HandDrillView {
 
     // the Dog: sits when calm, stands and bounces toward the hand when worked up, mouth open at the reward
     const pose: Pose = justMarked ? 'open' : s.tier === 'calm' ? 'sit' : 'stand';
-    this.set(this.q('#hd-dog-use'), 'href', `#hd-dog-${pose === 'open' ? 'sit-open' : pose}`);
+    this.set(this.el.dogUse, 'href', `#hd-dog-${pose === 'open' ? 'sit-open' : pose}`);
     const rest = Math.hypot(cfg.dogOffset.x, cfg.dogOffset.y);
     const pulled = clamp((rest - distance(s.handler, s.dog)) / Math.max(0.01, rest - cfg.leashMinLength), -0.7, 1);
     let dx = pulled * PULL[0];
@@ -289,8 +323,10 @@ export class HandDrillView {
       dy -= hop;
       if (s.tier === 'reactive') dx -= 8 + 4 * Math.sin(now / 70);
     }
-    this.set(this.q('#hd-dog'), 'transform', `translate(${dx.toFixed(1)} ${dy.toFixed(1)})`);
-    this.set(this.q('#hd-dogbob'), 'class', pose === 'sit' && !this.reduceMotion ? 'bob' : '');
+    this.set(this.el.dog, 'transform', `translate(${dx.toFixed(1)} ${dy.toFixed(1)})`);
+    // idle bob while sitting, drawn at the capped rate with the rest of the view (no display-rate SVG animation)
+    const bob = pose === 'sit' && !this.reduceMotion ? -3 * wave(now, 2400) : 0;
+    this.set(this.el.dogBob, 'transform', `translate(0 ${bob.toFixed(1)})`);
 
     // the leash: from the collar down to the Handler's fist; it straightens as it tightens
     const [cx, cy] = COLLAR[pose];
@@ -298,35 +334,33 @@ export class HandDrillView {
     const y0 = cy + dy;
     const sag = s.tension === 'slack' ? 70 : s.tension === 'taut' ? 24 : 0;
     const d = `M${x0.toFixed(1)} ${y0.toFixed(1)}Q${((x0 + FIST[0]) / 2 + 36).toFixed(1)} ${((y0 + FIST[1]) / 2 + sag).toFixed(1)} ${FIST[0]} ${FIST[1]}`;
-    this.set(this.q('#hd-lo'), 'd', d);
-    this.set(this.q('#hd-lp'), 'd', d);
-    this.set(this.q('#hd-lp'), 'stroke', s.tension === 'rigid' ? '#E8795C' : s.tension === 'taut' ? '#F2B84B' : '#6FAF73');
+    this.set(this.el.lo, 'd', d);
+    this.set(this.el.lp, 'd', d);
+    this.set(this.el.lp, 'stroke', s.tension === 'rigid' ? '#E8795C' : s.tension === 'taut' ? '#F2B84B' : '#6FAF73');
 
     // the tempting hand wobbles while it is in reach and keeps still once the Dog is out of reach
-    this.set(this.q('#hd-tempt'), 'class', tempting && !this.reduceMotion ? 'nudge' : '');
-    this.set(this.q('#hd-reach'), 'opacity', tempting ? '1' : '0');
+    const nudge = tempting && !this.reduceMotion ? wave(now, 1600) : 0;
+    this.set(this.el.tempt, 'transform', `translate(${(5 * nudge).toFixed(1)} ${(-5 * nudge).toFixed(1)})`);
+    this.set(this.el.reach, 'opacity', tempting ? '1' : '0');
 
     // reward
-    this.set(this.q('#hd-reward'), 'opacity', justMarked ? '1' : '0');
+    this.set(this.el.reward, 'opacity', justMarked ? '1' : '0');
 
     // meters: emotion toward the reactive threshold, calm toward the reward
     const frac = clamp(s.arousal / Math.max(1, s.dogTraits.reactivityThreshold), 0, 1);
-    this.fillSegs('#hd-sa', s.arousal < 1 ? 0 : Math.max(1, Math.ceil(frac * 3 - 0.001)), s.tier === 'reactive' ? '#F29A86' : '#B9A2FF');
+    this.fillSegs(this.el.sa, s.arousal < 1 ? 0 : Math.max(1, Math.ceil(frac * 3 - 0.001)), s.tier === 'reactive' ? '#F29A86' : '#B9A2FF');
     const calmFrac = open ? 1 : clamp(s.calmElapsed / cfg.calmSeconds, 0, 1);
-    this.fillSegs('#hd-sc', Math.ceil(calmFrac * 3 - 0.001), open ? '#F2B84B' : '#7FD0C8');
+    this.fillSegs(this.el.sc, Math.ceil(calmFrac * 3 - 0.001), open ? '#F2B84B' : '#7FD0C8');
 
     // lesson card: Recoger, Calmar, Marcar
     const step = open || justMarked ? 3 : s.tier === 'calm' && s.calmElapsed > 0 ? 2 : 1;
-    for (const el of Array.from(this.root.querySelectorAll<HTMLElement>('.stp'))) {
+    for (const el of this.el.steps) {
       const n = Number(el.dataset.step);
       const state = n < step ? 'done' : n === step ? 'cur' : 'todo';
       this.set(el, 'class', `stp ${state}`);
       const label = `${n < step ? '' : `${n} · `}${this.t(`close.step.${n}` as 'close.step.1')}`;
       const html = (n < step ? icon('i-check') : '') + label;
-      if (this.last[`step${n}`] !== html) {
-        this.last[`step${n}`] = html;
-        el.innerHTML = html;
-      }
+      this.set(el, 'html', html);
     }
 
     // the one instruction that applies right now
@@ -341,19 +375,17 @@ export class HandDrillView {
       : s.time < cfg.settleSeconds
       ? 'close.hint.watch'
       : 'close.hint.hold';
-    this.set(this.q('#hd-bub'), 'text', this.t(key as 'close.hint.now'));
-    this.set(this.q('#hd-bub'), 'class', `bub fd${open || justMarked ? ' go' : ''}`);
-    this.set(this.q('#hd-chip'), 'text', this.t('close.chip.rewards').replace('{n}', String(Math.max(0, cfg.markBudget - s.telemetry.marksUsed))));
+    this.set(this.el.bub, 'text', this.t(key as 'close.hint.now'));
+    this.set(this.el.bub, 'class', `bub fd${open || justMarked ? ' go' : ''}`);
+    this.set(this.el.chip, 'text', this.t('close.chip.rewards').replace('{n}', String(Math.max(0, cfg.markBudget - s.telemetry.marksUsed))));
 
     // the controls to use now: Recoger when the Dog wants the hand, Marcar while the reward window is open
-    const gather = this.q<HTMLElement>('#hd-gather');
-    gather.classList.toggle('hint', excited);
-    gather.classList.toggle('pulse', excited && !this.reduceMotion);
-    const mark = this.q<HTMLElement>('#hd-mark');
-    mark.classList.toggle('hint', open);
-    mark.classList.toggle('pulse', open && !this.reduceMotion);
+    this.toggle(this.el.gather, 'hint', excited);
+    this.toggle(this.el.gather, 'pulse', excited && !this.reduceMotion);
+    this.toggle(this.el.mark, 'hint', open);
+    this.toggle(this.el.mark, 'pulse', open && !this.reduceMotion);
     const total = open ? Math.max(0.01, s.rewardWindow!.closesAt - s.rewardWindow!.openedAt) : 1;
     const left = open ? clamp((s.rewardWindow!.closesAt - s.time) / total, 0, 1) : 0;
-    this.set(this.q('#hd-ring'), 'stroke-dashoffset', open ? String((100 * (1 - left)).toFixed(1)) : '100');
+    this.set(this.el.ring, 'stroke-dashoffset', open ? String((100 * (1 - left)).toFixed(1)) : '100');
   }
 }

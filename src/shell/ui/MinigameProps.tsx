@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, Text, View, type LayoutChangeEvent } from 'react-native';
 import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import Svg, { Circle, Ellipse, G, Line, Path, Rect } from 'react-native-svg';
@@ -13,8 +13,8 @@ import { Raised } from './components';
 import { buttonStyle } from './styles';
 // The *Scene illustrations stay Light whatever the Appearance; the captions, pips, gauge and buttons are UI chrome.
 import { lightColor, theme, usePalette } from './theme';
-import { useLive } from './useAppActive';
 import { useMotion } from './useMotion';
+import { useEndlessLoop, useMotionGate } from './useMotionGate';
 
 /** Every scene is drawn in these units and scaled to the screen width. */
 const SCENE = { w: 320, h: 190 } as const;
@@ -39,18 +39,18 @@ function Stage({ children, onLayout }: { children: React.ReactNode; onLayout?: (
 const fill = { position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' } as const;
 
 /** A chime ripple pulsing out of the bell while it rings. */
-function BellRipple({ ringing, x, y }: { ringing: boolean; x: number; y: number }) {
+export function BellRipple({ ringing, x, y }: { ringing: boolean; x: number; y: number }) {
   const { reduced } = useMotion();
-  const live = useLive();
+  const gate = useMotionGate(ringing);
   const pulse = useSharedValue(0);
-  useEffect(() => {
-    if (ringing && !reduced && live) pulse.value = withRepeat(withTiming(1, { duration: 650 }), -1, false);
-    else {
-      cancelAnimation(pulse);
-      pulse.value = 0;
-    }
-    return () => cancelAnimation(pulse);
-  }, [ringing, reduced, live, pulse]);
+  const start = useCallback(() => {
+    pulse.value = withRepeat(withTiming(1, { duration: 650 }), -1, false);
+  }, [pulse]);
+  const stop = useCallback(() => {
+    cancelAnimation(pulse);
+    pulse.value = 0;
+  }, [pulse]);
+  useEndlessLoop('bell-ripple', gate, start, stop);
   const style = useAnimatedStyle(() => ({ opacity: ringing ? (reduced ? 0.7 : 0.8 * (1 - pulse.value)) : 0, transform: [{ scale: 0.6 + pulse.value * 1.6 }] }));
   return <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: pctX(x), top: pctY(y), width: 30, height: 30, marginLeft: -15, marginTop: -15, borderRadius: 15, borderWidth: 3, borderColor: lightColor.accent }, style]} />;
 }

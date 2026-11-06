@@ -83,7 +83,7 @@ export function ReadDogView({ t, scene, seed, coat = 'golden', onCue, onFinish }
         finish.current({ metrics: readDogMetrics(next), handlingScore: readDogHandlingScore(next) });
       }
     }
-  });
+  }, 'read-dog');
 
   const press = (action: ReadDogAction) => {
     if (finishIn.current !== null) return;

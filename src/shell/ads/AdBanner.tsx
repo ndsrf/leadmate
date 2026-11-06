@@ -7,6 +7,11 @@ import { theme } from '../ui/theme';
 export interface AdBannerProps {
   /** When true, ads are completely suppressed and component renders null. */
   isPlus?: boolean;
+  /**
+   * Whether the slot is in view: the app is in the foreground and the screen that owns it is in front. While false the
+   * native banner is not mounted, so it makes no ad request and runs no refresh timer or animation. Defaults to true.
+   */
+  active?: boolean;
   /** Optional custom unit ID override (defaults to active AdService unit ID). */
   unitId?: string;
   /** Test identifier for testing. */
@@ -29,9 +34,11 @@ const baseContainerStyle = {
  * Gracefully renders safe fallback in Expo Go, web, or when native TurboModules
  * are not registered in the native binary.
  */
-export function AdBanner({ isPlus, unitId, testID = 'leadmate-ad-banner' }: AdBannerProps) {
+export function AdBanner({ isPlus, active = true, unitId, testID = 'leadmate-ad-banner' }: AdBannerProps) {
   const [hasError, setHasError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  // the banner's measured height, so the placeholder keeps the slot's size while the ad is out of view
+  const [bannerHeight, setBannerHeight] = useState<number | undefined>(undefined);
 
   // Plus members never see advertisements
   if (isPlus) {
@@ -46,8 +53,9 @@ export function AdBanner({ isPlus, unitId, testID = 'leadmate-ad-banner' }: AdBa
   const adService = getAdService();
   const activeUnitId = unitId ?? adService.getBannerUnitId();
 
+  // Out of view (app in the background, or another screen over the map): keep the slot's size, load nothing
   // In non-native environments (e.g. web, Expo Go without custom binary, or Jest without native modules)
-  if (!isNativeGoogleMobileAdsAvailable()) {
+  if (!active || !isNativeGoogleMobileAdsAvailable()) {
     return (
       <View
         testID={testID}
@@ -56,6 +64,7 @@ export function AdBanner({ isPlus, unitId, testID = 'leadmate-ad-banner' }: AdBa
           {
             backgroundColor: theme.color.bg,
             borderTopColor: theme.color.edge,
+            minHeight: !active ? (bannerHeight ?? 50) : undefined,
           },
         ]}
       />
@@ -96,6 +105,7 @@ export function AdBanner({ isPlus, unitId, testID = 'leadmate-ad-banner' }: AdBa
       <BannerAd
         unitId={activeUnitId}
         size={BannerAdSize?.ANCHORED_ADAPTIVE_BANNER ?? 'ANCHORED_ADAPTIVE_BANNER'}
+        onSizeChange={(size: { height: number }) => setBannerHeight(size.height)}
         onAdLoaded={() => {
           setIsLoaded(true);
           setHasError(false);

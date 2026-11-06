@@ -93,7 +93,7 @@ function CheckpointQuestionView({
   const live = useLive();
 
   // counts only while the app is in the foreground, so backgrounding does not eat the time
-  useTicker(countdown !== null && !countdown.timedOut, 100, (dt) => countdown?.tick(dt));
+  useTicker(countdown !== null && !countdown.timedOut, 100, (dt) => countdown?.tick(dt), 'countdown');
 
   return (
     <Screen>
