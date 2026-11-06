@@ -26,7 +26,7 @@ import type { PuzzleSummary } from './puzzle/types';
 import { addDiaryEntry, DIARY_OUTCOMES, isDateString, localDateString, markActive, NO_STREAK, type DiaryOutcome, type StreakRecord, type WalkDiaryEntry } from './streak';
 import { checkIn, fixFor, readMissions, readSeenFixes, skipDay, NEW_MISSION, type MissionDef, type MissionState, type SeenFix } from './missions/mission';
 
-export const RECORD_VERSION = 9;
+export const RECORD_VERSION = 10;
 export const RECORD_KEY = 'leadmate.dog';
 
 /** Seconds of the Checkpoint timer; 0 turns it off. */
@@ -54,8 +54,8 @@ export interface DogRecord {
   /** The level (1 to 3) of each home-behaviour concern; absent means not a concern. Outdoor reactions live in `triggerProfile`. */
   homeConcerns: HomeConcerns;
   /**
-   * The Home Stretches that belong to World 1 (ADR 0021). Absent means every home Concern the Dog has; once it is
-   * set, a Concern declared after World 1 was complete is not added to it and stays in Other Home Behaviours.
+   * The Home Stretches that belong to World 2 (ADR 0023). Absent means every home Concern the Dog has; once it is
+   * set, a Concern declared after World 2 was complete is not added to it and stays in Other Home Behaviours.
    */
   worldHome?: HomeConcern[];
   /** The Dog's age band; null until answered. It only reorders the plan, and unset acts as adult. */
@@ -332,6 +332,19 @@ export function skipBasicsWorld(record: DogRecord, version: unknown, today: stri
   return { ...record, readLessons: union(record.readLessons, 'lesson'), completedNodes: union(record.completedNodes, 'node'), missions };
 }
 
+/**
+ * Re-reads `worldHome` of a record from before version 10, when it listed the Home Stretches of World 1 (ADR 0021):
+ * the Home Stretches now belong to World 2 (ADR 0023). A Dog whose World 2 is already complete keeps the list, so that
+ * World stays complete; any other Dog drops it, so every Concern it has joins World 2.
+ */
+export function moveHomeStretchesToWorldTwo(record: DogRecord, version: unknown): DogRecord {
+  if ((typeof version === 'number' && version >= 10) || !record.worldHome) return record;
+  const home = worldsFor(record.onboarding.plan, record).find((w) => w.id === 'home');
+  if (home && isWorldComplete(home, record)) return record;
+  const { worldHome: _dropped, ...rest } = record;
+  return rest;
+}
+
 export function migrateRecord(raw: unknown): DogRecord {
   const base = newDogRecord();
   if (!raw || typeof raw !== 'object') return base;
@@ -349,7 +362,7 @@ export function migrateRecord(raw: unknown): DogRecord {
   const completedNodes = strings(r.completedNodes);
   const beforeMissions = typeof r.version !== 'number' || r.version < 7;
   const billing = readBilling(r.billing);
-  return skipBasicsWorld({
+  return moveHomeStretchesToWorldTwo(skipBasicsWorld({
     version: RECORD_VERSION,
     attributes,
     triggerProfile: profile,
@@ -386,7 +399,7 @@ export function migrateRecord(raw: unknown): DogRecord {
     legacyNodes: beforeMissions ? [...completedNodes] : strings(r.legacyNodes),
     activityLog: readActivityLog(r.activityLog),
     ...(billing ? { billing } : {}),
-  }, r.version, localDateString(new Date()));
+  }, r.version, localDateString(new Date())), r.version);
 }
 
 /**
@@ -473,10 +486,10 @@ export function setHomeConcern(record: DogRecord, concern: HomeConcern, level: C
   const homeConcerns = { ...record.homeConcerns };
   if (level === 0) delete homeConcerns[concern];
   else homeConcerns[concern] = level;
-  // a Home Stretch joins World 1 with its Concern unless World 1 is already complete (it must stay complete)
+  // a Home Stretch joins World 2 with its Concern unless World 2 is already complete (it must stay complete)
   const members = record.worldHome ?? HOME_CONCERNS.filter((c) => (record.homeConcerns[c] ?? 0) > 0);
-  const first = worldsFor(record.onboarding.plan, record).find((w) => !w.unlockedBy);
-  const joins = level > 0 && !members.includes(concern) && !(first && isWorldComplete(first, record));
+  const homeWorld = worldsFor(record.onboarding.plan, record).find((w) => w.id === 'home');
+  const joins = level > 0 && !members.includes(concern) && !(homeWorld && isWorldComplete(homeWorld, record));
   return { ...record, homeConcerns, worldHome: joins ? [...members, concern] : [...members] };
 }
 

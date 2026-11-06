@@ -4,11 +4,37 @@ import type { Palette } from './theme';
 /** Geometry of the World Map path: pure, so the zig-zag and its connectors are testable without rendering. */
 export const NODE_SIZE = 64;
 export const ROW_HEIGHT = 104;
+export const SATELLITE_SIZE = 40;
+export const SATELLITE_OFFSET_X = 64;
+
 /** Horizontal centre of each Node as a share of the column width, repeating down the path. */
 export const ZIG_ZAG = [0.2, 0.45, 0.8, 0.45] as const;
 
 export function nodeCenterX(index: number, width: number): number {
   return ZIG_ZAG[index % ZIG_ZAG.length] * width;
+}
+
+/** Horizontal centre of a Satellite Stop anchored to row `index`, placed on the side opposite the label. */
+export function satelliteCenterX(index: number, width: number): number {
+  const cx = nodeCenterX(index, width);
+  const onRight = labelOnRight(index);
+  const margin = SATELLITE_SIZE / 2 + 8;
+  return onRight ? Math.max(margin, cx - SATELLITE_OFFSET_X) : Math.min(width - margin, cx + SATELLITE_OFFSET_X);
+}
+
+/** The connector segment between the parent node center and the satellite stop center. */
+export function satelliteConnector(index: number, width: number): Segment {
+  const x1 = nodeCenterX(index, width);
+  const x2 = satelliteCenterX(index, width);
+  const y = NODE_SIZE / 2;
+  const dx = x2 - x1;
+  const length = Math.abs(dx);
+  return {
+    left: (x1 + x2) / 2,
+    top: y,
+    length,
+    angle: (Math.atan2(-dx, 0) * 180) / Math.PI,
+  };
 }
 
 /** Whether the label sits right of the Node (true) or left of it, always on the side with room. */
@@ -112,6 +138,24 @@ export function nodeVisual(color: Palette, state: NodeState, kind: StopKind = 'n
 /** A Stretch flag marks a Mission Stop: "Tramo N" with the 1-based Stretch number. */
 export function stretchFlag(kind: StopKind, stretch: number): { label: number } | null {
   return kind === 'mission' ? { label: stretch + 1 } : null;
+}
+
+export interface SatelliteVisual {
+  fill: string;
+  edge: string;
+  ink: string;
+  glyph: 'book';
+  completed: boolean;
+}
+
+export function satelliteVisual(color: Palette, completed: boolean): SatelliteVisual {
+  return {
+    fill: completed ? color.accentSoft : color.surface,
+    edge: color.outline,
+    ink: color.ink,
+    glyph: 'book',
+    completed,
+  };
 }
 
 /** The vertical extent of a Stop row, from its top to the bottom of its badge and Stretch flag; rows never overlap. */

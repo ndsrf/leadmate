@@ -3,7 +3,7 @@ import type { DogRecord } from '../dogRecord';
 import type { BreedId } from './breeds';
 import type { DogCoat } from './look';
 import { cleanDogName } from './name';
-import type { Concern } from '../concerns';
+import type { AgeBand, Concern } from '../concerns';
 import { chooseMainConcerns } from './questionnaire';
 import { nextStep, type OnboardingStep } from './flow';
 
@@ -18,10 +18,16 @@ export function leaveWelcome(record: DogRecord): DogRecord {
   return leave(record, 'welcome');
 }
 
-/** The name-and-look screen: stores the name, coat and breed and moves to the taste. A blank or too long name changes nothing. */
-export function saveNameAndLook(record: DogRecord, rawName: string, coat: DogCoat, breed: BreedId = record.breed): DogRecord {
+/** The name-and-look screen: stores the name, coat, breed and optional age band and moves to the taste. A blank or too long name changes nothing. */
+export function saveNameAndLook(
+  record: DogRecord,
+  rawName: string,
+  coat: DogCoat,
+  breed: BreedId = record.breed,
+  ageBand: AgeBand | null = record.ageBand,
+): DogRecord {
   const name = cleanDogName(rawName);
-  return name === null ? record : leave(record, 'dog', { name, coat, breed });
+  return name === null ? record : leave(record, 'dog', { name, coat, breed, ageBand });
 }
 
 /**

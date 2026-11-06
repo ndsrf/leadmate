@@ -16,7 +16,7 @@ describe('routeFor', () => {
   });
 
   it('funnel wins over a left-over flow and settings', () => {
-    for (const step of ['welcome', 'dog', 'concern', 'setup', 'diagnostic', 'plan'] as const) {
+    for (const step of ['welcome', 'dog', 'concern', 'setup', 'diagnostic', 'plan', 'method'] as const) {
       expect(
         routeFor({
           ready: true,
@@ -303,16 +303,21 @@ describe('Mission flows', () => {
     expect(canSkipDay('mission-poste', all, at(20, 1))).toBe(false);
   });
 
-  it('offers a Day Skip on a waiting Home Mission of World 1 (not its last), none off the trail, and opens it like any Mission', () => {
+  it('offers a Day Skip on a waiting Home Mission of World 2 (not its last), none off the trail, and opens it like any Mission', () => {
     const home = progressOf([], { missions: { 'mission-bark-home': started } });
     expect(missionEntryOf('mission-bark-home', progressOf([]), at(9))).toBe('brief');
     expect(missionEntryOf('mission-bark-home', home, at(20, 1))).toBe('waiting');
     expect(canSkipDay('mission-bark-home', home, at(20, 1))).toBe(false); // Other Home Behaviours: not on a trail
-    // the Basics Stretch that teaches how to play comes first in World 1, so it is done before the Home Stretch is reached
+    // World 1 is completed before World 2 and its Home Stretches are reached
     const basics = stopsOf(findWorld('basics')!);
     const mine = progressOf(['bark-home', ...basics.filter((s) => s.kind === 'node').map((s) => s.id)], {
       readLessons: ['theory-bark-home', ...basics.filter((s) => s.kind === 'lesson').map((s) => s.id)],
-      missions: { 'mission-bark-home': started, 'mission-dog-as-dog': { ...started, passedOn: '2026-05-02' } },
+      missions: {
+        'mission-bark-home': started,
+        'mission-dog-as-dog': { ...started, passedOn: '2026-05-02' },
+        'mission-home-rest': { ...started, passedOn: '2026-05-02' },
+        'mission-calm-first': { ...started, passedOn: '2026-05-02' },
+      },
       homeConcerns: { 'bark-home': 1 },
     });
     const worlds = worldsFor([{ stretchId: 'theory-bark-home' }], mine);

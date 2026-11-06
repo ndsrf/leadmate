@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 import type { Translate } from '../../i18n';
 import type { DogRecord } from '../dogRecord';
-import type { Concern } from '../concerns';
-import { payoffKeys } from '../concernText';
+import { AGE_BANDS, type AgeBand, type Concern } from '../concerns';
+import { AGE_KEYS, payoffKeys } from '../concernText';
 import { MainConcernChips } from '../ui/ConcernPickers';
 import { Button } from '../Overlays';
 import { BREEDS, BREEDS_COLLAPSED, breedOf, DEFAULT_BREED, type BreedId } from '../onboarding/breeds';
@@ -12,7 +12,7 @@ import { DOG_COAT_NAMES, type DogCoat } from '../onboarding/look';
 import { cleanDogName, DOG_NAME_MAX } from '../onboarding/name';
 import { BreedArt } from '../ui/BreedArt';
 import { LightRegion, Panel, Raised, TextField } from '../ui/components';
-import { BreedTile, CoatSwatch, StepHeader } from '../ui/Pickers';
+import { BreedTile, CoatSwatch, SelectChip, StepHeader } from '../ui/Pickers';
 import { theme, usePalette } from '../ui/theme';
 import { Screen } from './Screen';
 
@@ -27,12 +27,21 @@ function DogPreview({ t, breed, coat }: { t: Translate; breed: BreedId; coat: Do
   );
 }
 
-/** The Dog's breed, coat and name, in two parts ("1 of 2" breed and coat, "2 of 2" name); a blank name does not continue. */
-export function DogLookScreen({ t, record, onDone }: { t: Translate; record: DogRecord; onDone: (name: string, coat: DogCoat, breed: BreedId) => void }) {
+/** The Dog's breed, coat and name, in two parts ("1 of 2" breed and coat, "2 of 2" name and life stage); a blank name does not continue. */
+export function DogLookScreen({
+  t,
+  record,
+  onDone,
+}: {
+  t: Translate;
+  record: DogRecord;
+  onDone: (name: string, coat: DogCoat, breed: BreedId, ageBand: AgeBand | null) => void;
+}) {
   const [part, setPart] = useState<'look' | 'name'>('look');
   const [name, setName] = useState(record.name);
   const [breed, setBreed] = useState<BreedId>(record.breed);
   const [coat, setCoat] = useState<DogCoat>(record.coat);
+  const [ageBand, setAgeBandState] = useState<AgeBand | null>(record.ageBand);
   // a coat the user picked is theirs: choosing another breed afterwards no longer replaces it
   const [coatTouched, setCoatTouched] = useState(false);
   // until a breed is picked the grid shows no selection (the Dog is a Mestizo) and stays at its first tiles
@@ -47,7 +56,7 @@ export function DogLookScreen({ t, record, onDone }: { t: Translate; record: Dog
   };
   const next = () => {
     if (cleanDogName(name) === null) return setMissing(true);
-    onDone(name, coat, breed);
+    onDone(name, coat, breed, ageBand);
   };
   // the collapsed grid always shows the chosen breed, even one that is further down the list
   const first = BREEDS.slice(0, BREEDS_COLLAPSED);
@@ -108,6 +117,17 @@ export function DogLookScreen({ t, record, onDone }: { t: Translate; record: Dog
             onSubmitEditing={next}
           />
           {missing && <Text className="mt-2 text-body text-dangerText">{t('dog.nameMissing')}</Text>}
+          <Text className="mt-4 font-display text-bodyL text-ink">{t('setup.age.label')}</Text>
+          <View className="mb-4 flex-row flex-wrap">
+            {AGE_BANDS.map((band: AgeBand) => (
+              <SelectChip
+                key={band}
+                label={t(AGE_KEYS[band])}
+                selected={ageBand === band}
+                onPress={() => setAgeBandState(ageBand === band ? null : band)}
+              />
+            ))}
+          </View>
           <Button label={t('setup.next')} onPress={next} />
         </Panel>
       )}

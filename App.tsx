@@ -59,6 +59,7 @@ import { DiagnosticView } from './src/shell/screens/DiagnosticView';
 import { PaywallScreen } from './src/shell/screens/PaywallScreen';
 import { ValueRecapScreen } from './src/shell/screens/ValueRecapScreen';
 import { PlanScreen } from './src/shell/screens/PlanScreen';
+import { MethodOverviewScreen } from './src/shell/screens/MethodOverviewScreen';
 import { ConcernScreen, DogLookScreen, PayoffOverlay, TasteBriefScreen } from './src/shell/screens/IntroScreens';
 import { SetupScreen } from './src/shell/screens/SetupScreen';
 import { SettingsScreen } from './src/shell/screens/SettingsScreen';
@@ -756,6 +757,7 @@ export default function App() {
           onSettings={() => setSettingsOpen(true)}
           breed={record.breed}
           coat={record.coat}
+          ageBand={record.ageBand}
           onPaywall={() => setFlow({ name: 'paywall' })}
           trialModalOpen={trialModalOpen}
           onOpenTrialModal={() => setTrialModalOpen(true)}
@@ -810,13 +812,15 @@ export default function App() {
             actions={{ onStart: () => update(leaveWelcome), onLogIn: account.configured ? () => setFlow({ name: 'auth', mode: 'login', returnTo: 'map' }) : undefined }}
           />
         );
-      else if (route.step === 'dog') screen = <DogLookScreen t={t} record={record} onDone={(name, coat, breed) => update((r) => saveNameAndLook(r, name, coat, breed))} />;
+      else if (route.step === 'dog') screen = <DogLookScreen t={t} record={record} onDone={(name, coat, breed, ageBand) => update((r) => saveNameAndLook(r, name, coat, breed, ageBand))} />;
       else if (route.step === 'concern') screen = <ConcernScreen t={t} record={record} onDone={(concerns) => update((r) => saveMainConcerns(r, concerns))} />;
       else if (route.step === 'setup') screen = <SetupScreen t={t} record={record} update={update} />;
       else if (route.step === 'diagnostic')
         screen = <DiagnosticView key="diagnostic" t={t} record={record} seed={newSeed()} onFinish={(latency) => update((r) => recordDiagnostic(r, latency))} />;
       else if (route.step === 'plan')
         screen = <PlanScreen t={t} dog={record} latency={record.onboarding.diagnosticLatency ?? 0.5} plan={record.onboarding.plan} onContinue={() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: nextStep('plan') } }))} />;
+      else if (route.step === 'method')
+        screen = <MethodOverviewScreen t={t} dog={record} onContinue={() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: nextStep('method') } }))} onBack={withBack(() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: 'plan' } })))} />;
     }
   } else if (route.name === 'taste') {
     screen = tasteBriefed || !record ? null : <TasteBriefScreen t={t} name={record.name} onStart={() => setTasteBriefed(true)} />;
@@ -827,7 +831,7 @@ export default function App() {
           t={t}
           run={introRun}
           onNext={() => setIntroRun((r) => (r ? advance(r, { type: 'next' }) : null))}
-          onExit={withBack(() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: 'plan' } })))}
+          onExit={withBack(() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: 'method' } })))}
         />
       );
     } else if (introRun?.step === 'checkpoint') {

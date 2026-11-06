@@ -148,4 +148,15 @@ describe('the breed on the name-and-look screen', () => {
     expect(saveNameAndLook(start, ' ', 'black', 'teckel')).toBe(start);
     expect(start.breed).toBe('mestizo');
   });
+
+  it('stores the age band when chosen on the name-and-look step', () => {
+    const r = saveNameAndLook(at('dog'), 'Luna', 'black', 'collie', 'puppy');
+    expect(r).toMatchObject({ name: 'Luna', coat: 'black', breed: 'collie', ageBand: 'puppy' });
+    expect(r.onboarding.step).toBe('concern');
+  });
+
+  it('keeps ageBand null when unselected', () => {
+    const r = saveNameAndLook(at('dog'), 'Luna', 'black', 'collie', null);
+    expect(r.ageBand).toBeNull();
+  });
 });

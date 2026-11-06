@@ -1,7 +1,7 @@
 import type { TextKey, Translate } from '../i18n';
 import type { DogRecord } from './dogRecord';
 import type { HomeConcern, HomeConcerns } from './concerns';
-import { homeConcernOfStop, homeStretchStops, homeStretchesInWorldOne } from './homeBehaviours';
+import { homeConcernOfStop, homeStretchStops, homeStretchesInWorldTwo } from './homeBehaviours';
 import { canCheckIn, checkInOpensAt, isOwed } from './missions/mission';
 import { ALL_NODES as NODES } from './nodes/content';
 import type { NodeDef } from './nodes/node';
@@ -85,7 +85,7 @@ export const WORLDS: readonly WorldDef[] = [
  */
 export type Progress = Pick<DogRecord, 'completedNodes' | 'readLessons' | 'missions' | 'legacyNodes'> & {
   plus?: boolean;
-  /** The Dog's Home Concerns and the Home Stretches that belong to World 1; read by `worldsFor` only. */
+  /** The Dog's Home Concerns and the Home Stretches that belong to World 2; read by `worldsFor` only. */
   homeConcerns?: HomeConcerns;
   worldHome?: DogRecord['worldHome'];
 };
@@ -160,13 +160,13 @@ export function placeOfLesson(lessonId: string, worlds: readonly WorldDef[] = WO
 /** The Mission that ends a Stop's Stretch. */
 export function missionOfStop(stop: Stop, worlds: readonly WorldDef[] = WORLDS): string | undefined {
   const place = placeOf(stop, worlds);
-  // a Home Stretch is a Stretch of World 1 only for a Dog that has the Concern; off the trail it still ends in its Mission
+  // a Home Stretch is a Stretch of World 2 only for a Dog that has the Concern; off the trail it still ends in its Mission
   const stretch = place ? place.world.stretches[place.stretch] : homeStretchOfStop(stop);
   const last = stretch?.[stretch.length - 1];
   return last?.kind === 'mission' ? last.id : undefined;
 }
 
-/** The Home Stretch holding a Stop, whether or not it is in World 1; undefined for any other Stop. */
+/** The Home Stretch holding a Stop, whether or not it is in World 2; undefined for any other Stop. */
 function homeStretchOfStop(stop: Stop): Stop[] | undefined {
   return homeStretchStops().map((h) => h.stops).find((stops) => stops.some((s) => sameStop(s, stop)));
 }
@@ -197,7 +197,7 @@ function isGrandfathered(world: WorldDef, stretch: number, progress: Progress): 
   const own = world.stretches[stretch];
   const id = own[own.length - 1].id;
   if (progress.missions[id]?.startedAt) return false;
-  // a Home Node played from Other Home Behaviours before it joined World 1 says nothing about the Stops before it
+  // a Home Node played from Other Home Behaviours before it joined World 2 says nothing about the Stops before it
   const after = world.stretches.slice(stretch + 1).flat().filter((s) => s.kind === 'node' && !homeConcernOfStop(s));
   if (after.length > 0) return after.some((s) => progress.completedNodes.includes(s.id));
   const nodes = own.filter((s) => s.kind === 'node');
@@ -254,17 +254,10 @@ export type StopLock =
   | { kind: 'world' }
   /** An earlier Mission of the World is not passed. */
   | { kind: 'mission'; id: string }
-  /** Earlier Stops of the same Stretch are not done (a Lesson is never locked this way), or a Lesson the Node requires is unread. */
+  /** Earlier Stops of the same Stretch are not done (a Lesson is never locked this way), or a Lesson the Node requires is unread (it must have been read, even when its Stretch is done). */
   | { kind: 'stops'; stops: Stop[] }
   /** The Node's own prerequisite Nodes are missing. */
   | { kind: 'nodes'; ids: string[] };
-
-/** True when a Lesson is read, or done for gating on the trail (left unread behind a completed Node). */
-function lessonDone(id: string, progress: Progress, worlds: readonly WorldDef[]): boolean {
-  if (progress.readLessons.includes(id)) return true;
-  const place = placeOf({ kind: 'lesson', id }, worlds);
-  return !!place && doneness(place.world, place.stretch, place.index, progress).done;
-}
 
 /** Whether a Stop can be opened, independent of the time of day; null when it can. */
 export function stopLock(stop: Stop, progress: Progress, worlds: readonly WorldDef[] = WORLDS, nodes: readonly NodeDef[] = NODES): StopLock | null {
@@ -276,7 +269,9 @@ export function stopLock(stop: Stop, progress: Progress, worlds: readonly WorldD
     return missing.length > 0 ? { kind: 'nodes', ids: missing } : null;
   }
   const { world, stretch, index } = place;
-  if (!isWorldUnlocked(world, progress, worlds)) return { kind: 'world' };
+  // a Home Stretch the Dog already started stays open when it moved into a World that is still closed
+  const startedHome = !!homeStretchOfStop(stop) && touched(world.stretches[stretch], progress);
+  if (!isWorldUnlocked(world, progress, worlds) && !startedHome) return { kind: 'world' };
   for (let s = 0; s < stretch; s++) {
     const last = world.stretches[s].length - 1;
     if (!doneness(world, s, last, progress).done) return { kind: 'mission', id: world.stretches[s][last].id };
@@ -290,7 +285,7 @@ export function stopLock(stop: Stop, progress: Progress, worlds: readonly WorldD
   }
   if (stop.kind === 'node') {
     const def = nodes.find((n) => n.id === stop.id);
-    const unread = def ? requiredLessonsOf(def).filter((id) => !lessonDone(id, progress, worlds)).map((id): Stop => ({ kind: 'lesson', id })) : [];
+    const unread = def ? requiredLessonsOf(def).filter((id) => !progress.readLessons.includes(id)).map((id): Stop => ({ kind: 'lesson', id })) : [];
     if (unread.length > 0) return { kind: 'stops', stops: unread };
     const ids = def ? def.prerequisites.filter((id) => !progress.completedNodes.includes(id)) : [];
     if (ids.length > 0) return { kind: 'nodes', ids };
@@ -358,19 +353,19 @@ function touched(stops: readonly Stop[], progress: Progress): boolean {
 }
 
 /**
- * The Worlds as this Dog walks them (ADR 0021): the Home Stretches of the Dog's Concerns join World 1, and inside each
- * World the Stretches the Personal Plan names come first, in plan order, after any Stretch the user has already started
- * (those keep their place so no progress moves). A Home Stretch the plan does not name follows the plan's, biting first.
- * A Stretch never moves before the Stretch holding a prerequisite Node of one of its Nodes, or the how-to-play Lesson one of them requires. In World 1 the order is fixed: biting Home Stretches, the first Basics Stretch, the other Home Stretches, the other Basics. The Worlds, their locks,
- * their unlocks and the order of Stops inside a Stretch do not change. With no plan and no Home Stretch this is `WORLDS`.
+ * The Worlds as this Dog walks them (ADR 0023): the Home Stretches of the Dog's Concerns join World 2, placed at
+ * the beginning in Personal Plan order (biting first), followed by threshold Stretches. World 1 is strictly fixed
+ * to its 3 foundational Stretches. Inside later Worlds, the Stretches the Personal Plan names come first, in plan
+ * order, after any Stretch the user has already started (those keep their place so no progress moves). A Home Stretch
+ * the plan does not name follows the plan's, biting first. A Stretch never moves before the Stretch holding a
+ * prerequisite Node of one of its Nodes, or the Lesson one of them requires. With no plan and no Home Stretch this is `WORLDS`.
  */
 export function worldsFor(plan: readonly { stretchId: string }[], progress: Progress, worlds: readonly WorldDef[] = WORLDS, nodes: readonly NodeDef[] = NODES): readonly WorldDef[] {
-  const firstId = worlds.find((w) => !w.unlockedBy && !w.preview)?.id;
-  const home = homeStretchesInWorldOne(progress.homeConcerns ?? {}, progress.worldHome, (stops) => touched(stops, progress)).map((h) => h.stops);
+  const home = homeStretchesInWorldTwo(progress.homeConcerns ?? {}, progress.worldHome, (stops) => touched(stops, progress)).map((h) => h.stops);
   if (plan.length === 0 && home.length === 0) return worlds;
   let changed = false;
   const out = worlds.map((world) => {
-    const own = world.id === firstId ? home.filter((h) => !world.stretches.some((s) => stretchIdOf(s) === stretchIdOf(h))) : [];
+    const own = world.id === 'home' ? home.filter((h) => !world.stretches.some((s) => stretchIdOf(s) === stretchIdOf(h))) : [];
     const all = [...world.stretches, ...own];
     if (all.length < 2) return world;
     const levelOf = (stops: Stop[]) => progress.homeConcerns?.[homeConcernOfStop(stops[0]) as HomeConcern] ?? 0;
@@ -379,20 +374,20 @@ export function worldsFor(plan: readonly { stretchId: string }[], progress: Prog
       const i = plan.findIndex((p) => p.stretchId === stretchIdOf(stops));
       return i >= 0 ? i : plan.length + (own.includes(stops) ? (4 - levelOf(stops)) / 10 : 1);
     };
-    // World 1 for a Dog: biting Home Stretches, the first Basics Stretch (it teaches how to play), the other Home
-    // Stretches in plan order, then the rest of the Basics in trail order; the plan does not reorder the Basics there
+    // In World 2: declared Home Stretches (biting first, then other home in plan order), followed by threshold Stretches
     const BITING_HOME = ['bite-owner', 'bite-others'];
     const group = (stops: Stop[], original: number) => {
-      if (world.id !== firstId) return 0;
-      if (own.includes(stops)) return BITING_HOME.includes(homeConcernOfStop(stops[0]) ?? '') ? 0 : 2;
-      return original === 0 ? 1 : 3;
+      if (world.id !== 'home') return 0;
+      if (own.includes(stops)) return BITING_HOME.includes(homeConcernOfStop(stops[0]) ?? '') ? 0 : 1;
+      return 2;
     };
     // started Stretches first, then the plan's Stretches in plan order, then the rest in trail order
     const sorted = all
       .map((stops, original) => {
         const started = touched(stops, progress);
-        if (world.id !== firstId) return { stops, key: started || plan.length === 0 ? [0, 0, 0, original] : [1, 0, indexInPlan(stops), original] };
-        return { stops, key: [started ? 0 : 1, group(stops, original), own.includes(stops) ? indexInPlan(stops) : 0, original] };
+        if (world.id === 'basics') return { stops, key: [0, 0, 0, original] };
+        if (world.id !== 'home') return { stops, key: started || plan.length === 0 ? [0, 0, 0, original] : [1, 0, indexInPlan(stops), original] };
+        return { stops, key: [started ? 0 : 1, group(stops, original), indexInPlan(stops), original] };
       })
       .sort((a, b) => a.key[0] - b.key[0] || a.key[1] - b.key[1] || a.key[2] - b.key[2] || a.key[3] - b.key[3]);
     // a Stretch never moves before the Stretch that holds a prerequisite Node, or a Lesson required by one of its Nodes, or it could not be opened

@@ -114,7 +114,7 @@ Shortening the working leash with the Handler's hands so the Dog stays close, wi
 _Avoid_: Reel in, yank, pull back
 
 **Age Band**:
-The Dog's life stage, chosen once in Dog setup and optional: puppy, adolescent, adult or senior. It changes copy and tuning only, never the controls; a Dog with no Age Band gets neutral copy.
+The Dog's life stage, chosen in early onboarding (and editable in Dog setup) and optional: puppy, adolescent, adult or senior. It tailors copy, tuning, and adds life-stage companion Satellite Stops; a Dog with no Age Band gets neutral copy.
 _Avoid_: Age group
 
 **Theory Primer**:
@@ -271,7 +271,7 @@ A themed trail of Stops, grouped into Stretches, with distinct environment rules
 _Avoid_: Chapter, zone, campaign level
 
 **Basics World**:
-World 1, "Un perro es un perro": the indoor World before any leash work that teaches living with the Dog as a dog (its quirks have names, no humanising, home is for resting, calm before learning) through theory Lessons, static action Minigames and Home Missions. Records with progress from before it existed have it marked complete.
+World 1, "Un perro es un perro": the indoor World before any leash work that teaches living with the Dog as a dog (its quirks have names, no humanising, home is for resting, calm before learning) through three universal Stretches with theory Lessons, static action Minigames and Home Missions. It never interleaves dynamic Home Stretches. Records with progress from before it existed have it marked complete.
 _Avoid_: Prologue, World 0, tutorial world
 
 **Named behaviour**:
@@ -283,11 +283,11 @@ The Handler walking calmly into the Dog's space, with no eye contact, words or t
 _Avoid_: Push away, shoo, block
 
 **Home Stretch**:
-A Stretch about one Home Behaviour: a Lesson, a Node (none for the two biting ones) and a Mission. It is a Stop run of World 1 while the Dog has that Concern, so it gates World 1 like any Stretch, and otherwise it sits in Other Home Behaviours. A Home Stretch the user has started stays in World 1 even if the Concern is removed, and one declared after World 1 is complete stays in Other Home Behaviours.
+A Stretch about one Home Behaviour: a Lesson, a Node (none for the two biting ones) and a Mission. It is a Stop run of World 2 while the Dog has that Concern, so it gates World 2 like any Stretch, and otherwise it sits in Other Home Behaviours. A Home Stretch the user has started stays in World 2 even if the Concern is removed, and one declared after World 2 is complete stays in Other Home Behaviours.
 _Avoid_: Home trail
 
 **Other Home Behaviours**:
-The optional, collapsed-by-default section between World 1 and World 2 that holds the Home Stretches of the Home Behaviours the Dog does not have as a Concern. It gates and counts toward nothing, all its Lessons, Nodes and Missions are playable, and "Ahora es un problema" moves a Home Stretch into World 1 at level 1. It is hidden when it would be empty.
+The optional, collapsed-by-default section after World 2 that holds the Home Stretches of the Home Behaviours the Dog does not have as a Concern. It gates and counts toward nothing, all its Lessons, Nodes and Missions are playable, and "Ahora es un problema" moves a Home Stretch into World 2 at level 1. It is hidden when it would be empty.
 
 **Home Mission**:
 A Mission whose target is practised at home rather than on a walk; its brief, check-in question and success sign are worded for home. A Home Stretch's Mission is passed, owed and skipped like any other.
@@ -296,6 +296,10 @@ _Avoid_: Indoor homework
 **Stop**:
 One point on a World's trail: a Lesson, a Node or a Mission.
 _Avoid_: Step, item, level
+
+**Satellite Stop**:
+A companion Lesson stop anchored alongside a Stretch's primary Stop on the World Map for specific life stages (such as puppy records). It does not belong to the linear spine, never gates Missions or World completion, and can be read at any time.
+_Avoid_: Satellite waypoint, side quest, bonus stop, branch node
 
 **Stretch**:
 The run of Stops on a trail up to and including one Mission; the most a user can advance in a day without a Day Skip. Its Lessons are all open at once; its Node needs the Lessons read, and its Mission needs the Node.
