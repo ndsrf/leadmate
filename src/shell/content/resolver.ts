@@ -133,6 +133,7 @@ export function resolvePack(pack: ContentPack, language: string = 'es', options?
   // 2. Resolve Lessons
   const trailLessonIds = worlds.flatMap((w) => w.stretches.flatMap((s) => s.filter((st) => st.kind === 'lesson').map((st) => st.id)));
   const homeLessonOrder = ['theory-bite-owner', 'theory-bite-others', 'theory-bark-home', 'theory-destroy', 'theory-eat-objects'];
+  const puppyLessonOrder = ['puppy-bite', 'puppy-sound', 'puppy-vet'];
 
   const lessons: LessonDef[] = Object.entries(pack.lessons ?? {})
     .sort(([idA, entryA], [idB, entryB]) => {
@@ -153,6 +154,12 @@ export function resolvePack(pack: ContentPack, language: string = 'es', options?
       if (hA !== -1 && hB !== -1) return hA - hB;
       if (hA !== -1) return -1;
       if (hB !== -1) return 1;
+
+      const pA = puppyLessonOrder.indexOf(idA);
+      const pB = puppyLessonOrder.indexOf(idB);
+      if (pA !== -1 && pB !== -1) return pA - pB;
+      if (pA !== -1) return -1;
+      if (pB !== -1) return 1;
 
       return idA.localeCompare(idB);
     })

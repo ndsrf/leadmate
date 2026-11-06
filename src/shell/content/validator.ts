@@ -502,11 +502,12 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
   }
 
   // 7. Check for Orphans (unreachable content)
-  // Allowed non-trail lessons: library first-week (day !== undefined) or home lessons
+  // Allowed non-trail lessons: library first-week (day !== undefined), home lessons, or puppy track lessons
   for (const [lId, lessonEntry] of Object.entries(pack.lessons ?? {})) {
     const isLibraryLesson = lessonEntry.config.day !== undefined;
     const isHomeLesson = lId.startsWith('theory-bite-') || lId === 'theory-bark-home' || lId === 'theory-destroy' || lId === 'theory-eat-objects';
-    if (!trailReferencedLessons.has(lId) && !isLibraryLesson && !isHomeLesson) {
+    const isPuppyLesson = lId.startsWith('puppy-');
+    if (!trailReferencedLessons.has(lId) && !isLibraryLesson && !isHomeLesson && !isPuppyLesson) {
       errors.push({
         file: `lessons/${lId}/lesson.yaml`,
         message: `Orphan Lesson: "${lId}" is not placed on any World trail and is not marked as a library or home item`,

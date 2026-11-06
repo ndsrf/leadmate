@@ -59,26 +59,37 @@ export function theoryLesson(id: string, spec: TheorySpec): LessonDef {
   return lesson;
 }
 
+function createArrayProxy<T>(getTarget: () => readonly T[]): readonly T[] {
+  return new Proxy([] as unknown as readonly T[], {
+    get(_target, prop, receiver) {
+      const arr = getTarget();
+      const value = Reflect.get(arr, prop, receiver);
+      if (typeof value === 'function') {
+        return value.bind(arr);
+      }
+      return value;
+    },
+    has(_target, prop) {
+      return Reflect.has(getTarget(), prop);
+    },
+    ownKeys(_target) {
+      return Reflect.ownKeys(getTarget());
+    },
+    getOwnPropertyDescriptor(_target, prop) {
+      return Reflect.getOwnPropertyDescriptor(getTarget(), prop);
+    },
+  });
+}
+
+const PUPPY_MODULE_IDS = ['puppy-bite', 'puppy-sound', 'puppy-vet'];
+
+/** Dedicated companion lessons for puppies under 6 months (Satellite Stops in World 1). */
+export const PUPPY_LESSONS: readonly LessonDef[] = createArrayProxy(() =>
+  getActiveContent().resolved.lessons.filter((l) => PUPPY_MODULE_IDS.includes(l.id)),
+);
+
 /** Every Lesson of the Theory Library, in Library order: resolved from the active Content Pack. */
-export const LESSONS: readonly LessonDef[] = new Proxy([] as unknown as readonly LessonDef[], {
-  get(_target, prop, receiver) {
-    const lessons = getActiveContent().resolved.lessons;
-    const value = Reflect.get(lessons, prop, receiver);
-    if (typeof value === 'function') {
-      return value.bind(lessons);
-    }
-    return value;
-  },
-  has(_target, prop) {
-    return Reflect.has(getActiveContent().resolved.lessons, prop);
-  },
-  ownKeys(_target) {
-    return Reflect.ownKeys(getActiveContent().resolved.lessons);
-  },
-  getOwnPropertyDescriptor(_target, prop) {
-    return Reflect.getOwnPropertyDescriptor(getActiveContent().resolved.lessons, prop);
-  },
-});
+export const LESSONS: readonly LessonDef[] = createArrayProxy(() => getActiveContent().resolved.lessons);
 
 export function findLesson(id: string): LessonDef | undefined {
   return LESSONS.find((l) => l.id === id);
