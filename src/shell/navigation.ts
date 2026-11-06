@@ -28,7 +28,7 @@ export interface RouteForParams<F = unknown> {
  *
  * Precedence:
  * 1. Splash until ready.
- * 2. Funnel steps ('welcome', 'dog', 'setup', 'diagnostic', 'plan'), the 'taste' and
+ * 2. Funnel steps ('welcome', 'dog', 'concern', 'setup', 'diagnostic', 'plan', 'method'), the 'taste' and
  *    'first-stage' Stages and the 'paywall' win over any leftover flow/settings. The one exception is
  *    an account flow (login from 'welcome', registration at 'paywall'), which shows over its step.
  * 3. Active flow (node, daily, warmup, auth, register) over map/settings/recap.
@@ -123,6 +123,15 @@ export function backAction({ route, playingStage, paused, bundle, hasScreenBack,
   if (hasScreenBack) return 'screen';
   if (route.name === 'splash' || route.name === 'map' || route.name === 'funnel' || route.name === 'paywall' || route.name === 'recap') return 'exit';
   return 'consume';
+}
+
+/**
+ * Whether the World Map registers the Plus trial modal's close as the system back. Only while the modal is
+ * open and no screen sits over the map: the map stays mounted under Settings, the Library, the Diary and
+ * Lessons, and its registration would otherwise replace theirs (withBack is last-write-wins).
+ */
+export function trialModalOwnsBack({ trialModalOpen, hasOverlay }: { trialModalOpen: boolean; hasOverlay: boolean }): boolean {
+  return trialModalOpen && !hasOverlay;
 }
 
 /** Just enough of a flow to decide whether the Stage view is needed (a Node run, a Daily, or a warm-up). */

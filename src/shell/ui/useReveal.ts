@@ -30,7 +30,7 @@ export function useReveal(target: RevealTarget): { state: RevealState; skip: () 
     live.current = out.state;
     for (const e of out.events) feedback.star(e.n);
     setState(out.state);
-  });
+  }, 'reveal');
 
   const skip = useCallback(() => {
     live.current = stepReveal(live.current, { type: 'skip' }).state;

@@ -52,6 +52,8 @@ export interface CloseExerciseOptions {
   onTier?: (tier: ReactionTier, time: number) => void;
   onSignal?: (signal: StageSignal, time: number, detail?: { control?: StageControl; bearing?: number }) => void;
   onReady?: () => void;
+  /** The scene may need the loop again (the how-to card was dismissed). */
+  onWake?: () => void;
   onEnd?: (payload: SimulationDebriefPayload) => void;
 }
 
@@ -220,10 +222,15 @@ export class CloseExerciseScene extends Phaser.Scene {
         onGather: (down) => { input.gather = down; },
         onPoste: (down) => { input.poste = down; },
         onMark: () => { input.marker = true; },
-        onStart: () => { this.introOpen = false; },
+        onStart: () => {
+          this.introOpen = false;
+          this.syncStill();
+          this.wakeLoop();
+        },
       },
       this.introOpen,
     );
+    this.syncStill(); // one place decides the animations' state, including a pause that arrived before the view
     this.setupKeyboard();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.view?.destroy();
@@ -515,6 +522,7 @@ export class CloseExerciseScene extends Phaser.Scene {
           this.view?.celebrate(performance.now());
         } else if (e.type === 'exercise-complete') {
           this.isEnded = true;
+          this.syncStill();
           const payload = buildCloseExercisePayload(this.sim);
           // the hand drill holds its last frame (the reward and the sparkles) for a moment before the Debrief
           const celebrate = this.view && e.outcome === 'calm' ? 1300 : 0;
@@ -667,10 +675,40 @@ export class CloseExerciseScene extends Phaser.Scene {
 
   pauseStage(): void {
     this.isPaused = true;
+    this.syncStill();
   }
 
   resumeStage(): void {
     this.isPaused = false;
+    this.syncStill();
+  }
+
+  /** The hand drill's how-to-play card is up: the clock waits and the loop can sleep. */
+  get isWaitingToStart(): boolean {
+    return this.introOpen;
+  }
+
+  /** False for the hand drill, which is HTML/SVG over the page: the Phaser canvas has nothing to draw. */
+  get drawsCanvas(): boolean {
+    return !this.view;
+  }
+
+  /** Wakes the render loop: through the owner's hook, or directly when the scene was created without one. */
+  private wakeLoop(): void {
+    if (this.options.onWake) {
+      this.options.onWake();
+      return;
+    }
+    const loop = this.game?.loop;
+    if (loop && !loop.running) {
+      loop.wake();
+      loop.resetDelta();
+    }
+  }
+
+  /** The hand drill's endless animations run only while the drill is playing. */
+  private syncStill(): void {
+    this.view?.setStill(this.isPaused || this.isEnded || this.introOpen);
   }
 
   focusCamera(): void {

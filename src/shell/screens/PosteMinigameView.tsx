@@ -46,7 +46,7 @@ export function PosteMinigameView({ t, coat = 'golden', onFinish }: { t: Transla
       finished.current = true;
       finish.current(posteMinigameMetrics(next));
     }
-  });
+  }, 'poste');
 
   return (
     <Screen>

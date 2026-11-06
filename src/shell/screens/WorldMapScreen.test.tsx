@@ -70,6 +70,7 @@ import { BarkdokuChip, NEXT_UP_PULSE_CYCLES, PlusChip, TrialStatusModal, WorldMa
 import { NO_STREAK } from '../streak';
 import { findWorld, isWorldUnlocked, progressOf, stopsOf, worldTitle, type Progress, type Stop, type WorldDef } from '../world';
 import { LESSONS } from '../lessons/content';
+import { PUPPY_SATELLITE_STOPS } from '../puppyTrack';
 
 describe('WorldMapScreen - Daily Barkdoku chip', () => {
   const t = createTranslator(es);
@@ -739,18 +740,26 @@ describe('WorldMapScreen - Home Behaviours section', () => {
     expect(markup).not.toContain(es['home.comingSoon']);
   });
 
-  it('shows the section collapsed (header only) between World 1 and World 2, and hides it when every Home Stretch is in World 1', () => {
+  it('shows the section collapsed (header only) immediately after World 2, and hides it when every Home Stretch is in World 2', () => {
     const markup = renderToStaticMarkup(<WorldMapScreen {...base} home={{ concerns: {}, onBecomeConcern: () => {} }} />);
     expect(markup.match(/Otros comportamientos en casa/g)).toHaveLength(2); // title + accessibility label
     expect(markup).not.toContain(es['home.help']);
-    expect(markup.indexOf(es['home.title'])).toBeGreaterThan(markup.indexOf('testID="top-landmark-basics"'));
-    expect(markup.indexOf(es['home.title'])).toBeLessThan(markup.indexOf(worldTitle(findWorld('home')!, t)));
+    expect(markup.indexOf(es['home.title'])).toBeGreaterThan(markup.indexOf(worldTitle(findWorld('home')!, t)));
+    expect(markup.indexOf(es['home.title'])).toBeLessThan(markup.indexOf(worldTitle(findWorld('sidewalk')!, t)));
     const all = { 'bite-owner': 1, 'bite-others': 1, 'bark-home': 1, destroy: 1, 'eat-objects': 1 } as const;
     expect(renderToStaticMarkup(<WorldMapScreen {...base} progress={progressOf([], { homeConcerns: all })} home={{ concerns: all, onBecomeConcern: () => {} }} />)).not.toContain(es['home.title']);
   });
 
-  it('shows the Home Stretches of the Dog\'s Concerns as Stretches of World 1', () => {
-    const progress = progressOf([], { homeConcerns: { 'bark-home': 1 } });
+  it('shows the Home Stretches of the Dog\'s Concerns as Stretches of World 2 when unlocked', () => {
+    const stops = stopsOf(findWorld('basics')!);
+    const progress = progressOf(
+      stops.filter((s) => s.kind === 'node').map((s) => s.id),
+      {
+        readLessons: stops.filter((s) => s.kind === 'lesson').map((s) => s.id),
+        missions: Object.fromEntries(stops.filter((s) => s.kind === 'mission').map((s) => [s.id, { target: 'full', skipRun: 0, attempts: [], startedAt: '2026-10-01T09:00:00.000Z', passedOn: '2026-10-02' }])) as Progress['missions'],
+        homeConcerns: { 'bark-home': 1 },
+      },
+    );
     const markup = renderToStaticMarkup(<WorldMapScreen {...base} progress={progress} home={{ concerns: { 'bark-home': 1 }, onBecomeConcern: () => {} }} />);
     expect(markup).toContain('Ladra en casa');
   });
@@ -801,3 +810,93 @@ describe('Task 6.1b: Pack-marked Plus World paywall verification', () => {
   });
 });
 
+describe('WorldMapScreen - Satellite Stops for Puppies (Task 4.2 & 4.3)', () => {
+  const t = createTranslator(es);
+  const base = {
+    t,
+    progress: progressOf([]),
+    stars: {},
+    now: new Date('2026-10-28T09:00:00'),
+    streak: NO_STREAK,
+    today: '2026-10-28',
+    dailyBest: undefined,
+    rustyPrompt: false,
+    rusty: false,
+    skippedWarmup: false,
+    onWarmup: () => {},
+    onSkipWarmup: () => {},
+    onDaily: () => {},
+    onBarkdoku: () => {},
+    onOpenStop: () => {},
+    onSettings: () => {},
+  };
+
+  it('renders all three companion satellite stops in World 1 when ageBand is puppy', () => {
+    mockPressables.length = 0;
+    const markup = renderToStaticMarkup(<WorldMapScreen {...base} ageBand="puppy" />);
+
+    const satellites = mockPressables.filter((p) =>
+      typeof p.accessibilityLabel === 'string' && p.accessibilityLabel.includes(es['map.satellite.puppy'])
+    );
+    expect(satellites).toHaveLength(3);
+
+    for (const def of PUPPY_SATELLITE_STOPS) {
+      const match = satellites.find((p) => p.accessibilityLabel.includes(t(def.title)));
+      expect(match).toBeDefined();
+    }
+    expect(markup).toContain(es['map.satellite.puppy']);
+  });
+
+  it('announces completion in accessibility label and renders checkmark when completed', () => {
+    mockPressables.length = 0;
+    const progressCompleted = progressOf([], { readLessons: ['puppy-bite'] });
+    const markup = renderToStaticMarkup(<WorldMapScreen {...base} ageBand="puppy" progress={progressCompleted} />);
+    expect(markup).toContain('✓');
+
+    const biteBtn = mockPressables.find(
+      (p) => typeof p.accessibilityLabel === 'string' && p.accessibilityLabel.includes(t('trail.puppy-bite.title'))
+    );
+    expect(biteBtn).toBeDefined();
+    expect(biteBtn.accessibilityLabel).toContain(es['map.satellite.done']);
+
+    const soundBtn = mockPressables.find(
+      (p) => typeof p.accessibilityLabel === 'string' && p.accessibilityLabel.includes(t('trail.puppy-sound.title'))
+    );
+    expect(soundBtn).toBeDefined();
+    expect(soundBtn.accessibilityLabel).not.toContain(es['map.satellite.done']);
+  });
+
+  it('does not render satellite stops for adult, adolescent, senior, or null ageBand', () => {
+    for (const age of ['adult', 'adolescent', 'senior', null, undefined] as const) {
+      mockPressables.length = 0;
+      const markup = renderToStaticMarkup(<WorldMapScreen {...base} ageBand={age} />);
+      const satellites = mockPressables.filter((p) =>
+        typeof p.accessibilityLabel === 'string' && p.accessibilityLabel.includes(es['map.satellite.puppy'])
+      );
+      expect(satellites).toHaveLength(0);
+      expect(markup).not.toContain(es['map.satellite.puppy']);
+    }
+  });
+
+  it('invokes onOpenStop with { kind: "lesson", id: sat.lessonId } when a satellite stop is tapped', () => {
+    const onOpenStop = jest.fn();
+    mockPressables.length = 0;
+    renderToStaticMarkup(<WorldMapScreen {...base} ageBand="puppy" onOpenStop={onOpenStop} />);
+
+    for (const def of PUPPY_SATELLITE_STOPS) {
+      const button = mockPressables.find(
+        (p) => typeof p.accessibilityLabel === 'string' && p.accessibilityLabel.includes(t(def.title))
+      );
+      expect(button).toBeDefined();
+      button.onPress();
+      expect(onOpenStop).toHaveBeenCalledWith({ kind: 'lesson', id: def.lessonId });
+    }
+    expect(onOpenStop).toHaveBeenCalledTimes(3);
+  });
+
+  it('renders checkmark indicator when a puppy satellite module is completed in readLessons', () => {
+    const progressCompleted = progressOf([], { readLessons: ['puppy-bite'] });
+    const markup = renderToStaticMarkup(<WorldMapScreen {...base} ageBand="puppy" progress={progressCompleted} />);
+    expect(markup).toContain('✓');
+  });
+});

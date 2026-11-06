@@ -3,7 +3,7 @@ import { canSkipDay, missionAfterDebrief, missionEntryOf, missionEntryView, miss
 import type { MissionState } from './missions/mission';
 import { findWorld, isLastMissionOfWorld, missionOfStop, progressOf, stopsOf, worldsFor } from './world';
 import { withBasicsDone } from './testProgress';
-import { backAction, isReadyToLeaveSplash, onStageViewFailure, routeFor, stageViewWanted, type BackActionParams } from './navigation';
+import { backAction, isReadyToLeaveSplash, trialModalOwnsBack, onStageViewFailure, routeFor, stageViewWanted, type BackActionParams } from './navigation';
 
 describe('routeFor', () => {
   it('returns splash until ready', () => {
@@ -16,7 +16,7 @@ describe('routeFor', () => {
   });
 
   it('funnel wins over a left-over flow and settings', () => {
-    for (const step of ['welcome', 'dog', 'concern', 'setup', 'diagnostic', 'plan'] as const) {
+    for (const step of ['welcome', 'dog', 'concern', 'setup', 'diagnostic', 'plan', 'method'] as const) {
       expect(
         routeFor({
           ready: true,
@@ -303,16 +303,21 @@ describe('Mission flows', () => {
     expect(canSkipDay('mission-poste', all, at(20, 1))).toBe(false);
   });
 
-  it('offers a Day Skip on a waiting Home Mission of World 1 (not its last), none off the trail, and opens it like any Mission', () => {
+  it('offers a Day Skip on a waiting Home Mission of World 2 (not its last), none off the trail, and opens it like any Mission', () => {
     const home = progressOf([], { missions: { 'mission-bark-home': started } });
     expect(missionEntryOf('mission-bark-home', progressOf([]), at(9))).toBe('brief');
     expect(missionEntryOf('mission-bark-home', home, at(20, 1))).toBe('waiting');
     expect(canSkipDay('mission-bark-home', home, at(20, 1))).toBe(false); // Other Home Behaviours: not on a trail
-    // the Basics Stretch that teaches how to play comes first in World 1, so it is done before the Home Stretch is reached
+    // World 1 is completed before World 2 and its Home Stretches are reached
     const basics = stopsOf(findWorld('basics')!);
     const mine = progressOf(['bark-home', ...basics.filter((s) => s.kind === 'node').map((s) => s.id)], {
       readLessons: ['theory-bark-home', ...basics.filter((s) => s.kind === 'lesson').map((s) => s.id)],
-      missions: { 'mission-bark-home': started, 'mission-dog-as-dog': { ...started, passedOn: '2026-05-02' } },
+      missions: {
+        'mission-bark-home': started,
+        'mission-dog-as-dog': { ...started, passedOn: '2026-05-02' },
+        'mission-home-rest': { ...started, passedOn: '2026-05-02' },
+        'mission-calm-first': { ...started, passedOn: '2026-05-02' },
+      },
       homeConcerns: { 'bark-home': 1 },
     });
     const worlds = worldsFor([{ stretchId: 'theory-bark-home' }], mine);
@@ -394,6 +399,36 @@ describe('backAction', () => {
   it("runs a flow's own back closure, and consumes the press when it has none", () => {
     expect(backAction({ ...base, route: { name: 'flow', flow: { name: 'diary' } }, hasScreenBack: true })).toBe('screen');
     expect(backAction({ ...base, route: { name: 'flow', flow: { name: 'node' } } })).toBe('consume');
+  });
+});
+
+describe('trialModalOwnsBack', () => {
+  // mirrors App.tsx: withBack is last-write-wins and mapWith runs after the overlay registered its own back
+  const currentBack = (modalOpen: boolean, overlayBack: (() => void) | null, modalBack: () => void) => {
+    let current = overlayBack;
+    if (trialModalOwnsBack({ trialModalOpen: modalOpen, hasOverlay: overlayBack !== null })) current = modalBack;
+    return current;
+  };
+  const modalBack = () => {};
+  const overlayBack = () => {};
+
+  it('keeps the Library, Diary and Lesson back current when the modal is closed', () => {
+    expect(currentBack(false, overlayBack, modalBack)).toBe(overlayBack);
+  });
+
+  it('leaves the bare map with no back, so system back exits the app', () => {
+    const current = currentBack(false, null, modalBack);
+    expect(current).toBeNull();
+    expect(backAction({ route: { name: 'map' }, playingStage: false, paused: false, bundle: 'ready', hasScreenBack: current !== null })).toBe('exit');
+  });
+
+  it('makes the open modal close on back when nothing is over the map', () => {
+    expect(currentBack(true, null, modalBack)).toBe(modalBack);
+  });
+
+  it('never replaces an overlay screen back, modal open or not', () => {
+    expect(currentBack(true, overlayBack, modalBack)).toBe(overlayBack);
+    expect(currentBack(false, overlayBack, modalBack)).toBe(overlayBack);
   });
 });
 

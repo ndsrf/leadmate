@@ -122,7 +122,7 @@ jest.mock('./shell/SimView', () => {
 for (const m of [
   'DailyResultScreen', 'DiaryScreen', 'DoorbellMatView', 'BarkdokuView', 'MissionScreens', 'LessonScreens', 'WorldMapScreen',
   'NodeScreens', 'PosteMinigameView', 'ReadDogView', 'DiagnosticView', 'PaywallScreen', 'ValueRecapScreen', 'PlanScreen',
-  'IntroScreens', 'SetupScreen', 'SettingsScreen', 'SplashScreen', 'AccountScreens',
+  'IntroScreens', 'SetupScreen', 'SettingsScreen', 'SplashScreen', 'AccountScreens', 'MethodOverviewScreen',
 ]) {
   jest.mock(`./shell/screens/${m}`, () => mockScreens());
 }

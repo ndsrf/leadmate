@@ -74,6 +74,16 @@ Text in `src/i18n/es.home.ts`. None of the Lessons has a Lesson Animation or a Y
 The pictures of the five Lessons are existing illustrations used as stand-ins (their captions and alt texts describe
 the idea, not the picture); each needs its own drawing following [lesson-guide.md](lesson-guide.md).
 
+## Puppy Track companion lessons
+
+Added by `puppy-track-and-early-onboarding`; companion Satellite Stops in World 1 for puppy records. Text in `src/i18n/es.trail.ts`. All three Lessons borrow existing illustrations as stand-ins and need dedicated drawings following [lesson-guide.md](lesson-guide.md) before leaving this list.
+
+| Item | Kind | Pictures |
+| --- | --- | --- |
+| `puppy-bite` | Theory Lesson "Inhibición del mordisco y dientes de aguja" | stand-ins `body-language-1`, `theory-dog-as-dog-1` |
+| `puppy-sound` | Theory Lesson "Desensibilización sonora" | stand-ins `theory-calm-first-1`, `theory-home-rest-1` |
+| `puppy-vet` | Theory Lesson "Manipulación corporal y veterinario" | stand-ins `calm-leash-1`, `body-language-2` |
+
 ## YouTube videos still wanted
 
 A Lesson's YouTube video must be spoken in the user's language: `lessonMedia.ts` keys each id by language, and a

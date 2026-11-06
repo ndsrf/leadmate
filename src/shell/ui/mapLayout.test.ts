@@ -1,6 +1,22 @@
 import { es } from '../../i18n';
 import { NODES } from '../nodes/content';
-import { connector, connectorVisual, KIND_GLYPH, labelOnRight, labelWidth, NODE_SIZE, nodeCenterX, nodeVisual, ROW_HEIGHT, rowExtent, stretchFlag } from './mapLayout';
+import {
+  connector,
+  connectorVisual,
+  KIND_GLYPH,
+  labelOnRight,
+  labelWidth,
+  NODE_SIZE,
+  nodeCenterX,
+  nodeVisual,
+  ROW_HEIGHT,
+  rowExtent,
+  SATELLITE_SIZE,
+  satelliteCenterX,
+  satelliteConnector,
+  satelliteVisual,
+  stretchFlag,
+} from './mapLayout';
 import { mapModel } from '../mapModel';
 import { progressOf } from '../world';
 import { lightColor, theme } from './theme';
@@ -101,5 +117,46 @@ describe('World Map layout', () => {
       if (i > 0) expect(rowExtent(i).top).toBeGreaterThanOrEqual(rowExtent(i - 1).bottom);
     }
     expect(12 * ROW_HEIGHT).toBe(rowExtent(11).top + ROW_HEIGHT);
+  });
+
+  describe('Satellite Stop geometry', () => {
+    const width = 320 - 32;
+
+    it('places satellite stop on the opposite side of the text label', () => {
+      // index 0: labelOnRight(0) is true -> satellite is on the left
+      expect(labelOnRight(0)).toBe(true);
+      expect(satelliteCenterX(0, width)).toBeLessThan(nodeCenterX(0, width));
+
+      // index 2: labelOnRight(2) is false -> satellite is on the right
+      expect(labelOnRight(2)).toBe(false);
+      expect(satelliteCenterX(2, width)).toBeGreaterThan(nodeCenterX(2, width));
+    });
+
+    it('keeps satellite stops inside the screen margin', () => {
+      for (let i = 0; i < 12; i++) {
+        const sx = satelliteCenterX(i, width);
+        expect(sx - SATELLITE_SIZE / 2).toBeGreaterThanOrEqual(0);
+        expect(sx + SATELLITE_SIZE / 2).toBeLessThanOrEqual(width);
+      }
+    });
+
+    it('computes connector between parent node and satellite stop', () => {
+      const seg = satelliteConnector(0, width);
+      expect(seg.length).toBeGreaterThan(0);
+      expect(seg.top).toBe(NODE_SIZE / 2);
+      expect(Math.abs(seg.angle)).toBe(90);
+    });
+
+    it('computes satellite stop visuals for completed and pending states', () => {
+      const pending = satelliteVisual(lightColor, false);
+      expect(pending.completed).toBe(false);
+      expect(pending.glyph).toBe('book');
+      expect(pending.fill).toBe(lightColor.surface);
+
+      const done = satelliteVisual(lightColor, true);
+      expect(done.completed).toBe(true);
+      expect(done.glyph).toBe('book');
+      expect(done.fill).toBe(lightColor.accentSoft);
+    });
   });
 });

@@ -68,7 +68,7 @@ describe('resetProgress', () => {
   const now = new Date('2026-06-16T12:00:00.000Z');
 
   const populatedRecord: DogRecord = {
-    version: 9,
+    version: 10,
     attributes: { reconnectionLatency: 0.8, reactivityThreshold: 0.7, followChance: 0.9, checkInFrequency: 0.8 },
     triggerProfile: { dog: 2, child: 1, bicycle: 0, skateboard: 3, food: 1, other: 0, hand: 2 },
     calmCounts: { dog: 4 },

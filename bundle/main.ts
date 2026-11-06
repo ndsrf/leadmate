@@ -11,6 +11,7 @@ import { newSeed } from '../src/sim/rng';
 import { validateScenario } from '../src/sim/scenery';
 import { showPause, showResults } from './src/overlay';
 import { StageScene, type StageOptions } from './src/StageScene';
+import { domPerf, runningAnimations } from './src/perfCounters';
 import { CloseExerciseScene, type CloseExerciseOptions } from './src/CloseExerciseScene';
 import type { CloseExerciseConfig } from '../src/sim/closeExercise';
 
@@ -51,8 +52,33 @@ const game = new Phaser.Game({
  * `loop.frame` counts every requestAnimationFrame/timer callback, including the ones the fps limit skips (PRE_STEP
  * only fires for frames that pass it).
  */
-const perf = { frames: 0, get wakes() { return game.loop.frame; }, steps: () => activeScene()?.simSteps ?? 0 };
-game.events.on(Phaser.Core.Events.POST_RENDER, () => perf.frames++);
+const perf = {
+  frames: 0,
+  get wakes() { return game.loop.frame; },
+  steps: () => activeScene()?.simSteps ?? 0,
+  /** DOM view renders (the hand drill's `render`) so far */
+  get domRenders() { return domPerf.renders; },
+  /** CSS/SVG animations running right now */
+  animations: runningAnimations,
+};
+// headless steps (the hand drill) emit POST_RENDER with no renderer; only a real draw counts as a frame
+game.events.on(Phaser.Core.Events.POST_RENDER, (renderer: unknown) => {
+  if (renderer) perf.frames++;
+});
+
+// A scene that draws nothing on the canvas (the hand drill is HTML/SVG) still gets its clock and input each tick,
+// but skips clearing and drawing an empty canvas. Patched before the loop starts, which binds `step` later.
+const fullStep = game.step.bind(game);
+// The first headless tick after a canvas frame (and every canvas tick) takes the full path, so a scene switch always
+// repaints once and the canvas is left cleared.
+let lastHeadless = false;
+game.step = (time: number, delta: number) => {
+  const s = activeScene();
+  const headless = Boolean(s && !s.drawsCanvas);
+  if (headless && lastHeadless) game.headlessStep(time, delta);
+  else fullStep(time, delta);
+  lastHeadless = headless;
+};
 
 // One owner decides whether the render loop runs. It sleeps when no Stage is on screen (shell said so), the app or
 // tab is hidden, or the Stage is paused or ended; the frame that shows a paused/ended state is drawn first.
@@ -65,7 +91,7 @@ function shouldRun(): boolean {
   if (starting) return true;
   const s = activeScene();
   const isActive = game.scene.isActive('stage') || game.scene.isActive('close_exercise');
-  return Boolean(s) && isActive && !s!.isPaused && !s!.isEnded;
+  return Boolean(s) && isActive && !s!.isPaused && !s!.isEnded && !s!.isWaitingToStart;
 }
 
 function sleepAfterFrame(): void {
@@ -131,6 +157,7 @@ function startStage(message: Extract<ShellMessage, { type: 'start' }> | null): v
         starting = false;
         setRunning();
       },
+      onWake: setRunning,
       onEnd: (payload) => {
         setRunning();
         send({ type: 'debrief', payload });
@@ -228,14 +255,15 @@ if (new URLSearchParams(location.search).has('perf')) {
   const box = document.createElement('pre');
   box.style.cssText = 'position:fixed;top:0;left:0;margin:0;padding:2px 6px;font:11px monospace;color:#0f0;background:#000a;pointer-events:none;z-index:9';
   document.body.appendChild(box);
-  let last = { t: performance.now(), wakes: 0, frames: 0, steps: 0 };
+  let last = { t: performance.now(), wakes: 0, frames: 0, steps: 0, dom: 0 };
   setInterval(() => {
     const now = performance.now();
     const { wakes, frames } = perf;
     const steps = perf.steps();
+    const dom = perf.domRenders;
     const dt = (now - last.t) / 1000;
     const fps = (frames - last.frames) / dt;
-    box.textContent = `wakes/s ${((wakes - last.wakes) / dt).toFixed(1)}  frames/s ${fps.toFixed(1)}  steps/s ${((steps - last.steps) / dt).toFixed(1)}  ms/frame ${fps > 0 ? (1000 / fps).toFixed(1) : '-'}`;
-    last = { t: now, wakes, frames, steps };
+    box.textContent = `wakes/s ${((wakes - last.wakes) / dt).toFixed(1)}  frames/s ${fps.toFixed(1)}  steps/s ${((steps - last.steps) / dt).toFixed(1)}  ms/frame ${fps > 0 ? (1000 / fps).toFixed(1) : '-'}  dom/s ${((dom - last.dom) / dt).toFixed(1)}  anims ${perf.animations()}`;
+    last = { t: now, wakes, frames, steps, dom };
   }, 1000);
 }
