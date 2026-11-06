@@ -1,0 +1,19 @@
+id: park
+worldNumber: 5
+tier: free
+unlockedBy: urban
+stretches:
+  - - kind: lesson
+      id: theory-long-leash
+    - kind: lesson
+      id: howto-long-leash
+    - kind: node
+      id: park-jogger
+    - kind: mission
+      id: mission-park-jogger
+  - - kind: lesson
+      id: theory-park-mix
+    - kind: node
+      id: park-mix
+    - kind: mission
+      id: mission-park-mix

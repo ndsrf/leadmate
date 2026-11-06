@@ -1,0 +1,24 @@
+id: mission-cue-choice
+technique: cue-choice
+reps: 2
+trains:
+  - kind: node
+    id: close-narrow-street-pass
+  - kind: node
+    id: urban-mix
+problems:
+  - id: mixup
+    label: mixup
+    practise:
+      kind: lesson
+      id: theory-choosing-cue
+  - id: toomuch
+    label: toomuch
+    practise:
+      kind: node
+      id: urban-mix
+  - id: nothing
+    label: nothing
+    practise:
+      kind: node
+      id: urban-mix

@@ -63,6 +63,9 @@ import { ConcernScreen, DogLookScreen, PayoffOverlay, TasteBriefScreen } from '.
 import { SetupScreen } from './src/shell/screens/SetupScreen';
 import { SettingsScreen } from './src/shell/screens/SettingsScreen';
 import { SplashScreen } from './src/shell/screens/SplashScreen';
+import { initNativeContent, switchContentChannel } from './src/shell/content/nativeRuntime';
+import { getActiveContent, type RuntimeContent } from './src/shell/content/runtime';
+import type { ContentChannel } from './src/shell/content/channelSetting';
 import { isRusty, sessionCapacity, warmupScenario, type WarmupOutcome } from './src/shell/rusty';
 import { SimView } from './src/shell/SimView';
 import type { SimViewHandle } from './src/shell/simViewTypes';
@@ -159,6 +162,21 @@ export default function App() {
   const [paused, setPaused] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [trialModalOpen, setTrialModalOpen] = useState(false);
+  const [contentSession, setContentSession] = useState<RuntimeContent>(() => getActiveContent());
+
+  useEffect(() => {
+    initNativeContent()
+      .then((session) => setContentSession(session))
+      .catch(() => {});
+  }, []);
+
+  const handleSwitchChannel = useCallback(async (channel: ContentChannel) => {
+    const res = await switchContentChannel(channel);
+    if (res.success) {
+      setContentSession(getActiveContent());
+    }
+    return res;
+  }, []);
   const [flow, setFlow] = useState<Flow | null>(null);
   const [hint, setHint] = useState<HintId | null>(null);
   // the approaching-dog warning: where the dog comes from on screen, while it is shown
@@ -785,6 +803,8 @@ export default function App() {
             onLogIn={() => setFlow({ name: 'auth', mode: 'login', returnTo: 'settings' })}
             ui={ui}
             onReset={handleReset}
+            contentChannel={contentSession.channel}
+            onSwitchChannel={handleSwitchChannel}
           />
         ) : (
           overlay

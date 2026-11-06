@@ -10,6 +10,10 @@ jest.mock('react-native', () => {
     ScrollView: (props: any) => React.createElement('div', props, props.children),
     Image: (props: any) => React.createElement('img', { alt: props.accessibilityLabel }),
     Linking: { openURL: jest.fn().mockResolvedValue(true) },
+    AppState: {
+      currentState: 'active',
+      addEventListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+    },
     Platform: { OS: 'web' },
   };
 });
@@ -22,6 +26,7 @@ jest.mock('react-native-svg', () => {
     Svg: (props: any) => React.createElement('svg', props, props.children),
     Circle: (props: any) => React.createElement('circle', props, props.children),
     Ellipse: (props: any) => React.createElement('ellipse', props, props.children),
+    Line: (props: any) => React.createElement('line', props, props.children),
     Path: (props: any) => React.createElement('path', props, props.children),
     Rect: (props: any) => React.createElement('rect', props, props.children),
     G: (props: any) => React.createElement('g', props, props.children),
@@ -38,6 +43,9 @@ jest.mock('react-native-reanimated', () => {
     useSharedValue: (v: any) => ({ value: v }),
     useAnimatedStyle: () => ({}),
     withTiming: (v: any) => v,
+    withRepeat: (v: any) => v,
+    withSequence: (...args: any[]) => args[0],
+    cancelAnimation: () => {},
   };
 });
 
@@ -55,7 +63,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createTranslator, es } from '../../i18n';
 import type { LessonDef } from '../lessons/lesson';
-import { HOME_LESSONS } from '../lessons/content';
+import { findLesson } from '../lessons/content';
 import { LessonScreen } from './LessonScreens';
 
 describe('LessonScreen video gating and text readability', () => {
@@ -125,6 +133,8 @@ describe('Home Behaviour Lessons', () => {
   const t = createTranslator(es);
   const render = (lesson: LessonDef) =>
     renderToStaticMarkup(<LessonScreen t={t} lesson={lesson} isPlus={false} trialState="unstarted" onDone={() => {}} onBack={() => {}} />);
+
+  const HOME_LESSONS = ['theory-bite-owner', 'theory-bite-others', 'theory-bark-home', 'theory-destroy', 'theory-eat-objects'].map((id) => findLesson(id)!);
 
   it('has the five Home Lessons, theory ones, readable by a free user', () => {
     expect(HOME_LESSONS.map((l) => l.id)).toEqual(['theory-bite-owner', 'theory-bite-others', 'theory-bark-home', 'theory-destroy', 'theory-eat-objects']);

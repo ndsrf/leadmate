@@ -1,0 +1,22 @@
+id: mission-doorbell
+technique: doorbell
+reps: 3
+trains:
+  - kind: node
+    id: doorbell-mat
+problems:
+  - id: barks
+    label: barks
+    practise:
+      kind: node
+      id: doorbell-mat
+  - id: door
+    label: door
+    practise:
+      kind: node
+      id: doorbell-mat
+  - id: mat
+    label: mat
+    practise:
+      kind: node
+      id: doorbell-mat

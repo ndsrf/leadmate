@@ -1,0 +1,371 @@
+id: urban-mix
+mode: stage
+prerequisites:
+  - scooter-crossing
+simulation:
+  scenario:
+    world: 4
+    theme: urban_street
+    fixedStep: 0.016666666666666666
+    leashLength: 2
+    leashTolerance: 0.1
+    quickSpeed: 2
+    walkStrength: 0.6
+    handlerStart:
+      x: 0
+      y: 0
+    dogStart:
+      x: 1
+      y: 0
+    waypoint:
+      x: 80
+      y: 30
+    waypoints:
+      - x: 40
+        y: 0
+      - x: 40
+        y: 30
+    waypointRadius: 2
+    walls:
+      - from:
+          x: -4
+          y: -6
+        to:
+          x: 46
+          y: -6
+      - from:
+          x: 46
+          y: -6
+        to:
+          x: 46
+          y: 24
+      - from:
+          x: 46
+          y: 24
+        to:
+          x: 84
+          y: 24
+      - from:
+          x: -4
+          y: 6
+        to:
+          x: 34
+          y: 6
+      - from:
+          x: 34
+          y: 6
+        to:
+          x: 34
+          y: 36
+      - from:
+          x: 34
+          y: 36
+        to:
+          x: 84
+          y: 36
+    scenery:
+      - type: parked_car
+        pos:
+          x: 20
+          y: -3.6
+        visualShield: true
+        radius: 1.4
+      - type: parked_car
+        pos:
+          x: 37.5
+          y: 18
+        visualShield: true
+        radius: 1.4
+      - type: parked_car
+        pos:
+          x: 60
+          y: 33.4
+        visualShield: true
+        radius: 1.4
+      - type: bench
+        pos:
+          x: 10
+          y: -3.6
+        angle: 0
+      - type: kiosk
+        pos:
+          x: 28
+          y: 3.6
+      - type: sign
+        pos:
+          x: 60
+          y: 27
+      - type: trash_can
+        pos:
+          x: 72
+          y: 27.2
+      - type: bench
+        pos:
+          x: 2.403536013575892
+          y: 5.026682480238378
+        angle: 0
+      - type: kiosk
+        pos:
+          x: 5.509792595046261
+          y: -4.683943453803659
+      - type: bike_rack
+        pos:
+          x: 7.7058044675116735
+          y: 4.096720002498477
+        angle: 0
+      - type: lamp_post
+        pos:
+          x: 11.80573935173452
+          y: -5.005754665657878
+      - type: bus_stop
+        pos:
+          x: 15.343964628440641
+          y: 4.8762199930846695
+        angle: 0
+      - type: hydrant
+        pos:
+          x: 19.985337921666602
+          y: -4.66738217966631
+      - type: fountain
+        pos:
+          x: 23.972442656941713
+          y: 4.505741669703275
+      - type: bin
+        pos:
+          x: 27.66880210538705
+          y: -5.052649913821369
+      - type: scooter
+        pos:
+          x: 31.38300028201193
+          y: 4.428497785050422
+      - type: tree
+        pos:
+          x: 35.632188388208554
+          y: -5.01707895770669
+      - type: flower_bed
+        pos:
+          x: 36.72510245610028
+          y: 4.948641856852919
+        angle: 1.5707963267948966
+      - type: trash_can
+        pos:
+          x: 44.83284305799752
+          y: 2.8053875339527963
+      - type: sign
+        pos:
+          x: 35.56476964540779
+          y: 6.179496726952493
+      - type: parked_car
+        pos:
+          x: 44.99824988730252
+          y: 10.477099477810164
+        visualShield: true
+        radius: 1.4
+        angle: 1.5707963267948966
+      - type: sign
+        pos:
+          x: 35.746601837966594
+          y: 14.236311191692948
+      - type: trash_can
+        pos:
+          x: 45.14379985108972
+          y: 17.250985283218327
+      - type: kiosk
+        pos:
+          x: 35.69049289645627
+          y: 21.46362349229554
+      - type: lamp_post
+        pos:
+          x: 45.02226129034534
+          y: 23.073640548003212
+      - type: bin
+        pos:
+          x: 35.7483991144225
+          y: 28.456087191713365
+      - type: scooter
+        pos:
+          x: 35.78781562512741
+          y: 29.855144806019965
+      - type: tree
+        pos:
+          x: 45.10288256599259
+          y: 25.972713340073824
+      - type: bench
+        pos:
+          x: 47.55582492382575
+          y: 35.13801446314901
+        angle: 0
+      - type: bike_rack
+        pos:
+          x: 53.599917283467946
+          y: 25.82147333305329
+        angle: 0
+      - type: bus_stop
+        pos:
+          x: 54.763390654698014
+          y: 34.40434566354379
+        angle: 0
+      - type: flower_bed
+        pos:
+          x: 60.39103096537292
+          y: 25.56896464433521
+        angle: 0
+      - type: parked_car
+        pos:
+          x: 62.0778925392156
+          y: 34.54086531074718
+        visualShield: true
+        radius: 1.4
+        angle: 0
+      - type: hydrant
+        pos:
+          x: 67.49563187317301
+          y: 24.95214777048677
+      - type: fountain
+        pos:
+          x: 69.92385069442292
+          y: 34.82288417657837
+      - type: sign
+        pos:
+          x: 74.51516510664175
+          y: 25.534181610867382
+      - type: tree
+        pos:
+          x: 78.01449732513478
+          y: 34.30860575139523
+    cues:
+      - lets-go
+      - leave-it
+    dogGoalSpeed: 1.6
+    dogFixationSpeed: 1
+    dogReturnSpeed: 1.6
+    dogReturnDistance: 1
+    wanderMaxAngle: 0.5
+    wanderTurnRate: 2
+    distractor:
+      kind: food
+      speed: 0
+      triggerRadius: 6
+      activateAfterMeters: 12
+      startOffset: 28
+      salience: 6
+      path:
+        from: &a1
+          x: 22
+          y: 1
+        to: *a1
+    moreDistractors:
+      - kind: skateboard
+        speed: 4.5
+        triggerRadius: 14
+        activateAfterMeters: 26
+        startOffset: 28
+        path:
+          from:
+            x: 30
+            y: -18
+          to:
+            x: 30
+            y: 18
+      - kind: dog
+        speed: 2.6
+        triggerRadius: 12
+        activateAfterMeters: 52
+        startOffset: 28
+        path:
+          from:
+            x: 44
+            y: 20
+          to:
+            x: 36
+            y: 42
+    calmSeconds: 3
+    rewardWindowSeconds: 1.1
+    markBudget: 5
+    checkInWindow: 1
+    learning:
+      attributes:
+        reconnectionLatency: 0.2
+        reactivityThreshold: 0.2
+        followChance: 0.5
+        checkInFrequency: 0.2
+      triggerProfile:
+        child: 2
+        bicycle: 2
+        dog: 2
+        skateboard: 2
+        food: 2
+        other: 2
+        hand: 2
+      equipment: collar
+      capacityMultiplier: 1
+      posture: 0
+    ranges:
+      reconnectionSeconds:
+        worst: 1.5
+        best: 0.3
+      reactivityThreshold:
+        worst: 15
+        best: 60
+      checkInMeanInterval:
+        worst: 14
+        best: 5
+    arousal:
+      k: 30
+      minDistance: 2
+      decayPerSecond: 3
+      rigidPullRate: 4
+      disengagementDrop: 25
+      markerHitDrop: 20
+      posteJolt: 15
+      smoothStopFactor: 0.3
+      slowedSeconds: 0.5
+    cue:
+      cooldownSeconds: 3
+      fixatedFactor: 0.3
+      repeatFactor: 0.5
+      arousalDrop: 10
+      followBoostSeconds: 2
+      followBoost: 0.25
+      followCap: 0.95
+    reaction:
+      alertFraction: 0.6
+      lungeAccel: 1.5
+      lungeMaxSpeed: 4
+      alertSlowdown: 0.85
+    sintonia:
+      minSpeed: 0.4
+      minTurnRate: 0.2
+      maxTurnRate: 1.8
+      turnWindow: 0.5
+      holdSeconds: 2
+    goSniff:
+      offerSeconds: 3
+      durationSeconds: 4
+      speed: 0.4
+      decayFactor: 3
+    turnAngle: 0.7853981633974483
+    followSeconds: 1.5
+    correctionWaitSeconds: 4
+    pullStrength: 0.8
+    configVersion: bundled
+    camera:
+      closeZoom: 2.2
+      farZoom: 1.5
+      padding: 90
+      smoothing: 3
+    endCondition:
+      kind: reach-waypoint
+exercises:
+  - metric: tension
+    key: node.urban.exercise1
+  - metric: timing
+    key: node.urban.exercise2
+  - metric: poste
+    key: node.urban.exercise3
+primerCards:
+  - kind: real-world
+    media:
+      type: image
+      url: ""
+      art: theory-choosing-cue-1

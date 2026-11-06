@@ -1,0 +1,22 @@
+id: mission-leave-it
+technique: leave-it
+reps: 3
+trains:
+  - kind: node
+    id: leave-it-intro
+problems:
+  - id: grabs
+    label: grabs
+    practise:
+      kind: node
+      id: leave-it-intro
+  - id: ignores
+    label: ignores
+    practise:
+      kind: node
+      id: leave-it-intro
+  - id: repeat
+    label: repeat
+    practise:
+      kind: node
+      id: leave-it-intro

@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Modal, Platform, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Modal, Platform, Pressable, Text, View } from 'react-native';
+import Constants from 'expo-constants';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { RecordingPresets, requestRecordingPermissionsAsync, useAudioRecorder } from 'expo-audio';
 import type { Translate } from '../../i18n';
@@ -23,6 +24,9 @@ import { cleanDogName, DOG_NAME_MAX } from '../onboarding/name';
 import { Screen } from './Screen';
 import { isPlus, applyBillingSubscription } from '../plus';
 import { getBillingService, type BillingService } from '../billing';
+import { isBetaUnlocked, loadContentChannel, setBetaUnlocked, type ContentChannel } from '../content/channelSetting';
+import { getActiveContent } from '../content/runtime';
+import { switchChannel } from '../content/channelSwitcher';
 
 export const CHECKPOINT_OPTIONS: { value: CheckpointSeconds; key: 'settings.checkpoint.20' | 'settings.checkpoint.15' | 'settings.checkpoint.10' | 'settings.checkpoint.off' }[] = [
   { value: 20, key: 'settings.checkpoint.20' },
@@ -91,6 +95,10 @@ export function ResetConfirmText({ t, paired }: { t: Translate; paired: boolean 
 
 type RecordState = 'idle' | 'recording' | 'denied';
 
+export interface SwitchChannelFn {
+  (channel: ContentChannel): Promise<{ success: boolean; error?: string }>;
+}
+
 export function SettingsScreen({
   t,
   language,
@@ -102,6 +110,9 @@ export function SettingsScreen({
   ui,
   onReset,
   billingService,
+  contentChannel: contentChannelProp,
+  onSwitchChannel,
+  isDev: isDevProp,
 }: {
   t: Translate;
   language: Language;
@@ -114,7 +125,73 @@ export function SettingsScreen({
   ui: { settings: UiSettings; change: (patch: Partial<UiSettings>) => void };
   onReset: () => void;
   billingService?: BillingService;
+  contentChannel?: ContentChannel;
+  onSwitchChannel?: SwitchChannelFn;
+  isDev?: boolean;
 }) {
+  const isDev =
+    isDevProp ?? (typeof __DEV__ !== 'undefined' ? __DEV__ : process.env.NODE_ENV !== 'production');
+  const [activeChannel, setActiveChannel] = useState<ContentChannel>(
+    contentChannelProp ?? getActiveContent().channel
+  );
+  const [unlocked, setUnlocked] = useState(isDev);
+  const [tapCount, setTapCount] = useState(0);
+  const [lastTapTime, setLastTapTime] = useState(0);
+  const [switching, setSwitching] = useState(false);
+  const [switchError, setSwitchError] = useState<string | null>(null);
+
+  useEffect(() => {
+    isBetaUnlocked(undefined, isDev).then((u) => setUnlocked(u));
+    loadContentChannel(undefined, isDev).then((c) => setActiveChannel(c));
+  }, [isDev]);
+
+  const version = Constants.expoConfig?.version ?? '1.0.0';
+  const build = Constants.expoConfig?.ios?.buildNumber ?? Constants.expoConfig?.android?.versionCode ?? '';
+  const versionLabel = build ? `v${version} (${build})` : `v${version}`;
+
+  const handleVersionTap = async () => {
+    if (isDev || unlocked) return;
+    const now = Date.now();
+    const nextTaps = now - lastTapTime < 3000 ? tapCount + 1 : 1;
+    setTapCount(nextTaps);
+    setLastTapTime(now);
+    if (nextTaps >= 7) {
+      setUnlocked(true);
+      await setBetaUnlocked(true);
+    }
+  };
+
+  const handleChannelSelect = async (ch: ContentChannel) => {
+    if (ch === activeChannel || switching) return;
+    setSwitching(true);
+    setSwitchError(null);
+    try {
+      if (onSwitchChannel) {
+        const res = await onSwitchChannel(ch);
+        if (res.success) {
+          setActiveChannel(ch);
+        } else {
+          setSwitchError(
+            res.error === 'remote_unavailable'
+              ? t('settings.contentChannel.remoteUnavailable')
+              : t('settings.contentChannel.error')
+          );
+        }
+      } else {
+        setActiveChannel(ch);
+      }
+    } catch {
+      setSwitchError(t('settings.contentChannel.error'));
+    } finally {
+      setSwitching(false);
+    }
+  };
+
+  const handleHideChannel = async () => {
+    setUnlocked(false);
+    await setBetaUnlocked(false);
+  };
+
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [recording, setRecording] = useState<RecordState>('idle');
   const [showResetModal, setShowResetModal] = useState(false);
@@ -332,6 +409,54 @@ export function SettingsScreen({
           </SafeAreaProvider>
         </Modal>
       )}
+
+      {(isDev || unlocked) && (
+        <Section title={t('settings.contentChannel')}>
+          <Text className="mb-2 text-body text-inkMuted">{t('settings.contentChannel.help')}</Text>
+          <View className="flex-row flex-wrap">
+            <Choice
+              testID="channel-choice-stable"
+              label={t('settings.contentChannel.stable')}
+              selected={activeChannel === 'stable'}
+              onPress={() => handleChannelSelect('stable')}
+            />
+            <Choice
+              testID="channel-choice-beta"
+              label={t('settings.contentChannel.beta')}
+              selected={activeChannel === 'beta'}
+              onPress={() => handleChannelSelect('beta')}
+            />
+          </View>
+          {switchError && (
+            <Panel tone="warn" className="mt-2">
+              <Text testID="channel-error-text" className="text-body text-dangerText">
+                {switchError}
+              </Text>
+            </Panel>
+          )}
+          {activeChannel === 'stable' && !isDev && (
+            <View className="mt-2">
+              <Button
+                testID="channel-hide-button"
+                label={t('settings.contentChannel.hide')}
+                tone="secondary"
+                onPress={handleHideChannel}
+              />
+            </View>
+          )}
+        </Section>
+      )}
+
+      <View className="items-center my-3">
+        <Pressable
+          testID="settings-version-label"
+          onPress={handleVersionTap}
+          accessibilityRole="button"
+          accessibilityLabel={`Versión ${versionLabel}`}
+        >
+          <Text className="text-caption text-inkMuted">{versionLabel}</Text>
+        </Pressable>
+      </View>
 
       <Button label={t('settings.close')} onPress={onClose} />
     </Screen>

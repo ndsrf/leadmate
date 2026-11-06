@@ -1,0 +1,24 @@
+id: mission-shields
+technique: visual-shields
+reps: 2
+trains:
+  - kind: node
+    id: calm-zone-intro
+  - kind: node
+    id: scooter-crossing
+problems:
+  - id: late
+    label: late
+    practise:
+      kind: node
+      id: scooter-crossing
+  - id: sees
+    label: sees
+    practise:
+      kind: node
+      id: scooter-crossing
+  - id: nocar
+    label: nocar
+    practise:
+      kind: lesson
+      id: theory-visual-shields

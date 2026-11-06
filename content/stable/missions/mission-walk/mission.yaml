@@ -1,0 +1,22 @@
+id: mission-walk
+technique: loose-leash
+reps: 1
+trains:
+  - kind: node
+    id: walk-distraction
+problems:
+  - id: fixates
+    label: fixates
+    practise:
+      kind: node
+      id: walk-distraction
+  - id: pulls
+    label: pulls
+    practise:
+      kind: node
+      id: walk-distraction
+  - id: lunges
+    label: lunges
+    practise:
+      kind: node
+      id: walk-distraction

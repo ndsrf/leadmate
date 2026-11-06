@@ -1,0 +1,10 @@
+id: theory-dog-as-dog
+kind: theory
+images:
+  - theory-dog-as-dog-1
+  - theory-dog-as-dog-2
+compare:
+  do: theory-dog-as-dog-do
+  dont: theory-dog-as-dog-dont
+steps: 5
+takeaways: 4

@@ -1,0 +1,29 @@
+id: urban
+worldNumber: 4
+tier: free
+unlockedBy: sidewalk
+stretches:
+  - - kind: lesson
+      id: theory-leave-it
+    - kind: lesson
+      id: howto-cues
+    - kind: node
+      id: leave-it-intro
+    - kind: mission
+      id: mission-leave-it
+  - - kind: lesson
+      id: theory-visual-shields
+    - kind: node
+      id: calm-zone-intro
+    - kind: node
+      id: scooter-crossing
+    - kind: mission
+      id: mission-shields
+  - - kind: lesson
+      id: theory-choosing-cue
+    - kind: node
+      id: close-narrow-street-pass
+    - kind: node
+      id: urban-mix
+    - kind: mission
+      id: mission-cue-choice

@@ -1,0 +1,10 @@
+id: theory-slack-u
+kind: theory
+images:
+  - theory-slack-u-1
+  - theory-slack-u-2
+compare:
+  do: theory-slack-u-do
+  dont: theory-slack-u-dont
+steps: 5
+takeaways: 4

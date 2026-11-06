@@ -1,0 +1,25 @@
+id: home
+worldNumber: 2
+tier: free
+unlockedBy: basics
+stretches:
+  - - kind: lesson
+      id: theory-harness
+    - kind: lesson
+      id: howto-tap-hold
+    - kind: node
+      id: harness-ritual
+    - kind: mission
+      id: mission-harness
+  - - kind: lesson
+      id: theory-doorbell
+    - kind: node
+      id: doorbell-mat
+    - kind: mission
+      id: mission-doorbell
+  - - kind: lesson
+      id: theory-poste
+    - kind: node
+      id: poste-practice
+    - kind: mission
+      id: mission-poste

@@ -252,6 +252,14 @@ _Avoid_: Fur, skin
 **Voice Pack**:
 A set of Cues, with one version per supported language, that the Handler can choose from.
 
+**Content Pack**:
+The folder tree of Worlds, Lessons, Nodes, Missions, their text in each language and their media that the app shows, edited as plain files and published without an app release. It never holds interface text or code, and is not a Voice Pack.
+_Avoid_: Level pack, content bundle
+
+**Content Channel**:
+Which published Content Pack the app follows: Stable for everyone, Beta for testers. A device setting, not part of the Dog record.
+_Avoid_: Release train, environment
+
 ### Engagement and progression
 
 **Reaction Tier**:
@@ -474,3 +482,22 @@ _Avoid_: Tutorial, instructions screen, intro screen
 **Payoff Screen**:
 The message shown over the Taste Stage, after a zoom on the Handler and the Dog, that says the Dog has reacted, names the Dog and says the game will be tuned to it, whatever the Taste Stage's result.
 _Avoid_: Result screen, fail screen
+
+### Content Packs and Channels
+
+**Content Pack**:
+A structured, validated set of plain YAML and Markdown files plus media assets that defines Worlds, Lessons, Nodes, Missions, and curriculum text for one channel.
+_Avoid_: Asset bundle, CMS export, lesson pack
+
+**Channel**:
+A release stream for content packs (`stable` or `beta`). Each channel builds, validates, and publishes independently with its own monotonic content version counter and manifest.
+_Avoid_: Environment, branch, release track
+
+**Baseline Pack**:
+The static copy of the stable content pack bundled directly within the app binary at build time. It ensures all screens, trails, Lessons, and Missions work immediately on first launch, without network access, and acts as the fallback after any failed update.
+_Avoid_: Default content, embedded assets, fallback pack
+
+**Manifest**:
+A versioned, compatibility-checked JSON document generated at build time (`manifest.json`) that records the channel, contentVersion, formatVersion, minAppVersion, build timestamp, and a deterministic map of every pack file to its SHA-256 hash and byte size.
+_Avoid_: File list, checksum index, lockfile
+

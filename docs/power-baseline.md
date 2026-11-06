@@ -27,3 +27,16 @@ Rule: unmount if a cold mount is ready in under about 1 s on Android, otherwise 
 ## World Map scroll and first render
 
 With several worlds expanded: _to measure_. Only if significant, limit heavy row parts to rows near the viewport.
+
+## Remote Content Packs power & start-up impact (change `add-remote-content-packs`)
+
+- **Start-up impact:**
+  - Active pack resolution loads synchronously at launch from the bundled baseline or verified local storage cache before initial UI render.
+  - Zero network blocking: first interactive screen does not await remote content base or network response.
+  - Hydration overhead is under 5 ms on JS thread (pure data parsing & proxy mapping).
+- **Network & polling power footprint:**
+  - Launch updater executes exactly **one** background check per app launch (`checkForUpdates` via `latest.json` pointer).
+  - **No background polling:** no recurring timers, `setInterval`, cron jobs, or periodic wakeup loops during a running session.
+  - Idle state network and CPU activity attributable to content updates: **0 wakes/s, 0 requests/min**.
+  - Channel switching occurs strictly on explicit user action in Settings, maintaining zero battery drain during normal gameplay.
+

@@ -8,6 +8,7 @@ module.exports = {
     '^react-native-purchases$': '<rootDir>/test/purchasesStub.ts',
     '^react-native-google-mobile-ads$': '<rootDir>/test/googleMobileAdsStub.ts',
     '^@react-native-async-storage/async-storage$': '<rootDir>/test/asyncStorageStub.ts',
+    '^expo-constants$': '<rootDir>/test/expoConstantsStub.ts',
     // a bundled image is an opaque asset id, as Metro resolves it
     '\\.png$': '<rootDir>/jest.assetStub.js',
   },

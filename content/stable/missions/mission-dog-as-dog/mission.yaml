@@ -1,0 +1,25 @@
+id: mission-dog-as-dog
+technique: dog-as-dog
+reps: 1
+place: home
+trains:
+  - kind: node
+    id: calm-hands
+  - kind: node
+    id: dog-as-dog
+problems:
+  - id: cries
+    label: cries
+    practise:
+      kind: node
+      id: dog-as-dog
+  - id: family
+    label: family
+    practise:
+      kind: node
+      id: dog-as-dog
+  - id: bed
+    label: bed
+    practise:
+      kind: node
+      id: dog-as-dog

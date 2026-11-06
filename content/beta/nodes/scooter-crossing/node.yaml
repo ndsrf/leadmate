@@ -1,0 +1,261 @@
+id: scooter-crossing
+mode: stage
+prerequisites:
+  - leave-it-intro
+simulation:
+  scenario:
+    world: 4
+    theme: urban_street
+    fixedStep: 0.016666666666666666
+    leashLength: 2
+    leashTolerance: 0.1
+    quickSpeed: 2
+    walkStrength: 0.6
+    handlerStart:
+      x: 0
+      y: 0
+    dogStart:
+      x: 1
+      y: 0
+    waypoint:
+      x: 70
+      y: 0
+    waypoints: []
+    waypointRadius: 2
+    walls:
+      - from:
+          x: -4
+          y: -7
+        to:
+          x: 74
+          y: -7
+      - from:
+          x: -4
+          y: 7
+        to:
+          x: 74
+          y: 7
+    scenery:
+      - type: parked_car
+        pos:
+          x: 36
+          y: -3.6
+        visualShield: true
+        radius: 1.4
+      - type: parked_car
+        pos:
+          x: 36
+          y: 3.6
+        visualShield: true
+        radius: 1.4
+      - type: parked_car
+        pos:
+          x: 12
+          y: -3.6
+        visualShield: true
+        radius: 1.4
+      - type: hydrant
+        pos:
+          x: 24
+          y: 5.6
+      - type: bike_rack
+        pos:
+          x: 56
+          y: -5.2
+        angle: 0
+      - type: bin
+        pos:
+          x: 62
+          y: 5.4
+      - type: hydrant
+        pos:
+          x: 2.18847494199872
+          y: 4.783008974045515
+      - type: bin
+        pos:
+          x: 4.825363209574587
+          y: -4.388019675156102
+      - type: sign
+        pos:
+          x: 8.63316888258689
+          y: 4.983996698167175
+      - type: lamp_post
+        pos:
+          x: 13.499531336439153
+          y: -4.562181665096432
+      - type: fountain
+        pos:
+          x: 17.157754119796056
+          y: 4.274158836575225
+      - type: bike_rack
+        pos:
+          x: 22.259081747382876
+          y: -5.301736518042162
+        angle: 0
+      - type: scooter
+        pos:
+          x: 24.095275776150327
+          y: 4.391727236448787
+      - type: parked_car
+        pos:
+          x: 28.689981994115644
+          y: -5.477689612773247
+        visualShield: true
+        radius: 1.4
+        angle: 0
+      - type: tree
+        pos:
+          x: 33.49802758068674
+          y: 5.229129194747657
+      - type: flower_bed
+        pos:
+          x: 35.38555541189594
+          y: -4.665411340887658
+        angle: 0
+      - type: trash_can
+        pos:
+          x: 41.71600488469832
+          y: 5.352293289266527
+      - type: bench
+        pos:
+          x: 44.81590218604025
+          y: -5.237784484168515
+        angle: 0
+      - type: kiosk
+        pos:
+          x: 49.0535268170966
+          y: 4.0772929940139875
+      - type: bus_stop
+        pos:
+          x: 50.668726860752535
+          y: -4.330625273520127
+        angle: 0
+      - type: kiosk
+        pos:
+          x: 55.87365401029173
+          y: 5.123094011098146
+      - type: fountain
+        pos:
+          x: 58.92837559814669
+          y: -4.527189754880965
+      - type: hydrant
+        pos:
+          x: 62.58587179353667
+          y: 5.2505374702159315
+      - type: tree
+        pos:
+          x: 68.46721369338532
+          y: -4.289500251063146
+    cues:
+      - lets-go
+      - leave-it
+    dogGoalSpeed: 1.6
+    dogFixationSpeed: 1
+    dogReturnSpeed: 1.6
+    dogReturnDistance: 1
+    wanderMaxAngle: 0.5
+    wanderTurnRate: 2
+    distractor:
+      kind: skateboard
+      speed: 4.5
+      triggerRadius: 16
+      activateAfterMeters: 20
+      startOffset: 28
+      path:
+        from:
+          x: 40
+          y: -22
+        to:
+          x: 40
+          y: 22
+    moreDistractors: []
+    calmSeconds: 3
+    rewardWindowSeconds: 1.1
+    markBudget: 5
+    checkInWindow: 1
+    learning:
+      attributes:
+        reconnectionLatency: 0.2
+        reactivityThreshold: 0.2
+        followChance: 0.5
+        checkInFrequency: 0.2
+      triggerProfile:
+        child: 2
+        bicycle: 2
+        dog: 2
+        skateboard: 2
+        food: 2
+        other: 2
+        hand: 2
+      equipment: collar
+      capacityMultiplier: 1
+      posture: 0
+    ranges:
+      reconnectionSeconds:
+        worst: 1.5
+        best: 0.3
+      reactivityThreshold:
+        worst: 15
+        best: 60
+      checkInMeanInterval:
+        worst: 14
+        best: 5
+    arousal:
+      k: 30
+      minDistance: 2
+      decayPerSecond: 3
+      rigidPullRate: 4
+      disengagementDrop: 25
+      markerHitDrop: 20
+      posteJolt: 15
+      smoothStopFactor: 0.3
+      slowedSeconds: 0.5
+    cue:
+      cooldownSeconds: 3
+      fixatedFactor: 0.3
+      repeatFactor: 0.5
+      arousalDrop: 10
+      followBoostSeconds: 2
+      followBoost: 0.25
+      followCap: 0.95
+    reaction:
+      alertFraction: 0.6
+      lungeAccel: 1.5
+      lungeMaxSpeed: 4
+      alertSlowdown: 0.85
+    sintonia:
+      minSpeed: 0.4
+      minTurnRate: 0.2
+      maxTurnRate: 1.8
+      turnWindow: 0.5
+      holdSeconds: 2
+    goSniff:
+      offerSeconds: 3
+      durationSeconds: 4
+      speed: 0.4
+      decayFactor: 3
+    turnAngle: 0.7853981633974483
+    followSeconds: 1.5
+    correctionWaitSeconds: 4
+    pullStrength: 0.8
+    configVersion: bundled
+    camera:
+      closeZoom: 2.2
+      farZoom: 1.5
+      padding: 90
+      smoothing: 3
+    endCondition:
+      kind: reach-waypoint
+exercises:
+  - metric: timing
+    key: node.scooter.exercise1
+  - metric: poste
+    key: node.scooter.exercise2
+  - metric: attention
+    key: node.scooter.exercise3
+primerCards:
+  - kind: real-world
+    media:
+      type: image
+      url: ""
+      art: theory-visual-shields-2

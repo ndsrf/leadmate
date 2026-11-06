@@ -24,7 +24,7 @@ daily Streak and "El Paseo del Día" (Daily Stage).
 | `src/sim/` (engagement) | `geometry.ts` (walls, sliding, line of sight, corner leash path), `scenery.ts` (scenery sets and the density validator) |
 | `src/hud/` | Pure HUD logic: isometric projection, joystick detents, keyboard mapping, text fitting, Cue/Go Sniff button layout, Dog pose |
 | `src/i18n/` | Text catalog and lookup |
-| `docs/content/` | Content authoring: [writing a theory Lesson](docs/content/lesson-guide.md) (voice, method rules, the teaching pattern, illustrations, Checkpoint questions) |
+| `docs/content/` | Content authoring: [Content Pack format](content/FORMAT.md) (files, schema, channels, promote/publish), [writing a theory Lesson](docs/content/lesson-guide.md) (voice, method rules, the teaching pattern, illustrations, Checkpoint questions) |
 | `docs/adr/` | Decisions: [Phaser in a WebView](docs/adr/0001-phaser-in-webview.md), [pure seeded simulation](docs/adr/0002-pure-seeded-simulation.md), [learning snapshot in, update out](docs/adr/0003-learning-state-snapshot-in-update-out.md), [Arousal causes Fixation](docs/adr/0004-arousal-causes-fixation.md), [Stars merge by max](docs/adr/0007-stars-merge-by-max.md) |
 
 ## Running
@@ -352,6 +352,91 @@ catalog (`node.<slug>.title`, `card1`-`card4`, `question`, `optionRight`, `optio
 `src/shell/nodes/scenarios.ts`; `npm test` validates every one of them (geometry, theme, density) and walks it
 to the end. The Debrief shows the exercise for the user's weakest metric and the one-tap Walk Diary. A Poste
 scenario lists `poste-practice` as a prerequisite.
+
+## Content Packs & Author Workflow
+
+Educational content lives in plain Markdown and YAML under `content/<channel>/` (`beta` and `stable`), organized into self-contained item folders:
+
+```
+content/<channel>/
+  pack.yaml                    # formatVersion, minAppVersion, languages, retired IDs
+  worlds/<id>.yaml             # stretches, tier, unlocks
+  worlds/<id>/<lang>.md        # world title and topics
+  lessons/<id>/                # lesson.yaml, es.md, media/
+  nodes/<id>/                  # node.yaml, es.md, media/
+  missions/<id>/               # mission.yaml, es.md, media/
+```
+
+See [content/FORMAT.md](content/FORMAT.md) and [docs/content/pack-format.md](docs/content/pack-format.md) for full field references and authoring checklists.
+
+### Workflows
+
+#### 1. Local Authoring & Testing (Recommended for local dev)
+
+When authoring lessons, worlds, nodes or missions locally:
+
+1. **Edit content** in `content/beta/` (e.g. `content/beta/lessons/<id>/es.md`).
+2. **Validate** your edits anytime:
+   ```bash
+   npm run content:validate -- --channel beta
+   ```
+3. **Promote to the bundled baseline**:
+   ```bash
+   npm run content:promote
+   ```
+   This command validates `beta`, syncs verified changes into `content/stable/`, and regenerates `src/shell/content/baseline.generated.ts`. Metro immediately hot-reloads the changes into Expo Go or emulators—**no backend, credentials, or cloud setup required**.
+
+#### 2. Remote Over-The-Air Publishing (Supabase)
+
+To push content updates dynamically to installed apps over the air without code releases:
+
+1. **Create the Supabase bucket**: Apply migration `supabase/migrations/20261106000000_content_bucket.sql` (creates the public `content` bucket with read access for all and write access restricted to service-role).
+2. **Configure client URL**: In `.env.local` (and EAS build configuration), set:
+   ```bash
+   EXPO_PUBLIC_CONTENT_BASE="https://<project-ref>.supabase.co/storage/v1/object/public/content"
+   ```
+3. **Publish content**:
+   ```bash
+   SUPABASE_SERVICE_ROLE_KEY="..." EXPO_PUBLIC_SUPABASE_URL="https://<project-ref>.supabase.co" npm run content:publish -- --channel beta
+   ```
+4. **Switch in app**: In **Ajustes (Settings)**, tap the version number 7 times to reveal the content channel selector, then select **Beta**. The app downloads the pack into native storage, validates it, and hot-swaps to the Beta channel with the "Beta content" indicator. Switching back to Stable works offline.
+
+### Authoring Commands
+
+All commands accept `--channel beta|stable`:
+
+```bash
+# Validate pack schema, dangling references, required Spanish, and assets
+npm run content:validate -- --channel beta
+npm run content:validate -- --channel stable
+
+# Build deterministic manifest and content-addressed hashed files into dist/content/<channel>/
+npm run content:build -- --channel beta
+
+# Watch channel for changes and rebuild automatically during development
+npm run content:watch -- --channel beta
+
+# Promote validated beta content to stable (syncs content/beta/ to content/stable/ and regenerates bundled baseline)
+npm run content:promote
+
+# Publish channel to Supabase Storage (uploads hashed files, manifests, and latest.json)
+npm run content:publish                                # defaults to beta
+npm run content:publish -- --channel stable            # requires interactive confirmation
+npm run content:publish -- --channel stable --yes      # non-interactive for CI
+npm run content:publish -- --rollback <version>        # repoints latest.json to previous version
+```
+
+### Publishing & Service-Role Key Handling
+
+Publishing uploads files into the public `content` bucket in Supabase Storage (`supabase/migrations/20261106000000_content_bucket.sql`). Upload permissions are restricted to the Supabase service role:
+
+1. In your local shell environment (or CI secrets), export:
+   ```bash
+   export SUPABASE_URL="https://<project-ref>.supabase.co"
+   export SUPABASE_SERVICE_ROLE_KEY="eyJhbGci..."
+   ```
+2. **SECURITY WARNING:** NEVER add `SUPABASE_SERVICE_ROLE_KEY` to client-facing `.env.local` with the `EXPO_PUBLIC_` prefix, and NEVER commit service-role keys to git. Service-role keys must only exist on trusted author machines and CI runners.
+3. Stable publication protection: `npm run content:publish -- --channel stable` always prompts for explicit confirmation naming the version to prevent accidental production deployments, unless overridden with `--yes`.
 
 ## UI kit and feedback
 

@@ -1,0 +1,23 @@
+id: mission-home-rest
+technique: home-rest
+reps: 3
+place: home
+trains:
+  - kind: node
+    id: home-rest
+problems:
+  - id: insists
+    label: insists
+    practise:
+      kind: node
+      id: home-rest
+  - id: barks
+    label: barks
+    practise:
+      kind: node
+      id: home-rest
+  - id: comesback
+    label: comesback
+    practise:
+      kind: node
+      id: home-rest

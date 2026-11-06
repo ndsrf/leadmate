@@ -1,0 +1,22 @@
+id: mission-harness
+technique: harness
+reps: 3
+trains:
+  - kind: node
+    id: harness-ritual
+problems:
+  - id: excited
+    label: excited
+    practise:
+      kind: node
+      id: harness-ritual
+  - id: runs
+    label: runs
+    practise:
+      kind: node
+      id: harness-ritual
+  - id: bites
+    label: bites
+    practise:
+      kind: node
+      id: harness-ritual

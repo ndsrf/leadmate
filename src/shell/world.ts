@@ -6,6 +6,7 @@ import { canCheckIn, checkInOpensAt, isOwed } from './missions/mission';
 import { ALL_NODES as NODES } from './nodes/content';
 import type { NodeDef } from './nodes/node';
 import { requiredLessonsOf } from './nodes/readDog';
+import { getActiveContent } from './content/runtime';
 
 /** One place on a World's trail: a Lesson to read, a Node to play or a Mission to do on a real walk. */
 export type Stop = { kind: 'lesson'; id: string } | { kind: 'node'; id: string } | { kind: 'mission'; id: string };
@@ -29,55 +30,26 @@ export interface WorldDef {
   nodeCount?: number;
 }
 
-const lesson = (id: string): Stop => ({ kind: 'lesson', id });
-const node = (id: string): Stop => ({ kind: 'node', id });
-const mission = (id: string): Stop => ({ kind: 'mission', id });
-
-export const WORLDS: readonly WorldDef[] = [
-  {
-    id: 'basics', title: 'world.basics.title', worldNumber: 1, topics: 'world.basics.topics', tier: 'free',
-    stretches: [
-      [lesson('howto-choose-action'), lesson('theory-named-behaviours'), lesson('theory-dog-as-dog'), node('calm-hands'), node('dog-as-dog'), mission('mission-dog-as-dog')],
-      [lesson('theory-home-rest'), node('home-rest'), mission('mission-home-rest')],
-      [lesson('theory-calm-first'), node('calm-first'), mission('mission-calm-first')],
-    ],
+/** The static trail of Worlds, resolved from the active Content Pack. */
+export const WORLDS: readonly WorldDef[] = new Proxy([] as unknown as readonly WorldDef[], {
+  get(_target, prop, receiver) {
+    const worlds = getActiveContent().resolved.worlds;
+    const value = Reflect.get(worlds, prop, receiver);
+    if (typeof value === 'function') {
+      return value.bind(worlds);
+    }
+    return value;
   },
-  {
-    id: 'home', title: 'world.home.title', worldNumber: 2, unlockedBy: 'basics', topics: 'world.home.topics', tier: 'free',
-    stretches: [
-      [lesson('theory-harness'), lesson('howto-tap-hold'), node('harness-ritual'), mission('mission-harness')],
-      [lesson('theory-doorbell'), node('doorbell-mat'), mission('mission-doorbell')],
-      [lesson('theory-poste'), node('poste-practice'), mission('mission-poste')],
-    ],
+  has(_target, prop) {
+    return Reflect.has(getActiveContent().resolved.worlds, prop);
   },
-  {
-    id: 'sidewalk', title: 'world.sidewalk.title', worldNumber: 3, unlockedBy: 'home', topics: 'world.sidewalk.topics', tier: 'free',
-    stretches: [
-      [lesson('theory-loose-leash'), lesson('howto-walking'), node('walk-distraction'), mission('mission-walk')],
-      [lesson('theory-blind-corner'), node('blind-corner'), mission('mission-corners')],
-      [lesson('theory-slack-u'), node('slack-u'), mission('mission-u-leash')],
-    ],
+  ownKeys(_target) {
+    return Reflect.ownKeys(getActiveContent().resolved.worlds);
   },
-  {
-    id: 'urban', title: 'world.urban.title', worldNumber: 4, unlockedBy: 'sidewalk', topics: 'world.urban.topics', tier: 'free',
-    stretches: [
-      [lesson('theory-leave-it'), lesson('howto-cues'), node('leave-it-intro'), mission('mission-leave-it')],
-      [lesson('theory-visual-shields'), node('calm-zone-intro'), node('scooter-crossing'), mission('mission-shields')],
-      [lesson('theory-choosing-cue'), node('close-narrow-street-pass'), node('urban-mix'), mission('mission-cue-choice')],
-    ],
+  getOwnPropertyDescriptor(_target, prop) {
+    return Reflect.getOwnPropertyDescriptor(getActiveContent().resolved.worlds, prop);
   },
-  {
-    id: 'park', title: 'world.park.title', worldNumber: 5, unlockedBy: 'urban', topics: 'world.park.topics', tier: 'free',
-    stretches: [
-      [lesson('theory-long-leash'), lesson('howto-long-leash'), node('park-jogger'), mission('mission-park-jogger')],
-      [lesson('theory-park-mix'), node('park-mix'), mission('mission-park-mix')],
-    ],
-  },
-  { id: 'recall', title: 'world.recall.title', worldNumber: 6, stretches: [], unlockedBy: 'park', topics: 'world.recall.topics', tier: 'plus', preview: true, nodeCount: 4 },
-  { id: 'cafe', title: 'world.cafe.title', worldNumber: 7, stretches: [], unlockedBy: 'recall', topics: 'world.cafe.topics', tier: 'plus', preview: true, nodeCount: 4 },
-  { id: 'trails', title: 'world.trails.title', worldNumber: 8, stretches: [], unlockedBy: 'cafe', topics: 'world.trails.topics', tier: 'plus', preview: true, nodeCount: 4 },
-  { id: 'crowds', title: 'world.crowds.title', worldNumber: 9, stretches: [], unlockedBy: 'trails', topics: 'world.crowds.topics', tier: 'plus', preview: true, nodeCount: 5 },
-];
+});
 
 /**
  * What of the Dog record the trail reads, and whether the user has LeadMate Plus right now (`isPlus`), which opens

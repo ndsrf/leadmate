@@ -1,0 +1,16 @@
+id: bark-home
+mode: minigame
+prerequisites: []
+simulation:
+  minigame: bark-home
+exercises:
+  - metric: timing
+    key: node.barkhome.exercise1
+  - metric: tension
+    key: node.barkhome.exercise2
+primerCards:
+  - kind: real-world
+    media:
+      type: image
+      url: ""
+      art: theory-calm-first-1

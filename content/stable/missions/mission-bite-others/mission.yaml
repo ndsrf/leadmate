@@ -1,0 +1,24 @@
+id: mission-bite-others
+technique: bite-others
+reps: 3
+place: home
+sharedNote: plan.note.professional
+trains:
+  - kind: lesson
+    id: theory-bite-others
+problems:
+  - id: approach
+    label: approach
+    practise:
+      kind: lesson
+      id: theory-bite-others
+  - id: growl
+    label: growl
+    practise:
+      kind: lesson
+      id: theory-bite-others
+  - id: cantmanage
+    label: cantmanage
+    practise:
+      kind: lesson
+      id: theory-bite-others

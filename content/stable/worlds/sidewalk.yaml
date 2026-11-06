@@ -1,0 +1,25 @@
+id: sidewalk
+worldNumber: 3
+tier: free
+unlockedBy: home
+stretches:
+  - - kind: lesson
+      id: theory-loose-leash
+    - kind: lesson
+      id: howto-walking
+    - kind: node
+      id: walk-distraction
+    - kind: mission
+      id: mission-walk
+  - - kind: lesson
+      id: theory-blind-corner
+    - kind: node
+      id: blind-corner
+    - kind: mission
+      id: mission-corners
+  - - kind: lesson
+      id: theory-slack-u
+    - kind: node
+      id: slack-u
+    - kind: mission
+      id: mission-u-leash

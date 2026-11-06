@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { createTranslator } from '../../i18n';
-import { FIRST_WEEK_LESSONS, findLesson, LESSONS } from './content';
+import { findLesson, LESSONS } from './content';
 import { libraryEntries } from './lesson';
 import { fixEntries, fixEntryLabel, lessonKindLabel, lessonPlaceLabel, libraryEntryLabel, readingMinutes } from './libraryText';
 import type { Translate } from '../../i18n';
@@ -16,7 +16,8 @@ describe('Library entries', () => {
   });
 
   it('shows the suggested day of a first-week Lesson and the trail place of a trail Lesson', () => {
-    expect(lessonPlaceLabel(FIRST_WEEK_LESSONS[2], t)).toBe('Día 3');
+    const firstWeek = LESSONS.filter((l) => l.day !== undefined).sort((a, b) => (a.day ?? 0) - (b.day ?? 0));
+    expect(lessonPlaceLabel(firstWeek[2], t)).toBe('Día 3');
     expect(lessonPlaceLabel(findLesson('howto-walking')!, t)).toBe('Mundo 3 · Tramo 1');
     expect(lessonPlaceLabel(findLesson('theory-named-behaviours')!, t)).toBe('Mundo 1 · Tramo 1');
     expect(lessonPlaceLabel(findLesson('theory-park-mix')!, t)).toBe('Mundo 5 · Tramo 2');

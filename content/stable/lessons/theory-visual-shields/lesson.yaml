@@ -1,0 +1,10 @@
+id: theory-visual-shields
+kind: theory
+images:
+  - theory-visual-shields-1
+  - theory-visual-shields-2
+compare:
+  do: theory-visual-shields-do
+  dont: theory-visual-shields-dont
+steps: 5
+takeaways: 4
