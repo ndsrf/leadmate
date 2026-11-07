@@ -32,14 +32,21 @@ A record saved before the Home Stretches moved to World 2 SHALL be read with its
 - **WHEN** a version 9 record whose World 2 is already complete is read
 - **THEN** its list is kept and a Concern outside it stays in Other Home Behaviours
 
+### Requirement: Calm hands and leash in World 2 biting Stretch
+The close-view "calm hands and leash" Node Stop (`calm-hands`) SHALL be located in World 2 within the biting-the-owner Stretch (`mouth-person`), placed after the biting theory Lesson (`theory-bite-owner`) and before the biting Mission (`mission-bite-owner`). It SHALL train safe hand and leash handling around the dog without physical correction.
+
+#### Scenario: Placement in World 2 biting Stretch
+- **WHEN** the Dog has biting the owner declared as a Concern
+- **THEN** the biting Stretch in World 2 runs the biting theory Lesson, "calm hands and leash", and the biting Mission, in that order
+
 ## MODIFIED Requirements
 
 ### Requirement: Lessons open together and how to play first
-The Lessons of a Stretch SHALL all be open at once; a Lesson SHALL be closed only by an unpassed earlier Mission of its World or a locked World. A Node SHALL need every Lesson of its Stretch read and a Mission SHALL need its Node. The how-to-play Lesson `howto-choose-action` SHALL be the first Stop of World 1. World 1 SHALL run its three Basics Stretches in fixed order. World 2 SHALL run the Dog's declared Home Stretches first in Personal Plan order, followed by the World 2 threshold Stretches.
+The Lessons of a Stretch SHALL all be open at once; a Lesson SHALL be closed only by an unpassed earlier Mission of its World or a locked World. A Node SHALL need every Lesson of its Stretch read and a Mission SHALL need its Node. The first Stop of World 1 SHALL be the "Tiene nombre" theory Lesson, and the how-to-play Lesson `howto-choose-action` SHALL precede the first choose-the-action Minigame. World 1 SHALL run its three Basics Stretches in fixed order. World 2 SHALL run the Dog's declared Home Stretches first in Personal Plan order, followed by the World 2 threshold Stretches.
 
 #### Scenario: Lessons of a Stretch open together
 - **WHEN** a new Dog opens the Map
-- **THEN** all three Lessons of the first Stretch are open, how to play first, and its Node stays closed until they are read
+- **THEN** all three Lessons of the first Stretch are open, with "Tiene nombre" as the first Stop, and its Node stays closed until they are read
 
 #### Scenario: Home Node needs how to play
 - **WHEN** a Dog has destroying things as a Concern and has not read how to play

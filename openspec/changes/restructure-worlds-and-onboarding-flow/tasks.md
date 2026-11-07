@@ -27,6 +27,14 @@
 - [x] 5.3 Order non-Home Stretches of World 2 by Personal Plan order.
 - [x] 5.4 Method overview: name only Concerns scheduled in World 2, no name placeholder, system back returns to the plan; document `concern` and `method` among the funnel steps in `navigation.ts`.
 
+## 6. World 1 Mission Check Bypass & Stop Order
+
+- [x] 6.1 Move `calm-hands` to World 2 bite-owner stretch and place "Tiene nombre" as the first stop of World 1, with "Cómo se juega" before the first minigame.
+- [x] 6.2 Restore 3 missions to World 1 stretches in `content/` and re-generate baseline.
+- [x] 6.3 Add `MissionCheckScreen` ("¿Ya haces esto con {name}?") in `MissionScreens.tsx` with bypass ("Sí, ya lo hacemos") and standard mission ("Aún no, quiero ponerlo a prueba") actions.
+- [x] 6.4 Implement `passMissionDirectly` in `dogRecord.ts` and `'check'` view routing in `missionView.ts` and `App.tsx`.
+- [x] 6.5 Add unit and integration tests in `world.test.ts`, `dogRecord.test.ts`, `navigation.test.ts`, and `screens.test.ts`.
+
 ## 4. Integration & Validation
 
 - [x] 4.1 Run the full test suite (`npm test`) to verify clean passes across world progression, onboarding, and catalog usage.

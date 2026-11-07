@@ -170,3 +170,18 @@ A Mission MAY set a target practised at home instead of on a walk. A home Missio
 #### Scenario: Home check-in wording
 - **WHEN** the check-in of a home Mission opens
 - **THEN** the question asks how it went at home, not on the walk
+
+### Requirement: World 1 Mission Check bypass
+For Missions belonging to World 1 (the Basics World), opening an unstarted Mission SHALL display a dedicated check screen ("¿Ya haces esto con {name}?") instead of opening the standard Mission brief directly. The check screen SHALL ask whether the handler and dog already practice the habit at home. Confirming it ("Sí, ya lo hacemos") SHALL immediately mark the Mission passed on today's date, advance the Streak, and unlock the next Stretch without imposing any waiting period. Selecting "Aún no, quiero ponerlo a prueba" SHALL open the standard Mission brief with its "Comenzar misión" action, allowing the user to start the Mission with standard waiting intervals before check-in. Missions in World 2 through 5 SHALL NOT provide a check bypass screen and SHALL always open the Mission brief.
+
+#### Scenario: World 1 habit confirmed as practiced
+- **WHEN** an unstarted World 1 Mission is opened and the user confirms "Sí, ya lo hacemos"
+- **THEN** the Mission passes immediately for today with no waiting pause, advances the streak, and unlocks the next Stretch
+
+#### Scenario: World 1 habit needs practice
+- **WHEN** an unstarted World 1 Mission is opened and the user selects "Aún no, quiero ponerlo a prueba"
+- **THEN** the standard Mission brief opens to let the user start the Mission
+
+#### Scenario: Later World Missions
+- **WHEN** an unstarted Mission in World 2 or later is opened
+- **THEN** the Mission brief opens directly without a check screen

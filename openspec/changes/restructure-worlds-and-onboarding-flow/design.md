@@ -42,6 +42,15 @@ In the current implementation, `worldsFor()` in `src/shell/world.ts` merges the 
   - Tactical protocols: Trade-up ("intercambio") with high-value treats tossed 2 meters away instead of physically taking items, and reverse timeout (leaving the room calmly) during mouthy play.
 - **Alternative considered**: Creating a simulated bite event in the simulator. Rejected in ADR 0022 and reaffirmed here; close-view interaction will be designed separately.
 
+### 4. World 1 Mission Check Screen & Stop Ordering
+- **Choice**: Unstarted World 1 missions open on a dedicated `check` screen rather than standard `brief`, via `isWorldOneMission` and `missionEntryOf`.
+- **Mechanics**:
+  - `MissionCheckScreen` asks "¿Ya haces esto con {name}?" with options: "Sí, ya lo hacemos" and "Aún no, quiero ponerlo a prueba".
+  - "Sí, ya lo hacemos" invokes `passMissionDirectly`, setting `passedOn = today`, crediting the streak day, and unlocking the next stretch immediately without waiting pauses.
+  - "Aún no, quiero ponerlo a prueba" transitions to `brief` where "Comenzar misión" triggers the standard real-world mission with check-in waiting rules.
+  - World 1 stop order: Stretch 0 starts with "Tiene nombre" (`theory-named-behaviours`), then "Tu perro es un perro" (`theory-dog-as-dog`), and "Cómo se juega" (`howto-choose-action`) immediately before the choose-the-action minigame.
+  - "Manos y correa en calma" (`calm-hands`) relocates to World 2 within the biting-the-owner stretch (`mouth-person`).
+
 ## Risks / Trade-offs
 
 - **[Existing user progress regression]** → If an existing user is currently progressing through World 1 with home concerns, moving those concerns to World 2 must not erase or orphan completed stops. `world.ts` already tracks completion via `completedNodes`, `readLessons`, and `missions` independently of stretch placement.
