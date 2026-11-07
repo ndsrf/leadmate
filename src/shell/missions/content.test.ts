@@ -93,8 +93,8 @@ describe('Home Behaviour Missions', () => {
     }
   });
 
-  it('trains a Lesson Stop for the biting Missions and the exercise Node for the others', () => {
-    expect(findMission('mission-bite-owner')!.trains).toEqual([{ kind: 'lesson', id: 'theory-bite-owner' }]);
+  it('trains the calm-hands Node for bite-owner, a Lesson Stop for bite-others, and the exercise Node for the others', () => {
+    expect(findMission('mission-bite-owner')!.trains).toEqual([{ kind: 'node', id: 'calm-hands' }]);
     expect(findMission('mission-bite-others')!.trains).toEqual([{ kind: 'lesson', id: 'theory-bite-others' }]);
     expect(findMission('mission-bark-home')!.trains).toEqual([{ kind: 'node', id: 'bark-home' }]);
     expect(findMission('mission-destroy')!.trains).toEqual([{ kind: 'node', id: 'destroy' }]);

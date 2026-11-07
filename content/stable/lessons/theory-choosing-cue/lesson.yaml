@@ -1,0 +1,9 @@
+id: theory-choosing-cue
+kind: theory
+images:
+  - theory-choosing-cue-1
+compare:
+  do: theory-choosing-cue-do
+  dont: theory-choosing-cue-dont
+steps: 5
+takeaways: 3

@@ -112,6 +112,7 @@ export function GameButton({
   disabled = false,
   className = 'mt-4',
   accessibilityLabel,
+  testID,
 }: {
   label: string;
   onPress: () => void;
@@ -120,11 +121,13 @@ export function GameButton({
   className?: string;
   /** What a screen reader announces, when it must say more than the label. */
   accessibilityLabel?: string;
+  testID?: string;
 }) {
   const color = usePalette();
   const focus = useFocus();
   return (
     <Pressable
+      testID={testID}
       onPress={() => handlePress(onPress, disabled)}
       disabled={disabled}
       onFocus={focus.onFocus}
@@ -323,11 +326,12 @@ export function StarRow({ stars, size = 20, label }: { stars: number; size?: num
 }
 
 /** A selectable pill for a short list of choices (at least 44 points tall); the chosen one is brand green with a short shadow. */
-export function Choice({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+export function Choice({ label, selected, onPress, testID }: { label: string; selected: boolean; onPress: () => void; testID?: string }) {
   const focus = useFocus();
   const c = choiceStyle(usePalette(), selected);
   return (
     <Pressable
+      testID={testID}
       onPress={() => handlePress(onPress)}
       onFocus={focus.onFocus}
       onBlur={focus.onBlur}

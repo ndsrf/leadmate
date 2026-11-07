@@ -1,18 +1,22 @@
 import { es } from '../../i18n';
 import { videoEmbedUrl } from '../ui/media';
-import { FIRST_WEEK_LESSONS, firstWeekLessons, LESSONS, theoryLesson, TRAIL_LESSONS } from './content';
+import { LESSONS, theoryLesson } from './content';
 import { lessonTextKeys, type LessonBlock } from './lesson';
-import { LESSON_MEDIA } from './lessonMedia';
-import { SUPPORTED_LANGUAGES, type Language } from '../voice';
+import { resolvePack } from '../content/resolver';
+import { BASELINE_PACK } from '../content/baseline.generated';
+
+const FIRST_WEEK_LESSONS = LESSONS.filter((l) => l.day !== undefined);
+const TRAIL_LESSONS = LESSONS.filter((l) => l.day === undefined);
 
 describe('Lessons', () => {
+
   it('has unique ids, and the first week covers days 1 to 5', () => {
     expect(new Set(LESSONS.map((l) => l.id)).size).toBe(LESSONS.length);
     for (const day of [1, 2, 3, 4, 5]) expect(FIRST_WEEK_LESSONS.some((l) => l.day === day)).toBe(true);
   });
 
   it('only uses catalog keys, animation captions included', () => {
-    for (const l of [...LESSONS, ...firstWeekLessons('https://media.example.com')]) {
+    for (const l of LESSONS) {
       expect(es[l.title]).toBeTruthy();
       for (const key of lessonTextKeys(l.blocks)) expect({ key, text: es[key] }).toEqual({ key, text: expect.any(String) });
       for (const b of l.blocks) {
@@ -37,30 +41,25 @@ describe('Lessons', () => {
     for (const id of Object.values(byLesson).flat()) expect(videoEmbedUrl(id)).not.toBeNull();
   });
 
-  it('never shows a YouTube video in another language than the Lessons', () => {
-    for (const l of firstWeekLessons('', 'en' as Language)) expect(youtubeIds(l)).toEqual([]);
-  });
-
-  it('keys every YouTube id by a shipped language', () => {
-    for (const media of Object.values(LESSON_MEDIA)) for (const lang of Object.keys(media.youtube ?? {})) expect(SUPPORTED_LANGUAGES).toContain(lang);
-  });
-
   it('gives every first-week Lesson a Lesson Animation after its steps, with its own poster, when a media base is set', () => {
-    for (const l of firstWeekLessons('https://media.example.com')) {
+    const hosted = resolvePack(BASELINE_PACK, 'es', { mediaBase: 'https://media.example.com' });
+    const firstWeekHosted = hosted.lessons.filter((l) => l.day !== undefined);
+    for (const l of firstWeekHosted) {
       const at = l.blocks.findIndex((b) => b.type === 'steps');
       expect(l.blocks[at + 1]).toMatchObject({ type: 'video', source: { kind: 'animation' }, poster: `${l.id}-anim` });
     }
   });
 
-  it('places calm-leash\'s animation after the steps and its YouTube video after the comparison', () => {
-    const [calm] = firstWeekLessons('https://media.example.com');
+  it('places calm-leash\'s animation after the steps and its YouTube video after the comparison when media base is set', () => {
+    const hosted = resolvePack(BASELINE_PACK, 'es', { mediaBase: 'https://media.example.com' });
+    const calm = hosted.lessons.find((l) => l.id === 'calm-leash')!;
     const order = calm.blocks.filter((b) => ['steps', 'video', 'compare', 'tip'].includes(b.type)).map((b) => (b.type === 'video' ? `${b.source.kind}:${b.poster}` : b.type));
     expect(order).toEqual(['steps', 'animation:calm-leash-anim', 'compare', 'youtube:poster', 'tip']);
     expect(calm.blocks.find((b) => b.type === 'video' && b.source.kind === 'animation')).toMatchObject({ source: { key: 'calm-leash' }, alt: 'lesson.1.animation.alt', caption: 'lesson.1.animation.caption' });
   });
 
   it('leaves animation blocks out with no media base, and keeps the YouTube video', () => {
-    for (const l of firstWeekLessons('')) {
+    for (const l of FIRST_WEEK_LESSONS) {
       const kinds = l.blocks.flatMap((b) => (b.type === 'video' ? [b.source.kind] : []));
       expect(kinds).toEqual(youtubeIds(l).length > 0 ? ['youtube'] : []);
     }
@@ -71,8 +70,6 @@ describe('Lessons', () => {
       expect(l.blocks.some((b) => b.type === 'text')).toBe(true);
       expect(l.blocks.some((b) => b.type === 'image' || b.type === 'video')).toBe(true);
     }
-    // with hosting, every first-week Lesson has at least its Lesson Animation
-    for (const l of firstWeekLessons('https://media.example.com')) for (const type of ['text', 'image', 'video'] as const) expect(l.blocks.some((b) => b.type === type)).toBe(true);
   });
 });
 

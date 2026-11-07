@@ -62,9 +62,19 @@ describe('billing factory (getBillingService)', () => {
   it('selects RevenueCatBillingService in non-test environment when native module available', () => {
     process.env.NODE_ENV = 'production';
     jest.spyOn(rcModule, 'isNativePurchasesAvailable').mockReturnValue(true);
+    jest.spyOn(rcModule, 'getRevenueCatApiKey').mockReturnValue('test_key');
 
     const service = getBillingService();
     expect(service).toBeInstanceOf(RevenueCatBillingService);
+  });
+
+  it('falls back to MockBillingService when the native module exists but no RevenueCat key is set', () => {
+    process.env.NODE_ENV = 'production';
+    jest.spyOn(rcModule, 'isNativePurchasesAvailable').mockReturnValue(true);
+    jest.spyOn(rcModule, 'getRevenueCatApiKey').mockReturnValue(null);
+
+    const service = getBillingService();
+    expect(service).toBeInstanceOf(MockBillingService);
   });
 
   it('falls back to MockBillingService in production when native module unavailable', () => {

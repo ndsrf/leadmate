@@ -1,0 +1,299 @@
+id: slack-u
+mode: stage
+prerequisites:
+  - walk-distraction
+simulation:
+  scenario:
+    world: 3
+    theme: quiet_suburb
+    fixedStep: 0.016666666666666666
+    leashLength: 2
+    leashTolerance: 0.1
+    quickSpeed: 2
+    walkStrength: 0.6
+    handlerStart:
+      x: 0
+      y: 0
+    dogStart:
+      x: 1
+      y: 0
+    waypoint:
+      x: 46
+      y: 34
+    waypoints:
+      - x: 22
+        y: 0
+      - x: 22
+        y: 16
+      - x: 46
+        y: 16
+    waypointRadius: 2
+    walls:
+      - from:
+          x: -4
+          y: -5
+        to:
+          x: 27
+          y: -5
+      - from:
+          x: 27
+          y: -5
+        to:
+          x: 27
+          y: 11
+      - from:
+          x: 27
+          y: 11
+        to:
+          x: 51
+          y: 11
+      - from:
+          x: 51
+          y: 11
+        to:
+          x: 51
+          y: 39
+    scenery:
+      - type: bench
+        pos:
+          x: 8
+          y: -3
+        angle: 0
+      - type: bin
+        pos:
+          x: 9.8
+          y: -3
+      - type: conifer
+        pos:
+          x: 16
+          y: -3.2
+      - type: flower_bed
+        pos:
+          x: 30
+          y: 13.6
+        angle: 0
+      - type: garden_gnome
+        pos:
+          x: 38.5
+          y: 13.7
+      - type: bench
+        pos:
+          x: 49
+          y: 28
+        angle: 1.5707963267948966
+      - type: conifer
+        pos:
+          x: 0.5573526003531047
+          y: 3.296931024407968
+      - type: flower_bed
+        pos:
+          x: 4.279417038673446
+          y: -3.3728990642353893
+        angle: 0
+      - type: lamp_post
+        pos:
+          x: 8.302828187743822
+          y: 3.387012653844431
+      - type: tree
+        pos:
+          x: 13.810098747412365
+          y: -3.531952856760472
+      - type: fence
+        pos:
+          x: 15.2521244315874
+          y: 2.666602231236175
+        angle: 0
+      - type: bench
+        pos:
+          x: 20.965562358498573
+          y: -3.249640820873901
+        angle: 0
+      - type: scooter
+        pos:
+          x: 25.167634945781902
+          y: 3.0118775154863116
+      - type: bush
+        pos:
+          x: 18.799666344281285
+          y: 7.440778079487025
+      - type: mailbox
+        pos:
+          x: 25.348147512366996
+          y: 11.506115484095758
+      - type: mailbox_row
+        pos:
+          x: 18.469017760688438
+          y: 13.405807531305726
+        angle: 1.5707963267948966
+      - type: bin
+        pos:
+          x: 23.39459850603626
+          y: 19.4108289278578
+      - type: garden_gnome
+        pos:
+          x: 27.57201636547134
+          y: 12.521031543472782
+      - type: hedge
+        pos:
+          x: 30.190351384026663
+          y: 18.95191624821164
+        angle: 0
+      - type: bin
+        pos:
+          x: 33.77312193952856
+          y: 12.1585207242053
+      - type: bench
+        pos:
+          x: 37.34084418345065
+          y: 18.77459662319161
+        angle: 0
+      - type: scooter
+        pos:
+          x: 43.904461321376616
+          y: 12.156208979338407
+      - type: fence
+        pos:
+          x: 49.519342734199014
+          y: 16.622105206762043
+        angle: 1.5707963267948966
+      - type: lamp_post
+        pos:
+          x: 42.08144003804773
+          y: 21.107964798808098
+      - type: mailbox_row
+        pos:
+          x: 48.93450239310041
+          y: 23.625537263495573
+        angle: 1.5707963267948966
+      - type: mailbox
+        pos:
+          x: 42.26575854322873
+          y: 28.985675642887756
+      - type: bush
+        pos:
+          x: 49.34292821818963
+          y: 31.83221148167337
+    cues:
+      - lets-go
+    dogGoalSpeed: 1.6
+    dogFixationSpeed: 1
+    dogReturnSpeed: 1.6
+    dogReturnDistance: 1
+    wanderMaxAngle: 0.5
+    wanderTurnRate: 2
+    distractor:
+      kind: child
+      speed: 1.8
+      triggerRadius: 10
+      activateAfterMeters: 6
+      startOffset: 28
+      path:
+        from:
+          x: 14
+          y: -14
+        to:
+          x: 14
+          y: 14
+    moreDistractors:
+      - kind: dog
+        speed: 2.4
+        triggerRadius: 12
+        activateAfterMeters: 38
+        startOffset: 28
+        path:
+          from:
+            x: 38
+            y: 4
+          to:
+            x: 38
+            y: 28
+    calmSeconds: 3
+    rewardWindowSeconds: 1.1
+    markBudget: 5
+    checkInWindow: 1
+    learning:
+      attributes:
+        reconnectionLatency: 0.2
+        reactivityThreshold: 0.2
+        followChance: 0.5
+        checkInFrequency: 0.2
+      triggerProfile:
+        child: 2
+        bicycle: 2
+        dog: 2
+        skateboard: 2
+        food: 2
+        other: 2
+        hand: 2
+      equipment: collar
+      capacityMultiplier: 1
+      posture: 0
+    ranges:
+      reconnectionSeconds:
+        worst: 1.5
+        best: 0.3
+      reactivityThreshold:
+        worst: 15
+        best: 60
+      checkInMeanInterval:
+        worst: 14
+        best: 5
+    arousal:
+      k: 30
+      minDistance: 2
+      decayPerSecond: 3
+      rigidPullRate: 4
+      disengagementDrop: 25
+      markerHitDrop: 20
+      posteJolt: 15
+      smoothStopFactor: 0.3
+      slowedSeconds: 0.5
+    cue:
+      cooldownSeconds: 3
+      fixatedFactor: 0.3
+      repeatFactor: 0.5
+      arousalDrop: 10
+      followBoostSeconds: 2
+      followBoost: 0.25
+      followCap: 0.95
+    reaction:
+      alertFraction: 0.6
+      lungeAccel: 1.5
+      lungeMaxSpeed: 4
+      alertSlowdown: 0.85
+    sintonia:
+      minSpeed: 0.4
+      minTurnRate: 0.2
+      maxTurnRate: 1.8
+      turnWindow: 0.5
+      holdSeconds: 2
+    goSniff:
+      offerSeconds: 3
+      durationSeconds: 4
+      speed: 0.4
+      decayFactor: 3
+    turnAngle: 0.7853981633974483
+    followSeconds: 1.5
+    correctionWaitSeconds: 4
+    pullStrength: 0.8
+    configVersion: bundled
+    camera:
+      closeZoom: 2.2
+      farZoom: 1.5
+      padding: 90
+      smoothing: 3
+    endCondition:
+      kind: reach-waypoint
+exercises:
+  - metric: tension
+    key: node.u.exercise1
+  - metric: attention
+    key: node.u.exercise2
+  - metric: poste
+    key: node.u.exercise3
+primerCards:
+  - kind: real-world
+    media:
+      type: image
+      url: ""
+      art: theory-slack-u-1

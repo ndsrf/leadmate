@@ -1,0 +1,194 @@
+id: doorbell-mat
+mode: minigame
+prerequisites:
+  - harness-ritual
+simulation:
+  minigame: doorbell-mat
+  scenario:
+    world: 2
+    theme: indoor_apartment
+    fixedStep: 0.016666666666666666
+    leashLength: 2
+    leashTolerance: 0.1
+    quickSpeed: 2
+    walkStrength: 0.6
+    handlerStart:
+      x: 0
+      y: 0
+    dogStart:
+      x: 1
+      y: 0
+    waypoint:
+      x: 14
+      y: 0
+    waypoints: []
+    waypointRadius: 2
+    walls:
+      - from:
+          x: -1
+          y: -1.7
+        to:
+          x: 15
+          y: -1.7
+      - from:
+          x: -1
+          y: 1.7
+        to:
+          x: 15
+          y: 1.7
+      - from:
+          x: 15
+          y: -1.7
+        to:
+          x: 15
+          y: 1.7
+    scenery:
+      - type: plant
+        pos:
+          x: 1.8
+          y: -1.25
+      - type: shoe_rack
+        pos:
+          x: 3.4
+          y: 1.25
+        angle: 0
+      - type: coat_rack
+        pos:
+          x: 6
+          y: -1.25
+      - type: cabinet
+        pos:
+          x: 9
+          y: 1.25
+        angle: 0
+      - type: shelf
+        pos:
+          x: 11.6
+          y: -1.25
+        angle: 0
+      - type: dog_bed
+        pos:
+          x: 0.9407456818968056
+          y: 1.1510622767498717
+      - type: shoe_rack
+        pos:
+          x: 4.326624035164714
+          y: -0.9982442343141883
+        angle: 0
+      - type: shelf
+        pos:
+          x: 5.999872644096613
+          y: 1.0328319085296243
+        angle: 0
+      - type: coat_rack
+        pos:
+          x: 9.286855392754077
+          y: -1.0630889832740649
+      - type: sofa
+        pos:
+          x: 12.504820343777537
+          y: 0.9882444341899826
+        angle: 0
+    cues:
+      - lets-go
+    dogGoalSpeed: 1.6
+    dogFixationSpeed: 1
+    dogReturnSpeed: 1.6
+    dogReturnDistance: 1
+    wanderMaxAngle: 0.5
+    wanderTurnRate: 2
+    distractor:
+      kind: skateboard
+      speed: 4
+      triggerRadius: 14
+      activateAfterMeters: 1000000000
+      startOffset: 28
+    moreDistractors: []
+    calmSeconds: 3
+    rewardWindowSeconds: 1.1
+    markBudget: 5
+    checkInWindow: 1
+    learning:
+      attributes:
+        reconnectionLatency: 0.2
+        reactivityThreshold: 0.2
+        followChance: 0.5
+        checkInFrequency: 0.2
+      triggerProfile:
+        child: 2
+        bicycle: 2
+        dog: 2
+        skateboard: 2
+        food: 2
+        other: 2
+        hand: 2
+      equipment: collar
+      capacityMultiplier: 1
+      posture: 0
+    ranges:
+      reconnectionSeconds:
+        worst: 1.5
+        best: 0.3
+      reactivityThreshold:
+        worst: 15
+        best: 60
+      checkInMeanInterval:
+        worst: 14
+        best: 5
+    arousal:
+      k: 30
+      minDistance: 2
+      decayPerSecond: 3
+      rigidPullRate: 4
+      disengagementDrop: 25
+      markerHitDrop: 20
+      posteJolt: 15
+      smoothStopFactor: 0.3
+      slowedSeconds: 0.5
+    cue:
+      cooldownSeconds: 3
+      fixatedFactor: 0.3
+      repeatFactor: 0.5
+      arousalDrop: 10
+      followBoostSeconds: 2
+      followBoost: 0.25
+      followCap: 0.95
+    reaction:
+      alertFraction: 0.6
+      lungeAccel: 1.5
+      lungeMaxSpeed: 4
+      alertSlowdown: 0.85
+    sintonia:
+      minSpeed: 0.4
+      minTurnRate: 0.2
+      maxTurnRate: 1.8
+      turnWindow: 0.5
+      holdSeconds: 2
+    goSniff:
+      offerSeconds: 3
+      durationSeconds: 4
+      speed: 0.4
+      decayFactor: 3
+    turnAngle: 0.7853981633974483
+    followSeconds: 1.5
+    correctionWaitSeconds: 4
+    pullStrength: 0.8
+    configVersion: bundled
+    camera:
+      closeZoom: 2.2
+      farZoom: 1.5
+      padding: 90
+      smoothing: 3
+    endCondition:
+      kind: reach-waypoint
+exercises:
+  - metric: timing
+    key: node.doorbell.exercise1
+  - metric: attention
+    key: node.doorbell.exercise2
+primerCards:
+  - kind: real-world
+    media:
+      type: image
+      url: ""
+      art: theory-doorbell-2

@@ -1,0 +1,24 @@
+id: mission-eat-objects
+technique: eat-objects
+reps: 3
+place: home
+sharedNote: lesson.note.vet
+trains:
+  - kind: node
+    id: eat-objects
+problems:
+  - id: swallowed
+    label: swallowed
+    practise:
+      kind: node
+      id: eat-objects
+  - id: runs
+    label: runs
+    practise:
+      kind: node
+      id: eat-objects
+  - id: again
+    label: again
+    practise:
+      kind: node
+      id: eat-objects

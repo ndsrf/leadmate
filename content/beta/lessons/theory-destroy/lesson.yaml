@@ -1,0 +1,8 @@
+id: theory-destroy
+kind: theory
+images:
+  - theory-home-rest-1
+  - theory-home-rest-2
+compare: {}
+steps: 5
+takeaways: 4

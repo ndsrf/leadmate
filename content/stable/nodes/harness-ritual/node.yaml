@@ -1,0 +1,194 @@
+id: harness-ritual
+mode: minigame
+prerequisites: []
+simulation:
+  minigame: harness-ritual
+  scenario:
+    world: 2
+    theme: indoor_apartment
+    fixedStep: 0.016666666666666666
+    leashLength: 2
+    leashTolerance: 0.1
+    quickSpeed: 2
+    walkStrength: 0.6
+    handlerStart:
+      x: 0
+      y: 0
+    dogStart:
+      x: 1
+      y: 0
+    waypoint:
+      x: 8
+      y: 0
+    waypoints: []
+    waypointRadius: 2
+    walls:
+      - from:
+          x: -1.5
+          y: -2.2
+        to:
+          x: 9.5
+          y: -2.2
+      - from:
+          x: 9.5
+          y: -2.2
+        to:
+          x: 9.5
+          y: 2.2
+      - from:
+          x: 9.5
+          y: 2.2
+        to:
+          x: -1.5
+          y: 2.2
+      - from:
+          x: -1.5
+          y: 2.2
+        to:
+          x: -1.5
+          y: -2.2
+    scenery:
+      - type: plant
+        pos:
+          x: 0.6
+          y: -1.8
+      - type: sofa
+        pos:
+          x: 3.4
+          y: 1.75
+        angle: 0
+      - type: shelf
+        pos:
+          x: 6.2
+          y: -1.75
+        angle: 0
+      - type: umbrella_stand
+        pos:
+          x: 8.5
+          y: 1.8
+      - type: elevator_panel
+        pos:
+          x: 9.2
+          y: 0
+      - type: elevator_panel
+        pos:
+          x: 0.522305465489626
+          y: 1.3091696820687502
+      - type: shelf
+        pos:
+          x: 3.19955325499177
+          y: -1.3914776304271073
+        angle: 0
+      - type: cabinet
+        pos:
+          x: 4.850188520550728
+          y: 1.478831273270771
+        angle: 0
+      - type: dog_bed
+        pos:
+          x: 7.5959650002419945
+          y: -1.1445804553106427
+    cues:
+      - lets-go
+    dogGoalSpeed: 1.6
+    dogFixationSpeed: 1
+    dogReturnSpeed: 1.6
+    dogReturnDistance: 1
+    wanderMaxAngle: 0.5
+    wanderTurnRate: 2
+    distractor:
+      kind: skateboard
+      speed: 4
+      triggerRadius: 14
+      activateAfterMeters: 1000000000
+      startOffset: 28
+    moreDistractors: []
+    calmSeconds: 3
+    rewardWindowSeconds: 1.1
+    markBudget: 5
+    checkInWindow: 1
+    learning:
+      attributes:
+        reconnectionLatency: 0.2
+        reactivityThreshold: 0.2
+        followChance: 0.5
+        checkInFrequency: 0.2
+      triggerProfile:
+        child: 2
+        bicycle: 2
+        dog: 2
+        skateboard: 2
+        food: 2
+        other: 2
+        hand: 2
+      equipment: collar
+      capacityMultiplier: 1
+      posture: 0
+    ranges:
+      reconnectionSeconds:
+        worst: 1.5
+        best: 0.3
+      reactivityThreshold:
+        worst: 15
+        best: 60
+      checkInMeanInterval:
+        worst: 14
+        best: 5
+    arousal:
+      k: 30
+      minDistance: 2
+      decayPerSecond: 3
+      rigidPullRate: 4
+      disengagementDrop: 25
+      markerHitDrop: 20
+      posteJolt: 15
+      smoothStopFactor: 0.3
+      slowedSeconds: 0.5
+    cue:
+      cooldownSeconds: 3
+      fixatedFactor: 0.3
+      repeatFactor: 0.5
+      arousalDrop: 10
+      followBoostSeconds: 2
+      followBoost: 0.25
+      followCap: 0.95
+    reaction:
+      alertFraction: 0.6
+      lungeAccel: 1.5
+      lungeMaxSpeed: 4
+      alertSlowdown: 0.85
+    sintonia:
+      minSpeed: 0.4
+      minTurnRate: 0.2
+      maxTurnRate: 1.8
+      turnWindow: 0.5
+      holdSeconds: 2
+    goSniff:
+      offerSeconds: 3
+      durationSeconds: 4
+      speed: 0.4
+      decayFactor: 3
+    turnAngle: 0.7853981633974483
+    followSeconds: 1.5
+    correctionWaitSeconds: 4
+    pullStrength: 0.8
+    configVersion: bundled
+    camera:
+      closeZoom: 2.2
+      farZoom: 1.5
+      padding: 90
+      smoothing: 3
+    endCondition:
+      kind: reach-waypoint
+exercises:
+  - metric: poste
+    key: node.harness.exercise1
+  - metric: tension
+    key: node.harness.exercise2
+primerCards:
+  - kind: real-world
+    media:
+      type: image
+      url: ""
+      art: theory-harness-1
+  - kind: virtual-dog

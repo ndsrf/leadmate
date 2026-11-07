@@ -11,6 +11,7 @@ import { LessonBlockView } from '../ui/LessonBlocks';
 import { handlePress } from '../ui/press';
 import { theme } from '../ui/theme';
 import { Screen } from './Screen';
+import { BetaContentBadge } from '../ui/BetaContentBadge';
 import type { TrialState, VideoGatingProps } from '../plus';
 
 /**
@@ -175,6 +176,7 @@ export function LessonScreen({
     <View>
       <View className="flex-row items-center justify-between" style={{ gap: theme.space[2] }}>
         <Button label={backLabel} tone="secondary" onPress={onBack} />
+        <BetaContentBadge t={t} />
       </View>
       <View className="mt-2" accessibilityLabel={t('lesson.progress')}>
         <ProgressBar value={progress} max={100} />

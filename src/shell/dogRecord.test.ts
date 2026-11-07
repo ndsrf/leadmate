@@ -1,5 +1,5 @@
 import { DEFAULT_ATTRIBUTES } from '../sim/learning';
-import { applyActivity, applyDaySkip, applyMissionCheckIn, updateMission, applyStage, failedPoste, touch, loadDogRecord, mergeLegacyNodes, migrateRecord, newDogRecord, RECORD_KEY, recordDailyBarkdoku, recordDailyScore, saveDogRecord, setTriggerLevel, setMainConcerns, setHomeConcern, setAgeBand, setSex, toSnapshot, type KeyValueStore } from './dogRecord';
+import { applyActivity, applyDaySkip, applyMissionCheckIn, passMissionDirectly, updateMission, applyStage, failedPoste, touch, loadDogRecord, mergeLegacyNodes, migrateRecord, newDogRecord, RECORD_KEY, recordDailyBarkdoku, recordDailyScore, saveDogRecord, setTriggerLevel, setMainConcerns, setHomeConcern, setAgeBand, setSex, toSnapshot, type KeyValueStore } from './dogRecord';
 import { payloadWith } from './testPayload';
 import { lookOf } from './onboarding/look';
 import { advance, onDebrief, startNode, type NodeRun } from './nodes/node';
@@ -123,7 +123,7 @@ describe('Dog record: Walk Diary, Streak and Daily best', () => {
     const r = migrateRecord(v1);
     expect(r.version).toBe(10);
     expect(r.attributes.followChance).toBeCloseTo(0.9);
-    expect(r.completedNodes).toEqual(['poste-practice', 'calm-hands', 'dog-as-dog', 'home-rest', 'calm-first']) // plus the Basics World, marked by the version 8 migration;
+    expect(r.completedNodes).toEqual(['poste-practice', 'dog-as-dog', 'home-rest', 'calm-first']) // plus the Basics World, marked by the version 8 migration;
     expect(r.equipment).toBe('harness');
     expect(r.posture).toBe(1);
     expect(r.walkDiary).toEqual([]);
@@ -203,7 +203,7 @@ describe('Dog record: version 3', () => {
     expect(r.onboarding.step).toBe('done');
     expect(r.weights).toEqual({ dogKg: null, handlerKg: null });
     expect(r.seenHints).toEqual([]);
-    expect(r.completedNodes).toEqual(['poste-practice', 'calm-hands', 'dog-as-dog', 'home-rest', 'calm-first']) // plus the Basics World, marked by the version 8 migration;
+    expect(r.completedNodes).toEqual(['poste-practice', 'dog-as-dog', 'home-rest', 'calm-first']) // plus the Basics World, marked by the version 8 migration;
     expect(r.streak.best).toBe(3);
   });
 
@@ -303,7 +303,7 @@ describe('stars on the record', () => {
     const r = migrateRecord(old);
     expect(r.version).toBe(10);
     expect(r.stars).toEqual({});
-    expect(r.completedNodes).toEqual(['poste-practice', 'calm-hands', 'dog-as-dog', 'home-rest', 'calm-first']) // plus the Basics World, marked by the version 8 migration;
+    expect(r.completedNodes).toEqual(['poste-practice', 'dog-as-dog', 'home-rest', 'calm-first']) // plus the Basics World, marked by the version 8 migration;
   });
 
   it('ignores invalid star values', () => {
@@ -569,6 +569,17 @@ describe('Dog record: version 7 (Missions)', () => {
     expect(reopened.missions).toEqual(r.missions);
     expect(reopened.seenFixes).toEqual(r.seenFixes);
     expect(reopened.walkDiary).toEqual(r.walkDiary);
+  });
+
+  it('passes a Mission directly: sets passedOn today and advances streak', () => {
+    const before = newDogRecord();
+    const now = at('2026-05-02T10:00:00');
+    const after = passMissionDirectly(before, 'mission-dog-as-dog', now);
+    expect(after.missions['mission-dog-as-dog']).toMatchObject({
+      passedOn: '2026-05-02',
+    });
+    expect(after.streak.lastActiveDate).toBe('2026-05-02');
+    expect(after.streak.current).toBe(1);
   });
 });
 

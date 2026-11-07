@@ -1,0 +1,23 @@
+id: mission-destroy
+technique: destroy
+reps: 3
+place: home
+trains:
+  - kind: node
+    id: destroy
+problems:
+  - id: ignores
+    label: ignores
+    practise:
+      kind: node
+      id: destroy
+  - id: again
+    label: again
+    practise:
+      kind: node
+      id: destroy
+  - id: alone
+    label: alone
+    practise:
+      kind: node
+      id: destroy

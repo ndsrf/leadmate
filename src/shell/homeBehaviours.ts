@@ -14,11 +14,11 @@ export const CONTENT_PARTS = ['lesson', 'node', 'mission'] as const;
 export type ContentPart = (typeof CONTENT_PARTS)[number];
 
 /**
- * The parts each Home Behaviour must have. The two biting behaviours have no exercise by design: a simulation
+ * The parts each Home Behaviour must have. Biting others has no exercise by design: a simulation
  * that can be failed is the wrong way to teach bite handling, so a missing Node there is not a gap.
  */
 export const REQUIRED_PARTS: Record<HomeConcern, readonly ContentPart[]> = {
-  'bite-owner': ['lesson', 'mission'],
+  'bite-owner': CONTENT_PARTS,
   'bite-others': ['lesson', 'mission'],
   'bark-home': CONTENT_PARTS,
   destroy: CONTENT_PARTS,
@@ -27,7 +27,7 @@ export const REQUIRED_PARTS: Record<HomeConcern, readonly ContentPart[]> = {
 
 /** What each Home Behaviour has: the ids of its Lesson, Node and Mission. */
 export const HOME_BEHAVIOUR_CONTENT: Record<HomeConcern, HomeBehaviourContent> = {
-  'bite-owner': { lesson: 'theory-bite-owner', mission: 'mission-bite-owner' },
+  'bite-owner': { lesson: 'theory-bite-owner', node: 'calm-hands', mission: 'mission-bite-owner' },
   'bite-others': { lesson: 'theory-bite-others', mission: 'mission-bite-others' },
   'bark-home': { lesson: 'theory-bark-home', node: 'bark-home', mission: 'mission-bark-home' },
   destroy: { lesson: 'theory-destroy', node: 'destroy', mission: 'mission-destroy' },

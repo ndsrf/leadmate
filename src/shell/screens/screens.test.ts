@@ -33,6 +33,14 @@ describe('Debrief and Mission screens', () => {
     expect(component(source('MissionScreens.tsx'), 'FixScreen')).toMatch(/\{canMoveOn && \(/);
   });
 
+  it('renders check question and buttons for World 1 check screen', () => {
+    const check = component(source('MissionScreens.tsx'), 'MissionCheckScreen');
+    expect(check).toContain('"mission.check.heading"');
+    expect(check).toContain("'mission.check.question'");
+    expect(check).toContain("'mission.check.alreadyDone'");
+    expect(check).toContain("'mission.check.needMission'");
+  });
+
   it('uses no animation, so there is nothing to reduce under reduced motion', () => {
     expect(source('MissionScreens.tsx')).not.toMatch(/react-native-reanimated|Animated/);
   });

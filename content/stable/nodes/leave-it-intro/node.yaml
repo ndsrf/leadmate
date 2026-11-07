@@ -1,0 +1,247 @@
+id: leave-it-intro
+mode: stage
+prerequisites: []
+simulation:
+  scenario:
+    world: 4
+    theme: urban_street
+    fixedStep: 0.016666666666666666
+    leashLength: 2
+    leashTolerance: 0.1
+    quickSpeed: 2
+    walkStrength: 0.6
+    handlerStart:
+      x: 0
+      y: 0
+    dogStart:
+      x: 1
+      y: 0
+    waypoint:
+      x: 60
+      y: 0
+    waypoints: []
+    waypointRadius: 2
+    walls:
+      - from:
+          x: -4
+          y: -6
+        to:
+          x: 64
+          y: -6
+      - from:
+          x: -4
+          y: 6
+        to:
+          x: 64
+          y: 6
+    scenery:
+      - type: bus_stop
+        pos:
+          x: 12
+          y: -4.2
+        angle: 0
+      - type: kiosk
+        pos:
+          x: 36
+          y: 4.3
+      - type: bike_rack
+        pos:
+          x: 50
+          y: -4.2
+        angle: 0
+      - type: trash_can
+        pos:
+          x: 22
+          y: 4.6
+      - type: sign
+        pos:
+          x: 1.2655648766085508
+          y: 4.578794104629196
+      - type: bus_stop
+        pos:
+          x: 3.8925910082180053
+          y: -4.57090972608421
+        angle: 0
+      - type: bin
+        pos:
+          x: 9.780994244618341
+          y: 4.766889942693524
+      - type: lamp_post
+        pos:
+          x: 12.100773185491562
+          y: -4.8195696386974305
+      - type: scooter
+        pos:
+          x: 17.499581984477118
+          y: 4.658500077784993
+      - type: flower_bed
+        pos:
+          x: 21.161464767996222
+          y: -4.93548388115596
+        angle: 0
+      - type: hydrant
+        pos:
+          x: 24.46502679772675
+          y: 4.452179003506899
+      - type: fountain
+        pos:
+          x: 26.354909074958414
+          y: -3.7594651804538444
+      - type: bench
+        pos:
+          x: 30.53842582879588
+          y: 4.554792769718915
+        angle: 0
+      - type: tree
+        pos:
+          x: 34.586578702088445
+          y: -3.9162769622635096
+      - type: parked_car
+        pos:
+          x: 39.52111906022765
+          y: 4.474091816460714
+        visualShield: true
+        radius: 1.4
+        angle: 0
+      - type: bike_rack
+        pos:
+          x: 44.199229195481166
+          y: -4.72783165902365
+        angle: 0
+      - type: kiosk
+        pos:
+          x: 47.50189112056978
+          y: 4.825431196833961
+      - type: trash_can
+        pos:
+          x: 49.871979095740244
+          y: -3.602270695613697
+      - type: tree
+        pos:
+          x: 55.005245725857094
+          y: 3.5120364339090884
+      - type: lamp_post
+        pos:
+          x: 58.69691158714704
+          y: -3.9045557469362393
+    cues:
+      - leave-it
+    dogGoalSpeed: 1.6
+    dogFixationSpeed: 1
+    dogReturnSpeed: 1.6
+    dogReturnDistance: 1
+    wanderMaxAngle: 0.5
+    wanderTurnRate: 2
+    distractor:
+      kind: food
+      speed: 0
+      triggerRadius: 6
+      activateAfterMeters: 12
+      startOffset: 28
+      salience: 6
+      path:
+        from: &a1
+          x: 30
+          y: 1.5
+        to: *a1
+    moreDistractors:
+      - kind: food
+        speed: 0
+        triggerRadius: 6
+        activateAfterMeters: 40
+        startOffset: 28
+        salience: 6
+        path:
+          from: &a2
+            x: 48
+            y: -1.5
+          to: *a2
+    calmSeconds: 3
+    rewardWindowSeconds: 1.1
+    markBudget: 5
+    checkInWindow: 1
+    learning:
+      attributes:
+        reconnectionLatency: 0.2
+        reactivityThreshold: 0.2
+        followChance: 0.5
+        checkInFrequency: 0.2
+      triggerProfile:
+        child: 2
+        bicycle: 2
+        dog: 2
+        skateboard: 2
+        food: 2
+        other: 2
+        hand: 2
+      equipment: collar
+      capacityMultiplier: 1
+      posture: 0
+    ranges:
+      reconnectionSeconds:
+        worst: 1.5
+        best: 0.3
+      reactivityThreshold:
+        worst: 15
+        best: 60
+      checkInMeanInterval:
+        worst: 14
+        best: 5
+    arousal:
+      k: 30
+      minDistance: 2
+      decayPerSecond: 3
+      rigidPullRate: 4
+      disengagementDrop: 25
+      markerHitDrop: 20
+      posteJolt: 15
+      smoothStopFactor: 0.3
+      slowedSeconds: 0.5
+    cue:
+      cooldownSeconds: 3
+      fixatedFactor: 0.3
+      repeatFactor: 0.5
+      arousalDrop: 10
+      followBoostSeconds: 2
+      followBoost: 0.25
+      followCap: 0.95
+    reaction:
+      alertFraction: 0.6
+      lungeAccel: 1.5
+      lungeMaxSpeed: 4
+      alertSlowdown: 0.85
+    sintonia:
+      minSpeed: 0.4
+      minTurnRate: 0.2
+      maxTurnRate: 1.8
+      turnWindow: 0.5
+      holdSeconds: 2
+    goSniff:
+      offerSeconds: 3
+      durationSeconds: 4
+      speed: 0.4
+      decayFactor: 3
+    turnAngle: 0.7853981633974483
+    followSeconds: 1.5
+    correctionWaitSeconds: 4
+    pullStrength: 0.8
+    configVersion: bundled
+    camera:
+      closeZoom: 2.2
+      farZoom: 1.5
+      padding: 90
+      smoothing: 3
+    endCondition:
+      kind: reach-waypoint
+exercises:
+  - metric: attention
+    key: node.leaveit.exercise1
+  - metric: timing
+    key: node.leaveit.exercise2
+primerCards:
+  - kind: real-world
+    media:
+      type: image
+      url: ""
+      art: theory-leave-it-2
+  - kind: virtual-dog

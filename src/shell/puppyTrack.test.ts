@@ -63,7 +63,7 @@ describe('puppyTrack', () => {
       expect(PUPPY_SATELLITE_STOPS[0]).toMatchObject({
         id: 'puppy-bite',
         lessonId: 'puppy-bite',
-        parentStopId: 'calm-hands',
+        parentStopId: 'dog-as-dog',
         stretchIndex: 0,
       });
 
@@ -83,7 +83,7 @@ describe('puppyTrack', () => {
     });
 
     it('retrieves satellite stop definition by parent stop ID', () => {
-      expect(satelliteStopForParent('calm-hands')?.id).toBe('puppy-bite');
+      expect(satelliteStopForParent('dog-as-dog')?.id).toBe('puppy-bite');
       expect(satelliteStopForParent('theory-home-rest')?.id).toBe('puppy-sound');
       expect(satelliteStopForParent('theory-calm-first')?.id).toBe('puppy-vet');
       expect(satelliteStopForParent('unknown')).toBeUndefined();

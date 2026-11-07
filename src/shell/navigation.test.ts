@@ -256,6 +256,7 @@ describe('Mission flows', () => {
 
   it('opens the Mission brief when the Debrief of a Stretch\'s last Node is closed', () => {
     expect(missionAfterDebrief('harness-ritual', stretch1, at(9))).toBe('mission-harness');
+    expect(missionAfterDebrief('dog-as-dog', progressOf(['dog-as-dog']), at(9))).toBe('mission-dog-as-dog');
   });
 
   it('returns to the map after a Node that is not last, or when the Mission is started or passed', () => {
@@ -266,9 +267,21 @@ describe('Mission flows', () => {
 
   it('opens a Mission Stop on its brief, its wait or its check-in', () => {
     expect(missionEntryView(undefined, at(9))).toBe('brief');
+    expect(missionEntryView(undefined, at(9), false, true)).toBe('check');
     expect(missionEntryView({ target: 'full', skipRun: 0, attempts: [], focus: 'node.harness.exercise1' }, at(9))).toBe('brief');
+    expect(missionEntryView({ target: 'full', skipRun: 0, attempts: [], focus: 'node.harness.exercise1' }, at(9), false, true)).toBe('check');
     expect(missionEntryView(started, at(20, 1))).toBe('waiting');
     expect(missionEntryView(started, at(9, 2))).toBe('checkin');
+  });
+
+  it('opens unstarted World 1 Missions on check screen to allow skipping without waiting pauses', () => {
+    expect(missionEntryOf('mission-dog-as-dog', progressOf([]), at(9))).toBe('check');
+    expect(missionEntryOf('mission-home-rest', progressOf([]), at(9))).toBe('check');
+    expect(missionEntryOf('mission-calm-first', progressOf([]), at(9))).toBe('check');
+    const startedDogAsDog = progressOf([], { missions: { 'mission-dog-as-dog': started } });
+    expect(missionEntryOf('mission-dog-as-dog', startedDogAsDog, at(20, 1))).toBe('waiting');
+    expect(missionEntryOf('mission-dog-as-dog', startedDogAsDog, at(9, 2))).toBe('checkin');
+    expect(missionEntryOf('mission-harness', progressOf([]), at(9))).toBe('brief');
   });
 
   it('opens a passed Mission on its passed screen, never on the wait', () => {

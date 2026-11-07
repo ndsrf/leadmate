@@ -1,0 +1,24 @@
+id: mission-bite-owner
+technique: bite-owner
+reps: 3
+place: home
+sharedNote: plan.note.professional
+trains:
+  - kind: node
+    id: calm-hands
+problems:
+  - id: growls
+    label: growls
+    practise:
+      kind: node
+      id: calm-hands
+  - id: bit
+    label: bit
+    practise:
+      kind: node
+      id: calm-hands
+  - id: cantavoid
+    label: cantavoid
+    practise:
+      kind: node
+      id: calm-hands

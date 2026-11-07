@@ -1,0 +1,23 @@
+id: mission-calm-first
+technique: calm-first
+reps: 2
+place: home
+trains:
+  - kind: node
+    id: calm-first
+problems:
+  - id: neverstops
+    label: neverstops
+    practise:
+      kind: node
+      id: calm-first
+  - id: escalates
+    label: escalates
+    practise:
+      kind: node
+      id: calm-first
+  - id: givein
+    label: givein
+    practise:
+      kind: node
+      id: calm-first

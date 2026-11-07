@@ -8,10 +8,9 @@ import { BASICS_SCENES, CORRECT_ACTION, hintKey, SCENE_ACTIONS, type DogState } 
 import { findWorld, stopsOf } from '../world';
 import { lineTextKey, parseAnimationTimeline, type AnimationTimeline } from './animationTimeline';
 import { isAnimationKey } from '../ui/media';
-import { findLesson, firstWeekLessons, HOME_LESSONS, theoryLesson, TRAIL_LESSONS } from './content';
+import { findLesson, LESSONS, theoryLesson } from './content';
 import { countWords, lessonArtNames, lessonTextKeys, type LessonDef } from './lesson';
 import { LESSON_ART } from './lessonArtRegistry';
-import { LESSON_MEDIA } from './lessonMedia';
 
 /** The teaching pattern as a sequence of block types (see docs/content/lesson-guide.md). */
 const PATTERN = /^(notice )?heading text heading text image heading steps (video )?example (image )*heading compare (video )?tip takeaways$/;
@@ -38,8 +37,8 @@ function problems(lesson: LessonDef, t: Translate, art: Readonly<Record<string, 
   return found;
 }
 
-/** Every theory Lesson, built with a media base so its Lesson Animations are checked too. */
-const THEORY = [...firstWeekLessons('https://media.example.com'), ...TRAIL_LESSONS, ...HOME_LESSONS].filter((l) => l.kind === 'theory');
+/** Every theory Lesson, resolved from active content. */
+const THEORY = LESSONS.filter((l) => l.kind === 'theory');
 
 describe('theory Lessons follow the guide', () => {
   it('every theory Lesson conforms', () => {
@@ -49,7 +48,7 @@ describe('theory Lessons follow the guide', () => {
 });
 
 describe('Lesson Animations', () => {
-  const keys = Object.entries(LESSON_MEDIA).flatMap(([id, m]) => (m.animation === undefined ? [] : [{ id, key: m.animation }]));
+  const keys = LESSONS.flatMap((l) => l.blocks.flatMap((b) => (b.type === 'video' && b.source.kind === 'animation' ? [{ id: l.id, key: b.source.key }] : [])));
 
   it('every animation key is well formed', () => {
     expect(keys.filter(({ key }) => !isAnimationKey(key))).toEqual([]);
@@ -135,9 +134,8 @@ describe('World 1 teaches no physical correction', () => {
   const BANNED = /(pegar|golpe|patada|empujar|zarandear|cachete)/i;
   const stops = stopsOf(findWorld('basics')!);
   const lessonKeys = stops.flatMap((s) => (s.kind === 'lesson' ? [findLesson(s.id)!.title, ...lessonTextKeys(findLesson(s.id)!.blocks)] : []));
-  const missionKeys = stops.flatMap((s) => {
-    if (s.kind !== 'mission') return [];
-    const m = findMission(s.id)!;
+  const basicsMissions = ['mission-dog-as-dog', 'mission-home-rest', 'mission-calm-first'].map((id) => findMission(id)!).filter(Boolean);
+  const missionKeys = basicsMissions.flatMap((m) => {
     const fixes = [...m.problems.map((p) => p.fix), m.generalFix];
     return [m.title, m.target, m.successSign, ...m.problems.map((p) => p.label), ...fixes.flatMap((f) => [...lessonTextKeys(f.blocks), f.easierTarget])];
   });
@@ -172,7 +170,9 @@ describe('World 1 teaches no physical correction', () => {
 describe('Home Behaviour content method rules', () => {
   const BANNED = /(pega\b|pegar|golpe|patada|empujar|zarandear|cachete|castigar con|collar de|bozal|descarga)/i;
   const t = createTranslator();
-  const lessonKeys = HOME_LESSONS.flatMap((l) => [l.title, ...lessonTextKeys(l.blocks)]);
+  const HOME_LESSON_IDS = ['theory-bite-owner', 'theory-bite-others', 'theory-bark-home', 'theory-destroy', 'theory-eat-objects'];
+  const homeLessons = HOME_LESSON_IDS.map((id) => findLesson(id)!);
+  const lessonKeys = homeLessons.flatMap((l) => [l.title, ...lessonTextKeys(l.blocks)]);
   const missionKeys = ['mission-bite-owner', 'mission-bite-others', 'mission-bark-home', 'mission-destroy', 'mission-eat-objects'].flatMap((id) => {
     const m = findMission(id)!;
     const fixes = [...m.problems.map((p) => p.fix), m.generalFix];
@@ -197,7 +197,7 @@ describe('Home Behaviour content method rules', () => {
   });
 
   it('shows the same shared vet note, one catalog key, in the eating Lesson and in every Remediation of the eating Mission', () => {
-    expect(HOME_LESSONS.find((l) => l.id === 'theory-eat-objects')!.blocks[0]).toEqual({ type: 'notice', text: 'lesson.note.vet' });
+    expect(findLesson('theory-eat-objects')!.blocks[0]).toEqual({ type: 'notice', text: 'lesson.note.vet' });
     const m = findMission('mission-eat-objects')!;
     for (const f of [...m.problems.map((p) => p.fix), m.generalFix]) expect(f.blocks.some((b) => b.type === 'text' && b.text === 'lesson.note.vet')).toBe(true);
   });

@@ -1,0 +1,10 @@
+id: theory-leave-it
+kind: theory
+images:
+  - theory-leave-it-1
+  - theory-leave-it-2
+compare:
+  do: theory-leave-it-do
+  dont: theory-leave-it-dont
+steps: 6
+takeaways: 4

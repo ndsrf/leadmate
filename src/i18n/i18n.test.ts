@@ -1,4 +1,5 @@
 import { createTranslator, es, t, type TextKey } from './index';
+import '../shell/content/runtime';
 
 describe('text catalog', () => {
   it('looks up Spanish text', () => {

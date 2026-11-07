@@ -1,0 +1,16 @@
+id: poste-practice
+mode: minigame
+prerequisites: []
+simulation:
+  minigame: poste-hold
+exercises:
+  - metric: poste
+    key: node.poste.exercisePoste
+  - metric: tension
+    key: node.poste.exerciseTension
+primerCards:
+  - kind: real-world
+    media:
+      type: image
+      url: ""
+      art: theory-poste-do

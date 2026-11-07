@@ -1,0 +1,98 @@
+id: close-narrow-street-pass
+mode: close_exercise
+prerequisites:
+  - scooter-crossing
+simulation:
+  scenario:
+    theme: urban_street
+  closeScenario:
+    controls: leash_drill
+    fixedStep: 0.016666666666666666
+    leashMinLength: 0.5
+    leashMaxLength: 2
+    gatherRate: 1.5
+    releaseRate: 2
+    posteDamping: 0.35
+    posteArousalDamping: 0.4
+    shieldOcclusionDistance: 0.65
+    shieldOffset: 0.8
+    handlerBase:
+      x: 0
+      y: 0
+    dogOffset:
+      x: 0.9
+      y: 0.1
+    distractor:
+      kind: dog
+      speed: 1.4
+      triggerRadius: 6
+      startPos:
+        x: 1.8
+        y: 12
+      endPos:
+        x: 1.8
+        y: -6
+      cue: lets-go
+    learning:
+      attributes:
+        reconnectionLatency: 0.2
+        reactivityThreshold: 0.2
+        followChance: 0.5
+        checkInFrequency: 0.2
+      triggerProfile:
+        child: 2
+        bicycle: 2
+        dog: 2
+        skateboard: 2
+        food: 2
+        other: 2
+        hand: 2
+      equipment: collar
+      capacityMultiplier: 1
+      posture: 0
+    arousal:
+      k: 28
+      minDistance: 1.5
+      decayPerSecond: 3.5
+      rigidPullRate: 5
+      disengagementDrop: 25
+      markerHitDrop: 20
+      posteJolt: 15
+      smoothStopFactor: 0.3
+      slowedSeconds: 0.5
+    reaction:
+      alertFraction: 0.55
+      lungeAccel: 2
+      lungeMaxSpeed: 3.5
+      alertSlowdown: 0.8
+    cue:
+      cooldownSeconds: 2.5
+      fixatedFactor: 0.35
+      repeatFactor: 0.5
+      arousalDrop: 12
+      followBoostSeconds: 2
+      followBoost: 0.25
+      followCap: 0.95
+    cues:
+      - lets-go
+    calmSeconds: 2.5
+    maxSeconds: 60
+    reward: treat
+    settleSeconds: 4
+    rewardWindowSeconds: 1.1
+    markBudget: 5
+    checkInWindow: 1
+    configVersion: close-exercise-v1
+exercises:
+  - metric: tension
+    key: node.closepass.exercise1
+  - metric: timing
+    key: node.closepass.exercise2
+  - metric: attention
+    key: node.closepass.exercise3
+primerCards:
+  - kind: real-world
+    media:
+      type: image
+      url: ""
+      art: theory-visual-shields-2

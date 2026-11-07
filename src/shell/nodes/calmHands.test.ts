@@ -17,11 +17,11 @@ const keysOf = (node: NodeDef) => [
 ];
 
 describe('the "calm hands and leash" Node (task 3.1)', () => {
-  it('is a close-view hand drill that needs only the how-to-play Lesson', () => {
+  it('is a close-view hand drill that needs the bite-owner Lesson', () => {
     expect(CALM_HANDS_NODE.mode).toBe('close_exercise');
     expect(CALM_HANDS_NODE.simulation.closeScenario?.controls).toBe('hand_drill');
-    expect(CALM_HANDS_NODE.opensAfterLesson).toBe('howto-choose-action');
-    expect(stopLock({ kind: 'node', id: 'calm-hands' }, progressOf([], { readLessons: ['howto-choose-action'] }))).toBeNull();
+    expect(CALM_HANDS_NODE.opensAfterLesson).toBe('theory-bite-owner');
+    expect(stopLock({ kind: 'node', id: 'calm-hands' }, progressOf([], { readLessons: ['theory-bite-owner'] }))).toBeNull();
   });
 
   it('picks puppy copy and a toy reward for a puppy', () => {

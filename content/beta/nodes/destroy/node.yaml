@@ -1,0 +1,16 @@
+id: destroy
+mode: minigame
+prerequisites: []
+simulation:
+  minigame: destroy
+exercises:
+  - metric: timing
+    key: node.destroy.exercise1
+  - metric: tension
+    key: node.destroy.exercise2
+primerCards:
+  - kind: real-world
+    media:
+      type: image
+      url: ""
+      art: theory-home-rest-2

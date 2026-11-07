@@ -1,0 +1,22 @@
+id: mission-corners
+technique: blind-corner
+reps: 4
+trains:
+  - kind: node
+    id: blind-corner
+problems:
+  - id: ahead
+    label: ahead
+    practise:
+      kind: node
+      id: blind-corner
+  - id: surprise
+    label: surprise
+    practise:
+      kind: node
+      id: blind-corner
+  - id: forget
+    label: forget
+    practise:
+      kind: lesson
+      id: theory-blind-corner

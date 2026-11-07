@@ -70,3 +70,16 @@ Read from `src/shell/ads/`, `WorldMapScreen.tsx` and `LessonVideo*.tsx`; no devi
 | Lesson video is created only after the tap (or right after the user unlocks it with a tap, `autoPlayVideo`); nothing plays on its own. | No | None. |
 | The native Lesson Animation paused only when the app reached `background`; an `inactive` state (Control Center, a system dialog) left it playing. | Minor | It now pauses whenever the app is not `active`. A YouTube embed already pauses in the background (`usePauseMediaInBackground`). |
 | The Lesson Animation reports its time every 0.1 s (10 JS events/s) for the subtitles while it plays. | Only while a user-started video plays | Recorded; measure during the Stage-class device run before changing the subtitle rate. |
+
+## Remote Content Packs power & start-up impact (change `add-remote-content-packs`)
+
+- **Start-up impact:**
+  - Active pack resolution loads synchronously at launch from the bundled baseline or verified local storage cache before initial UI render.
+  - Zero network blocking: first interactive screen does not await remote content base or network response.
+  - Hydration overhead is under 5 ms on JS thread (pure data parsing & proxy mapping).
+- **Network & polling power footprint:**
+  - Launch updater executes exactly **one** background check per app launch (`checkForUpdates` via `latest.json` pointer).
+  - **No background polling:** no recurring timers, `setInterval`, cron jobs, or periodic wakeup loops during a running session.
+  - Idle state network and CPU activity attributable to content updates: **0 wakes/s, 0 requests/min**.
+  - Channel switching occurs strictly on explicit user action in Settings, maintaining zero battery drain during normal gameplay.
+

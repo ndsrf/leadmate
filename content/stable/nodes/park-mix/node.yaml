@@ -1,0 +1,337 @@
+id: park-mix
+mode: stage
+prerequisites:
+  - park-jogger
+simulation:
+  scenario:
+    world: 5
+    theme: open_park
+    fixedStep: 0.016666666666666666
+    leashLength: 3
+    leashTolerance: 0.1
+    quickSpeed: 2
+    walkStrength: 0.6
+    handlerStart:
+      x: 0
+      y: 0
+    dogStart:
+      x: 1
+      y: 0
+    waypoint:
+      x: 110
+      y: 24
+    waypoints:
+      - x: 40
+        y: 0
+      - x: 70
+        y: 24
+    waypointRadius: 2
+    walls: []
+    scenery:
+      - type: picnic_table
+        pos:
+          x: 15
+          y: 6.5
+        angle: 0
+      - type: fountain
+        pos:
+          x: 30
+          y: -7.5
+      - type: bench
+        pos:
+          x: 56
+          y: 8
+        angle: 0
+      - type: kiosk
+        pos:
+          x: 90
+          y: 18
+      - type: bench
+        pos:
+          x: 2.321162232287003
+          y: 7.728687824914232
+        angle: 0
+      - type: tree
+        pos:
+          x: 4.097292574321322
+          y: -4.986269189743325
+      - type: pond
+        pos:
+          x: 7.896502695492156
+          y: 7.433060089591891
+      - type: fountain
+        pos:
+          x: 11.107104447106613
+          y: -8.186687129549682
+      - type: sign
+        pos:
+          x: 13.292396982045599
+          y: 6.961619952693582
+      - type: bush
+        pos:
+          x: 16.530040978718212
+          y: -5.3347799342591316
+      - type: conifer
+        pos:
+          x: 19.89903701482109
+          y: 4.928445035824552
+      - type: picnic_table
+        pos:
+          x: 25.087793553384543
+          y: -6.65167803154327
+        angle: 0
+      - type: flower_bed
+        pos:
+          x: 26.386653289635873
+          y: 4.865026172250509
+        angle: 0
+      - type: lamp_post
+        pos:
+          x: 31.82224348026562
+          y: -6.4386995867826045
+      - type: bin
+        pos:
+          x: 35.02306232366772
+          y: 5.597308728378266
+      - type: kiosk
+        pos:
+          x: 36.31874694963517
+          y: -6.782998896436766
+      - type: kiosk
+        pos:
+          x: 36.32368913666563
+          y: 6.619380017292475
+      - type: sign
+        pos:
+          x: 46.83715705892303
+          y: -0.21604393957820367
+      - type: tree
+        pos:
+          x: 42.81944378277729
+          y: 10.138681373330702
+      - type: lamp_post
+        pos:
+          x: 52.1581365361927
+          y: 3.724871076700874
+      - type: conifer
+        pos:
+          x: 46.60004861400692
+          y: 13.487067409553898
+      - type: fountain
+        pos:
+          x: 58.997354913885516
+          y: 4.315403079616598
+      - type: flower_bed
+        pos:
+          x: 50.41299559806523
+          y: 18.06057135991343
+        angle: 0.6747409422235527
+      - type: picnic_table
+        pos:
+          x: 62.857528152682534
+          y: 11.381844389679031
+        angle: 0.6747409422235527
+      - type: bush
+        pos:
+          x: 58.52931410358761
+          y: 21.096097258850925
+      - type: bench
+        pos:
+          x: 68.8409173760368
+          y: 12.687559473884912
+        angle: 0.6747409422235527
+      - type: bin
+        pos:
+          x: 59.913559616871645
+          y: 27.428544958997662
+      - type: pond
+        pos:
+          x: 74.35973132520542
+          y: 16.499254438619197
+      - type: conifer
+        pos:
+          x: 71.6691425277153
+          y: 30.89226512075402
+      - type: tree
+        pos:
+          x: 74.0819562278055
+          y: 16.51639243820682
+      - type: bin
+        pos:
+          x: 77.93037641560353
+          y: 31.929712907411158
+      - type: sign
+        pos:
+          x: 82.77625538964757
+          y: 19.53179326490499
+      - type: flower_bed
+        pos:
+          x: 84.935729914125
+          y: 32.10975403734483
+        angle: 0
+      - type: pond
+        pos:
+          x: 87.31617691179606
+          y: 15.136267917696387
+      - type: fountain
+        pos:
+          x: 90.73299340293273
+          y: 31.547148264478892
+      - type: bench
+        pos:
+          x: 95.39420886012908
+          y: 18.884089349303395
+        angle: 0
+      - type: kiosk
+        pos:
+          x: 97.92881919501725
+          y: 28.817187329521403
+      - type: bush
+        pos:
+          x: 101.8545439367755
+          y: 18.32034422433935
+      - type: picnic_table
+        pos:
+          x: 103.96578631206741
+          y: 16.855483053950593
+        angle: 0
+      - type: lamp_post
+        pos:
+          x: 109.04443668672417
+          y: 29.631889819400385
+    cues:
+      - lets-go
+      - leave-it
+    dogGoalSpeed: 1.6
+    dogFixationSpeed: 1
+    dogReturnSpeed: 1.6
+    dogReturnDistance: 1
+    wanderMaxAngle: 0.5
+    wanderTurnRate: 2
+    distractor:
+      kind: other
+      speed: 3.8
+      triggerRadius: 12
+      activateAfterMeters: 18
+      startOffset: 28
+      path:
+        from:
+          x: 28
+          y: -12
+        to:
+          x: 28
+          y: 14
+    moreDistractors:
+      - kind: food
+        speed: 0
+        triggerRadius: 6
+        activateAfterMeters: 50
+        startOffset: 28
+        salience: 6
+        path:
+          from: &a1
+            x: 60
+            y: 17
+          to: *a1
+      - kind: bicycle
+        speed: 5
+        triggerRadius: 16
+        activateAfterMeters: 85
+        startOffset: 28
+        path:
+          from:
+            x: 95
+            y: 40
+          to:
+            x: 95
+            y: 10
+    calmSeconds: 3
+    rewardWindowSeconds: 1.1
+    markBudget: 5
+    checkInWindow: 1
+    learning:
+      attributes:
+        reconnectionLatency: 0.2
+        reactivityThreshold: 0.2
+        followChance: 0.5
+        checkInFrequency: 0.2
+      triggerProfile:
+        child: 2
+        bicycle: 2
+        dog: 2
+        skateboard: 2
+        food: 2
+        other: 2
+        hand: 2
+      equipment: collar
+      capacityMultiplier: 1
+      posture: 0
+    ranges:
+      reconnectionSeconds:
+        worst: 1.5
+        best: 0.3
+      reactivityThreshold:
+        worst: 15
+        best: 60
+      checkInMeanInterval:
+        worst: 14
+        best: 5
+    arousal:
+      k: 30
+      minDistance: 2
+      decayPerSecond: 3
+      rigidPullRate: 4
+      disengagementDrop: 25
+      markerHitDrop: 20
+      posteJolt: 15
+      smoothStopFactor: 0.3
+      slowedSeconds: 0.5
+    cue:
+      cooldownSeconds: 3
+      fixatedFactor: 0.3
+      repeatFactor: 0.5
+      arousalDrop: 10
+      followBoostSeconds: 2
+      followBoost: 0.25
+      followCap: 0.95
+    reaction:
+      alertFraction: 0.6
+      lungeAccel: 1.5
+      lungeMaxSpeed: 4
+      alertSlowdown: 0.85
+    sintonia:
+      minSpeed: 0.4
+      minTurnRate: 0.2
+      maxTurnRate: 1.8
+      turnWindow: 0.5
+      holdSeconds: 2
+    goSniff:
+      offerSeconds: 3
+      durationSeconds: 4
+      speed: 0.4
+      decayFactor: 3
+    turnAngle: 0.7853981633974483
+    followSeconds: 1.5
+    correctionWaitSeconds: 4
+    pullStrength: 0.8
+    configVersion: bundled
+    camera:
+      closeZoom: 2.2
+      farZoom: 1.5
+      padding: 90
+      smoothing: 3
+    endCondition:
+      kind: reach-waypoint
+exercises:
+  - metric: tension
+    key: node.park.exercise1
+  - metric: timing
+    key: node.park.exercise2
+  - metric: attention
+    key: node.park.exercise3
+primerCards:
+  - kind: real-world
+    media:
+      type: image
+      url: ""
+      art: theory-park-mix-1

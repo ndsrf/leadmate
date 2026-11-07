@@ -1,0 +1,21 @@
+id: walk-distraction
+mode: stage
+prerequisites:
+  - poste-practice
+simulation: {}
+exercises:
+  - metric: tension
+    key: node.walk.exerciseTension
+  - metric: timing
+    key: node.walk.exerciseTiming
+  - metric: poste
+    key: node.walk.exercisePoste
+  - metric: attention
+    key: node.walk.exerciseAttention
+primerCards:
+  - kind: real-world
+    media:
+      type: image
+      url: ""
+      art: theory-loose-leash-2
+  - kind: virtual-dog

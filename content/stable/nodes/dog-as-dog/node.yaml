@@ -1,0 +1,17 @@
+id: dog-as-dog
+mode: minigame
+prerequisites: []
+simulation:
+  minigame: dog-as-dog
+exercises:
+  - metric: timing
+    key: node.dogasdog.exercise1
+  - metric: tension
+    key: node.dogasdog.exercise2
+primerCards:
+  - kind: real-world
+    media:
+      type: image
+      url: ""
+      art: theory-dog-as-dog-1
+  - kind: virtual-dog
