@@ -1,6 +1,6 @@
 import { BillingService } from './types';
 import { MockBillingService } from './mock';
-import { RevenueCatBillingService, isNativePurchasesAvailable } from './revenuecat';
+import { RevenueCatBillingService, getRevenueCatApiKey, isNativePurchasesAvailable } from './revenuecat';
 
 export * from './types';
 export * from './mock';
@@ -20,7 +20,9 @@ export function getBillingService(options?: GetBillingServiceOptions): BillingSe
   const shouldUseMock =
     options?.forceMock ||
     process.env.NODE_ENV === 'test' ||
-    !isNativePurchasesAvailable();
+    !isNativePurchasesAvailable() ||
+    // no RevenueCat key for this platform: never touch the SDK, it fails hard when used before configure()
+    !getRevenueCatApiKey();
 
   if (shouldUseMock) {
     billingInstance = new MockBillingService();

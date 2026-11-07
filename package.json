@@ -12,7 +12,8 @@
     "sim:build": "node scripts/gen-hud-tokens.mjs && vite build --config bundle/vite.config.mts",
     "test": "jest",
     "typecheck": "tsc --noEmit && tsc --noEmit -p bundle",
-    "sim:embed": "node scripts/embed-sim.mjs"
+    "sim:embed": "node scripts/embed-sim.mjs",
+    "eas-build-post-install": "npm run sim:embed"
   },
   "dependencies": {
     "@expo-google-fonts/fredoka": "^0.4.1",
@@ -24,6 +25,7 @@
     "expo": "^58",
     "expo-asset": "~58.0.18",
     "expo-audio": "~58.0.10",
+    "expo-build-properties": "~58.0.12",
     "expo-constants": "~58.0.13",
     "expo-file-system": "~58.0.10",
     "expo-haptics": "~58.0.7",
