@@ -22,7 +22,7 @@ import { AgeSexChips, HomeConcernChips, MainConcernChips } from '../ui/ConcernPi
 import { DOG_COAT_NAMES } from '../onboarding/look';
 import { cleanDogName, DOG_NAME_MAX } from '../onboarding/name';
 import { Screen } from './Screen';
-import { isPlus, applyBillingSubscription } from '../plus';
+import { isPlus, applyBillingSubscription, TRIAL_DAYS } from '../plus';
 import { getBillingService, type BillingService } from '../billing';
 import { isBetaUnlocked, loadContentChannel, setBetaUnlocked, type ContentChannel } from '../content/channelSetting';
 import { getActiveContent } from '../content/runtime';
@@ -95,6 +95,14 @@ export function ResetConfirmText({ t, paired }: { t: Translate; paired: boolean 
 
 type RecordState = 'idle' | 'recording' | 'denied';
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+const daysAgo = (days: number) => new Date(Date.now() - days * DAY_MS).toISOString();
+
+/** Test tool: moves the Trial start (null = never started) so the paywall can be seen in either state. */
+function setTrialStartedAt(r: DogRecord, trialStartedAt: string | null): DogRecord {
+  return { ...r, onboarding: { ...r.onboarding, trialStartedAt } };
+}
+
 export interface SwitchChannelFn {
   (channel: ContentChannel): Promise<{ success: boolean; error?: string }>;
 }
@@ -149,6 +157,12 @@ export function SettingsScreen({
   const build = Constants.expoConfig?.ios?.buildNumber ?? Constants.expoConfig?.android?.versionCode ?? '';
   const versionLabel = build ? `v${version} (${build})` : `v${version}`;
 
+  // which pack is live right now: its channel and version, or the copy bundled in the app
+  const live = getActiveContent();
+  const contentVersionLabel = `${t(live.channel === 'beta' ? 'settings.contentChannel.beta' : 'settings.contentChannel.stable')} · ${
+    live.isBaseline ? t('settings.contentVersion.bundled') : `v${live.contentVersion}`
+  }`;
+
   const handleVersionTap = async () => {
     if (isDev || unlocked) return;
     const now = Date.now();
@@ -171,11 +185,9 @@ export function SettingsScreen({
         if (res.success) {
           setActiveChannel(ch);
         } else {
-          setSwitchError(
-            res.error === 'remote_unavailable'
-              ? t('settings.contentChannel.remoteUnavailable')
-              : t('settings.contentChannel.error')
-          );
+          const base = res.error === 'remote_unavailable' ? t('settings.contentChannel.remoteUnavailable') : t('settings.contentChannel.error');
+          // this selector only shows in dev builds or after the unlock, so the technical reason helps whoever tests it
+          setSwitchError(res.error && res.error !== 'remote_unavailable' ? `${base} (${res.error})` : base);
         }
       } else {
         setActiveChannel(ch);
@@ -447,6 +459,24 @@ export function SettingsScreen({
         </Section>
       )}
 
+      {(isDev || unlocked) && (
+        <Section title={t('settings.testTools')}>
+          <Text className="mb-2 text-body text-inkMuted">{t('settings.testTools.help')}</Text>
+          <Button
+            testID="test-expire-trial"
+            label={t('settings.testTools.expireTrial')}
+            tone="secondary"
+            onPress={() => update((r) => setTrialStartedAt(r, daysAgo(TRIAL_DAYS + 1)))}
+          />
+          <Button
+            testID="test-reset-trial"
+            label={t('settings.testTools.resetTrial')}
+            tone="secondary"
+            onPress={() => update((r) => setTrialStartedAt(r, null))}
+          />
+        </Section>
+      )}
+
       <View className="items-center my-3">
         <Pressable
           testID="settings-version-label"
@@ -456,6 +486,11 @@ export function SettingsScreen({
         >
           <Text className="text-caption text-inkMuted">{versionLabel}</Text>
         </Pressable>
+        {(isDev || unlocked) && (
+          <Text testID="settings-content-version" className="mt-1 text-caption text-inkMuted">
+            {contentVersionLabel}
+          </Text>
+        )}
       </View>
 
       <Button label={t('settings.close')} onPress={onClose} />

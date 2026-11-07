@@ -67,6 +67,7 @@ jest.mock('./shell/ui/feedbackBackends', () => ({ installFeedback: () => {} }));
 jest.mock('./shell/ui/useUiSettings', () => ({ useUiSettings: () => ({ settings: { appearance: 'light' }, change: () => {} }) }));
 jest.mock('./shell/ui/components', () => ({ PaletteRoot: (p: any) => p.children }));
 jest.mock('./shell/ui/theme', () => ({ PaletteProvider: (p: any) => p.children }));
+jest.mock('./shell/ui/ContentUpdateBanner', () => ({ ContentUpdateBanner: () => null }));
 jest.mock('./shell/audio', () => ({ playDogSound: () => {}, playResolvedCue: () => {}, prepareAudio: () => {} }));
 jest.mock('./shell/billing', () => ({
   getBillingService: () => ({ initialize: () => Promise.resolve(), checkEntitlements: () => Promise.resolve(null) }),
