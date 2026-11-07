@@ -206,6 +206,8 @@ export class RevenueCatBillingService implements BillingService {
 
   async logOut(): Promise<void> {
     try {
+      // RevenueCat rejects logOut for an anonymous user, which is the normal state before any sign-in
+      if (await this.sdk.isAnonymous()) return;
       await this.sdk.logOut();
     } catch (err) {
       console.warn('[RevenueCatBillingService] Failed to log out user:', err);

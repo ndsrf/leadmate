@@ -13,6 +13,7 @@ jest.mock('react-native-purchases', () => ({
     getCustomerInfo: jest.fn(),
     logIn: jest.fn(),
     logOut: jest.fn(),
+    isAnonymous: jest.fn(),
   },
   PACKAGE_TYPE: {
     ANNUAL: 'ANNUAL',
@@ -77,6 +78,7 @@ describe('RevenueCatBillingService', () => {
       getCustomerInfo: jest.fn().mockResolvedValue(mockCustomerInfo),
       logIn: jest.fn().mockResolvedValue({ customerInfo: mockCustomerInfo }),
       logOut: jest.fn().mockResolvedValue(mockCustomerInfo),
+      isAnonymous: jest.fn().mockResolvedValue(false),
     };
 
     service = new RevenueCatBillingService({
@@ -195,6 +197,12 @@ describe('RevenueCatBillingService', () => {
 
     await service.logOut();
     expect(mockSdk.logOut).toHaveBeenCalled();
+  });
+
+  it('skips logOut while the user is anonymous', async () => {
+    mockSdk.isAnonymous.mockResolvedValue(true);
+    await service.logOut();
+    expect(mockSdk.logOut).not.toHaveBeenCalled();
   });
 
   it('checks entitlements from customer info', async () => {
