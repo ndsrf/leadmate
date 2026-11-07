@@ -1,4 +1,6 @@
 import { migrateRecord } from './dogRecord';
+import { HOME_CONCERNS, type HomeConcern } from './concerns';
+import { HOME_BEHAVIOUR_CONTENT, homeBehaviourEntries, homeConcernOfStop } from './homeBehaviours';
 import { mapModel as realMapModel, nextMapChange, type MapModel, type MapStop } from './mapModel';
 import { withBasicsDone } from './testProgress';
 import type { MissionState } from './missions/mission';
@@ -274,5 +276,82 @@ describe('mapModel following the Personal Plan', () => {
     const base = realMapModel(progressOf([]), {}, at(9));
     const m = planned(progressOf([]), [{ stretchId: 'theory-harness' }, { stretchId: 'theory-doorbell' }, { stretchId: 'theory-poste' }, { stretchId: 'theory-loose-leash' }]);
     expect(m.nextUp).toEqual(base.nextUp);
+  });
+});
+
+describe('World 2 sections in mapModel', () => {
+  const modelFor = (p: Progress) => realMapModel(p, {}, at(9), { worlds: worldsFor([], p) });
+
+  it('Dog with Concerns gets both sections with the right membership and order', () => {
+    const p = progressOf([], { homeConcerns: { 'bark-home': 1 } });
+    const m = modelFor(p);
+    const w2 = m.worlds.find((w) => w.world.id === 'home')!;
+    expect(w2.sections).toEqual([
+      { id: 'dog', firstIndex: 0 },
+      { id: 'more', firstIndex: 3 },
+    ]);
+    const dogStops = w2.stops.filter((s) => s.section === 'dog');
+    const moreStops = w2.stops.filter((s) => s.section === 'more');
+    expect(dogStops.map((s) => s.stop.id)).toEqual(['theory-bark-home', 'bark-home', 'mission-bark-home']);
+    expect(moreStops.map((s) => s.stop.id)).toEqual([
+      'theory-harness', 'howto-tap-hold', 'harness-ritual', 'mission-harness',
+      'theory-doorbell', 'doorbell-mat', 'mission-doorbell',
+      'theory-poste', 'poste-practice', 'mission-poste',
+    ]);
+  });
+
+  it('no Home Stretch gives only more', () => {
+    const p = progressOf([], { homeConcerns: {} });
+    const m = modelFor(p);
+    const w2 = m.worlds.find((w) => w.world.id === 'home')!;
+    expect(w2.sections).toEqual([{ id: 'more', firstIndex: 0 }]);
+    expect(w2.stops.every((s) => s.section === 'more')).toBe(true);
+  });
+
+  it('started-but-removed Concern stays in dog', () => {
+    const p = progressOf([], { readLessons: ['theory-bark-home'], homeConcerns: {}, worldHome: ['bark-home'] });
+    const m = modelFor(p);
+    const w2 = m.worlds.find((w) => w.world.id === 'home')!;
+    expect(w2.sections).toEqual([
+      { id: 'dog', firstIndex: 0 },
+      { id: 'more', firstIndex: 3 },
+    ]);
+    expect(w2.stops.slice(0, 3).every((s) => s.section === 'dog')).toBe(true);
+    expect(w2.stops.slice(3).every((s) => s.section === 'more')).toBe(true);
+  });
+
+  it('World 2 done, total, and nextUp equal values computed without sections', () => {
+    const p = withBasicsDone(progressOf([], { homeConcerns: { 'bark-home': 1 } }));
+    const m = modelFor(p);
+    const w2 = m.worlds.find((w) => w.world.id === 'home')!;
+    expect(w2.done).toBe(0);
+    expect(w2.total).toBe(13);
+    expect(m.nextUp).toEqual({ worldId: 'home', stop: { kind: 'lesson', id: 'theory-bark-home' }, stopKind: 'theory' });
+  });
+
+  it('other Worlds have no sections', () => {
+    const p = progressOf([], { homeConcerns: { 'bark-home': 1 } });
+    const m = modelFor(p);
+    for (const w of m.worlds) {
+      if (w.world.id !== 'home') {
+        expect(w.sections).toBeUndefined();
+        expect(w.stops.some((s) => s.section !== undefined)).toBe(false);
+      }
+    }
+  });
+
+  it('agrees with inWorldTwo: a Home Stretch is in "dog" section or Other Home Behaviours, never both', () => {
+    const p = progressOf([], { homeConcerns: { 'bark-home': 1, 'bite-owner': 2 } });
+    const m = modelFor(p);
+    const w2 = m.worlds.find((w) => w.world.id === 'home')!;
+    const inWorldTwo = (concern: HomeConcern) => w2.world.stretches.some((stops) => stops.some((s) => s.kind === 'lesson' && s.id === HOME_BEHAVIOUR_CONTENT[concern].lesson));
+    const dogConcerns = new Set(w2.stops.filter((s) => s.section === 'dog').map((s) => homeConcernOfStop(s.stop)).filter(Boolean));
+    const otherEntries = homeBehaviourEntries(p.homeConcerns ?? {}, inWorldTwo);
+    const otherConcerns = new Set(otherEntries.map((e) => e.concern));
+
+    for (const c of HOME_CONCERNS) {
+      expect(inWorldTwo(c)).toBe(dogConcerns.has(c));
+      expect(dogConcerns.has(c) !== otherConcerns.has(c)).toBe(true);
+    }
   });
 });

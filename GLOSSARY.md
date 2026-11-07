@@ -395,9 +395,13 @@ _Avoid_: Fullscreen ad, popup, interstitial
 The minimum elapsed time (300 seconds) required between Transition Interstitial impressions.
 _Avoid_: Ad frequency, interstitial timer
 
-**Preview World**:
-An upcoming World shown on the World Map as a curriculum roadmap preview with topic summaries and node counts, but without playable simulation stages yet.
-_Avoid_: Teaser world, dummy chapter
+**Coming-soon World**:
+A Plus World the roadmap announces but that has no Stops yet, shown on the World Map as "Próximamente" with what it will teach and its planned walk count. It never gates progress or completion, and opens when its content ships.
+_Avoid_: Preview World, teaser world, dummy chapter
+
+**More-coming card**:
+The informational card after the last World that lists the training scenarios planned after the Coming-soon Worlds. It opens nothing.
+_Avoid_: Load more, next level
 
 **World Map**:
 The main screen: all Worlds laid out as a trail of Stops showing which are locked, open, next up, waiting, owed or completed, with each Node's Stars.

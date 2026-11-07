@@ -1,6 +1,7 @@
 import type { TextKey } from '../i18n';
 import type { PlanItem } from './concerns';
 import { starsShown } from './celebrations';
+import { homeConcernOfStop } from './homeBehaviours';
 import { LESSONS } from './lessons/content';
 import type { LessonDef } from './lessons/lesson';
 import { MISSIONS } from './missions/content';
@@ -22,6 +23,8 @@ export interface MapStop {
   state: NodeState;
   /** 0-based Stretch of the World the Stop belongs to. */
   stretch: number;
+  /** Section in World 2: 'dog' (Home Stretches for declared Concerns) or 'more' (threshold Stretches). */
+  section?: 'dog' | 'more';
   /** The Node of a Node Stop. */
   node?: NodeDef;
   /** Stars of a completed Node Stop (1 for one completed before stars existed); absent otherwise. */
@@ -51,6 +54,8 @@ export interface MapWorld {
   done: number;
   total: number;
   stops: MapStop[];
+  /** Non-empty sections of World 2 in order, with the index of each section's first Stop. */
+  sections?: { id: 'dog' | 'more'; firstIndex: number }[];
   /** The Owed Missions of the World, in trail order, for the "Cerrar el mundo" panel; empty when none. */
   owed: MapStop[];
   topics: TextKey;
@@ -116,10 +121,11 @@ export function mapModel(progress: Progress, stars: Readonly<Record<string, Star
 
   const mapWorlds: MapWorld[] = worlds.map((world) => {
     const unlocked = isWorldUnlocked(world, progress, worlds);
-    const stops: MapStop[] = world.stretches.flatMap((stretchStops, stretch) =>
-      stretchStops.map((stop): MapStop => {
+    const stops: MapStop[] = world.stretches.flatMap((stretchStops, stretch) => {
+      const section: 'dog' | 'more' | undefined = world.id === 'home' ? (homeConcernOfStop(stretchStops[0]) !== undefined ? 'dog' : 'more') : undefined;
+      return stretchStops.map((stop): MapStop => {
         const status = stopStatus(stop, progress, now, worlds, nodes);
-        const base = { stop, stretch, ...describe(stop, nodes, lessons, missions) };
+        const base = { stop, stretch, ...(section ? { section } : {}), ...describe(stop, nodes, lessons, missions) };
         switch (status.state) {
           case 'done': {
             const done: MapStop = { ...base, state: 'done' };
@@ -156,8 +162,18 @@ export function mapModel(progress: Progress, stars: Readonly<Record<string, Star
             return open;
           }
         }
-      }),
-    );
+      });
+    });
+
+    let sections: MapWorld['sections'];
+    if (world.id === 'home') {
+      const list: { id: 'dog' | 'more'; firstIndex: number }[] = [];
+      const dogIndex = stops.findIndex((s) => s.section === 'dog');
+      if (dogIndex >= 0) list.push({ id: 'dog', firstIndex: dogIndex });
+      const moreIndex = stops.findIndex((s) => s.section === 'more');
+      if (moreIndex >= 0) list.push({ id: 'more', firstIndex: moreIndex });
+      sections = list;
+    }
 
     let unlockRequirement: MapWorld['unlockRequirement'];
     if (!unlocked && world.unlockedBy) {
@@ -182,6 +198,7 @@ export function mapModel(progress: Progress, stars: Readonly<Record<string, Star
       done: stops.filter((s) => s.state === 'done' || s.optional).length,
       total: preview ? (world.nodeCount ?? 0) : stops.length,
       stops,
+      ...(sections !== undefined ? { sections } : {}),
       owed: stops.filter((s) => s.owed),
       topics: world.topics,
       tier: world.tier ?? 'free',

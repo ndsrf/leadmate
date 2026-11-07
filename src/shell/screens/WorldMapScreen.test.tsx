@@ -66,9 +66,10 @@ import React from 'react';
 // @ts-ignore
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createTranslator, es } from '../../i18n';
-import { BarkdokuChip, NEXT_UP_PULSE_CYCLES, PlusChip, TrialStatusModal, WorldMapScreen } from './WorldMapScreen';
+import { BarkdokuChip, ComingSoonCard, MORE_COMING_SCENARIO_KEYS, MoreComingCard, NEXT_UP_PULSE_CYCLES, PlusChip, PreviewTeaser, TrialStatusModal, WorldBlock, WorldMapScreen } from './WorldMapScreen';
 import { NO_STREAK } from '../streak';
-import { findWorld, isWorldUnlocked, progressOf, stopsOf, worldTitle, type Progress, type Stop, type WorldDef } from '../world';
+import { findWorld, isWorldUnlocked, progressOf, stopsOf, worldsFor, worldTitle, type Progress, type Stop, type WorldDef } from '../world';
+import { mapModel, type MapWorld } from '../mapModel';
 import { LESSONS } from '../lessons/content';
 import { PUPPY_SATELLITE_STOPS } from '../puppyTrack';
 
@@ -771,6 +772,83 @@ describe('WorldMapScreen - Home Behaviours section', () => {
   });
 });
 
+describe('WorldMapScreen - World 2 sections', () => {
+  const t = createTranslator(es);
+  const basicsStops = stopsOf(findWorld('basics')!);
+  const basicsDoneProgress = progressOf(
+    basicsStops.filter((s) => s.kind === 'node').map((s) => s.id),
+    {
+      readLessons: basicsStops.filter((s) => s.kind === 'lesson').map((s) => s.id),
+      missions: Object.fromEntries(basicsStops.filter((s) => s.kind === 'mission').map((s) => [s.id, { target: 'full', skipRun: 0, attempts: [], startedAt: '2026-10-01T09:00:00.000Z', passedOn: '2026-10-02' }])) as Progress['missions'],
+    },
+  );
+  const base = {
+    t,
+    stars: {},
+    now: new Date('2026-10-28T09:00:00'),
+    streak: NO_STREAK,
+    today: '2026-10-28',
+    dailyBest: undefined,
+    rustyPrompt: false,
+    rusty: false,
+    skippedWarmup: false,
+    onWarmup: () => {},
+    onSkipWarmup: () => {},
+    onDaily: () => {},
+    onBarkdoku: () => {},
+    onOpenStop: () => {},
+    onSettings: () => {},
+  };
+
+  it('draws both "Para tu perro" and "Más cosas de casa" headers when World 2 is open with Concerns', () => {
+    const progress: Progress = { ...basicsDoneProgress, homeConcerns: { 'bark-home': 1 } };
+    const markup = renderToStaticMarkup(<WorldMapScreen {...base} progress={progress} home={{ concerns: { 'bark-home': 1 }, onBecomeConcern: () => {} }} />);
+    expect(markup).toContain(es['map.section.forDog']);
+    expect(markup).toContain(es['map.section.moreHome']);
+    expect(markup.indexOf(es['map.section.forDog'])).toBeLessThan(markup.indexOf(es['map.section.moreHome']));
+  });
+
+  it('draws only "Más cosas de casa" when World 2 is open with no Concerns', () => {
+    const progress: Progress = { ...basicsDoneProgress, homeConcerns: {} };
+    const markup = renderToStaticMarkup(<WorldMapScreen {...base} progress={progress} home={{ concerns: {}, onBecomeConcern: () => {} }} />);
+    expect(markup).not.toContain(es['map.section.forDog']);
+    expect(markup).toContain(es['map.section.moreHome']);
+  });
+
+  it('does not draw section headers when World 2 is locked and collapsed', () => {
+    const progress: Progress = { ...progressOf([]), homeConcerns: { 'bark-home': 1 } };
+    const markup = renderToStaticMarkup(<WorldMapScreen {...base} progress={progress} home={{ concerns: { 'bark-home': 1 }, onBecomeConcern: () => {} }} />);
+    expect(markup).not.toContain(es['map.section.forDog']);
+    expect(markup).not.toContain(es['map.section.moreHome']);
+  });
+
+  it('draws section headers when locked World 2 is expanded', () => {
+    const progress: Progress = { ...progressOf([]), homeConcerns: { 'bark-home': 1 }, worldHome: ['bark-home'] };
+    const entry = mapModel(progress, {}, base.now, { worlds: worldsFor([], progress) }).worlds.find((w: MapWorld) => w.world.id === 'home')!;
+    const markup = renderToStaticMarkup(
+      <WorldBlock
+        t={t}
+        entry={entry}
+        width={360}
+        rusty={false}
+        pulse={false}
+        live={true}
+        isFirstLocked={true}
+        isExpanded={true}
+        onToggleExpand={() => {}}
+        completedOpen={false}
+        onToggleCompleted={() => {}}
+        onPressNode={() => {}}
+        onPressPaywall={() => {}}
+        onLayout={() => {}}
+        onPathLayout={() => {}}
+      />,
+    );
+    expect(markup).toContain(es['map.section.forDog']);
+    expect(markup).toContain(es['map.section.moreHome']);
+  });
+});
+
 describe('Task 6.1b: Pack-marked Plus World paywall verification', () => {
   const t = createTranslator(es);
 
@@ -900,5 +978,151 @@ describe('WorldMapScreen - Satellite Stops for Puppies (Task 4.2 & 4.3)', () => 
     const progressCompleted = progressOf([], { readLessons: ['puppy-bite'] });
     const markup = renderToStaticMarkup(<WorldMapScreen {...base} ageBand="puppy" progress={progressCompleted} />);
     expect(markup).toContain('✓');
+  });
+});
+
+describe('Coming-soon World card (Task 4.1)', () => {
+  const t = createTranslator(es);
+  const recallWorld = findWorld('recall')!;
+  const recallEntry: MapWorld = {
+    world: recallWorld,
+    unlocked: false,
+    complete: false,
+    done: 0,
+    total: 4,
+    stops: [],
+    owed: [],
+    topics: recallWorld.topics,
+    tier: 'plus',
+    preview: true,
+  };
+
+  const defaultProps = {
+    t,
+    entry: recallEntry,
+    width: 390,
+    rusty: false,
+    pulse: false,
+    live: false,
+    isFirstLocked: true,
+    isExpanded: true,
+    onToggleExpand: () => {},
+    completedOpen: false,
+    onToggleCompleted: () => {},
+    onPressNode: () => {},
+    onPressPaywall: () => {},
+    onLayout: () => {},
+    onPathLayout: () => {},
+  };
+
+  it('renders free teaser for free user with teaser title, body, and paywall button', () => {
+    mockPressables.length = 0;
+    const markup = renderToStaticMarkup(<WorldBlock {...defaultProps} plus={false} />);
+    expect(markup).toContain(es['map.plusTeaserTitle']);
+    expect(markup).toContain(es['map.plusTeaserBody']);
+    expect(markup).toContain(es['paywall.badge']);
+    expect(markup).not.toContain(es['world.recall.preview']);
+  });
+
+  it('renders ComingSoonCard for trial user with blurb, walk count, auto-unlock note, and no paywall button', () => {
+    mockPressables.length = 0;
+    const markup = renderToStaticMarkup(<WorldBlock {...defaultProps} plus={true} />);
+    expect(markup).toContain(es['world.previewBadge']);
+    expect(markup).toContain(es['world.recall.preview']);
+    expect(markup).toContain(es['world.previewWalkCount'].replace('{count}', '4'));
+    expect(markup).toContain(es['world.comingSoonAutoUnlock']);
+    expect(markup).not.toContain(es['map.plusTeaserTitle']);
+    expect(markup).not.toContain(es['map.plusTeaserBody']);
+    expect(markup).not.toContain(es['paywall.badge']);
+  });
+
+  it('renders ComingSoonCard identically for subscribed user with no paywall wording', () => {
+    mockPressables.length = 0;
+    const markup = renderToStaticMarkup(<WorldBlock {...defaultProps} plus={true} />);
+    expect(markup).toContain(es['world.recall.preview']);
+    expect(markup).not.toContain(es['map.plusTeaserTitle']);
+    expect(markup).not.toContain(es['paywall.badge']);
+  });
+
+  it('drops the Plus badge button from the unlock banner for Plus users', () => {
+    const freeMarkup = renderToStaticMarkup(<WorldBlock {...defaultProps} plus={false} isFirstLocked={true} />);
+    expect(freeMarkup).toContain(es['world.unlockPlus']);
+
+    const plusMarkup = renderToStaticMarkup(<WorldBlock {...defaultProps} plus={true} isFirstLocked={true} />);
+    expect(plusMarkup).not.toContain(es['world.unlockPlus']);
+  });
+
+  it('flips the card when trial starts and ends', () => {
+    // Before trial: free teaser
+    const free = renderToStaticMarkup(<WorldBlock {...defaultProps} plus={false} />);
+    expect(free).toContain(es['map.plusTeaserTitle']);
+    expect(free).not.toContain(es['world.recall.preview']);
+
+    // Trial starts: flips to Próximamente card
+    const activeTrial = renderToStaticMarkup(<WorldBlock {...defaultProps} plus={true} />);
+    expect(activeTrial).toContain(es['world.recall.preview']);
+    expect(activeTrial).not.toContain(es['map.plusTeaserTitle']);
+
+    // Trial ends: flips back to free teaser
+    const expired = renderToStaticMarkup(<WorldBlock {...defaultProps} plus={false} />);
+    expect(expired).toContain(es['map.plusTeaserTitle']);
+    expect(expired).not.toContain(es['world.recall.preview']);
+  });
+});
+
+describe('MoreComingCard at the end of the map (Task 4.2)', () => {
+  const t = createTranslator(es);
+  const onPaywall = jest.fn();
+
+  it('renders heading, scenario list, disclaimer and paywall button for free users', () => {
+    mockPressables.length = 0;
+    const markup = renderToStaticMarkup(<MoreComingCard t={t} plus={false} onPressPaywall={onPaywall} />);
+    expect(markup).toContain(es['map.more.title']);
+    expect(markup).toContain(es['map.more.intro']);
+    for (const key of MORE_COMING_SCENARIO_KEYS) {
+      expect(markup).toContain(es[key]);
+    }
+    expect(markup).toContain(es['map.more.disclaimer']);
+    expect(markup).toContain(es['paywall.badge']);
+  });
+
+  it('renders heading and scenario list with no disclaimer or paywall button for Plus users', () => {
+    mockPressables.length = 0;
+    const markup = renderToStaticMarkup(<MoreComingCard t={t} plus={true} onPressPaywall={onPaywall} />);
+    expect(markup).toContain(es['map.more.title']);
+    expect(markup).toContain(es['map.more.intro']);
+    for (const key of MORE_COMING_SCENARIO_KEYS) {
+      expect(markup).toContain(es[key]);
+    }
+    expect(markup).not.toContain(es['map.more.disclaimer']);
+    expect(markup).not.toContain(es['paywall.badge']);
+  });
+
+  it('renders MoreComingCard inside WorldMapScreen after all worlds', () => {
+    const base = {
+      t,
+      progress: progressOf([]),
+      stars: {},
+      now: new Date('2026-10-28T09:00:00'),
+      streak: NO_STREAK,
+      today: '2026-10-28',
+      dailyBest: undefined,
+      rustyPrompt: false,
+      rusty: false,
+      skippedWarmup: false,
+      onWarmup: () => {},
+      onSkipWarmup: () => {},
+      onDaily: () => {},
+      onBarkdoku: () => {},
+      onOpenStop: () => {},
+      onSettings: () => {},
+    };
+
+    const markup = renderToStaticMarkup(<WorldMapScreen {...base} />);
+    expect(markup).toContain(es['map.more.title']);
+    expect(markup).toContain(es['map.more.intro']);
+    for (const key of MORE_COMING_SCENARIO_KEYS) {
+      expect(markup).toContain(es[key]);
+    }
   });
 });

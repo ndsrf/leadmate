@@ -16,6 +16,8 @@ export const esTrail = {
   'map.stopCount': '{done} de {total} paradas',
   'map.previewStopCount': '{count} paradas planificadas',
   'map.stretch': 'Tramo {n}',
+  'map.section.forDog': 'Para tu perro',
+  'map.section.moreHome': 'Más cosas de casa',
   'map.optional': 'Opcional',
   'map.keepPractising': 'Sigue practicando',
   'map.waiting': 'En espera',
