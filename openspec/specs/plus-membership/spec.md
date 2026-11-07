@@ -131,3 +131,17 @@ The system SHALL ensure an entirely ad-free experience for users with an active 
 - **WHEN** a user with an active 7-day free trial opens any screen in the application
 - **THEN** no commercial advertisements are presented anywhere in the interface
 
+### Requirement: Testers can expire or reset the trial
+The system SHALL offer, only where the Content channel control is shown (development builds and after the tester unlock), a "Caducar prueba" action that sets the Trial start to more than 7 days ago and a "Reiniciar prueba" action that clears it, so the paywall can be seen in subscription mode without waiting a week. These actions SHALL change only the Trial start and SHALL NOT touch a store subscription.
+
+#### Scenario: Expire the trial
+- **WHEN** a tester taps "Caducar prueba" in Settings
+- **THEN** the Trial is expired and the paywall opens in subscription mode with the Annual and Monthly plans
+
+#### Scenario: Reset the trial
+- **WHEN** a tester taps "Reiniciar prueba"
+- **THEN** the Trial is unstarted again and the paywall offers "Empezar prueba"
+
+#### Scenario: Ordinary user
+- **WHEN** an ordinary user opens Settings in a production build without unlocking
+- **THEN** no trial test actions are shown
