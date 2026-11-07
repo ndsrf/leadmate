@@ -1204,6 +1204,7 @@ export function WorldMapScreen({
 
   const header = (
     <View style={{ gap: theme.space[2] }}>
+      <BetaContentBadge t={t} />
       <View className="flex-row items-center justify-between" style={{ gap: theme.space[2] }}>
         <View className="flex-row items-center" style={{ gap: theme.space[2] }}>
           <StreakChip t={t} status={streakStatus(streak, today)} onPress={onDiary} />
@@ -1216,7 +1217,6 @@ export function WorldMapScreen({
           />
         </View>
         <View className="flex-row items-center" style={{ gap: theme.space[2] }}>
-          <BetaContentBadge t={t} />
           <IconChip icon={<GearGlyph />} onPress={onSettings} accessibilityLabel={t('map.settings')} />
         </View>
       </View>

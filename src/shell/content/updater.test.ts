@@ -2,6 +2,7 @@ import { ContentUpdater, type HttpFetcher, type HttpResponse } from './updater';
 import { ContentStore, type FileStorage, type KeyValueStorage } from './store';
 import { type ContentManifest } from './build';
 import { sha256Hex } from './hash';
+import { getContentProgress, subscribeContentProgress } from './progress';
 
 class FakeHttpServer implements HttpFetcher {
   routes: Map<string, { status: number; body: string | Uint8Array; delayMs?: number }> = new Map();
@@ -268,6 +269,69 @@ Topics
     const applied = await updater.applyPendingUpdateIfAvailable('beta');
     expect(applied).toBe(true);
     expect((await store.getActivePointer('beta'))?.contentVersion).toBe(1);
+  });
+
+  it('Scenario: Download progress is reported per file and ends when the update is done', async () => {
+    await hostPackVersion(1, {
+      'pack.yaml': validPackYaml,
+      'worlds/world-1.yaml': validWorldYaml,
+      'worlds/world-1/es.md': validWorldEs,
+    });
+    const seen: Array<[boolean, number, number]> = [];
+    const unsubscribe = subscribeContentProgress(() => {
+      const p = getContentProgress();
+      seen.push([p.active, p.done, p.total]);
+    });
+
+    await updater.checkAndDownloadUpdate({ channel: 'beta', currentAppVersion: '1.0.0', contentBase: CONTENT_BASE });
+    unsubscribe();
+
+    expect(seen).toEqual([
+      [true, 0, 3],
+      [true, 1, 3],
+      [true, 2, 3],
+      [true, 3, 3],
+      [false, 0, 0],
+    ]);
+    expect(getContentProgress().active).toBe(false);
+  });
+
+  it('Scenario: A failed download still clears the progress, and a check with nothing new never shows it', async () => {
+    const seen: boolean[] = [];
+    const unsubscribe = subscribeContentProgress(() => seen.push(getContentProgress().active));
+
+    // nothing hosted: unreachable, no download ever starts
+    await updater.checkAndDownloadUpdate({ channel: 'beta', currentAppVersion: '1.0.0', contentBase: CONTENT_BASE });
+    expect(seen).toEqual([]);
+
+    // a file that fails midway
+    const { manifest } = await hostPackVersion(1, { 'pack.yaml': validPackYaml, 'worlds/world-1.yaml': validWorldYaml });
+    const broken = Object.values(manifest.files)[1];
+    server.routes.delete(`${CONTENT_BASE}/beta/files/${broken.sha256}.yaml`);
+    const res = await updater.checkAndDownloadUpdate({ channel: 'beta', currentAppVersion: '1.0.0', contentBase: CONTENT_BASE });
+    unsubscribe();
+
+    expect(res.updated).toBe(false);
+    expect(seen[0]).toBe(true);
+    expect(getContentProgress().active).toBe(false);
+  });
+
+  it('Scenario: Two updates started together run one after the other and both end consistent', async () => {
+    await hostPackVersion(1, {
+      'pack.yaml': validPackYaml,
+      'worlds/world-1.yaml': validWorldYaml,
+      'worlds/world-1/es.md': validWorldEs,
+    });
+    const options = { channel: 'beta' as const, currentAppVersion: '1.0.0', contentBase: CONTENT_BASE, immediateActivate: true };
+
+    const [a, b] = await Promise.all([updater.checkAndDownloadUpdate(options), updater.checkAndDownloadUpdate(options)]);
+
+    expect(a.reason).toBe('activated');
+    expect(b.reason).toBe('up_to_date');
+    expect((await store.getActivePointer('beta'))?.contentVersion).toBe(1);
+    expect(await store.loadActivePack('beta')).not.toBeNull();
+    // the files were fetched once, not once per caller
+    expect(server.requestedUrls.filter((u) => u.includes('/files/')).length).toBe(3);
   });
 
   it('Scenario: Nothing new when published version equals installed version', async () => {

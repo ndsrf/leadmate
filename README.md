@@ -294,6 +294,13 @@ When building or running in environments where native purchases are unavailable 
 - **Purchase Restoration:** Apple App Store Review requires paywalls to include a "Restaurar compras" action. This is available on `PaywallScreen`, `ValueRecapScreen`, and `SettingsModal`.
 - **Account Deletion Compliance:** Per App Store Review Guideline 5.1.1(v), account deletion warns users that deleting their Supabase profile does not cancel recurring store subscriptions and directs them to system subscription settings.
 
+### Testing purchases
+
+The RevenueCat Test Store key (`test_…`) only works in a **debug** build and closes a release build such as the
+`preview` APK. Use the `development` EAS profile (`eas build --profile development --platform android`), install it,
+and run `npx expo start --dev-client`. Purchases are then simulated. The paywall shows the plans only once the trial
+has expired: in Settings (development build or after the 7-tap unlock) use "Caducar prueba" and "Reiniciar prueba".
+
 ## Advertisements (Google Mobile Ads)
 
 Free Tier users see ads through `react-native-google-mobile-ads` (AdMob). Plus members, including those
@@ -400,6 +407,12 @@ To push content updates dynamically to installed apps over the air without code 
    SUPABASE_SERVICE_ROLE_KEY="..." EXPO_PUBLIC_SUPABASE_URL="https://<project-ref>.supabase.co" npm run content:publish -- --channel beta
    ```
 4. **Switch in app**: In **Ajustes (Settings)**, tap the version number 7 times to reveal the content channel selector, then select **Beta**. The app downloads the pack into native storage, validates it, and hot-swaps to the Beta channel with the "Beta content" indicator. Switching back to Stable works offline.
+
+**Content versions.** Apps compare version numbers, not file contents: an edit published under the same
+`contentVersion` is ignored by devices that already have it. Build every change with a higher number, then publish:
+`npm run content:build -- --channel beta --content-version 3`. Settings shows the live version once the Content
+channel control is visible ("Beta · v3"). The app checks once per launch: a release build stages the new pack and
+applies it on the next launch; a development build applies it at once. A progress banner shows while files download.
 
 ### Authoring Commands
 

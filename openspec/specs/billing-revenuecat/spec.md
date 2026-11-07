@@ -66,3 +66,18 @@ When a user initiates account deletion, the system SHALL display an advisory inf
 #### Scenario: Advisory displayed on account deletion prompt
 - **WHEN** the user opens the delete account confirmation dialog
 - **THEN** the confirmation dialog includes guidance on cancelling the subscription in store settings
+
+### Requirement: Test Store keys only in debug builds
+The system SHALL use the RevenueCat Test Store key only in debug (development client) builds, where purchases are simulated. Release builds, including internal preview builds, SHALL use real store keys or none; with none, billing falls back to the mock service.
+
+#### Scenario: Debug build with the Test Store key
+- **WHEN** a development client build runs with the Test Store key
+- **THEN** a purchase shows the simulated Test Store purchase and nothing is charged
+
+#### Scenario: Release build without store keys
+- **WHEN** a release build has no store key configured
+- **THEN** it uses the mock billing service and does not close
+
+#### Scenario: Anonymous user signs out
+- **WHEN** the app signs out while the RevenueCat user is still anonymous
+- **THEN** no log-out call is made and no error is logged

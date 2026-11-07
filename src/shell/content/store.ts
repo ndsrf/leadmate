@@ -17,6 +17,7 @@ export interface FileStorage {
   exists(path: string): Promise<boolean>;
   deleteFile(path: string): Promise<void>;
   deleteDirectory(path: string): Promise<void>;
+  /** Creates the folder and any missing parents (mkdir -p). */
   makeDirectory(path: string): Promise<void>;
   listDirectory(path: string): Promise<string[]>;
   copy(from: string, to: string): Promise<void>;
@@ -436,19 +437,9 @@ export class ContentStore {
     return deletedCount;
   }
 
+  /** Creates the folder and any missing parents in one call; never walks the path, whose first parts ("file:", "data") are not creatable. */
   private async ensureDirectory(path: string): Promise<void> {
     if (!path || (await this.files.exists(path))) return;
-    const parts = path.split('/');
-    let current = '';
-    for (const part of parts) {
-      if (!part) {
-        current += '/';
-        continue;
-      }
-      current = current === '/' ? `/${part}` : current ? `${current}/${part}` : part;
-      if (!(await this.files.exists(current))) {
-        await this.files.makeDirectory(current);
-      }
-    }
+    await this.files.makeDirectory(path);
   }
 }

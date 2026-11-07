@@ -102,7 +102,7 @@ export async function switchChannel(options: SwitchChannelOptions): Promise<Swit
     return {
       success: false,
       channel: previousChannel,
-      error: updateResult.error || updateResult.reason || 'download_failed',
+      error: [updateResult.reason, updateResult.error].filter(Boolean).join(': ') || 'download_failed',
     };
   }
 

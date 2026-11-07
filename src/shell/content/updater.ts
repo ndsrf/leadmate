@@ -1,5 +1,6 @@
 import { type ContentManifest } from './build';
 import { channelFileUrl, channelLatestUrl, channelManifestUrl, hasRemoteContent } from './config';
+import { endContentProgress, reportContentProgress } from './progress';
 import { parseYaml } from './schema';
 import { ContentStore, loadPackFromStorage, type FileStorage, type KeyValueStorage } from './store';
 import { validatePack } from './validator';
@@ -18,20 +19,26 @@ export interface HttpResponse {
 }
 
 export interface HttpFetcher {
-  fetch(url: string, options?: { timeoutMs?: number }): Promise<HttpResponse>;
+  /** `fresh`: never answer from a cache (used for the version pointer, which must always be current). */
+  fetch(url: string, options?: { timeoutMs?: number; fresh?: boolean }): Promise<HttpResponse>;
 }
 
 /**
  * Standard fetch-based HttpFetcher using AbortSignal for timeouts.
  */
 export class DefaultHttpFetcher implements HttpFetcher {
-  async fetch(url: string, options?: { timeoutMs?: number }): Promise<HttpResponse> {
+  async fetch(url: string, options?: { timeoutMs?: number; fresh?: boolean }): Promise<HttpResponse> {
     const timeout = options?.timeoutMs ?? 5000;
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
 
     try {
-      const res = await globalThis.fetch(url, { signal: controller.signal });
+      // a fresh read skips every cache on the way: the request says so, and a unique query makes the address new
+      const target = options?.fresh ? `${url}${url.includes('?') ? '&' : '?'}_=${Date.now()}` : url;
+      const res = await globalThis.fetch(target, {
+        signal: controller.signal,
+        ...(options?.fresh ? { headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' } } : {}),
+      });
       clearTimeout(id);
       return {
         status: res.status,
@@ -65,9 +72,12 @@ export interface LaunchUpdateResult {
     | 'no_remote'
     | 'validation_failed'
     | 'hash_mismatch'
+    | 'activation_failed'
     | 'staged_for_next_launch'
     | 'activated';
   newVersion?: number;
+  /** The version the channel's pointer announced, when it was read (for logs). */
+  remoteVersion?: number;
   filesDownloaded?: number;
   error?: string;
 }
@@ -131,7 +141,25 @@ export class ContentUpdater {
    * Checks for new content on the channel, downloads diffs, validates in staging,
    * and either stages for next launch or activates immediately.
    */
+  /** The update that last started, so the next one waits for it (see `checkAndDownloadUpdate`). */
+  private queue: Promise<unknown> = Promise.resolve();
+
   async checkAndDownloadUpdate(options: LaunchUpdateOptions): Promise<LaunchUpdateResult> {
+    // One update at a time: two at once (the start-up check and a channel switch, say) share one staging folder, and
+    // whichever finishes first moves or deletes it under the other, which then fails reading files it just wrote.
+    // The second one runs after the first and normally finds nothing new to download.
+    const run = this.queue.then(async () => {
+      try {
+        return await this.runUpdate(options);
+      } finally {
+        endContentProgress();
+      }
+    });
+    this.queue = run.catch(() => undefined);
+    return run;
+  }
+
+  private async runUpdate(options: LaunchUpdateOptions): Promise<LaunchUpdateResult> {
     const { channel, currentAppVersion, contentBase, timeoutMs = 5000, userLanguage = 'es' } = options;
 
     if (!hasRemoteContent(contentBase)) {
@@ -146,7 +174,7 @@ export class ContentUpdater {
 
     let latestText: string;
     try {
-      const res = await this.http.fetch(latestUrl, { timeoutMs });
+      const res = await this.http.fetch(latestUrl, { timeoutMs, fresh: true });
       if (res.status !== 200) {
         return { updated: false, reason: 'unreachable' };
       }
@@ -181,7 +209,7 @@ export class ContentUpdater {
     // 3. Check against installed version
     const activePointer = await this.store.getActivePointer(channel);
     if (activePointer && activePointer.contentVersion >= contentVersion) {
-      return { updated: false, reason: 'up_to_date' };
+      return { updated: false, reason: 'up_to_date', remoteVersion: contentVersion };
     }
 
     // 4. Fetch manifest
@@ -288,6 +316,7 @@ export class ContentUpdater {
     });
 
     // 6. Download files into staging
+    if (toDownload.length > 0) reportContentProgress(0, toDownload.length);
     for (const item of toDownload) {
       const ext = extname(item.path).toLowerCase();
       const storageKey = `files/${item.sha256}${ext}`;
@@ -306,6 +335,7 @@ export class ContentUpdater {
         // Save and verify hash
         await this.store.saveFileToStaging(channel, contentVersion, item.path, data, item.sha256);
         filesDownloaded++;
+        reportContentProgress(filesDownloaded, toDownload.length);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         if (msg.includes('Hash mismatch')) {
@@ -341,7 +371,11 @@ export class ContentUpdater {
 
     // 8. Activation or Staging for next launch
     if (options.immediateActivate) {
-      await this.store.activateStaging(channel, contentVersion, manifest);
+      try {
+        await this.store.activateStaging(channel, contentVersion, manifest);
+      } catch (err: unknown) {
+        return { updated: false, reason: 'activation_failed', error: err instanceof Error ? err.message : String(err) };
+      }
       return {
         updated: true,
         reason: 'activated',

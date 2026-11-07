@@ -71,6 +71,7 @@ import { getActiveContent, type RuntimeContent } from './src/shell/content/runti
 import type { ContentChannel } from './src/shell/content/channelSetting';
 import { isRusty, sessionCapacity, warmupScenario, type WarmupOutcome } from './src/shell/rusty';
 import { SimView } from './src/shell/SimView';
+import { ContentUpdateBanner } from './src/shell/ui/ContentUpdateBanner';
 import type { SimViewHandle } from './src/shell/simViewTypes';
 import { dogStore } from './src/shell/storage';
 import { completeFirstStage } from './src/shell/onboarding/firstStage';
@@ -177,6 +178,8 @@ export default function App() {
     const res = await switchContentChannel(channel);
     if (res.success) {
       setContentSession(getActiveContent());
+    } else {
+      console.warn('[content] channel switch failed:', channel, res.error);
     }
     return res;
   }, []);
@@ -1341,6 +1344,7 @@ export default function App() {
         <PaletteRoot className="flex-1 bg-bg">
           {viewWanted && <SimView key={attempt} ref={sim} onMessage={onMessage} onLoadError={() => viewFailedRef.current()} />}
           {screen}
+          <ContentUpdateBanner t={t} />
           {playingStage && bundle === 'ready' && !paused && !tastePayoff && (
             <SimulatorBackButton onPress={() => send({ type: 'pause' })} label={t('hud.back')} />
           )}

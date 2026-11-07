@@ -1,7 +1,6 @@
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 import type { Translate } from '../../i18n';
 import { getActiveContent } from '../content/runtime';
-import { Badge } from './components';
 
 export function BetaContentBadge({ t }: { t: Translate }) {
   const content = getActiveContent();
@@ -9,8 +8,17 @@ export function BetaContentBadge({ t }: { t: Translate }) {
     return null;
   }
   return (
-    <View testID="beta-content-indicator" accessibilityLabel={t('content.betaIndicator')}>
-      <Badge label={t('content.betaIndicator')} tone="accent" />
+    // Tiny overlay pinned to the top edge of the header; never intercepts touches.
+    <View
+      testID="beta-content-indicator"
+      accessibilityLabel={t('content.betaIndicator')}
+      pointerEvents="none"
+      className="absolute rounded-game-pill bg-accent px-1.5"
+      style={{ top: -8, right: 0, zIndex: 1 }}
+    >
+      <Text className="font-display text-ink" style={{ fontSize: 9, lineHeight: 12 }}>
+        {t('content.betaIndicator')}
+      </Text>
     </View>
   );
 }
