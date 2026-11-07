@@ -174,9 +174,9 @@ export function LessonScreen({
   const place = lessonPlaceLabel(lesson, t);
   const header = (
     <View>
+      <BetaContentBadge t={t} />
       <View className="flex-row items-center justify-between" style={{ gap: theme.space[2] }}>
         <Button label={backLabel} tone="secondary" onPress={onBack} />
-        <BetaContentBadge t={t} />
       </View>
       <View className="mt-2" accessibilityLabel={t('lesson.progress')}>
         <ProgressBar value={progress} max={100} />
