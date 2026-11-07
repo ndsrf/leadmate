@@ -84,8 +84,8 @@ export function stopAccessibilityLabel(entry: MapStop, t: Translate): string {
 }
 
 /** Formats the unlock requirement banner for the first locked World. */
-export function worldUnlockBanner(entry: MapWorld, t: Translate): string {
-  if (entry.tier === 'plus') {
+export function worldUnlockBanner(entry: MapWorld, t: Translate, plus?: boolean): string {
+  if (entry.tier === 'plus' && !plus) {
     return t('world.unlockPlus');
   }
   const owed = entry.unlockRequirement?.owedCount;

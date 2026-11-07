@@ -362,9 +362,11 @@ export function worldsFor(plan: readonly { stretchId: string }[], progress: Prog
         const started = touched(stops, progress);
         if (world.id === 'basics') return { stops, key: [0, 0, 0, original] };
         if (world.id !== 'home') return { stops, key: started || plan.length === 0 ? [0, 0, 0, original] : [1, 0, indexInPlan(stops), original] };
-        return { stops, key: [started ? 0 : 1, group(stops, original), indexInPlan(stops), original] };
+        const stretchGroup = group(stops, original);
+        const isHomeStretch = stretchGroup < 2;
+        return { stops, key: [isHomeStretch ? 0 : 1, started ? 0 : 1, stretchGroup, indexInPlan(stops), original] };
       })
-      .sort((a, b) => a.key[0] - b.key[0] || a.key[1] - b.key[1] || a.key[2] - b.key[2] || a.key[3] - b.key[3]);
+      .sort((a, b) => a.key[0] - b.key[0] || a.key[1] - b.key[1] || a.key[2] - b.key[2] || a.key[3] - b.key[3] || (a.key[4] ?? 0) - (b.key[4] ?? 0));
     // a Stretch never moves before the Stretch that holds a prerequisite Node, or a Lesson required by one of its Nodes, or it could not be opened
     const placed: Stop[][] = [];
     const pending = sorted.map((s) => s.stops);

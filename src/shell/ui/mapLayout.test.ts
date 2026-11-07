@@ -15,6 +15,8 @@ import {
   satelliteCenterX,
   satelliteConnector,
   satelliteVisual,
+  SECTION_HEADER_HEIGHT,
+  stopYOffset,
   stretchFlag,
 } from './mapLayout';
 import { mapModel } from '../mapModel';
@@ -157,6 +159,30 @@ describe('World Map layout', () => {
       expect(done.completed).toBe(true);
       expect(done.glyph).toBe('book');
       expect(done.fill).toBe(lightColor.accentSoft);
+    });
+  });
+
+  describe('section header layout', () => {
+    it('computes stop y offset with and without section headers', () => {
+      // No sections gives index * ROW_HEIGHT
+      expect(stopYOffset(0, [])).toBe(0);
+      expect(stopYOffset(1, [])).toBe(ROW_HEIGHT);
+      expect(stopYOffset(5, [])).toBe(5 * ROW_HEIGHT);
+
+      // Section headers shift only the stops after each header
+      const sectionStarts = [0, 3];
+      expect(stopYOffset(0, sectionStarts)).toBe(0 * ROW_HEIGHT + SECTION_HEADER_HEIGHT);
+      expect(stopYOffset(1, sectionStarts)).toBe(1 * ROW_HEIGHT + SECTION_HEADER_HEIGHT);
+      expect(stopYOffset(2, sectionStarts)).toBe(2 * ROW_HEIGHT + SECTION_HEADER_HEIGHT);
+      expect(stopYOffset(3, sectionStarts)).toBe(3 * ROW_HEIGHT + 2 * SECTION_HEADER_HEIGHT);
+      expect(stopYOffset(4, sectionStarts)).toBe(4 * ROW_HEIGHT + 2 * SECTION_HEADER_HEIGHT);
+
+      // Header starting midway shifts only stops at or after it
+      const midSection = [3];
+      expect(stopYOffset(0, midSection)).toBe(0 * ROW_HEIGHT);
+      expect(stopYOffset(2, midSection)).toBe(2 * ROW_HEIGHT);
+      expect(stopYOffset(3, midSection)).toBe(3 * ROW_HEIGHT + SECTION_HEADER_HEIGHT);
+      expect(stopYOffset(4, midSection)).toBe(4 * ROW_HEIGHT + SECTION_HEADER_HEIGHT);
     });
   });
 });

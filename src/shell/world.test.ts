@@ -772,6 +772,13 @@ describe('World 2 is composed per Dog from its Concerns (ADR 0023)', () => {
     expect(firsts(w)).toEqual([lessonOf('bite-owner'), lessonOf('bark-home'), 'theory-harness', 'theory-doorbell', 'theory-poste']);
   });
 
+  it('places an unstarted Home Stretch before a started threshold Stretch', () => {
+    // Harness ritual is started (theory read), but bark-home has not been started
+    const progress = withConcerns({ 'bark-home': 1 }, { readLessons: ['theory-harness'] });
+    const w = homeWorld(worldsFor([], progress));
+    expect(firsts(w).indexOf(lessonOf('bark-home'))).toBeLessThan(firsts(w).indexOf('theory-harness'));
+  });
+
   it('never places a Stretch before the Stretch holding a prerequisite Node of its Nodes', () => {
     const nodes = ALL_NODES.map((n) => (n.id === 'bark-home' ? { ...n, prerequisites: ['poste-practice'] } : n));
     const w = homeWorld(worldsFor([{ stretchId: lessonOf('bark-home') }], withConcerns({ 'bark-home': 1 }), WORLDS, nodes));

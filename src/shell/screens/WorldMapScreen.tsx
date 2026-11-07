@@ -3,7 +3,7 @@ import { Pressable, Text, View, type LayoutChangeEvent, type ScrollViewInstance 
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useLive } from '../ui/useAppActive';
 import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
-import type { Translate } from '../../i18n';
+import type { TextKey, Translate } from '../../i18n';
 import { mapModel, nextMapChange, type MapStop, type MapWorld, type NodeState } from '../mapModel';
 import { streakStatus, type StreakStatus } from '../celebrations';
 import type { Stars } from '../stars';
@@ -20,7 +20,7 @@ import { Backdrop, Button } from '../Overlays';
 import { Badge, Chip, GearGlyph, IconChip, LightRegion, Panel, ProgressBar, Raised, StarRow } from '../ui/components';
 import { WorldSceneryBackground, HouseLandmark, worldPalette } from '../ui/WorldSceneryBackground';
 export { HouseLandmark };
-import { connector, connectorVisual, labelOnRight, labelWidth, NODE_SIZE, nodeCenterX, nodeVisual, ROW_HEIGHT, SATELLITE_SIZE, satelliteCenterX, satelliteConnector, satelliteVisual, stretchFlag, type NodeGlyph } from '../ui/mapLayout';
+import { connector, connectorVisual, labelOnRight, labelWidth, NODE_SIZE, nodeCenterX, nodeVisual, ROW_HEIGHT, SATELLITE_SIZE, satelliteCenterX, satelliteConnector, satelliteVisual, SECTION_HEADER_HEIGHT, sectionHeaderYOffset, stopYOffset, stretchFlag, type NodeGlyph } from '../ui/mapLayout';
 import { lockMessage, owedItemLabel, stopAccessibilityLabel, stopBadge, stopMarks, worldUnlockBanner, worldWalkSubtitle } from '../mapText';
 import { BreedArt } from '../ui/BreedArt';
 import type { BreedId } from '../onboarding/breeds';
@@ -364,6 +364,8 @@ function NodeRow({
   satellite,
   satDone,
   onOpenSatellite,
+  top,
+  rowHeight,
 }: {
   t: Translate;
   entry: MapStop;
@@ -383,13 +385,16 @@ function NodeRow({
   satellite?: PuppySatelliteStopDef;
   satDone?: boolean;
   onOpenSatellite?: (satellite: PuppySatelliteStopDef) => void;
+  top?: number;
+  rowHeight?: number;
 }) {
   const color = usePalette();
   const c = nodeVisual(color, entry.state, entry.kind, entry.optional);
   const shadow = c.glyph === 'lock' ? 0 : theme.depth.sm.x;
   const cx = nodeCenterX(index, width);
   const onRight = labelOnRight(index);
-  const seg = connector(index, width);
+  const dy = rowHeight ?? ROW_HEIGHT;
+  const seg = connector(index, width, dy);
   const cSeg = connectorVisual(color, entry.state, nextState);
   const title = t(entry.title);
   const state = entry.state;
@@ -403,7 +408,7 @@ function NodeRow({
   const satVis = satellite ? satelliteVisual(color, satDone ?? false) : null;
 
   return (
-    <View style={{ height: ROW_HEIGHT }}>
+    <View style={{ height: ROW_HEIGHT, ...(top !== undefined ? { position: 'absolute', top, left: 0, right: 0 } : {}) }}>
       {satellite && satSeg && (
         <View
           pointerEvents="none"
@@ -719,6 +724,99 @@ worldPalette(entry.world.id);
   );
 }
 
+export function PreviewTeaser({ t, onPressPaywall }: { t: Translate; onPressPaywall: () => void }) {
+  return (
+    <View className="p-6 items-center justify-center">
+      <Badge label={t('world.previewBadge')} tone="accent" />
+      <Text className="mt-3 font-display text-title text-ink text-center">
+        {t('map.plusTeaserTitle')}
+      </Text>
+      <Text className="mt-1 mb-4 text-body text-inkMuted text-center">
+        {t('map.plusTeaserBody')}
+      </Text>
+      <Button
+        label={t('paywall.badge')}
+        onPress={onPressPaywall}
+      />
+    </View>
+  );
+}
+
+export function ComingSoonCard({ t, entry }: { t: Translate; entry: MapWorld }) {
+  const previewKey = `world.${entry.world.id}.preview` as TextKey;
+  const blurb = t(previewKey);
+  const count = entry.total;
+  return (
+    <View className="p-6 items-center justify-center">
+      <Badge label={t('world.previewBadge')} tone="accent" />
+      {count > 0 && (
+        <Text className="mt-2 font-display text-caption text-inkMuted text-center">
+          {t('world.previewWalkCount').replace('{count}', String(count))}
+        </Text>
+      )}
+      {blurb ? (
+        <Text className="mt-3 text-body text-ink text-center">
+          {blurb}
+        </Text>
+      ) : null}
+      <Text className="mt-3 text-caption text-inkMuted text-center">
+        {t('world.comingSoonAutoUnlock')}
+      </Text>
+    </View>
+  );
+}
+
+export const MORE_COMING_SCENARIO_KEYS: readonly TextKey[] = [
+  'map.more.item1',
+  'map.more.item2',
+  'map.more.item3',
+  'map.more.item4',
+  'map.more.item5',
+  'map.more.item6',
+];
+
+export function MoreComingCard({
+  t,
+  plus,
+  onPressPaywall,
+}: {
+  t: Translate;
+  plus: boolean;
+  onPressPaywall: () => void;
+}) {
+  const color = usePalette();
+  return (
+    <Panel className="mt-4 mb-8">
+      <Text accessibilityRole="header" className="font-display text-title text-ink">
+        {t('map.more.title')}
+      </Text>
+      <Text className="mt-1 mb-3 text-body text-inkMuted">
+        {t('map.more.intro')}
+      </Text>
+      <View className="gap-2 mb-4">
+        {MORE_COMING_SCENARIO_KEYS.map((key) => (
+          <View key={key} className="flex-row items-center">
+            <Text className="text-body text-inkMuted mr-2">•</Text>
+            <Text className="text-body text-ink flex-1">{t(key)}</Text>
+          </View>
+        ))}
+      </View>
+      {!plus && (
+        <View className="pt-3 items-start" style={{ borderTopWidth: 1, borderTopColor: color.outline }}>
+          <Text className="text-caption text-inkMuted mb-3">
+            {t('map.more.disclaimer')}
+          </Text>
+          <Button
+            label={t('paywall.badge')}
+            accessibilityLabel={t('paywall.badge')}
+            onPress={onPressPaywall}
+          />
+        </View>
+      )}
+    </Panel>
+  );
+}
+
 type WorldBlockProps = {
   t: Translate;
   entry: MapWorld;
@@ -743,10 +841,19 @@ type WorldBlockProps = {
   isPuppy?: boolean;
   readLessons?: readonly string[];
   onOpenSatellite?: (satellite: PuppySatelliteStopDef) => void;
+  plus?: boolean;
 };
 
 /** A world's header and trail sit on its scenery, so they stay Light whatever the Appearance. */
-function WorldBlock(props: WorldBlockProps) {
+/** Section starting stop indexes for a World rendered as an open arena. Empty for non-home or preview worlds. */
+export function worldSectionStarts(entry: Pick<MapWorld, 'world' | 'preview' | 'sections'>): number[] {
+  if (entry.world.id === 'home' && !entry.preview && entry.sections && entry.sections.length > 0) {
+    return entry.sections.map((s) => s.firstIndex);
+  }
+  return [];
+}
+
+export function WorldBlock(props: WorldBlockProps) {
   const folded = props.entry.complete && !props.completedOpen;
   const active = !folded && (props.entry.unlocked || props.isExpanded);
   return (
@@ -777,6 +884,7 @@ function WorldArena({
   isPuppy,
   readLessons,
   onOpenSatellite,
+  plus,
 }: WorldBlockProps) {
   const color = usePalette();
   // the first locked World starts folded to its header; a tap opens its preview
@@ -790,6 +898,11 @@ worldPalette(entry.world.id);
   if (!isArenaActive) {
     return <CollapsedWorldHeader t={t} entry={entry} isExpanded={isExpanded} onToggle={onToggleExpand} />;
   }
+
+  const sectionStarts = worldSectionStarts(entry);
+  const showSections = sectionStarts.length > 0;
+  const headerCount = sectionStarts.length;
+  const pathHeight = entry.stops.length * ROW_HEIGHT + headerCount * SECTION_HEADER_HEIGHT;
 
   const titleRow = (
     <Raised
@@ -864,9 +977,9 @@ worldPalette(entry.world.id);
         >
           <Text className="mr-2 text-title">🔒</Text>
           <Text className="text-body text-ink flex-1">
-            {worldUnlockBanner(entry, t)}
+            {worldUnlockBanner(entry, t, plus)}
           </Text>
-          {entry.tier === 'plus' && (
+          {entry.tier === 'plus' && !plus && (
             <Button
               label={t('world.plusBadge')}
               tone="accent"
@@ -889,35 +1002,54 @@ worldPalette(entry.world.id);
         <WorldSceneryBackground
           worldId={entry.world.id}
           palette={palette}
-          stopCount={entry.stops.length}
+          stopCount={entry.stops.length + headerCount}
           isExpandedPreview={entry.preview && entry.stops.length === 0}
         />
 
         {entry.preview && entry.stops.length === 0 ? (
-          <View className="p-6 items-center justify-center">
-            <Badge label={t('world.previewBadge')} tone="accent" />
-            <Text className="mt-3 font-display text-title text-ink text-center">
-              {t('map.plusTeaserTitle')}
-            </Text>
-            <Text className="mt-1 mb-4 text-body text-inkMuted text-center">
-              {t('map.plusTeaserBody')}
-            </Text>
-            <Button
-              label={t('paywall.badge')}
-              onPress={onPressPaywall}
-            />
-          </View>
+          plus ? (
+            <ComingSoonCard t={t} entry={entry} />
+          ) : (
+            <PreviewTeaser t={t} onPressPaywall={onPressPaywall} />
+          )
         ) : (
-          <View onLayout={onPathLayout} style={{ height: entry.stops.length * ROW_HEIGHT, paddingHorizontal: 0 }}>
+          <View onLayout={onPathLayout} style={{ height: pathHeight, paddingHorizontal: 0 }}>
+            {showSections &&
+              entry.sections?.map((section, sIdx) => {
+                const titleKey = section.id === 'dog' ? 'map.section.forDog' : 'map.section.moreHome';
+                const top = sectionHeaderYOffset(sIdx, sectionStarts);
+                return (
+                  <View
+                    key={`section:${section.id}`}
+                    style={{
+                      position: 'absolute',
+                      top,
+                      left: 0,
+                      right: 0,
+                      height: SECTION_HEADER_HEIGHT,
+                      justifyContent: 'center',
+                      paddingHorizontal: 16,
+                    }}
+                  >
+                    <Text accessibilityRole="header" className="font-display text-title text-ink">
+                      {t(titleKey)}
+                    </Text>
+                  </View>
+                );
+              })}
             {entry.stops.map((stop, i) => {
               const satellite = isPuppy && entry.world.id === 'basics' ? satelliteStopForParent(stop.stop.id) : undefined;
               const satDone = satellite ? !!readLessons?.includes(satellite.lessonId) : false;
+              const top = stopYOffset(i, sectionStarts);
+              const nextTop = i < entry.stops.length - 1 ? stopYOffset(i + 1, sectionStarts) : undefined;
               return (
                 <NodeRow
                   key={`${stop.stop.kind}:${stop.stop.id}`}
                   t={t}
                   entry={stop}
                   index={i}
+                  top={top}
+                  rowHeight={nextTop !== undefined ? nextTop - top : ROW_HEIGHT}
                   width={width - 2 * theme.border.ink}
                   hasNext={i < entry.stops.length - 1}
                   nextState={entry.stops[i + 1]?.state}
@@ -1175,7 +1307,8 @@ export function WorldMapScreen({
     const index = world.stops.findIndex((s) => s.stop.kind === focus.stop.kind && s.stop.id === focus.stop.id);
     if (index === -1) return;
     const timer = setTimeout(() => {
-      const y = (offsets.current.blocks[world.world.id] ?? 0) + (offsets.current.paths[world.world.id] ?? 0) + index * ROW_HEIGHT;
+      const sectionStarts = worldSectionStarts(world);
+      const y = (offsets.current.blocks[world.world.id] ?? 0) + (offsets.current.paths[world.world.id] ?? 0) + stopYOffset(index, sectionStarts);
       scroll.current?.scrollTo({ y: Math.max(0, y - 140), animated: false });
     }, 60);
     return () => clearTimeout(timer);
@@ -1292,10 +1425,12 @@ export function WorldMapScreen({
             isPuppy={isPuppy}
             readLessons={progress.readLessons}
             onOpenSatellite={(sat) => onOpenStop({ kind: 'lesson', id: sat.lessonId })}
+            plus={plus}
           />
           {world.world.id === 'home' && home && <HomeBehavioursSection t={t} concerns={home.concerns} inWorld={inWorldTwo} done={progress} onOpen={onOpenStop} onBecomeConcern={home.onBecomeConcern} />}
           </Fragment>
         ))}
+        <MoreComingCard t={t} plus={plus} onPressPaywall={onPaywall} />
       </View>
     </Screen>
   );

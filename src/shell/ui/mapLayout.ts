@@ -58,11 +58,10 @@ export interface Segment {
 }
 
 /** The line joining the centre of Node `index` to the centre of the next one (drawn inside row `index`). */
-export function connector(index: number, width: number): Segment {
+export function connector(index: number, width: number, dy = ROW_HEIGHT): Segment {
   const x1 = nodeCenterX(index, width);
   const x2 = nodeCenterX(index + 1, width);
   const dx = x2 - x1;
-  const dy = ROW_HEIGHT;
   const length = Math.hypot(dx, dy);
   return { left: (x1 + x2) / 2, top: NODE_SIZE / 2 + dy / 2, length, angle: (Math.atan2(-dx, dy) * 180) / Math.PI };
 }
@@ -165,3 +164,24 @@ export function rowExtent(index: number): { top: number; bottom: number } {
 
 /** Room under a Stop for its badge ("Siguiente", "¿Cómo fue?", the waiting time) and the Stretch flag. */
 export const BADGE_HEIGHT = 20;
+
+/** Height of a section header band on the World Map. */
+export const SECTION_HEADER_HEIGHT = 44;
+
+/**
+ * The vertical offset of a Stop at `index`, given the starting indexes of each section.
+ * Each section header shifts all Stops at or after its starting index down by `SECTION_HEADER_HEIGHT`.
+ * With no sections, this is `index * ROW_HEIGHT`.
+ */
+export function stopYOffset(index: number, sectionStartIndexes: readonly number[] = []): number {
+  const headersBefore = sectionStartIndexes.filter((startIndex) => startIndex <= index).length;
+  return index * ROW_HEIGHT + headersBefore * SECTION_HEADER_HEIGHT;
+}
+
+/**
+ * The vertical offset of a section header at `sectionIndex`, given the starting indexes of each section.
+ */
+export function sectionHeaderYOffset(sectionIndex: number, sectionStartIndexes: readonly number[] = []): number {
+  const startIndex = sectionStartIndexes[sectionIndex] ?? 0;
+  return startIndex * ROW_HEIGHT + sectionIndex * SECTION_HEADER_HEIGHT;
+}
