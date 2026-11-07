@@ -348,7 +348,7 @@ export function resolvePack(pack: ContentPack, language: string = 'es', options?
   });
 
   const trailNodeIds = worlds.flatMap((w) => w.stretches.flatMap((s) => s.filter((st) => st.kind === 'node').map((st) => st.id)));
-  const homeNodeOrder = ['bark-home', 'destroy', 'eat-objects'];
+  const homeNodeOrder = ['calm-hands', 'bark-home', 'destroy', 'eat-objects'];
 
   nodes.sort((a, b) => {
     const idxA = trailNodeIds.indexOf(a.id);

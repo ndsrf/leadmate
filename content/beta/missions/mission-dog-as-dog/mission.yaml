@@ -4,8 +4,6 @@ reps: 1
 place: home
 trains:
   - kind: node
-    id: calm-hands
-  - kind: node
     id: dog-as-dog
 problems:
   - id: cries

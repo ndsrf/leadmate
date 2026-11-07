@@ -20,10 +20,6 @@ export const BASELINE_PACK: ContentPack = {
           [
             {
               "kind": "lesson",
-              "id": "howto-choose-action"
-            },
-            {
-              "kind": "lesson",
               "id": "theory-named-behaviours"
             },
             {
@@ -31,8 +27,8 @@ export const BASELINE_PACK: ContentPack = {
               "id": "theory-dog-as-dog"
             },
             {
-              "kind": "node",
-              "id": "calm-hands"
+              "kind": "lesson",
+              "id": "howto-choose-action"
             },
             {
               "kind": "node",
@@ -1553,7 +1549,7 @@ export const BASELINE_PACK: ContentPack = {
         "id": "calm-hands",
         "mode": "close_exercise",
         "prerequisites": [],
-        "opensAfterLesson": "howto-choose-action",
+        "opensAfterLesson": "theory-bite-owner",
         "simulation": {
           "closeScenario": {
             "controls": "hand_drill",
@@ -5431,8 +5427,8 @@ export const BASELINE_PACK: ContentPack = {
         "sharedNote": "plan.note.professional",
         "trains": [
           {
-            "kind": "lesson",
-            "id": "theory-bite-owner"
+            "kind": "node",
+            "id": "calm-hands"
           }
         ],
         "problems": [
@@ -5440,24 +5436,24 @@ export const BASELINE_PACK: ContentPack = {
             "id": "growls",
             "label": "growls",
             "practise": {
-              "kind": "lesson",
-              "id": "theory-bite-owner"
+              "kind": "node",
+              "id": "calm-hands"
             }
           },
           {
             "id": "bit",
             "label": "bit",
             "practise": {
-              "kind": "lesson",
-              "id": "theory-bite-owner"
+              "kind": "node",
+              "id": "calm-hands"
             }
           },
           {
             "id": "cantavoid",
             "label": "cantavoid",
             "practise": {
-              "kind": "lesson",
-              "id": "theory-bite-owner"
+              "kind": "node",
+              "id": "calm-hands"
             }
           }
         ]
@@ -5652,10 +5648,6 @@ export const BASELINE_PACK: ContentPack = {
         "reps": 1,
         "place": "home",
         "trains": [
-          {
-            "kind": "node",
-            "id": "calm-hands"
-          },
           {
             "kind": "node",
             "id": "dog-as-dog"

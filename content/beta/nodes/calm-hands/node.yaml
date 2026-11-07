@@ -1,7 +1,7 @@
 id: calm-hands
 mode: close_exercise
 prerequisites: []
-opensAfterLesson: howto-choose-action
+opensAfterLesson: theory-bite-owner
 simulation:
   closeScenario:
     controls: hand_drill

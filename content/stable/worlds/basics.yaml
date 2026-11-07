@@ -3,13 +3,11 @@ worldNumber: 1
 tier: free
 stretches:
   - - kind: lesson
-      id: howto-choose-action
-    - kind: lesson
       id: theory-named-behaviours
     - kind: lesson
       id: theory-dog-as-dog
-    - kind: node
-      id: calm-hands
+    - kind: lesson
+      id: howto-choose-action
     - kind: node
       id: dog-as-dog
   - - kind: lesson

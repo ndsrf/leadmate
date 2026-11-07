@@ -517,7 +517,7 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
   }
 
   for (const [nId, nodeEntry] of Object.entries(pack.nodes ?? {})) {
-    const isHomeNode = nId === 'bark-home' || nId === 'destroy' || nId === 'eat-objects';
+    const isHomeNode = nId === 'calm-hands' || nId === 'bark-home' || nId === 'destroy' || nId === 'eat-objects';
     if (!trailReferencedNodes.has(nId) && !isHomeNode) {
       errors.push({
         file: `nodes/${nId}/node.yaml`,

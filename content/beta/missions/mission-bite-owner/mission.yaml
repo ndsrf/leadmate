@@ -4,21 +4,21 @@ reps: 3
 place: home
 sharedNote: plan.note.professional
 trains:
-  - kind: lesson
-    id: theory-bite-owner
+  - kind: node
+    id: calm-hands
 problems:
   - id: growls
     label: growls
     practise:
-      kind: lesson
-      id: theory-bite-owner
+      kind: node
+      id: calm-hands
   - id: bit
     label: bit
     practise:
-      kind: lesson
-      id: theory-bite-owner
+      kind: node
+      id: calm-hands
   - id: cantavoid
     label: cantavoid
     practise:
-      kind: lesson
-      id: theory-bite-owner
+      kind: node
+      id: calm-hands
