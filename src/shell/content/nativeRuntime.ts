@@ -61,7 +61,8 @@ export class MemoryFileStorage implements FileStorage {
   }
 
   async makeDirectory(path: string): Promise<void> {
-    this.dirs.add(this.norm(path));
+    const parts = this.norm(path).split('/');
+    for (let i = 1; i <= parts.length; i++) this.dirs.add(parts.slice(0, i).join('/'));
   }
 
   async listDirectory(path: string): Promise<string[]> {
@@ -127,7 +128,7 @@ class ExpoFileStorage implements FileStorage {
     const file = new this.fs.File(path);
     const parent = file.parentDirectory;
     if (parent && !parent.exists) {
-      parent.create({ idempotent: true });
+      parent.create({ intermediates: true, idempotent: true });
     }
     await file.write(contents);
   }
@@ -141,7 +142,7 @@ class ExpoFileStorage implements FileStorage {
     const file = new this.fs.File(path);
     const parent = file.parentDirectory;
     if (parent && !parent.exists) {
-      parent.create({ idempotent: true });
+      parent.create({ intermediates: true, idempotent: true });
     }
     await file.write(data);
   }
@@ -170,7 +171,7 @@ class ExpoFileStorage implements FileStorage {
   async makeDirectory(path: string): Promise<void> {
     const dir = new this.fs.Directory(path);
     if (!dir.exists) {
-      dir.create({ idempotent: true });
+      dir.create({ intermediates: true, idempotent: true });
     }
   }
 
@@ -185,7 +186,7 @@ class ExpoFileStorage implements FileStorage {
     const destFile = new this.fs.File(to);
     const parent = destFile.parentDirectory;
     if (parent && !parent.exists) {
-      parent.create({ idempotent: true });
+      parent.create({ intermediates: true, idempotent: true });
     }
     await srcFile.copy(destFile);
   }
@@ -196,7 +197,7 @@ class ExpoFileStorage implements FileStorage {
       const destFile = new this.fs.File(to);
       const parent = destFile.parentDirectory;
       if (parent && !parent.exists) {
-        parent.create({ idempotent: true });
+        parent.create({ intermediates: true, idempotent: true });
       }
       await srcFile.move(destFile);
       return;
@@ -206,7 +207,7 @@ class ExpoFileStorage implements FileStorage {
       const destDir = new this.fs.Directory(to);
       const parent = destDir.parentDirectory;
       if (parent && !parent.exists) {
-        parent.create({ idempotent: true });
+        parent.create({ intermediates: true, idempotent: true });
       }
       await srcDir.move(destDir);
     }
@@ -238,7 +239,8 @@ export function getNativeContentBaseDir(): string {
   try {
     const expoFs = require('expo-file-system');
     if (expoFs?.Paths?.document?.uri) {
-      cachedBaseDir = `${expoFs.Paths.document.uri}/content`;
+      // Paths.document.uri already ends with a slash
+      cachedBaseDir = `${expoFs.Paths.document.uri.replace(/\/+$/, '')}/content`;
       return cachedBaseDir;
     }
   } catch {
@@ -317,7 +319,20 @@ export async function initNativeContent(options?: {
  * When no remote content is configured and channel is not cached,
  * returns { success: false, error: 'remote_unavailable' }.
  */
-export async function switchContentChannel(
+let switchQueue: Promise<unknown> = Promise.resolve();
+
+export function switchContentChannel(
+  channel: ContentChannel,
+  options?: { contentBase?: string }
+): Promise<SwitchChannelResult> {
+  // One switch at a time: a Stable switch tapped while Beta is still downloading waits for it, so the late Beta
+  // download cannot take over after the user has already gone back to Stable.
+  const run = switchQueue.then(() => doSwitchContentChannel(channel, options));
+  switchQueue = run.catch(() => undefined);
+  return run;
+}
+
+async function doSwitchContentChannel(
   channel: ContentChannel,
   options?: { contentBase?: string }
 ): Promise<SwitchChannelResult> {

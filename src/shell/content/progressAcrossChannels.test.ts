@@ -101,7 +101,8 @@ class MemoryFileStorage implements FileStorage {
   }
 
   async makeDirectory(p: string): Promise<void> {
-    this.dirs.add(this.norm(p));
+    const parts = this.norm(p).split('/');
+    for (let i = 1; i <= parts.length; i++) this.dirs.add(parts.slice(0, i).join('/'));
   }
 
   async listDirectory(p: string): Promise<string[]> {

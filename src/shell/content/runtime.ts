@@ -60,7 +60,8 @@ setContentCatalogProvider(() => getActiveContent().resolved.catalog);
 /**
  * Initializes the active content at app start-up BEFORE content screens render.
  * 1. In __DEV__, checks and immediately activates the locally built beta pack.
- * 2. In production, applies any pending update staged by a previous session's background updater.
+ * 2. In production, applies any pending update staged by a previous session's background updater, and after the
+ *    session is set up starts a background check that stages anything newer for the next launch.
  * 3. Loads the active pack from the ContentStore.
  * 4. Falls back to bundled BASELINE_PACK if no remote pack is installed or on corrupt cache.
  * 5. Resolves the pack into WorldDef[], LessonDef[], NodeDef[], MissionDef[] and catalog.
@@ -84,16 +85,24 @@ export async function initContentRuntime(options: InitRuntimeOptions = {}): Prom
 
   // In __DEV__, check and immediately activate locally built beta pack at start
   if (isDev && options.updater) {
+    console.log('[content] start-up check: starting for', channel);
     try {
-      await options.updater.checkAndDownloadUpdate({
+      const result = await options.updater.checkAndDownloadUpdate({
         channel,
         currentAppVersion: options.currentAppVersion ?? '1.0.0',
         contentBase: options.contentBase ?? resolveContentBase({ isDev: true }),
         immediateActivate: true,
       });
-    } catch {
-      // Non-fatal if dev server is unreachable; falls through to stored/baseline
+      if (!result.updated && result.reason !== 'up_to_date') {
+        console.warn('[content] start-up update not applied:', channel, result.reason, result.error ?? '');
+      } else {
+        const installed = options.store ? (await options.store.getActivePointer(channel))?.contentVersion : undefined;
+        console.log('[content] start-up check:', channel, result.reason, `remote=${result.remoteVersion ?? result.newVersion ?? '?'}`, `installed=${installed ?? 'none'}`);
+      }
+    } catch (err) {
+      console.warn('[content] start-up update threw:', channel, err instanceof Error ? err.message : String(err));
     }
+    // non-fatal: falls through to the stored pack, then the baseline
   }
 
   // 2. Try to load active pack from store
@@ -127,6 +136,27 @@ export async function initContentRuntime(options: InitRuntimeOptions = {}): Prom
     pack,
     resolved,
   };
+
+  // 6. Production: look for newer content in the background. Not awaited, so the first screen is never delayed, and
+  // staged only (`immediateActivate` off): a complete pack is applied at the next launch, never mid-session.
+  if (!isDev && options.updater) {
+    void options.updater
+      .checkAndDownloadUpdate({
+        channel,
+        currentAppVersion: options.currentAppVersion ?? '1.0.0',
+        contentBase: options.contentBase ?? resolveContentBase({ isDev: false }),
+        userLanguage: language,
+        immediateActivate: false,
+      })
+      .then((result) => {
+        if (!result.updated && result.reason !== 'up_to_date') {
+          console.warn('[content] background update not applied:', channel, result.reason, result.error ?? '');
+        }
+      })
+      .catch(() => {
+        // Never an error for the user: the current content keeps working
+      });
+  }
 
   return activeContentSession;
 }

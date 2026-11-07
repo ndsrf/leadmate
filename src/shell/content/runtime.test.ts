@@ -277,3 +277,31 @@ New topics
     expect(getActiveContent().contentVersion).toBe(2);
   });
 });
+
+describe('initContentRuntime launch-time update check', () => {
+  const fakeUpdater = (check: jest.Mock) =>
+    ({ applyPendingUpdateIfAvailable: jest.fn().mockResolvedValue(false), checkAndDownloadUpdate: check }) as unknown as ContentUpdater;
+
+  it('production: checks in the background, stages only, and does not wait for the check', async () => {
+    const check = jest.fn().mockReturnValue(new Promise(() => {})); // never finishes
+    const session = await initContentRuntime({ isDev: false, channel: 'stable', updater: fakeUpdater(check), contentBase: 'https://c.example.com' });
+
+    expect(session.isBaseline).toBe(true);
+    expect(check).toHaveBeenCalledTimes(1);
+    expect(check.mock.calls[0][0]).toMatchObject({ channel: 'stable', immediateActivate: false, contentBase: 'https://c.example.com' });
+  });
+
+  it('production: a failing check is swallowed', async () => {
+    const check = jest.fn().mockRejectedValue(new Error('boom'));
+    await expect(initContentRuntime({ isDev: false, channel: 'stable', updater: fakeUpdater(check) })).resolves.toBeDefined();
+    await Promise.resolve();
+  });
+
+  it('development: checks and activates at once, awaiting it', async () => {
+    const check = jest.fn().mockResolvedValue({ updated: false, reason: 'up_to_date' });
+    await initContentRuntime({ isDev: true, channel: 'beta', updater: fakeUpdater(check), contentBase: 'https://c.example.com' });
+
+    expect(check).toHaveBeenCalledTimes(1);
+    expect(check.mock.calls[0][0]).toMatchObject({ channel: 'beta', immediateActivate: true });
+  });
+});
