@@ -1,0 +1,24 @@
+id: mission-alone
+technique: alone
+reps: 7
+place: home
+sharedNote: lesson.note.alone
+trains:
+  - kind: node
+    id: alone-door
+problems:
+  - id: cries-at-once
+    label: cries-at-once
+    practise:
+      kind: node
+      id: alone-door
+  - id: panic
+    label: panic
+    practise:
+      kind: node
+      id: alone-door
+  - id: cries-at-close
+    label: cries-at-close
+    practise:
+      kind: node
+      id: alone-door

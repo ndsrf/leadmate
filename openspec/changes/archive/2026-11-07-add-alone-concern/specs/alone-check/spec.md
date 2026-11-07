@@ -18,11 +18,11 @@ Being left alone (`alone`) SHALL be a Home Behaviour Concern with level 1 to 3 l
 - **THEN** its Home Stretch joins World 2 like any other Home Behaviour and the question card is not shown again
 
 ### Requirement: One-time question card
-The "Para tu perro" section of World 2 SHALL show once a card asking "¿Cómo lleva {name} quedarse solo en casa?" with four answers: "Muy bien", "A veces llora o se inquieta", "Mal: llora, rompe cosas, ladra" and "Aún no lo sé". The card SHALL show only while the Dog has no recorded answer, SHALL be available even when the section has no other Home Stretch, and SHALL NOT block the Map or any Stop.
+World 2 SHALL show once a card, inside its frame above its path asking "¿Cómo lleva {name} quedarse solo en casa?" with four answers: "Muy bien", "A veces llora o se inquieta", "Mal: llora, rompe cosas, ladra" and "Aún no lo sé". The card SHALL show only while the Dog has no recorded answer, SHALL be available even when World 2 has no Home Stretch of the Dog, and SHALL NOT block the Map or any Stop.
 
 #### Scenario: Card shown
 - **WHEN** a Dog with no recorded answer opens the Map with World 2 unlocked
-- **THEN** the card is shown in "Para tu perro" with the Dog's name and the four answers
+- **THEN** the card is shown inside World 2 with the Dog's name and the four answers
 
 #### Scenario: Card ignored
 - **WHEN** the user leaves the card unanswered

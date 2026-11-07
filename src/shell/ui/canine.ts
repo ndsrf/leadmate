@@ -28,7 +28,10 @@ export type CaninePosture =
   | 'barking_at_you'
   | 'chewing_object'
   | 'eyeing_item'
-  | 'holding_item';
+  | 'holding_item'
+  | 'whining_door'
+  | 'panic_door'
+  | 'tense_alone';
 
 export const CANINE_POSTURES: readonly CaninePosture[] = [
   'standing_waiting',
@@ -56,6 +59,9 @@ export const CANINE_POSTURES: readonly CaninePosture[] = [
   'chewing_object',
   'eyeing_item',
   'holding_item',
+  'whining_door',
+  'panic_door',
+  'tense_alone',
 ];
 
 /** The postures the user reads in the action Minigames; they must tell apart at a glance. */
@@ -63,6 +69,7 @@ export const READABLE_POSTURES: readonly DogState[] = [
   'jumping', 'alert_barking', 'staring_door', 'sniffing', 'sitting_attentive', 'unsettled_on_mat', 'relaxed_lying',
   'begging_lift', 'on_furniture', 'nudging_attention', 'toy_indoors', 'resting', 'barking_nonstop', 'zoomies',
   'barking_window', 'barking_at_you', 'chewing_object', 'eyeing_item', 'holding_item',
+  'whining_door', 'panic_door', 'tense_alone',
 ];
 
 export type Eyes = 'open' | 'wide' | 'closed';
@@ -112,6 +119,10 @@ const SPECS: Record<CaninePosture, PostureSpec> = {
   chewing_object: { leanDeg: 18, height: 0.6, tail: 'down', earsUp: false, mouthOpen: true, eyes: 'open', emote: 'toy', label: 'minigame.dog.chewing_object', cue: 'minigame.cue.chewing_object' },
   eyeing_item: { leanDeg: 8, height: 0.9, tail: 'wag', earsUp: true, mouthOpen: false, eyes: 'wide', emote: 'distracted', label: 'minigame.dog.eyeing_item', cue: 'minigame.cue.eyeing_item' },
   holding_item: { leanDeg: 2, height: 0.95, tail: 'down', earsUp: false, mouthOpen: false, eyes: 'wide', emote: 'toy', label: 'minigame.dog.holding_item', cue: 'minigame.cue.holding_item' },
+  // Being alone states: whining is sad and low, panic is wide-eyed and frantic, tense is stiff and still
+  whining_door: { leanDeg: 6, height: 0.8, tail: 'down', earsUp: false, mouthOpen: false, eyes: 'open', emote: 'please', label: 'minigame.dog.whining_door', cue: 'minigame.cue.whining_door' },
+  panic_door: { leanDeg: 14, height: 1.1, tail: 'down', earsUp: true, mouthOpen: true, eyes: 'wide', emote: 'alert', label: 'minigame.dog.panic_door', cue: 'minigame.cue.panic_door' },
+  tense_alone: { leanDeg: -2, height: 0.85, tail: 'down', earsUp: true, mouthOpen: false, eyes: 'wide', emote: 'distracted', label: 'minigame.dog.tense_alone', cue: 'minigame.cue.tense_alone' },
   zoomies: { leanDeg: 20, height: 0.85, tail: 'up', earsUp: false, mouthOpen: true, eyes: 'wide', emote: 'zoom', label: 'minigame.dog.zoomies', cue: 'minigame.cue.zoomies' },
 };
 
@@ -194,6 +205,9 @@ export const COLLAR_POINT: Record<CaninePosture, { x: number; y: number }> = {
   chewing_object: { x: 114, y: 72 },
   eyeing_item: { x: 110, y: 56 },
   holding_item: { x: 108, y: 50 },
+  whining_door: { x: 108, y: 60 },
+  panic_door: { x: 114, y: 42 },
+  tense_alone: { x: 108, y: 56 },
 };
 
 /** Where an emote bubble sits, in `DOG_VIEW` units: the top-right corner, clear of the head, and higher for a Dog that stands taller. */

@@ -23,6 +23,7 @@ export const REQUIRED_PARTS: Record<HomeConcern, readonly ContentPart[]> = {
   'bark-home': CONTENT_PARTS,
   destroy: CONTENT_PARTS,
   'eat-objects': CONTENT_PARTS,
+  alone: CONTENT_PARTS,
 };
 
 /** What each Home Behaviour has: the ids of its Lesson, Node and Mission. */
@@ -32,6 +33,7 @@ export const HOME_BEHAVIOUR_CONTENT: Record<HomeConcern, HomeBehaviourContent> =
   'bark-home': { lesson: 'theory-bark-home', node: 'bark-home', mission: 'mission-bark-home' },
   destroy: { lesson: 'theory-destroy', node: 'destroy', mission: 'mission-destroy' },
   'eat-objects': { lesson: 'theory-eat-objects', node: 'eat-objects', mission: 'mission-eat-objects' },
+  alone: { lesson: 'theory-alone-space', node: 'alone-door', mission: 'mission-alone' },
 };
 
 /**

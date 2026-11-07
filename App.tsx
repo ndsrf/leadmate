@@ -21,7 +21,7 @@ import { BUNDLE_MESSAGE_TYPES, decode, type BundleMessage, type ShellMessage, ty
 import { newSeed } from './src/sim/rng';
 import { playDogSound, playResolvedCue, prepareAudio } from './src/shell/audio';
 import { createVocalizer } from './src/shell/vocalize';
-import { applyDaySkip, applyMissionCheckIn, passMissionDirectly, recordDailyBarkdoku, setHomeConcern, toSnapshot, updateMission } from './src/shell/dogRecord';
+import { answerAlone, shouldAskAlone, applyDaySkip, applyMissionCheckIn, passMissionDirectly, recordDailyBarkdoku, setHomeConcern, toSnapshot, updateMission } from './src/shell/dogRecord';
 import { rebuildPlan } from './src/shell/onboarding/plan';
 import { starsFor } from './src/shell/stars';
 import { lookOf } from './src/shell/onboarding/look';
@@ -779,7 +779,7 @@ export default function App() {
       <View className="absolute inset-0">
         <WorldMapScreen
           t={t}
-          home={{ concerns: record.homeConcerns, onBecomeConcern: (concern) => update((r) => rebuildPlan(setHomeConcern(r, concern, 1))) }}
+          home={{ concerns: record.homeConcerns, onBecomeConcern: (concern) => update((r) => rebuildPlan(setHomeConcern(r, concern, 1))), alone: { show: shouldAskAlone(record), dogName: record.name, onAnswer: (answer) => update((r) => rebuildPlan(answerAlone(r, answer))) } }}
           progress={record}
           membership={record}
           stars={record.stars}

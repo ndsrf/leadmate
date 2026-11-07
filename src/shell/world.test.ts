@@ -17,7 +17,7 @@ import type { MissionDef, MissionState } from './missions/mission';
 import { migrateRecord, newDogRecord, setHomeConcern } from './dogRecord';
 import { buildPersonalPlan, rebuildPlan } from './onboarding/plan';
 import { HOME_CONCERNS, type HomeConcern } from './concerns';
-import { HOME_BEHAVIOUR_CONTENT } from './homeBehaviours';
+import { HOME_BEHAVIOUR_CONTENT, hasDedicatedLesson } from './homeBehaviours';
 import { isPlus } from './plus';
 import { requiredLessonsOf } from './nodes/readDog';
 import type { ScenarioConfig } from '../sim/config';
@@ -629,7 +629,7 @@ describe('Lessons of a Stretch and the how-to-play Lesson', () => {
   it('starts World 1 with "Tiene nombre", and every living-room Node requires how to play', () => {
     expect(stopsOf(world('basics'))[0]).toEqual(lessonStop('theory-named-behaviours'));
     const needing = ALL_NODES.filter((n) => requiredLessonsOf(n).length > 0).map((n) => n.id);
-    expect(needing.sort()).toEqual(['bark-home', 'calm-first', 'calm-hands', 'destroy', 'dog-as-dog', 'eat-objects', 'home-rest']);
+    expect(needing.sort()).toEqual(['alone-door', 'bark-home', 'calm-first', 'calm-hands', 'destroy', 'dog-as-dog', 'eat-objects', 'home-rest']);
   });
   it('cannot play a Home Node in World 2 before how to play is read in World 1, and places its Stretch in World 2', () => {
     const p = progressOf([], {
@@ -879,7 +879,9 @@ describe('World 2 is composed per Dog from its Concerns (ADR 0023)', () => {
   });
 
   describe('reachability: every Stop of World 1 and World 2 can be completed in trail order', () => {
-    const combos: HomeConcern[][] = [[], ...HOME_CONCERNS.map((c) => [c]), ['bark-home', 'destroy'], [...HOME_CONCERNS]];
+    // a Home Behaviour whose content has not shipped (KNOWN_GAPS) has no Stretch to complete yet
+    const shipped = HOME_CONCERNS.filter((c) => hasDedicatedLesson(c));
+    const combos: HomeConcern[][] = [[], ...shipped.map((c) => [c]), ['bark-home', 'destroy'], [...shipped]];
     test.each(combos.map((c) => [c.join('+'), c] as const))('Dog with %s', (_name, concerns) => {
       const levels = Object.fromEntries(concerns.map((c) => [c, 1])) as Partial<Record<HomeConcern, 1 | 2 | 3>>;
       const record = rebuildPlan({ ...newDogRecord(), homeConcerns: levels });

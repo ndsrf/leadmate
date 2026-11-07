@@ -25,6 +25,7 @@ export const CONCERN_STRETCHES: Record<Concern, readonly string[]> = {
   'bark-home': ['theory-bark-home', ...AT_HOME],
   destroy: ['theory-destroy', ...AT_HOME],
   'eat-objects': ['theory-eat-objects', 'theory-home-rest'],
+  alone: ['theory-alone-space', 'theory-home-rest'],
   'react-dog': ['theory-slack-u'],
   'react-child': ['theory-slack-u'],
   'react-bicycle': ['theory-blind-corner'],

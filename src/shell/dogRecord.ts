@@ -18,15 +18,20 @@ import { DEFAULT_BREED, isBreed, type BreedId } from './onboarding/breeds';
 import { cleanDogName } from './onboarding/name';
 import { nextPosture, updateLearning, updateTriggerProfile } from './learning';
 import { isOnboardingStep, type OnboardingStep } from './onboarding/flow';
-import { findWorld, isWorldComplete, stopsOf, stretchIdContaining, findStretch, worldsFor } from './world';
-import { isHomeStretchId } from './homeBehaviours';
+import { findWorld, isWorldComplete, isWorldUnlocked, stopsOf, stretchIdContaining, findStretch, worldsFor } from './world';
+import { hasDedicatedLesson, isHomeStretchId } from './homeBehaviours';
 import { HOME_CONCERNS, isAgeBand, isConcern, isHomeConcern, isPlanBecause, isSex, readConcernList, readHomeConcerns, type AgeBand, type Concern, type HomeConcern, type HomeConcerns, type ConcernLevel, type PlanItem, type Sex } from './concerns';
 import { activityAt, addActivity, readActivityLog, type ActivityEvent } from './activity';
 import type { PuzzleSummary } from './puzzle/types';
 import { addDiaryEntry, DIARY_OUTCOMES, isDateString, localDateString, markActive, NO_STREAK, type DiaryOutcome, type StreakRecord, type WalkDiaryEntry } from './streak';
 import { checkIn, fixFor, readMissions, readSeenFixes, skipDay, NEW_MISSION, type MissionDef, type MissionState, type SeenFix } from './missions/mission';
 
-export const RECORD_VERSION = 10;
+/** The answers to "how does the Dog cope with being left alone". */
+export const ALONE_ANSWERS = ['ok', 'sometimes', 'bad', 'unknown'] as const;
+export type AloneAnswer = (typeof ALONE_ANSWERS)[number];
+export const isAloneAnswer = (v: unknown): v is AloneAnswer => ALONE_ANSWERS.includes(v as AloneAnswer);
+
+export const RECORD_VERSION = 11;
 export const RECORD_KEY = 'leadmate.dog';
 
 /** Seconds of the Checkpoint timer; 0 turns it off. */
@@ -58,6 +63,11 @@ export interface DogRecord {
    * set, a Concern declared after World 2 was complete is not added to it and stays in Other Home Behaviours.
    */
   worldHome?: HomeConcern[];
+  /**
+   * How the owner said the Dog copes with being left alone. Absent means the question was never asked; any answer, or
+   * making being alone a Concern another way, means it was. Answering is not progress.
+   */
+  aloneAnswer?: AloneAnswer;
   /** The Dog's age band; null until answered. It only reorders the plan, and unset acts as adult. */
   ageBand: AgeBand | null;
   /** The Dog's sex; null until answered. Used for pronouns only. */
@@ -375,6 +385,7 @@ export function migrateRecord(raw: unknown): DogRecord {
     mainConcerns: readConcernList(Array.isArray(r.mainConcerns) ? r.mainConcerns : [(r as { mainConcern?: unknown }).mainConcern]),
     homeConcerns: readHomeConcerns(r.homeConcerns),
     ...(Array.isArray(r.worldHome) ? { worldHome: r.worldHome.filter(isHomeConcern) } : {}),
+    ...(isAloneAnswer(r.aloneAnswer) ? { aloneAnswer: r.aloneAnswer } : {}),
     ageBand: isAgeBand(r.ageBand) ? r.ageBand : null,
     sex: isSex(r.sex) ? r.sex : null,
     voicePack: typeof r.voicePack === 'string' ? r.voicePack : base.voicePack,
@@ -490,7 +501,29 @@ export function setHomeConcern(record: DogRecord, concern: HomeConcern, level: C
   const members = record.worldHome ?? HOME_CONCERNS.filter((c) => (record.homeConcerns[c] ?? 0) > 0);
   const homeWorld = worldsFor(record.onboarding.plan, record).find((w) => w.id === 'home');
   const joins = level > 0 && !members.includes(concern) && !(homeWorld && isWorldComplete(homeWorld, record));
-  return { ...record, homeConcerns, worldHome: joins ? [...members, concern] : [...members] };
+  // making being alone a Concern any other way also counts as answering the question
+  const answered = concern === 'alone' && level > 0 && record.aloneAnswer === undefined ? { aloneAnswer: level === 3 ? ('bad' as const) : ('sometimes' as const) } : {};
+  return { ...record, ...answered, homeConcerns, worldHome: joins ? [...members, concern] : [...members] };
+}
+
+/** The Concern level each answer sets; "ok" and "unknown" set none. */
+const ALONE_LEVEL: Record<AloneAnswer, ConcernLevel | 0> = { ok: 0, sometimes: 2, bad: 3, unknown: 0 };
+
+/**
+ * The owner's answer about being left alone: it is kept (so the card is not asked again) and turned into the Concern
+ * level for being alone. It touches nothing else: answering is not progress (no Active Day, star, Diary or Activity).
+ */
+export function answerAlone(record: DogRecord, answer: AloneAnswer): DogRecord {
+  const level = ALONE_LEVEL[answer];
+  const answered = { ...record, aloneAnswer: answer };
+  return level > 0 ? setHomeConcern(answered, 'alone', level) : answered;
+}
+
+/** True when the one-time question about being alone should show: never answered, World 2 open, and a Lesson to offer. */
+export function shouldAskAlone(record: DogRecord): boolean {
+  if (record.aloneAnswer !== undefined || !hasDedicatedLesson('alone')) return false;
+  const home = worldsFor(record.onboarding.plan, record).find((w) => w.id === 'home');
+  return home !== undefined && isWorldUnlocked(home, record);
 }
 
 export function setAgeBand(record: DogRecord, ageBand: AgeBand | null): DogRecord {

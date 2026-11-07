@@ -19,7 +19,7 @@ Muchos dueños de cachorros y perros jóvenes tienen perros que lloran, rompen c
   - límites de tiempo y de edad para la regla de no abrir durante el llanto (un cachorro pequeño no puede esperar 45 minutos).
 - Decisión de alcance: un solo Stretch por preocupación, como el resto de Home Behaviours; el paso a paso vive en la Misión.
 
-Depende de `home-rest-safe-space-and-world-two-sections` (secciones del mapa y lección ampliada), pero el contenido puede escribirse en paralelo.
+Depende de `home-rest-safe-space-and-world-two-sections` (secciones del mapa y lección ampliada), ya completada: la tarjeta va directamente en "Para tu perro".
 
 Fuera de alcance: un mundo nuevo, renumerar mundos, cambios en el onboarding o en el límite de tres preocupaciones principales.
 

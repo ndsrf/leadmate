@@ -3,8 +3,8 @@ import { BASICS_SCENES, buildScript, correctAction, CORRECT_ACTION, currentState
 import { es } from '../../i18n';
 import { starsFor } from '../stars';
 
-const SCENES: ReadDogScene[] = ['harness', 'doorbell', 'affection', 'rest', 'calm', 'bark-home', 'destroy', 'eat-objects'];
-const HOME: ReadDogScene[] = ['bark-home', 'destroy', 'eat-objects'];
+const SCENES: ReadDogScene[] = ['harness', 'doorbell', 'affection', 'rest', 'calm', 'bark-home', 'destroy', 'eat-objects', 'alone'];
+const HOME: ReadDogScene[] = ['bark-home', 'destroy', 'eat-objects', 'alone'];
 const BASICS: ReadDogScene[] = ['affection', 'rest', 'calm'];
 
 const right = (run: ReadDogRun) => stepReadDog(run, 0.05, correctAction(run.scene, currentState(run))!);
@@ -316,6 +316,7 @@ describe('Home Behaviour scenes', () => {
     expect(readDogSceneOf('bark-home')).toBe('bark-home');
     expect(readDogSceneOf('destroy')).toBe('destroy');
     expect(readDogSceneOf('eat-objects')).toBe('eat-objects');
+    expect(readDogSceneOf('alone')).toBe('alone');
   });
 
   it('gives each scene four beats, ends calm, and has exactly one right action for every state it shows', () => {
@@ -361,3 +362,23 @@ describe('Home Behaviour scenes', () => {
     expect(es['minigame.eat-objects.hint.swap']).toMatch(/no se lo quites/);
   });
 });
+
+describe('Being alone scene', () => {
+  it('asks whether to open the door: wait for protest, open for panic, shorten when tense, mark the calm', () => {
+    expect(SCENE_ACTIONS.alone).toEqual(['wait', 'open', 'shorten', 'marker']);
+    expect(correctAction('alone', 'whining_door')).toBe('wait');
+    expect(correctAction('alone', 'panic_door')).toBe('open');
+    expect(correctAction('alone', 'tense_alone')).toBe('shorten');
+    expect(correctAction('alone', 'relaxed_lying')).toBe('marker');
+  });
+
+  it('has a hint and an action label for every right action, and says why waiting has a limit', () => {
+    for (const action of SCENE_ACTIONS.alone) {
+      expect(es[`minigame.alone.hint.${action}` as keyof typeof es]).toBeTruthy();
+      expect(es[`minigame.action.${action}` as keyof typeof es]).toBeTruthy();
+      expect(es[`minigame.actionHint.${action}` as keyof typeof es]).toBeTruthy();
+    }
+    expect(es['minigame.alone.hint.open']).toMatch(/pánico/);
+  });
+});
+

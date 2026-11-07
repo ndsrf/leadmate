@@ -143,6 +143,7 @@ describe('Content Pack Parity', () => {
       'lesson.section.mistakes',
       'plan.note.professional',
       'lesson.note.vet',
+      'lesson.note.alone',
     ];
     for (const k of appShared) expectedKeys.delete(k);
 

@@ -214,7 +214,7 @@ The Dog's starting personality: for each kind of Distractor, how strongly this D
 Anything the owner reports about their real dog as a problem: a reaction to a kind of Distractor (kept in the Trigger Profile) or a Home Behaviour. Each has a level from a little to a lot.
 
 **Home Behaviour**:
-A Concern that happens at home rather than on a walk: biting the owner, biting other people, barking at home, destroying things, eating things that are not food such as socks. It never enters a Stage; all but the two biting ones have a Minigame Node. Its Stretch is a Home Stretch.
+A Concern that happens at home rather than on a walk: biting the owner, biting other people, barking at home, destroying things, eating things that are not food such as socks, and being left alone. It never enters a Stage; all but the two biting ones have a Minigame Node. Being left alone covers distress or misbehaviour that appears only while the owner is away; the same barking or damage when the owner is present belongs to the other Home Behaviours. It is never asked in onboarding: the owner is asked once in the app (the Alone Check). Its Stretch is a Home Stretch.
 
 **Main Concern**:
 The up to three Concerns the owner picks as their biggest problems, most worrying first. They are asked once, before the Taste Stage; the first outdoor one decides which Distractor the Taste Stage uses, and together they decide what the Personal Plan puts first.
@@ -293,6 +293,10 @@ _Avoid_: Push away, shoo, block
 **Home Stretch**:
 A Stretch about one Home Behaviour: a Lesson, a Node (none for the two biting ones) and a Mission. It is a Stop run of World 2 while the Dog has that Concern, so it gates World 2 like any Stretch, and otherwise it sits in Other Home Behaviours. A Home Stretch the user has started stays in World 2 even if the Concern is removed, and one declared after World 2 is complete stays in Other Home Behaviours.
 _Avoid_: Home trail
+
+**Alone Check**:
+The one-time question the owner is asked in the app, once World 2 is unlocked, about how the Dog copes with being left alone. Any answer, "I don't know yet" included, closes it for good; it turns into a level for the Home Behaviour of being left alone (none for "very well" and "don't know"), and is never progress: no Stars, Streak or Diary entry.
+_Avoid_: Survey, quiz, onboarding question
 
 **Other Home Behaviours**:
 The optional, collapsed-by-default section after World 2 that holds the Home Stretches of the Home Behaviours the Dog does not have as a Concern. It gates and counts toward nothing, all its Lessons, Nodes and Missions are playable, and "Ahora es un problema" moves a Home Stretch into World 2 at level 1. It is hidden when it would be empty.

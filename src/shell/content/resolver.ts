@@ -60,6 +60,7 @@ export const NODE_ID_TO_SLUG: Record<string, string> = {
   'bark-home': 'barkhome',
   destroy: 'destroy',
   'eat-objects': 'eatobjects',
+  'alone-door': 'alonedoor',
 };
 
 export const MISSION_ID_TO_SLUG: Record<string, string> = {
@@ -82,6 +83,7 @@ export const MISSION_ID_TO_SLUG: Record<string, string> = {
   'mission-bark-home': 'barkhome',
   'mission-destroy': 'destroy',
   'mission-eat-objects': 'eatobjects',
+  'mission-alone': 'alone',
 };
 
 function mapStop(stop: StopYaml): Stop {
@@ -132,7 +134,7 @@ export function resolvePack(pack: ContentPack, language: string = 'es', options?
 
   // 2. Resolve Lessons
   const trailLessonIds = worlds.flatMap((w) => w.stretches.flatMap((s) => s.filter((st) => st.kind === 'lesson').map((st) => st.id)));
-  const homeLessonOrder = ['theory-bite-owner', 'theory-bite-others', 'theory-bark-home', 'theory-destroy', 'theory-eat-objects'];
+  const homeLessonOrder = ['theory-bite-owner', 'theory-bite-others', 'theory-bark-home', 'theory-destroy', 'theory-eat-objects', 'theory-alone-space'];
   const puppyLessonOrder = ['puppy-bite', 'puppy-sound', 'puppy-vet'];
 
   const lessons: LessonDef[] = Object.entries(pack.lessons ?? {})
@@ -348,7 +350,7 @@ export function resolvePack(pack: ContentPack, language: string = 'es', options?
   });
 
   const trailNodeIds = worlds.flatMap((w) => w.stretches.flatMap((s) => s.filter((st) => st.kind === 'node').map((st) => st.id)));
-  const homeNodeOrder = ['calm-hands', 'bark-home', 'destroy', 'eat-objects'];
+  const homeNodeOrder = ['calm-hands', 'bark-home', 'destroy', 'eat-objects', 'alone-door'];
 
   nodes.sort((a, b) => {
     const idxA = trailNodeIds.indexOf(a.id);
@@ -372,6 +374,7 @@ export function resolvePack(pack: ContentPack, language: string = 'es', options?
     'mission-bark-home',
     'mission-destroy',
     'mission-eat-objects',
+    'mission-alone',
   ];
 
   const missions: MissionDef[] = Object.entries(pack.missions ?? {})

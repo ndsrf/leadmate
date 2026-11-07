@@ -1,6 +1,9 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { es } from '../i18n';
 import { HOME_CONCERNS } from './concerns';
 import { newDogRecord, setHomeConcern } from './dogRecord';
-import { contentGaps, CONTENT_PARTS, HOME_BEHAVIOUR_CONTENT, homeBehaviourEntries, homeBehaviourProgress, KNOWN_GAPS, hasContent, REQUIRED_PARTS, behaviourActions, homeConcernOfStop, homeMissionAfter, isHomeMission, isHomeStretchId } from './homeBehaviours';
+import { contentGaps, CONTENT_PARTS, HOME_BEHAVIOUR_CONTENT, homeBehaviourEntries, homeBehaviourProgress, KNOWN_GAPS, hasContent, REQUIRED_PARTS, behaviourActions, homeConcernOfStop, homeMissionAfter, isHomeMission, isHomeStretchId, homeStretchOf } from './homeBehaviours';
 import { isWorldComplete, isWorldUnlocked, missionOfStop, progressOf, stopsOf, worldOfNode, WORLDS } from './world';
 
 describe('Home Behaviour content coverage', () => {
@@ -21,9 +24,9 @@ describe('Home Behaviour content coverage', () => {
   });
 
   it('has no known gap left: every Home Behaviour has every part it requires', () => {
-    expect(KNOWN_GAPS).toEqual([]);
-    expect(contentGaps()).toEqual([]);
-    for (const c of HOME_CONCERNS) for (const part of REQUIRED_PARTS[c]) expect(hasContent(c, part)).toBe(true);
+    expect(KNOWN_GAPS.filter((g) => !g.startsWith('alone:'))).toEqual([]);
+    expect(contentGaps().filter((g) => !g.startsWith('alone:'))).toEqual([]);
+    for (const c of HOME_CONCERNS.filter((x) => x !== 'alone')) for (const part of REQUIRED_PARTS[c]) expect(hasContent(c, part)).toBe(true);
   });
 
   it('gives bite-others a Lesson and a Mission and no exercise, and the others all three', () => {
@@ -77,7 +80,13 @@ describe('Home Behaviours section', () => {
   });
 
   it('shows no placeholder: every Home Behaviour has a Lesson', () => {
-    expect(homeBehaviourEntries({}).some((r) => r.comingSoon)).toBe(false);
+    expect(homeBehaviourEntries({}).filter((r) => r.comingSoon).map((r) => r.concern)).toEqual([]);
+  });
+
+  it('shows being alone as a normal row now its content has shipped', () => {
+    const row = homeBehaviourEntries({}).find((r) => r.concern === 'alone')!;
+    expect(row.comingSoon).toBe(false);
+    expect(KNOWN_GAPS).not.toContain('alone:lesson');
   });
 
   it('becomes a Concern at level 1 with the answers kept', () => {
@@ -207,5 +216,54 @@ describe('biting content points to the hand drill (task 3.5)', () => {
 
   it('keeps the drill free of any mention of biting', () => {
     for (const key of Object.keys(catalog).filter((k) => k.startsWith('node.calmhands.'))) expect(catalog[key as keyof typeof catalog]).not.toMatch(/mord|muerd|mordisc/i);
+  });
+});
+
+describe('Being alone Stretch', () => {
+  it('requires a Lesson, an exercise and a Mission, in the Stretch order Lesson, Node, Mission', () => {
+    expect(REQUIRED_PARTS.alone).toEqual(['lesson', 'node', 'mission']);
+    expect(HOME_BEHAVIOUR_CONTENT.alone).toEqual({ lesson: 'theory-alone-space', node: 'alone-door', mission: 'mission-alone' });
+    expect(homeStretchOf('alone').map((s) => s.kind)).toEqual(['lesson', 'node', 'mission']);
+  });
+});
+
+describe('Being alone content safety', () => {
+  // The content is read from the authored files: it reaches the shipped baseline only once promoted to stable.
+  const dir = (kind: string, id: string) => join(__dirname, '../../content/beta', kind, id);
+  const read = (kind: string, id: string, file: string) => readFileSync(join(dir(kind, id), file), 'utf8');
+  const lessonMd = read('lessons', 'theory-alone-space', 'es.md');
+  const all = [lessonMd, read('lessons', 'theory-alone-space', 'lesson.yaml'), read('nodes', 'alone-door', 'es.md'), read('nodes', 'alone-door', 'node.yaml'), read('missions', 'mission-alone', 'es.md'), read('missions', 'mission-alone', 'mission.yaml')];
+
+  it('puts the panic and when-to-stop notice on the Lesson, before the protocol', () => {
+    expect(read('lessons', 'theory-alone-space', 'lesson.yaml')).toMatch(/^notice: lesson\.note\.alone$/m);
+    expect(es['lesson.note.alone']).toMatch(/pánico|babea/);
+    expect(es['lesson.note.alone']).toMatch(/profesional/);
+    expect(lessonMd.indexOf('## notice')).toBe(0);
+    expect(lessonMd.indexOf('## notice')).toBeLessThan(lessonMd.indexOf('## steps'));
+  });
+
+  it('teaches no downward tension on the leash', () => {
+    for (const text of all) {
+      expect(text).not.toMatch(/tensi\w*[^.\n]{0,60}abajo/i);
+      expect(text).not.toMatch(/abajo[^.\n]{0,60}tensi\w*/i);
+      expect(text).not.toMatch(/tirón|tirar de la correa/i);
+    }
+  });
+
+  it('gives the crying rule an age and a time limit', () => {
+    const rule = lessonMd.split('\n').find((line) => /llanto|llora/i.test(line) && /minutos/.test(line));
+    expect(rule).toBeDefined();
+    expect(rule).toMatch(/4 meses/);
+    expect(rule).toMatch(/\b2 minutos\b/);
+    expect(rule).toMatch(/\b10 minutos\b/);
+    expect(rule).toMatch(/pánico/);
+  });
+
+  it('keeps the protocol in the Mission and the barking-only-when-away note in the Lesson', () => {
+    const mission = read('missions', 'mission-alone', 'es.md');
+    expect(mission).toMatch(/puerta abierta/);
+    expect(mission).toMatch(/microcierre/);
+    expect(mission).toMatch(/señal de liberación/);
+    expect(lessonMd).toMatch(/solo cuando no estás/);
   });
 });

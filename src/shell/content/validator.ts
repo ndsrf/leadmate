@@ -505,7 +505,7 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
   // Allowed non-trail lessons: library first-week (day !== undefined), home lessons, or puppy track lessons
   for (const [lId, lessonEntry] of Object.entries(pack.lessons ?? {})) {
     const isLibraryLesson = lessonEntry.config.day !== undefined;
-    const isHomeLesson = lId.startsWith('theory-bite-') || lId === 'theory-bark-home' || lId === 'theory-destroy' || lId === 'theory-eat-objects';
+    const isHomeLesson = lId.startsWith('theory-bite-') || lId === 'theory-bark-home' || lId === 'theory-destroy' || lId === 'theory-eat-objects' || lId === 'theory-alone-space';
     const isPuppyLesson = lId.startsWith('puppy-');
     if (!trailReferencedLessons.has(lId) && !isLibraryLesson && !isHomeLesson && !isPuppyLesson) {
       errors.push({
@@ -517,7 +517,7 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
   }
 
   for (const [nId, nodeEntry] of Object.entries(pack.nodes ?? {})) {
-    const isHomeNode = nId === 'calm-hands' || nId === 'bark-home' || nId === 'destroy' || nId === 'eat-objects';
+    const isHomeNode = nId === 'calm-hands' || nId === 'bark-home' || nId === 'destroy' || nId === 'eat-objects' || nId === 'alone-door';
     if (!trailReferencedNodes.has(nId) && !isHomeNode) {
       errors.push({
         file: `nodes/${nId}/node.yaml`,

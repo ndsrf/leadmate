@@ -101,11 +101,30 @@ function earliest(a: string | null, b: string | null): string | null {
 }
 
 /**
+ * The being-alone answer survives from either copy, so a second device never asks again. The level for being alone is
+ * the consequence of the answer, so when only the non-winning copy answered, its level and its World 2 membership for
+ * being alone come with it; when both answered, the winning copy's answer and level stand (the whole-record rule).
+ */
+function mergeAlone(base: DogRecord, other: DogRecord): Partial<DogRecord> {
+  if (base.aloneAnswer !== undefined || other.aloneAnswer === undefined) return {};
+  const homeConcerns = { ...base.homeConcerns };
+  const level = other.homeConcerns.alone;
+  if (level === undefined) delete homeConcerns.alone;
+  else homeConcerns.alone = level;
+  const out: Partial<DogRecord> = { aloneAnswer: other.aloneAnswer, homeConcerns };
+  if (base.worldHome || other.worldHome) {
+    const without = (base.worldHome ?? []).filter((c) => c !== 'alone');
+    out.worldHome = other.worldHome?.includes('alone') ? [...without, 'alone'] : without;
+  }
+  return out;
+}
+
+/**
  * Resolves two copies of the same Dog (ADR 0006). The copy with the later `updatedAt` wins whole, Learning
  * Attributes included, which are never blended field by field. Records that only grow are then combined:
  * the Walk Diary (by date and Mission or Node), the Activity Log, completed Nodes, read Lessons and seen Fixes by union, legacy Nodes by union less any Node a copy completed under Missions,
  * Mission state per Mission with a passed Mission winning, the best Daily Stage score per date, the best stars per Node (so a stale device can never lower them), and the longer Streak. The earliest first-Stage time is kept so a second device never restarts the first week.
- * A tie goes to `local`.
+ * The being-alone answer is kept if either copy has it, with its level (see `mergeAlone`). A tie goes to `local`.
  */
 export function resolve(local: DogRecord, remote: DogRecord): DogRecord {
   const remoteWins = Date.parse(remote.updatedAt) > Date.parse(local.updatedAt);
@@ -126,5 +145,6 @@ export function resolve(local: DogRecord, remote: DogRecord): DogRecord {
     dailyBarkdoku: mergeDailyBarkdoku(base.dailyBarkdoku, other.dailyBarkdoku),
     stars: mergeStars(base.stars, other.stars),
     streak: mergeStreaks(base.streak, other.streak),
+    ...mergeAlone(base, other),
   };
 }

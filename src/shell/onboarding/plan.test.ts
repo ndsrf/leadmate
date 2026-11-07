@@ -48,6 +48,17 @@ describe('Personal Plan', () => {
     expect(ids(setHomeConcern(blank(), 'bark-home', 1))[0]).toBe('theory-bark-home');
   });
 
+  it('orders being alone at level 3 among the other Concerns by level', () => {
+    const r = setHomeConcern(setHomeConcern(blank(), 'alone', 3), 'destroy', 1);
+    const plan = buildPersonalPlan(r);
+    const at = (c: string) => plan.findIndex((i) => i.concern === c);
+    expect(plan[at('alone')].stretchId).toBe('theory-alone-space');
+    expect(at('alone')).toBeGreaterThanOrEqual(0);
+    expect(at('alone')).toBeLessThan(at('destroy'));
+    const low = buildPersonalPlan(setHomeConcern(setHomeConcern(blank(), 'alone', 1), 'destroy', 3));
+    expect(low.findIndex((i) => i.concern === 'destroy')).toBeLessThan(low.findIndex((i) => i.concern === 'alone'));
+  });
+
   it('ranks the at-home Stretches above leash-heavy ones for a puppy', () => {
     const plan = ids(setAgeBand(setTriggerLevel(blank(), 'bicycle', 3), 'puppy'));
     expect(plan.slice(0, 2)).toEqual(['theory-home-rest', 'theory-calm-first']);
@@ -87,7 +98,7 @@ describe('Personal Plan', () => {
   it('maps every Concern to existing Stretches, a home Concern to its own Home Stretch first', () => {
     const lead = new Set(WORLDS.flatMap((w) => w.stretches.filter((s) => s.length).map((s) => stopsOf({ ...w, stretches: [s] })[0].id)));
     for (const list of Object.values(CONCERN_STRETCHES)) for (const id of list) expect(lead.has(id) || isHomeStretchId(id)).toBe(true);
-    for (const c of ['bite-owner', 'bite-others', 'bark-home', 'destroy', 'eat-objects'] as const) {
+    for (const c of ['bite-owner', 'bite-others', 'bark-home', 'destroy', 'eat-objects', 'alone'] as const) {
       expect(isHomeStretchId(CONCERN_STRETCHES[c][0])).toBe(true);
       expect(CONCERN_STRETCHES[c]).not.toContain('theory-named-behaviours');
     }
