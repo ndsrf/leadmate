@@ -289,7 +289,7 @@ export function SettingsScreen({
         <Text className="mt-2 font-display text-bodyL text-ink">{t('settings.about.main')}</Text>
         <MainConcernChips t={t} value={record.mainConcerns} onToggle={(concern) => updatePlanned((r) => toggleMainConcern(r, concern))} />
         <Text className="mt-4 font-display text-bodyL text-ink">{t('setup.home.title')}</Text>
-        <HomeConcernChips t={t} record={record} update={updatePlanned} />
+        <HomeConcernChips t={t} record={record} update={updatePlanned} all />
         <Text className="mt-4 font-display text-bodyL text-ink">{t('setup.about.title')}</Text>
         <AgeSexChips t={t} record={record} update={updatePlanned} />
       </Section>

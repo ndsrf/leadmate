@@ -1,3 +1,5 @@
+import { HOME_CONCERNS } from './concerns';
+import { HOME_BEHAVIOUR_CONTENT, hasDedicatedLesson } from './homeBehaviours';
 import { createTranslator, es, type TextKey } from '../i18n';
 import { AGE_KEYS, CONCERN_KEYS, payoffKeys, planReasonKey, SEX_KEYS, stretchTitleKey, whoKey } from './concernText';
 import { CONCERN_STRETCHES } from './onboarding/plan';
@@ -40,7 +42,9 @@ describe('concern text', () => {
 describe('Stretch titles', () => {
   it('names every Stretch a Concern points to', () => {
     const t = createTranslator({});
-    for (const id of new Set(Object.values(CONCERN_STRETCHES).flat())) {
+    // a Home Stretch whose Lesson has not shipped yet (KNOWN_GAPS) has no title to show
+    const shipped = (id: string) => !HOME_CONCERNS.some((c) => HOME_BEHAVIOUR_CONTENT[c].lesson === id && !hasDedicatedLesson(c));
+    for (const id of new Set(Object.values(CONCERN_STRETCHES).flat().filter(shipped))) {
       const key = stretchTitleKey(id);
       expect(key).toBeDefined();
       expect(t(key!)).not.toBe('');

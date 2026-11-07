@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, Text, View, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useLive } from '../ui/useAppActive';
@@ -12,6 +12,8 @@ import type { DailyBarkdokuSolve } from '../dogRecord';
 import { formatClock, solveTimeText } from '../puzzle/engine';
 import { HOME_BEHAVIOUR_CONTENT } from '../homeBehaviours';
 import { HomeBehavioursSection } from './HomeBehavioursSection';
+import { AloneCheckCard } from './AloneCheckCard';
+import type { AloneAnswer } from '../dogRecord';
 import type { HomeConcern, HomeConcerns } from '../concerns';
 import { worldsFor, worldTitle, type Progress, type Stop } from '../world';
 import type { DogRecord } from '../dogRecord';
@@ -37,7 +39,12 @@ import { BetaContentBadge } from '../ui/BetaContentBadge';
 export interface WorldMapProps {
   t: Translate;
   /** The Home Behaviours section: the Dog's home concerns and what "this is a concern now" does. Absent hides the section. */
-  home?: { concerns: HomeConcerns; onBecomeConcern: (concern: HomeConcern) => void };
+  home?: {
+    concerns: HomeConcerns;
+    onBecomeConcern: (concern: HomeConcern) => void;
+    /** The one-time question about being left alone: `show` while it is still to ask; answering is not progress. */
+    alone?: { show: boolean; dogName?: string; onAnswer: (answer: AloneAnswer) => void };
+  };
   /** What of the Dog record the trail reads. */
   progress: Progress;
   /** Whose LeadMate Plus the map checks with `isPlus` against its own clock: Plus Worlds open, and close when the trial ends. */
@@ -818,6 +825,8 @@ export function MoreComingCard({
 }
 
 type WorldBlockProps = {
+  /** A card drawn inside the World's frame, above its path (a folded World has no frame, so it shows above its header). */
+  topSlot?: ReactNode;
   t: Translate;
   entry: MapWorld;
   width: number;
@@ -885,6 +894,7 @@ function WorldArena({
   readLessons,
   onOpenSatellite,
   plus,
+  topSlot,
 }: WorldBlockProps) {
   const color = usePalette();
   // the first locked World starts folded to its header; a tap opens its preview
@@ -893,7 +903,7 @@ function WorldArena({
 worldPalette(entry.world.id);
 
   if (entry.complete && !completedOpen) {
-    return <CollapsedWorldHeader t={t} entry={entry} variant="completed" isExpanded={false} onToggle={onToggleCompleted} />;
+    return <>{topSlot}<CollapsedWorldHeader t={t} entry={entry} variant="completed" isExpanded={false} onToggle={onToggleCompleted} /></>;
   }
   if (!isArenaActive) {
     return <CollapsedWorldHeader t={t} entry={entry} isExpanded={isExpanded} onToggle={onToggleExpand} />;
@@ -1013,6 +1023,8 @@ worldPalette(entry.world.id);
             <PreviewTeaser t={t} onPressPaywall={onPressPaywall} />
           )
         ) : (
+          <>
+          {topSlot && <View style={{ paddingHorizontal: 12 }}>{topSlot}</View>}
           <View onLayout={onPathLayout} style={{ height: pathHeight, paddingHorizontal: 0 }}>
             {showSections &&
               entry.sections?.map((section, sIdx) => {
@@ -1068,6 +1080,7 @@ worldPalette(entry.world.id);
               );
             })}
           </View>
+          </>
         )}
       </View>
       {entry.owed.length > 0 && <CloseWorldPanel t={t} owed={entry.owed} onPress={onPressNode} />}
@@ -1426,6 +1439,7 @@ export function WorldMapScreen({
             readLessons={progress.readLessons}
             onOpenSatellite={(sat) => onOpenStop({ kind: 'lesson', id: sat.lessonId })}
             plus={plus}
+            topSlot={world.world.id === 'home' && home?.alone?.show ? <AloneCheckCard t={t} dogName={home.alone.dogName} onAnswer={home.alone.onAnswer} /> : undefined}
           />
           {world.world.id === 'home' && home && <HomeBehavioursSection t={t} concerns={home.concerns} inWorld={inWorldTwo} done={progress} onOpen={onOpenStop} onBecomeConcern={home.onBecomeConcern} />}
           </Fragment>

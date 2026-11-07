@@ -23,6 +23,7 @@ export const SUPPORTED_MINIGAMES = [
   'bark-home',
   'destroy',
   'eat-objects',
+  'alone',
 ] as const;
 export type MinigameKind = (typeof SUPPORTED_MINIGAMES)[number];
 

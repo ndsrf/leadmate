@@ -1,4 +1,5 @@
 import { DISTRACTOR_KINDS } from '../../sim/learning';
+import { HOME_CONCERNS, MAX_MAIN_CONCERNS, ONBOARDING_CONCERNS, ONBOARDING_HOME_CONCERNS, readConcernList } from '../concerns';
 import { newDogRecord } from '../dogRecord';
 import { ANSWERS, answerOf, applyAnswer, chipsOf, homeChipsOf, INTENSITIES, levelOf, QUESTION_KINDS, selectHomeConcern, selectKind, setHomeIntensity, setIntensity } from './questionnaire';
 
@@ -93,5 +94,20 @@ describe('home-behaviour questionnaire', () => {
   it('lists the chosen concerns in questionnaire order with their intensity', () => {
     const r = setHomeIntensity(setHomeIntensity(newDogRecord(), 'destroy', 'little'), 'bite-owner', 'alot');
     expect(homeChipsOf(r.homeConcerns)).toEqual([{ concern: 'bite-owner', intensity: 'alot' }, { concern: 'destroy', intensity: 'little' }]);
+  });
+});
+
+describe('being alone is not asked in onboarding', () => {
+  it('is a Home Concern that onboarding never offers', () => {
+    expect(HOME_CONCERNS).toContain('alone');
+    expect(ONBOARDING_HOME_CONCERNS).not.toContain('alone');
+    expect(ONBOARDING_CONCERNS).not.toContain('alone');
+    expect(ONBOARDING_HOME_CONCERNS).toEqual(HOME_CONCERNS.filter((c) => c !== 'alone'));
+  });
+
+  it('is dropped from the Main Concerns, which stay at most three', () => {
+    expect(readConcernList(['alone', 'destroy'])).toEqual(['destroy']);
+    expect(readConcernList(['destroy', 'bark-home', 'alone', 'react-dog', 'react-child'])).toHaveLength(MAX_MAIN_CONCERNS);
+    expect(readConcernList(['destroy', 'bark-home', 'alone', 'react-dog', 'react-child'])).not.toContain('alone');
   });
 });

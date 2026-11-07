@@ -187,7 +187,7 @@ describe('the Basics World across an update', () => {
 
   it('keeps the Basics World complete when a migrated version 7 remote copy merges with a local version 8 copy', () => {
     const local = migrateRecord({ ...oldCopy, updatedAt: '2026-05-04T00:00:00.000Z', completedNodes: ['harness-ritual'] });
-    expect(local.version).toBe(10);
+    expect(local.version).toBe(11);
     expect(isWorldComplete(basics, progress(local))).toBe(true);
     const remote = migrateRecord(oldCopy);
     for (const merged of [resolve(local, remote), resolve(remote, local)]) {
@@ -200,5 +200,62 @@ describe('the Basics World across an update', () => {
     const local = rec({ ...at('2026-05-01T00:00:00.000Z') });
     const merged = resolve(local, migrateRecord(oldCopy));
     expect(isWorldComplete(basics, progress(merged))).toBe(true);
+  });
+});
+
+describe('resolve: the being-alone answer', () => {
+  const OLD = '2026-05-01T00:00:00.000Z';
+  const NEW = '2026-05-03T00:00:00.000Z';
+
+  it('keeps the answer and level when only the older copy answered', () => {
+    const answered = rec({ ...at(OLD), aloneAnswer: 'bad', homeConcerns: { alone: 3 }, worldHome: ['alone'] });
+    const stale = rec({ ...at(NEW), homeConcerns: { destroy: 1 }, worldHome: ['destroy'] });
+    for (const merged of [resolve(answered, stale), resolve(stale, answered)]) {
+      expect(merged.aloneAnswer).toBe('bad');
+      expect(merged.homeConcerns).toEqual({ destroy: 1, alone: 3 });
+      expect(merged.worldHome?.sort()).toEqual(['alone', 'destroy']);
+      expect(merged.updatedAt).toBe(NEW);
+    }
+  });
+
+  it('carries "no Concern" with an answer of ok, replacing a level on the winning copy', () => {
+    const answered = rec({ ...at(OLD), aloneAnswer: 'ok' });
+    const newer = rec({ ...at(NEW), homeConcerns: { alone: 2 }, worldHome: ['alone'] });
+    const merged = resolve(newer, answered);
+    expect(merged.aloneAnswer).toBe('ok');
+    expect(merged.homeConcerns.alone).toBeUndefined();
+    expect(merged.worldHome ?? []).not.toContain('alone');
+  });
+
+  it('keeps the answer when only the newer copy answered', () => {
+    const answered = rec({ ...at(NEW), aloneAnswer: 'sometimes', homeConcerns: { alone: 2 }, worldHome: ['alone'] });
+    const stale = rec({ ...at(OLD) });
+    for (const merged of [resolve(answered, stale), resolve(stale, answered)]) {
+      expect(merged.aloneAnswer).toBe('sometimes');
+      expect(merged.homeConcerns.alone).toBe(2);
+      expect(merged.worldHome).toContain('alone');
+    }
+  });
+
+  it('takes the answer and level of the later updatedAt when both answered differently', () => {
+    const older = rec({ ...at(OLD), aloneAnswer: 'bad', homeConcerns: { alone: 3 }, worldHome: ['alone'] });
+    const newer = rec({ ...at(NEW), aloneAnswer: 'sometimes', homeConcerns: { alone: 2 }, worldHome: ['alone'] });
+    for (const merged of [resolve(older, newer), resolve(newer, older)]) {
+      expect(merged.aloneAnswer).toBe('sometimes');
+      expect(merged.homeConcerns.alone).toBe(2);
+    }
+  });
+
+  it('leaves everything alone when neither copy answered', () => {
+    const merged = resolve(rec({ ...at(OLD), homeConcerns: { destroy: 1 } }), rec({ ...at(NEW), homeConcerns: { destroy: 2 } }));
+    expect(merged.aloneAnswer).toBeUndefined();
+    expect(merged.homeConcerns).toEqual({ destroy: 2 });
+  });
+
+  it('survives a trip through migrateRecord, as the synced record does', () => {
+    const merged = resolve(rec({ ...at(OLD), aloneAnswer: 'bad', homeConcerns: { alone: 3 } }), rec({ ...at(NEW) }));
+    const roundTrip = migrateRecord(JSON.parse(JSON.stringify(merged)));
+    expect(roundTrip.aloneAnswer).toBe('bad');
+    expect(roundTrip.homeConcerns.alone).toBe(3);
   });
 });

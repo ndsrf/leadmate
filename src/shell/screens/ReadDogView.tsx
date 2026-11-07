@@ -23,6 +23,7 @@ const HELP_KEYS = {
   'bark-home': 'minigame.bark-home.help',
   destroy: 'minigame.destroy.help',
   'eat-objects': 'minigame.eat-objects.help',
+  alone: 'minigame.alone.help',
 } as const satisfies Record<ReadDogScene, string>;
 
 export interface ReadDogResult {

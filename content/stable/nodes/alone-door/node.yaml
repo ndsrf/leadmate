@@ -1,0 +1,16 @@
+id: alone-door
+mode: minigame
+prerequisites: []
+simulation:
+  minigame: alone
+exercises:
+  - metric: timing
+    key: node.alonedoor.exercise1
+  - metric: tension
+    key: node.alonedoor.exercise2
+primerCards:
+  - kind: real-world
+    media:
+      type: image
+      url: ""
+      art: theory-home-rest-1

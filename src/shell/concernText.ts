@@ -14,6 +14,7 @@ export const CONCERN_KEYS: Record<Concern, TextKey> = {
   'bark-home': 'concern.bark-home',
   destroy: 'concern.destroy',
   'eat-objects': 'concern.eat-objects',
+  alone: 'concern.alone',
   'react-dog': 'concern.react-dog',
   'react-child': 'concern.react-child',
   'react-bicycle': 'concern.react-bicycle',

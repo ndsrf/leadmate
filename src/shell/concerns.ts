@@ -1,8 +1,15 @@
 import type { DistractorKind } from '../sim/learning';
 
 /** The problems owners have at home; they never reach the simulation. */
-export const HOME_CONCERNS = ['bite-owner', 'bite-others', 'bark-home', 'destroy', 'eat-objects'] as const;
+export const HOME_CONCERNS = ['bite-owner', 'bite-others', 'bark-home', 'destroy', 'eat-objects', 'alone'] as const;
 export type HomeConcern = (typeof HOME_CONCERNS)[number];
+
+/** Asked in the app (a one-time card, Other Home Behaviours, Settings), never in onboarding or as a Main Concern. */
+export const NON_ONBOARDING_HOME_CONCERNS: readonly HomeConcern[] = ['alone'];
+/** The home concerns onboarding offers. */
+export const ONBOARDING_HOME_CONCERNS: readonly HomeConcern[] = HOME_CONCERNS.filter(
+  (c) => !NON_ONBOARDING_HOME_CONCERNS.includes(c),
+);
 
 /** The outdoor reactions; they live in the Trigger Profile, keyed by Distractor kind. */
 export const OUTDOOR_CONCERNS = ['react-dog', 'react-child', 'react-bicycle', 'react-skateboard', 'react-food'] as const;
@@ -10,6 +17,8 @@ export type OutdoorConcern = (typeof OUTDOOR_CONCERNS)[number];
 
 export type Concern = HomeConcern | OutdoorConcern;
 export const CONCERNS: readonly Concern[] = [...HOME_CONCERNS, ...OUTDOOR_CONCERNS];
+/** The Concerns onboarding offers as Main Concern chips. */
+export const ONBOARDING_CONCERNS: readonly Concern[] = [...ONBOARDING_HOME_CONCERNS, ...OUTDOOR_CONCERNS];
 
 /** The Distractor kind of each outdoor Concern. */
 export const KIND_OF_OUTDOOR: Record<OutdoorConcern, DistractorKind> = {
@@ -25,6 +34,8 @@ export const MAX_MAIN_CONCERNS = 3;
 
 export const isHomeConcern = (v: unknown): v is HomeConcern => HOME_CONCERNS.includes(v as HomeConcern);
 export const isConcern = (v: unknown): v is Concern => CONCERNS.includes(v as Concern);
+/** Whether a Concern can be one of the Main Concerns. */
+export const isMainConcernable = (v: unknown): v is Concern => ONBOARDING_CONCERNS.includes(v as Concern);
 
 /** The Distractor kind of an outdoor Concern; undefined for a Home Behaviour. */
 export function outdoorKind(concern: Concern): DistractorKind | undefined {
@@ -72,5 +83,5 @@ export const isPlanBecause = (v: unknown): v is PlanBecause => PLAN_BECAUSE.incl
 /** A stored list of Main Concerns read into the current shape: known, distinct, at most `MAX_MAIN_CONCERNS`, in order. */
 export function readConcernList(raw: unknown): Concern[] {
   if (!Array.isArray(raw)) return [];
-  return [...new Set(raw.filter(isConcern))].slice(0, MAX_MAIN_CONCERNS);
+  return [...new Set(raw.filter(isMainConcernable))].slice(0, MAX_MAIN_CONCERNS);
 }

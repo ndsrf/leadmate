@@ -8,7 +8,7 @@ See proposal.md for motivation. Current state, from the code:
 - Each Home Behaviour maps to Lesson, Node and Mission ids in `HOME_BEHAVIOUR_CONTENT`, with `REQUIRED_PARTS` and `KNOWN_GAPS` (`src/shell/homeBehaviours.ts`, currently empty). Content lives in `content/beta` and `content/stable` and is compiled into `baseline.generated.ts` by `npm run content:promote` (ADR 0025).
 - Home Stretches belong to World 2 for a declared Concern (`homeStretchesInWorldTwo`, `worldHome`, ADR 0023). `setHomeConcern` makes a Stretch join World 2 unless World 2 is complete. "Otros comportamientos de casa" (`HomeBehavioursSection.tsx`) lists the rest and offers `onBecomeConcern` ("Ahora es un problema", level 1).
 - `RECORD_VERSION` is 10 (`dogRecord.ts`). Sync `resolve()` (`sync/merge.ts`) takes the later `updatedAt` whole and unions growing collections (ADR 0006, 0007).
-- The "Para tu perro" section does not exist yet; it comes from `home-rest-safe-space-and-world-two-sections`. This change depends on it for the card's placement only. Content can be written in parallel.
+- The "Para tu perro" section exists (from the completed `home-rest-safe-space-and-world-two-sections`); the card mounts in it. The alone Lesson refers to the rest space of `theory-home-rest` without repeating it.
 - `theory-home-rest` is extended by that other change. The alone Lessons should refer to the rest space it describes and not repeat it.
 
 ## Goals / Non-Goals
@@ -44,11 +44,11 @@ In `resolve()`: `aloneAnswer = base.aloneAnswer ?? other.aloneAnswer`, where `ba
 Alternative: union `homeConcerns` per key. Rejected: it would stop a user lowering a level to 0 on one device.
 
 **6. One Stretch, protocol in the Mission.**
-The Stretch has three Lessons plus the Node and the Mission, like Stretches with several Lessons elsewhere (lessons all open together, per `home-behaviour-training`). To keep `HOME_BEHAVIOUR_CONTENT` single-id per part, the first Lesson (`theory-alone-space`) is the Stretch id and the other Lessons are attached in the content pack's Stretch definition if `homeStretchOf` supports it; if it does not, `HomeBehaviourContent.lesson` stays a single id and the course is split as: Lesson 1 (space, playpen plus crate, routine and frustration vs panic in one Lesson with `notice`), Node, Mission with the protocol. See Open Questions.
+The Stretch has one Lesson (`theory-alone-space`), the Node and the Mission. `homeStretchOf` allows one id per part and the Stop model is not changed. The Lesson orders its content: panic and when-to-stop `notice` first, then the small space (playpen plus crate), then the protocol, then pre-departure routine and crying (frustration vs panic). The Mission is `place: home`, `reps` large enough for several days, with `problems` for the failure modes (cries at once, panics, cries when the door closes). It uses the normal check-in, Fix and Day Skip rules; no `real-world-missions` change is needed (see proposal note). `alone` stays separate from Barking and Destroying: answering "Mal" sets only `alone`, and the Lesson says to follow this Stretch when the barking or damage happens only while the owner is away.
 The Mission is `place: home`, `reps` large enough for several days, with `problems` for the failure modes (cries at once, panics, sleeps on its own but cries when the door closes). It uses the normal check-in, Fix and Day Skip rules; no `real-world-missions` change is needed (see proposal note). Success sign: the Dog tolerates the micro-close and the release cue without distress.
 
 **7. The question card is a presentational component fed by pure functions.**
-`AloneCheckCard` (new, `src/shell/screens/AloneCheckCard.tsx`) is modelled on `MissionCheckScreen`: a heading, the question with `withDogName`, four `Button`s. It renders at the top of the "Para tu perro" section even when that section has no Home Stretch (the section's "hidden when empty" rule from the other change must treat the card as content). `WorldMapScreen` receives `home.alone: { show: boolean; onAnswer(answer) }`; `Screen.tsx` wires it like `onBecomeConcern`. It shows only when World 2 is unlocked (not folded and not preview) so a brand-new Dog is not asked on day one. Strings go to `src/i18n/es.home.ts` as `alone.check.*`; Spanish only, English falls back.
+`AloneCheckCard` (new, `src/shell/screens/AloneCheckCard.tsx`) is modelled on `MissionCheckScreen`: a heading, the question with `withDogName`, four `Button`s. It renders inside the World 2 frame, above its path, as a flowing element so the fixed stop offsets are untouched; it shows even when the Dog has no Home Stretch there. `WorldMapScreen` receives `home.alone: { show: boolean; onAnswer(answer) }`; `Screen.tsx` wires it like `onBecomeConcern`. It shows only when World 2 is unlocked (not folded and not preview) so a brand-new Dog is not asked on day one. Strings go to `src/i18n/es.home.ts` as `alone.check.*`; Spanish only, English falls back.
 
 **8. Answering is not progress.**
 `answerAlone` touches only `aloneAnswer`, `homeConcerns`, `worldHome` and `updatedAt`. It must not call `markActive`, `addDiaryEntry`, `addActivity` or stars code. A test asserts `streak`, `walkDiary`, `activityLog` and `stars` are deep-equal before and after, matching the "not progress" stance of `mission-day-skip` (a Day Skip is not an Active Day).
@@ -60,7 +60,7 @@ Node `alone-door`, `mode: minigame`, minigame kind `alone`. Scenes ask what to d
 - No downward leash tension. The source course's Lesson 3.2 advises it; the authored text drops it entirely and teaches a loose or no leash. The content test greps the alone content for "tensi" near "abajo" to prevent regression.
 - Panic and when-to-stop note before the protocol, as `notice` on the Lesson (the mechanism used by `theory-bite-owner`: `notice: plan.note.professional`). A new notice key `lesson.note.alone` is added to the notice table; it describes panic signs (drool, trying to escape, not eating treats, destruction at the door) and says to stop and consult a vet or certified behaviour professional.
 - The don't-open-while-crying rule is bounded: applies to dogs of about 4 months and over; for younger puppies wait much less (seconds to a couple of minutes) and open at the first sign of panic; for every dog stop the exercise and open the door after a stated maximum (the source's 45 minutes is replaced by a conservative figure to be fixed by the content reviewer, default 10 minutes of continuous crying for adults and 2 for puppies under 4 months). Numbers are content, not code, so they can change without a release.
-- Course outline (Spanish source: "soledad y espacios seguros"): L1 "El espacio pequeño" (why a small space calms, connect with `theory-home-rest`); L2 "Parque y transportín" (set-up, comfort, never as punishment); L3 "Protocolo sin fuerza" (notice first; open door, distance, micro-close, release cue; the cue means "you may leave", never a command that forces); L4 "Antes de salir y el llanto" (pre-departure routine, calm departures, frustration vs panic). Because decision 6 may force one Lesson, L1 to L4 may merge into the theory Lesson `theory-alone-space` plus `theory-alone-protocol`.
+- Lesson outline (one Lesson, `theory-alone-space`; Spanish source: "soledad y espacios seguros"): panic note first; "El espacio pequeño" (why a small space calms, link to `theory-home-rest`; parque y transportín, never as punishment); "Protocolo sin fuerza" (open door, distance, micro-close, release cue meaning "you may leave", never a forcing command); "Antes de salir y el llanto" (routine, calm departures, frustration vs panic).
 
 ## Risks / Trade-offs
 
@@ -69,8 +69,8 @@ Node `alone-door`, `mode: minigame`, minigame kind `alone`. Scenes ask what to d
 - [Level lost in sync] → decision 5 with merge tests for both directions.
 - [Old builds drop `aloneAnswer`] → accepted; worst case the card shows again.
 - [Asking a puppy owner with a young Dog is premature] → card waits for World 2 unlock; a "Muy bien" answer costs one tap.
-- [Dependency on the other change for "Para tu perro"] → build and test the card as a component and pure helpers; mount it in the section after that change lands, or at the top of the World 2 header if it has not.
-- [Multi-Lesson Stretch support in `homeStretchOf`] → see Open Questions.
+- [Dependency on the other change for "Para tu perro"] → that change is complete; the card mounts directly in the section.
+- [Single Lesson carries a lot] → the panic notice comes first, the Mission carries the day-by-day steps.
 
 ## Migration Plan
 
@@ -81,5 +81,5 @@ Node `alone-door`, `mode: minigame`, minigame kind `alone`. Scenes ask what to d
 
 ## Open Questions
 
-- Whether a Stretch can hold more than one theory Lesson through `homeStretchOf` (today one id per part). Check while implementing task 2.2; if not, ship a single longer Lesson plus a second linked Lesson in the Library rather than change the Stop model. Does not change the specs.
-- Exact wait limits in the crying rule: set by content review; the spec requires only that a limit and an age distinction exist.
+- Resolved: `homeStretchOf` takes one id per part, so the Stretch has a single Lesson, `theory-alone-space`, and the Stop model is unchanged.
+- Resolved: crying limits default to 2 minutes for puppies under 4 months and 10 minutes for older dogs (open at the first sign of panic); the content owner reviews the Spanish text before promotion to stable.

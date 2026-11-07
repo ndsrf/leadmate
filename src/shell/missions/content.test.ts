@@ -7,8 +7,8 @@ import { lessonTextKeys } from '../lessons/lesson';
 const fixes = MISSIONS.flatMap((m) => [...m.problems.map((p) => p.fix), m.generalFix]);
 
 describe('Mission content', () => {
-  it('has 19 Missions with unique ids, and Fixes with unique ids', () => {
-    expect(MISSIONS).toHaveLength(19);
+  it('has 20 Missions with unique ids, and Fixes with unique ids', () => {
+    expect(MISSIONS).toHaveLength(20);
     expect(new Set(MISSIONS.map((m) => m.id)).size).toBe(MISSIONS.length);
     expect(new Set(fixes.map((f) => f.id)).size).toBe(fixes.length);
   });

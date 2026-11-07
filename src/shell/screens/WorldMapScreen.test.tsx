@@ -72,6 +72,7 @@ import { findWorld, isWorldUnlocked, progressOf, stopsOf, worldsFor, worldTitle,
 import { mapModel, type MapWorld } from '../mapModel';
 import { LESSONS } from '../lessons/content';
 import { PUPPY_SATELLITE_STOPS } from '../puppyTrack';
+import { hasDedicatedLesson } from '../homeBehaviours';
 
 describe('WorldMapScreen - Daily Barkdoku chip', () => {
   const t = createTranslator(es);
@@ -737,7 +738,7 @@ describe('WorldMapScreen - Home Behaviours section', () => {
     onSettings: () => {},
   };
 
-  it('shows the section with its five rows, none of them "coming soon", when given the home props', () => {
+  it('shows the section with its six rows, none of them "coming soon", when given the home props', () => {
     const markup = renderToStaticMarkup(<WorldMapScreen {...base} home={{ concerns: { 'bark-home': 2 }, onBecomeConcern: () => {} }} />);
     expect(markup).toContain(es['home.title']);
     expect(markup).not.toContain(es['home.comingSoon']);
@@ -749,8 +750,11 @@ describe('WorldMapScreen - Home Behaviours section', () => {
     expect(markup).not.toContain(es['home.help']);
     expect(markup.indexOf(es['home.title'])).toBeGreaterThan(markup.indexOf(worldTitle(findWorld('home')!, t)));
     expect(markup.indexOf(es['home.title'])).toBeLessThan(markup.indexOf(worldTitle(findWorld('sidewalk')!, t)));
-    const all = { 'bite-owner': 1, 'bite-others': 1, 'bark-home': 1, destroy: 1, 'eat-objects': 1 } as const;
-    expect(renderToStaticMarkup(<WorldMapScreen {...base} progress={progressOf([], { homeConcerns: all })} home={{ concerns: all, onBecomeConcern: () => {} }} />)).not.toContain(es['home.title']);
+    const all = { 'bite-owner': 1, 'bite-others': 1, 'bark-home': 1, destroy: 1, 'eat-objects': 1, ...(hasDedicatedLesson('alone') ? { alone: 1 as const } : {}) } as const;
+    const allIn = renderToStaticMarkup(<WorldMapScreen {...base} progress={progressOf([], { homeConcerns: all })} home={{ concerns: all, onBecomeConcern: () => {} }} />);
+    // while being alone has no Lesson yet its "coming soon" row keeps the section
+    if (hasDedicatedLesson('alone')) expect(allIn).not.toContain(es['home.title']);
+    else expect(allIn).toContain(es['home.title']);
   });
 
   it('shows the Home Stretches of the Dog\'s Concerns as Stretches of World 2 when unlocked', () => {
@@ -806,6 +810,18 @@ describe('WorldMapScreen - World 2 sections', () => {
     expect(markup).toContain(es['map.section.forDog']);
     expect(markup).toContain(es['map.section.moreHome']);
     expect(markup.indexOf(es['map.section.forDog'])).toBeLessThan(markup.indexOf(es['map.section.moreHome']));
+  });
+
+  it('shows the being-alone question inside World 2, above its path, while it is to ask, and hides it otherwise', () => {
+    const progress: Progress = { ...basicsDoneProgress, homeConcerns: {} };
+    const alone = (show: boolean) => ({ concerns: {}, onBecomeConcern: () => {}, alone: { show, dogName: 'Luna', onAnswer: () => {} } });
+    const shown = renderToStaticMarkup(<WorldMapScreen {...base} progress={progress} home={alone(true)} />);
+    expect(shown).toContain('¿Cómo lleva Luna quedarse solo en casa?');
+    const at = shown.indexOf('¿Cómo lleva Luna quedarse solo en casa?');
+    expect(at).toBeGreaterThan(shown.indexOf(worldTitle(findWorld('home')!, t)));
+    expect(at).toBeLessThan(shown.indexOf(es['map.section.moreHome']));
+    expect(renderToStaticMarkup(<WorldMapScreen {...base} progress={progress} home={alone(false)} />)).not.toContain('quedarse solo en casa');
+    expect(renderToStaticMarkup(<WorldMapScreen {...base} progress={progress} home={{ concerns: {}, onBecomeConcern: () => {} }} />)).not.toContain('quedarse solo en casa');
   });
 
   it('draws only "Más cosas de casa" when World 2 is open with no Concerns', () => {

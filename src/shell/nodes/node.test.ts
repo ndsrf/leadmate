@@ -494,8 +494,8 @@ describe('structured Primer cards', () => {
 });
 
 describe('Home Behaviour Nodes', () => {
-  it('are four Nodes found by id, with no prerequisite, in no World', () => {
-    expect(HOME_NODES.map((n) => n.id)).toEqual(['calm-hands', 'bark-home', 'destroy', 'eat-objects']);
+  it('are five Nodes found by id, with no prerequisite, in no World', () => {
+    expect(HOME_NODES.map((n) => n.id)).toEqual(['calm-hands', 'bark-home', 'destroy', 'eat-objects', 'alone-door']);
     for (const node of HOME_NODES) {
       expect(findNode(node.id)).toBe(node);
       expect(node.prerequisites).toEqual([]);
@@ -510,7 +510,7 @@ describe('Home Behaviour Nodes', () => {
       for (const text of [node.title, ...node.primerCards.map((c) => primerCardOf(c).text), ...node.exercises.map((e) => e.key)]) expect(es[text]).toBeTruthy();
       for (const q of node.checkpoint) for (const key of [q.question, q.explanation, ...q.options.map((o) => o.text)]) expect(es[key]).toBeTruthy();
     }
-    expect(minigameNodes.map((n) => n.simulation.minigame)).toEqual(['bark-home', 'destroy', 'eat-objects']);
+    expect(minigameNodes.map((n) => n.simulation.minigame)).toEqual(['bark-home', 'destroy', 'eat-objects', 'alone']);
     expect(findNode('calm-hands')!.mode).toBe('close_exercise');
   });
 });

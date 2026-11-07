@@ -53,7 +53,7 @@ export function primerCardOf(card: PrimerCard): PrimerCardDef {
   return typeof card === 'string' ? { kind: 'real-world', text: card } : card;
 }
 
-export type MinigameKind = 'poste-hold' | 'harness-ritual' | 'doorbell-mat' | 'barkdoku' | 'dog-as-dog' | 'home-rest' | 'calm-first' | 'bark-home' | 'destroy' | 'eat-objects';
+export type MinigameKind = 'poste-hold' | 'harness-ritual' | 'doorbell-mat' | 'barkdoku' | 'dog-as-dog' | 'home-rest' | 'calm-first' | 'bark-home' | 'destroy' | 'eat-objects' | 'alone';
 
 /** A Node as plain data (design decision 11); all text comes from the catalog. */
 export interface NodeDef {

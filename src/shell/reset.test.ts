@@ -68,7 +68,7 @@ describe('resetProgress', () => {
   const now = new Date('2026-06-16T12:00:00.000Z');
 
   const populatedRecord: DogRecord = {
-    version: 10,
+    version: 11,
     attributes: { reconnectionLatency: 0.8, reactivityThreshold: 0.7, followChance: 0.9, checkInFrequency: 0.8 },
     triggerProfile: { dog: 2, child: 1, bicycle: 0, skateboard: 3, food: 1, other: 0, hand: 2 },
     calmCounts: { dog: 4 },
@@ -77,7 +77,8 @@ describe('resetProgress', () => {
     coat: 'black',
     breed: 'collie',
     mainConcerns: ['bark-home'],
-    homeConcerns: { 'bark-home': 2 },
+    homeConcerns: { 'bark-home': 2, alone: 3 },
+    aloneAnswer: 'bad',
     ageBand: 'adult',
     sex: 'female',
     voicePack: 'spark',
@@ -125,6 +126,7 @@ describe('resetProgress', () => {
     expect(reset.onboarding.plan).toEqual([]);
     expect(reset.mainConcerns).toEqual([]);
     expect(reset.homeConcerns).toEqual({});
+    expect(reset.aloneAnswer).toBeUndefined();
     expect(reset.ageBand).toBeNull();
     expect(reset.sex).toBeNull();
     expect(reset.streak.current).toBe(0);

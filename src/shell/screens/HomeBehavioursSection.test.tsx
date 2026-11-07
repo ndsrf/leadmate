@@ -68,7 +68,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { createTranslator, es } from '../../i18n';
 import { HOME_CONCERNS } from '../concerns';
 import { homeBehaviourEntries } from '../homeBehaviours';
+import { newDogRecord, setHomeConcern } from '../dogRecord';
 import { BehaviourActions, HomeBehavioursSection } from './HomeBehavioursSection';
+
+const onBecome = jest.fn();
 
 const t = createTranslator(es);
 const none = { readLessons: [], completedNodes: [], missions: {} };
@@ -161,5 +164,26 @@ describe('Home Behaviours section buttons', () => {
     expect(some.match(/▼/g)).toHaveLength(HOME_CONCERNS.length - 1);
     const empty = renderToStaticMarkup(<HomeBehavioursSection t={t} concerns={{}} inWorld={() => true} done={none} onOpen={() => {}} onBecomeConcern={() => {}} />);
     expect(empty).toBe('');
+  });
+});
+
+describe('Being alone in Other Home Behaviours', () => {
+  beforeEach(() => {
+    mockPressables.length = 0;
+  });
+
+  it('is listed while it is not a Concern (after "Muy bien" or "Aún no lo sé"), and "Ahora es un problema" makes it level 1', () => {
+    const markup = renderToStaticMarkup(<HomeBehavioursSection t={t} concerns={{}} done={none} defaultExpanded onOpen={() => {}} onBecomeConcern={onBecome} />);
+    expect(markup).toContain(es['concern.alone']);
+    const entry = homeBehaviourEntries({}).find((e) => e.concern === 'alone')!;
+    expect(entry.isConcern).toBe(false);
+    const row = renderToStaticMarkup(<BehaviourActions t={t} entry={entry} done={none} onOpen={() => {}} onBecomeConcern={() => onBecome('alone')} />);
+    const become = buttons(row).find((b) => b.text === es['home.becomeConcern']);
+    expect(become).toBeDefined();
+    become!.press();
+    expect(onBecome).toHaveBeenCalledWith('alone');
+    const record = setHomeConcern(newDogRecord(), 'alone', 1);
+    expect(record.homeConcerns.alone).toBe(1);
+    expect(record.aloneAnswer).toBe('sometimes');
   });
 });

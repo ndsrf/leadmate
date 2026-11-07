@@ -1,6 +1,6 @@
 import { View, Text } from 'react-native';
 import type { Translate } from '../../i18n';
-import { AGE_BANDS, CONCERNS, HOME_CONCERNS, MAX_MAIN_CONCERNS, SEXES, type AgeBand, type Concern, type Sex } from '../concerns';
+import { AGE_BANDS, HOME_CONCERNS, MAX_MAIN_CONCERNS, ONBOARDING_CONCERNS, ONBOARDING_HOME_CONCERNS, SEXES, type AgeBand, type Concern, type Sex } from '../concerns';
 import { AGE_KEYS, CONCERN_KEYS, SEX_KEYS } from '../concernText';
 import { setAgeBand, setSex, type DogRecord } from '../dogRecord';
 import { homeChipsOf, INTENSITIES, selectHomeConcern, setHomeIntensity, type AnswerId, type IntensityId } from '../onboarding/questionnaire';
@@ -19,20 +19,20 @@ type Update = (fn: (r: DogRecord) => DogRecord) => void;
 export function MainConcernChips({ t, value, onToggle }: { t: Translate; value: readonly Concern[]; onToggle: (concern: Concern) => void }) {
   return (
     <View className="flex-row flex-wrap">
-      {CONCERNS.map((c) => (
+      {ONBOARDING_CONCERNS.map((c) => (
         <SelectChip key={c} label={t(CONCERN_KEYS[c])} selected={value.includes(c)} onPress={() => (value.includes(c) || value.length < MAX_MAIN_CONCERNS) && onToggle(c)} />
       ))}
     </View>
   );
 }
 
-/** The home-behaviour concerns as chips, each selected one with its intensity. */
-export function HomeConcernChips({ t, record, update }: { t: Translate; record: DogRecord; update: Update }) {
+/** The home-behaviour concerns as chips, each selected one with its intensity. Onboarding leaves out the ones asked in the app (being alone); Settings lists them all. */
+export function HomeConcernChips({ t, record, update, all = false }: { t: Translate; record: DogRecord; update: Update; all?: boolean }) {
   const chips = homeChipsOf(record.homeConcerns);
   return (
     <>
       <View className="flex-row flex-wrap">
-        {HOME_CONCERNS.map((c) => (
+        {(all ? HOME_CONCERNS : ONBOARDING_HOME_CONCERNS).map((c) => (
           <SelectChip key={c} label={t(CONCERN_KEYS[c])} selected={record.homeConcerns[c] !== undefined} onPress={() => update((r) => selectHomeConcern(r, c, r.homeConcerns[c] === undefined))} />
         ))}
       </View>

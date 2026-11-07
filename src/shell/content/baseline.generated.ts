@@ -639,6 +639,27 @@ export const BASELINE_PACK: ContentPack = {
         "media/sniffing-decompression-dont.png"
       ]
     },
+    "theory-alone-space": {
+      "config": {
+        "id": "theory-alone-space",
+        "kind": "theory",
+        "images": [
+          "theory-home-rest-1",
+          "theory-home-rest-2"
+        ],
+        "compare": {},
+        "notice": "lesson.note.alone",
+        "steps": 6,
+        "takeaways": 4
+      },
+      "text": {
+        "es": "## notice\nSi {name} babea mucho, intenta escapar, no quiere ni las golosinas, se hace daño o destroza la puerta cuando se queda solo, para el entrenamiento, abre la puerta y consulta con tu veterinario o con un profesional del comportamiento. Esta app no sustituye ese apoyo.\n\n# Quedarse solo y el espacio seguro\n\n## heading\nLlora, ladra o rompe cosas cuando te vas\n\n## hook\nCoges las llaves y {name} ya te sigue por el pasillo. Te vas diez minutos y, al volver, oyes los lloros desde la escalera, o encuentras un cojín destrozado junto a la puerta. Si el ladrido o el destrozo ocurren solo cuando no estás, es de esto de lo que trata este curso: aprender a estar solo sin sufrir.\n\n## why\nQuedarse solo no es algo que los perros sepan hacer sin más: se aprende, poco a poco. Un espacio pequeño y conocido, como un parque con su transportín abierto, le da límites claros y le ayuda a calmarse, siempre como refugio y nunca como castigo. Si el paso es demasiado grande, el perro no se acostumbra: se asusta. Por eso se avanza con pasos tan cortos que lo lleve bien, con la puerta abierta primero, sin forzarlo y sin cerrarle de golpe.\n\n## steps\n1. Prepara el espacio de descanso de {name}, el que ya conoces de la lección de descanso en casa, y añade un parque con el transportín abierto. Nunca lo uses como castigo.\n2. Con la puerta abierta, deja que entre solo a por una golosina y salga cuando quiera. Repite hasta que entre tranquilo; no le cierres nada todavía.\n3. Cuando se tumbe dentro, aléjate unos pasos y vuelve antes de que se inquiete. Haz el rato un poco más largo cada día, sin forzar ni llamarle.\n4. Haz el microcierre: cierra la puerta un segundo, ábrela y dile tu señal de liberación, la palabra que significa «ya puedes salir». Nunca es una orden.\n5. Antes de salir, da un paseo y haz una despedida tranquila, sin fiestas. Al volver, saluda sin alboroto hasta que se haya calmado.\n6. Si llora, distingue la protesta del pánico. Con cachorros menores de 4 meses, espera como mucho 2 minutos; con perros de 4 meses o más, hasta 10 minutos seguidos de llanto. En cuanto haya pánico, o se pase ese tiempo, abre la puerta.\n\n## example\n### {name} y la puerta del parque\nEs sábado y {name} lleva tres días practicando. Hoy entra al parque, se tumba y masca su hueso. Te alejas dos pasos, vuelves y le dices «ya puedes salir». Luego cierras la puerta un segundo; {name} gimotea una vez, pero respira normal y sigue mascando. Esperas, abres y lo celebras sin alboroto. Más tarde, en otro intento, babea y araña la puerta: abres enseguida y mañana vuelves a un paso más corto. No es un fracaso: así se ajusta el ritmo.\n\n## compare\n### do\nAbrir la puerta en cuanto haya pánico o se pase el tiempo, y volver a un paso más corto al día siguiente.\n### dont\nDejarle llorar «hasta que se canse», sin límite de tiempo. Si hay pánico, el llanto no es aprendizaje: es miedo.\n\n## tip\nPrueba hoy: con la puerta abierta, deja una golosina dentro del espacio de descanso y fíjate en si {name} entra solo y se queda un momento.\n\n## takeaways\n- Estar solo se aprende en pasos cortos y sin forzar.\n- El espacio pequeño es un refugio, nunca un castigo.\n- Protesta, se espera; pánico o tiempo cumplido, se abre.\n- Cachorros menores de 4 meses esperan mucho menos que adultos.\n\n## images\n### theory-home-rest-1\n- alt: En el salón, {name} descansa en su cama dentro de un parque con la puerta abierta\n- caption: Un espacio pequeño y conocido, con la puerta abierta\n\n### theory-home-rest-2\n- alt: La persona se aleja unos pasos mientras {name} sigue en su espacio, con calma\n- caption: Te alejas poco a poco, sin forzar\n"
+      },
+      "files": [
+        "media/theory-home-rest-1.png",
+        "media/theory-home-rest-2.png"
+      ]
+    },
     "theory-bark-home": {
       "config": {
         "id": "theory-bark-home",
@@ -1077,6 +1098,42 @@ export const BASELINE_PACK: ContentPack = {
     }
   },
   "nodes": {
+    "alone-door": {
+      "config": {
+        "id": "alone-door",
+        "mode": "minigame",
+        "prerequisites": [],
+        "simulation": {
+          "minigame": "alone"
+        },
+        "exercises": [
+          {
+            "metric": "timing",
+            "key": "node.alonedoor.exercise1"
+          },
+          {
+            "metric": "tension",
+            "key": "node.alonedoor.exercise2"
+          }
+        ],
+        "primerCards": [
+          {
+            "kind": "real-world",
+            "media": {
+              "type": "image",
+              "url": "",
+              "art": "theory-home-rest-1"
+            }
+          }
+        ]
+      },
+      "text": {
+        "es": "# En casa · ¿Abro o no abro?\n\n## primer\n### card 1\nRecuerda: si solo protesta, espera; si hay pánico o se cumple el tiempo, abre la puerta. Si se queda rígido, acorta el paso. Si está tranquilo, marca y premia.\n- caption: Un espacio pequeño y conocido, con la puerta abierta\n\n## checkpoint\n### tq1\n{name} gimotea tras la puerta pero respira con normalidad. ¿Qué haces?\n- [x] Espero sin hablarle ni abrir\n- [ ] Abro enseguida para que no sufra\n- [ ] Le riño para que se calle\n- why: Si solo protesta, abrir le enseña que llorar abre la puerta; espera, con un límite de tiempo.\n\n### tq2\n{name} babea, araña la puerta y no quiere la golosina. ¿Qué haces?\n- [x] Abro la puerta y vuelvo a un paso más fácil\n- [ ] Espero a que se canse\n- [ ] Cierro más fuerte la puerta\n- why: Eso es pánico, no frustración: abre ya y para el entrenamiento si se repite, y consulta con un profesional.\n\n### tq3\nHan pasado más de 10 minutos de llanto seguido con un perro adulto. ¿Qué haces?\n- [x] Abro la puerta y acorto el paso la próxima vez\n- [ ] Sigo esperando hasta que se rinda\n- [ ] Le grito desde fuera\n- why: El tiempo máximo es 10 minutos (2 en cachorros menores de 4 meses): pasado ese límite, se abre siempre.\n\n## exercises\n- timing: En casa: con la puerta abierta, deja una golosina en su espacio y mira si entra solo.\n- tension: En casa: haz el microcierre de un segundo con la puerta y ábrela con tu señal de liberación.\n"
+      },
+      "files": [
+        "media/theory-home-rest-1.png"
+      ]
+    },
     "bark-home": {
       "config": {
         "id": "bark-home",
@@ -5341,6 +5398,51 @@ export const BASELINE_PACK: ContentPack = {
     }
   },
   "missions": {
+    "mission-alone": {
+      "config": {
+        "id": "mission-alone",
+        "technique": "alone",
+        "reps": 7,
+        "place": "home",
+        "sharedNote": "lesson.note.alone",
+        "trains": [
+          {
+            "kind": "node",
+            "id": "alone-door"
+          }
+        ],
+        "problems": [
+          {
+            "id": "cries-at-once",
+            "label": "cries-at-once",
+            "practise": {
+              "kind": "node",
+              "id": "alone-door"
+            }
+          },
+          {
+            "id": "panic",
+            "label": "panic",
+            "practise": {
+              "kind": "node",
+              "id": "alone-door"
+            }
+          },
+          {
+            "id": "cries-at-close",
+            "label": "cries-at-close",
+            "practise": {
+              "kind": "node",
+              "id": "alone-door"
+            }
+          }
+        ]
+      },
+      "text": {
+        "es": "# Aprender a quedarse solo\n\n## target\nDurante varios días, practica con {name} el protocolo paso a paso: puerta abierta, distancia, microcierre de un segundo y señal de liberación. Si hay pánico o se pasa el tiempo, abre y vuelve a un paso más corto.\n\n## success\nTolera el microcierre y la señal de liberación sin angustia, y se queda tranquilo en su espacio.\n\n## problems\n### cries-at-once\n- label: Llora nada más separarnos\n- reassure: Es muy común: para {name}, separarse de ti es lo más difícil de la casa.\n- cause: Probablemente el paso es demasiado grande, o salís justo cuando está más emocionado.\n- c1: Vuelve al paso anterior: puerta abierta y tú a la vista. Antes de salir, un paseo y una despedida sin alboroto.\n- c2: Si {name} babea, intenta escapar, no quiere ni las golosinas, se hace daño o destroza la puerta cuando se queda solo, para el entrenamiento, abre la puerta y consulta con tu veterinario o con un profesional del comportamiento. Esta app no sustituye ese apoyo.\n- easier: Alejarte un solo paso con la puerta abierta y volver antes de que proteste.\n- alt: La persona se aleja un paso mientras el perro descansa en su espacio\n- caption: Un paso, y vuelves\n\n### panic\n- label: Entra en pánico\n- reassure: No es mala educación ni terquedad: es miedo, y se trata con calma y paciencia.\n- cause: Si babea, araña la puerta, intenta escapar o no quiere ni la golosina, el paso ha sido demasiado grande.\n- c1: Abre la puerta ya, sin hacer fiesta, y ve a un paso mucho más corto al día siguiente. No esperes a que se canse.\n- c2: Si {name} babea, intenta escapar, no quiere ni las golosinas, se hace daño o destroza la puerta cuando se queda solo, para el entrenamiento, abre la puerta y consulta con tu veterinario o con un profesional del comportamiento. Esta app no sustituye ese apoyo.\n- easier: Parar el entrenamiento un par de días y consultar con un profesional antes de seguir.\n- alt: La persona abre la puerta del parque y el perro sale tranquilo\n- caption: Si hay pánico, se abre\n\n### cries-at-close\n- label: Llora cuando cierro la puerta\n- reassure: Es normal al principio: el cierre es el paso nuevo y {name} lo nota.\n- cause: El microcierre puede ser todavía demasiado largo, o la señal de liberación no se parece a una orden.\n- c1: Cierra la puerta solo un segundo, ábrela y dile la señal de liberación. Alarga el cierre muy poco a poco; con cachorros menores de 4 meses espera 2 minutos como máximo, y 10 con perros mayores.\n- c2: Si {name} babea, intenta escapar, no quiere ni las golosinas, se hace daño o destroza la puerta cuando se queda solo, para el entrenamiento, abre la puerta y consulta con tu veterinario o con un profesional del comportamiento. Esta app no sustituye ese apoyo.\n- easier: Cerrar medio segundo, abrir y premiar, tres veces seguidas.\n- alt: La persona cierra la puerta del parque un segundo y la abre\n- caption: Un segundo de cierre\n\n## general\n- reassure: Quedarse solo cuesta, a muchos perros y a muchas personas que los quieren. Cada paso corto cuenta.\n- cause: Lo más habitual es avanzar más deprisa de lo que {name} puede llevar.\n- c1: Si dudas entre dos pasos, elige el más corto. Mejor un día de más que un susto.\n- c2: Si {name} babea, intenta escapar, no quiere ni las golosinas, se hace daño o destroza la puerta cuando se queda solo, para el entrenamiento, abre la puerta y consulta con tu veterinario o con un profesional del comportamiento. Esta app no sustituye ese apoyo.\n- easier: Repetir hoy el paso de ayer, sin avanzar.\n- alt: El perro tumbado tranquilo en su espacio con la puerta abierta\n- caption: Pasos cortos\n"
+      },
+      "files": []
+    },
     "mission-bark-home": {
       "config": {
         "id": "mission-bark-home",

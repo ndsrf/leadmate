@@ -132,6 +132,7 @@ export const PARK_MIX_NODE: NodeDef = nodeProxy('park-mix');
 export const BARK_HOME_NODE: NodeDef = nodeProxy('bark-home');
 export const DESTROY_NODE: NodeDef = nodeProxy('destroy');
 export const EAT_OBJECTS_NODE: NodeDef = nodeProxy('eat-objects');
+export const ALONE_DOOR_NODE: NodeDef = nodeProxy('alone-door');
 
 /** The text keys of the "calm hands and leash" Node that have a variant per age band (`<key>.<band>`). */
 export const CALM_HANDS_VARIANT_KEYS: readonly TextKey[] = [
