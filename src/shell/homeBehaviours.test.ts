@@ -26,9 +26,9 @@ describe('Home Behaviour content coverage', () => {
     for (const c of HOME_CONCERNS) for (const part of REQUIRED_PARTS[c]) expect(hasContent(c, part)).toBe(true);
   });
 
-  it('gives the biting concerns a Lesson and a Mission and no exercise, and the others all three', () => {
-    for (const c of ['bite-owner', 'bite-others'] as const) expect(Object.keys(HOME_BEHAVIOUR_CONTENT[c]).sort()).toEqual(['lesson', 'mission']);
-    for (const c of ['bark-home', 'destroy', 'eat-objects'] as const) expect(Object.keys(HOME_BEHAVIOUR_CONTENT[c]).sort()).toEqual(['lesson', 'mission', 'node']);
+  it('gives bite-others a Lesson and a Mission and no exercise, and the others all three', () => {
+    expect(Object.keys(HOME_BEHAVIOUR_CONTENT['bite-others']).sort()).toEqual(['lesson', 'mission']);
+    for (const c of ['bite-owner', 'bark-home', 'destroy', 'eat-objects'] as const) expect(Object.keys(HOME_BEHAVIOUR_CONTENT[c]).sort()).toEqual(['lesson', 'mission', 'node']);
   });
 
   // The two failures the guard exists for, checked against the same comparison with the inputs changed.
@@ -49,22 +49,22 @@ describe('Home Behaviour content coverage', () => {
 });
 
 describe('Required parts', () => {
-  it('never requires an exercise for the biting concerns', () => {
-    expect(REQUIRED_PARTS['bite-owner']).toEqual(['lesson', 'mission']);
+  it('requires an exercise for bite-owner but not bite-others', () => {
+    expect(REQUIRED_PARTS['bite-owner']).toEqual(['lesson', 'node', 'mission']);
     expect(REQUIRED_PARTS['bite-others']).toEqual(['lesson', 'mission']);
     expect(KNOWN_GAPS).not.toContain('bite-owner:node');
     expect(KNOWN_GAPS).not.toContain('bite-others:node');
   });
 
-  it('has no gap for a biting concern with a lesson and a mission', () => {
-    const have = (c: string, p: string) => c === 'bite-owner' && p !== 'node';
-    const gaps = REQUIRED_PARTS['bite-owner'].filter((p) => !have('bite-owner', p));
+  it('has no gap for bite-others with a lesson and a mission', () => {
+    const have = (c: string, p: string) => c === 'bite-others' && p !== 'node';
+    const gaps = REQUIRED_PARTS['bite-others'].filter((p) => !have('bite-others', p));
     expect(gaps).toEqual([]);
   });
 
   it('counts two parts toward the progress of biting', () => {
-    const content = { ...HOME_BEHAVIOUR_CONTENT, 'bite-owner': { lesson: 'l', mission: 'm' } };
-    expect(homeBehaviourProgress('bite-owner', { readLessons: [], completedNodes: [], missions: {} }, content).total).toBe(2);
+    const content = { ...HOME_BEHAVIOUR_CONTENT, 'bite-others': { lesson: 'l', mission: 'm' } };
+    expect(homeBehaviourProgress('bite-others', { readLessons: [], completedNodes: [], missions: {} }, content).total).toBe(2);
   });
 });
 
@@ -99,7 +99,7 @@ describe('Home Behaviours section', () => {
     const done = { readLessons: ['l1'], completedNodes: [], missions: { m1: { passedOn: '2026-05-02' } } };
     expect(homeBehaviourProgress('bark-home', done, content)).toEqual({ done: 2, total: 3 });
     expect(homeBehaviourProgress('destroy', done, content)).toEqual({ done: 0, total: 3 });
-    expect(homeBehaviourProgress('bite-owner', done, content)).toEqual({ done: 0, total: 2 });
+    expect(homeBehaviourProgress('bite-owner', done, content)).toEqual({ done: 0, total: 3 });
   });
 
   it('keeps every Home Behaviour Stop out of the static WORLDS: they join World 1 per Dog (see world.test.ts)', () => {
@@ -123,8 +123,9 @@ describe('Home Behaviour buttons', () => {
   const none = { readLessons: [], completedNodes: [], missions: {} };
   const entry = (concern: (typeof HOME_CONCERNS)[number], isConcern: boolean) => ({ concern, isConcern });
 
-  it('shows only the parts that exist: a biting row has no Exercise button', () => {
-    expect(behaviourActions(entry('bite-owner', true), none).map((a) => a.part)).toEqual(['lesson', 'mission']);
+  it('shows only the parts that exist: bite-others has no Exercise button', () => {
+    expect(behaviourActions(entry('bite-others', true), none).map((a) => a.part)).toEqual(['lesson', 'mission']);
+    expect(behaviourActions(entry('bite-owner', true), none).map((a) => a.part)).toEqual(['lesson', 'node', 'mission']);
     expect(behaviourActions(entry('bark-home', true), none).map((a) => a.part)).toEqual(['lesson', 'node', 'mission']);
   });
 
@@ -159,10 +160,11 @@ describe('Home Behaviour navigation', () => {
     expect(isHomeStretchId('theory-calm-first')).toBe(false);
   });
 
-  it('opens the Mission brief after a Home Node, or after the Lesson of a biting behaviour, once and only for a Concern', () => {
+  it('opens the Mission brief after a Home Node, or after the Lesson of bite-others, once and only for a Concern', () => {
     expect(homeMissionAfter({ kind: 'node', id: 'bark-home' }, record(1))).toBe('mission-bark-home');
+    expect(homeMissionAfter({ kind: 'node', id: 'calm-hands' }, record(1))).toBe('mission-bite-owner');
     expect(homeMissionAfter({ kind: 'lesson', id: 'theory-bark-home' }, record(1))).toBeNull();
-    expect(homeMissionAfter({ kind: 'lesson', id: 'theory-bite-owner' }, record(1))).toBe('mission-bite-owner');
+    expect(homeMissionAfter({ kind: 'lesson', id: 'theory-bite-owner' }, record(1))).toBeNull();
     expect(homeMissionAfter({ kind: 'node', id: 'bark-home' }, record(0))).toBeNull();
     expect(homeMissionAfter({ kind: 'node', id: 'bark-home' }, record(1, { 'mission-bark-home': { startedAt: '2026-11-01T10:00:00.000Z' } }))).toBeNull();
     expect(homeMissionAfter({ kind: 'node', id: 'bark-home' }, record(1, { 'mission-bark-home': { passedOn: '2026-11-01' } }))).toBeNull();
@@ -194,12 +196,13 @@ describe('biting content points to the hand drill (task 3.5)', () => {
     for (const id of ['mission-bite-owner', 'mission-bite-others']) expect(catalog[findMission(id).target as keyof typeof catalog]).toContain('primer ejercicio del Mundo 1');
   });
 
-  it('keeps the required parts and gives no biting Home Stretch a Node', () => {
-    expect(REQUIRED_PARTS['bite-owner']).toEqual(['lesson', 'mission']);
+  it('keeps the required parts and gives bite-others no Node while bite-owner has calm-hands', () => {
+    expect(REQUIRED_PARTS['bite-owner']).toEqual(['lesson', 'node', 'mission']);
     expect(REQUIRED_PARTS['bite-others']).toEqual(['lesson', 'mission']);
-    for (const c of ['bite-owner', 'bite-others'] as const) expect(hasContent(c, 'node')).toBe(false);
+    expect(hasContent('bite-owner', 'node')).toBe(true);
+    expect(hasContent('bite-others', 'node')).toBe(false);
     expect(findNode('calm-hands')).toBeDefined();
-    expect(stopsOf(WORLDS[0]).some((s: { id: string }) => s.id === 'calm-hands')).toBe(true);
+    expect(stopsOf(WORLDS[0]).some((s: { id: string }) => s.id === 'calm-hands')).toBe(false);
   });
 
   it('keeps the drill free of any mention of biting', () => {

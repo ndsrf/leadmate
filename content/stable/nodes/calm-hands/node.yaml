@@ -1,0 +1,54 @@
+id: calm-hands
+mode: close_exercise
+prerequisites: []
+opensAfterLesson: theory-bite-owner
+simulation:
+  closeScenario:
+    controls: hand_drill
+    distractor:
+      kind: hand
+      speed: 0
+      salience: 0.35
+      triggerRadius: 6
+      startPos:
+        x: 1.8
+        y: 1.8
+      endPos:
+        x: 1.8
+        y: 1.8
+    learning:
+      attributes:
+        reconnectionLatency: 0.2
+        reactivityThreshold: 0.2
+        followChance: 0.5
+        checkInFrequency: 0.2
+      triggerProfile:
+        child: 2
+        bicycle: 2
+        dog: 2
+        skateboard: 2
+        food: 2
+        other: 2
+        hand: 2
+      equipment: collar
+      capacityMultiplier: 1
+      posture: 0
+    cues: []
+    calmSeconds: 2.5
+    maxSeconds: 60
+    settleSeconds: 4
+    markBudget: 5
+    configVersion: hand-drill-v1
+    reward: treat
+exercises:
+  - metric: tension
+    key: node.calmhands.exercise1
+  - metric: timing
+    key: node.calmhands.exercise2
+primerCards:
+  - kind: real-world
+    media:
+      type: image
+      url: ""
+      art: theory-dog-as-dog-1
+  - kind: virtual-dog

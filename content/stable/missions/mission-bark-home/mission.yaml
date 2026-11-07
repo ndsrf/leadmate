@@ -1,0 +1,23 @@
+id: mission-bark-home
+technique: bark-home
+reps: 5
+place: home
+trains:
+  - kind: node
+    id: bark-home
+problems:
+  - id: nonstop
+    label: nonstop
+    practise:
+      kind: node
+      id: bark-home
+  - id: shout
+    label: shout
+    practise:
+      kind: node
+      id: bark-home
+  - id: trigger
+    label: trigger
+    practise:
+      kind: node
+      id: bark-home

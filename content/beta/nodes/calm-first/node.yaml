@@ -1,0 +1,17 @@
+id: calm-first
+mode: minigame
+prerequisites:
+  - home-rest
+simulation:
+  minigame: calm-first
+exercises:
+  - metric: timing
+    key: node.calmfirst.exercise1
+  - metric: tension
+    key: node.calmfirst.exercise2
+primerCards:
+  - kind: real-world
+    media:
+      type: image
+      url: ""
+      art: theory-calm-first-1

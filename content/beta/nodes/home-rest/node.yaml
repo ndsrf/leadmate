@@ -1,0 +1,17 @@
+id: home-rest
+mode: minigame
+prerequisites:
+  - dog-as-dog
+simulation:
+  minigame: home-rest
+exercises:
+  - metric: timing
+    key: node.homerest.exercise1
+  - metric: tension
+    key: node.homerest.exercise2
+primerCards:
+  - kind: real-world
+    media:
+      type: image
+      url: ""
+      art: theory-home-rest-2

@@ -23,7 +23,7 @@ const allDone = (worlds: readonly WorldDef[]): Progress => {
 describe('mapModel over Stops', () => {
   it('opens a fresh Dog on the Basics World, with "Tiene nombre" next-up and Home locked', () => {
     const m = realMapModel(progressOf([]), {}, at(9));
-    expect(m.nextUp).toEqual({ worldId: 'basics', stop: { kind: 'lesson', id: 'howto-choose-action' }, stopKind: 'how-to-play' });
+    expect(m.nextUp).toEqual({ worldId: 'basics', stop: { kind: 'lesson', id: 'theory-named-behaviours' }, stopKind: 'theory' });
     expect(m.worlds.map((w) => [w.world.id, w.unlocked]).slice(0, 2)).toEqual([['basics', true], ['home', false]]);
     expect(m.worlds[1].unlockRequirement).toMatchObject({ worldTitle: 'world.basics.title', worldNumber: 1 });
   });
@@ -239,14 +239,14 @@ describe('mapModel following the Personal Plan', () => {
 
   it('opens on the first Stretch the Dog can finish when the plan Stretch needs a Node from an earlier one', () => {
     const m = planned(progressOf([]), [{ stretchId: 'theory-home-rest', concern: 'bite-owner' }]);
-    expect(m.nextUp).toEqual({ worldId: 'basics', stop: { kind: 'lesson', id: 'howto-choose-action' }, stopKind: 'how-to-play' });
-    expect(nextStops(m).map((s) => s.stop.id)).toEqual(['howto-choose-action']);
+    expect(m.nextUp).toEqual({ worldId: 'basics', stop: { kind: 'lesson', id: 'theory-named-behaviours' }, stopKind: 'theory' });
+    expect(nextStops(m).map((s) => s.stop.id)).toEqual(['theory-named-behaviours']);
     expect(find(m, 'theory-home-rest').state).toBe('locked');
   });
 
   it('skips a plan item in a locked World and uses the next open one', () => {
     const m = planned(progressOf([]), [{ stretchId: 'theory-poste' }, { stretchId: 'theory-calm-first' }]);
-    expect(m.nextUp?.stop.id).toBe('howto-choose-action');
+    expect(m.nextUp?.stop.id).toBe('theory-named-behaviours');
     expect(find(m, 'theory-poste').state).toBe('locked');
   });
 

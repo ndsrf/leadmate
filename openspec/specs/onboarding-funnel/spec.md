@@ -6,7 +6,7 @@ Defines the first-run experience: a welcome, a taste of the problem on the real 
 ## Requirements
 
 ### Requirement: Funnel order
-The system SHALL show the splash first, which for a new user stays up as the welcome screen, and then present the funnel in this order: the welcome screen, the Dog's name and look, the main concerns question, the taste briefing, the taste Stage with its payoff, Dog setup (Equipment, weights, age and sex, Trigger Profile and concern questionnaire), the Diagnostic, the diagnostic card and personal plan, the introductory Theory Primer and Checkpoint, the guided first Stage walk, the Debrief, the registration prompt, and the soft paywall.
+The system SHALL show the splash first, which for a new user stays up as the welcome screen, and then present the funnel in this order: the welcome screen, the Dog's name and look, the main concerns question, the taste briefing, the taste Stage with its payoff, Dog setup (Equipment, weights, age and sex, Trigger Profile and concern questionnaire), the Diagnostic, the diagnostic card and personal plan, the training method and ecosystem overview, the introductory Theory Primer and Checkpoint, the guided first Stage walk, the Debrief, the registration prompt, and the soft paywall.
 
 #### Scenario: First run
 - **WHEN** a user opens the app for the first time
@@ -15,6 +15,10 @@ The system SHALL show the splash first, which for a new user stays up as the wel
 #### Scenario: Play before questions
 - **WHEN** a new user moves through the funnel
 - **THEN** the taste briefing and Stage are shown before any Dog setup question other than the main concern
+
+#### Scenario: Step sequence
+- **WHEN** a new user advances through onboarding
+- **THEN** the method and ecosystem overview appears immediately following the diagnostic card and Personal Plan, before the guided first Stage
 
 #### Scenario: Paywall precedes the first Stage
 - **WHEN** the user finishes the guided first Stage and the registration prompt
@@ -266,15 +270,23 @@ The system SHALL show the welcome actions to a new user on the splash screen its
 - **THEN** the welcome screen is not shown
 
 ### Requirement: Dog name and look
-The system SHALL ask for the Dog's breed, coat and name after the welcome screen, SHALL record all three in the Dog record, SHALL require a name of 1 to 20 characters after trimming, and SHALL use the name in the funnel's later text. Breed SHALL be chosen from a grid of drawn silhouette tiles and coat from colour swatches that also show their names, with a live preview of the Dog in the chosen breed and coat. Breed and coat SHALL NOT be asked again in Dog setup.
+The system SHALL ask for the Dog's breed, coat, name, and age band after the welcome screen, SHALL record all four in the Dog record, SHALL require a name of 1 to 20 characters after trimming, and SHALL use the name and age band in the funnel's later text and personal plan. Breed SHALL be chosen from a grid of drawn silhouette tiles, coat from colour swatches, and age band from selectable stage chips (puppy under 6 months, adolescent 6 to 18 months, adult, senior). Breed, coat, and age band SHALL NOT be re-prompted as unentered fields in Dog setup.
 
 #### Scenario: Name and coat recorded
 - **WHEN** the user enters "Luna", picks Border collie and a coat
 - **THEN** the Dog record holds the name "Luna", that breed and that coat
 
+#### Scenario: Name, coat and age recorded
+- **WHEN** the user enters "Luna", picks Border collie, a coat, and "Cachorro (< 6 meses)"
+- **THEN** the Dog record holds the name "Luna", that breed, that coat, and the "puppy" age band
+
 #### Scenario: Empty name
 - **WHEN** the user tries to continue with a blank name
 - **THEN** the system does not continue and asks for a name
+
+#### Scenario: Age band skippable
+- **WHEN** the user enters a name and continues without picking an age band
+- **THEN** the age band remains unset (null) and the funnel continues
 
 #### Scenario: Name used in text
 - **WHEN** the payoff is shown for a Dog named "Luna"
@@ -285,8 +297,8 @@ The system SHALL ask for the Dog's breed, coat and name after the welcome screen
 - **THEN** it uses a neutral "your Dog" and the user is not prompted for a name
 
 #### Scenario: Editable later
-- **WHEN** the user later edits the Dog's name in settings
-- **THEN** the new name is used wherever the name is shown
+- **WHEN** the user later edits the Dog's name or age in settings
+- **THEN** the new value is used wherever displayed
 
 #### Scenario: Breed is optional to think about
 - **WHEN** the user continues without touching the breed grid
@@ -348,15 +360,23 @@ The Taste Stage SHALL remain a leash Stage for every user and SHALL use the Dist
 - **THEN** the Taste Stage is the approaching-dog Stage
 
 ### Requirement: Age and sex in setup
-The Dog setup SHALL ask for the Dog's age as a band (puppy under 6 months, adolescent 6 to 18 months, adult, senior) and the Dog's sex (male, female), each skippable, and SHALL save them to the Dog record.
+The Dog setup SHALL ask for the Dog's sex (male, female), skippable, and SHALL present the age band chosen during the initial profile step with ability to review or update it, saving changes to the Dog record.
 
 #### Scenario: Answers recorded
 - **WHEN** the user picks "adolescent" and "female"
 - **THEN** the Dog record holds both
 
+#### Scenario: Sex recorded
+- **WHEN** the user picks "female" in setup
+- **THEN** the Dog record records sex as female
+
+#### Scenario: Age pre-selected from initial step
+- **WHEN** the user arrives at the about part of setup having selected "puppy" in the profile step
+- **THEN** "puppy" is pre-selected and can be modified or kept
+
 #### Scenario: Skipped
-- **WHEN** the user skips age and sex
-- **THEN** setup continues and both stay unset
+- **WHEN** the user skips sex without selecting
+- **THEN** setup continues and sex stays unset
 
 ### Requirement: Taste briefing
 The system SHALL show a text-only briefing screen after the Dog's name and look and before the taste Stage starts, with one primary button that starts the Stage. All its text SHALL come from the i18n catalog.
@@ -389,3 +409,37 @@ The system SHALL show a text-only briefing screen after the Dog's name and look 
 #### Scenario: Not a recorded step
 - **WHEN** the briefing is shown or dismissed
 - **THEN** the Dog record is unchanged apart from the onboarding step, and no `seenHints` entry is recorded
+
+### Requirement: Training method and ecosystem overview
+The system SHALL display an ecosystem overview screen after the Personal Plan, presenting the three core pillars of the app: the 3-step World trail loop (Theory lesson, Simulation node, Real-world mission), the Daily Walk (streak tracking, real-time composure and harmony scoring), and Barkdoku (spatial deduction mental challenge).
+
+#### Scenario: Overview displayed
+- **WHEN** the user advances past the diagnostic card and Personal Plan
+- **THEN** the system displays the method overview explaining the 3-step World trail loop, the Daily Walk, and Barkdoku
+
+#### Scenario: Proceed to guided stage
+- **WHEN** the user taps the continue action on the method overview
+- **THEN** the funnel proceeds to the introductory Theory Primer and Checkpoint of the first guided Stage
+
+### Requirement: Personal plan reassurance note
+The system SHALL display a reassurance note in the onboarding flow when the Dog has declared Concerns, explicitly informing the user that their specific concerns are addressed in World 2 ("Casa y umbrales") while World 1 provides the three foundational calm and communication basics required for training.
+
+#### Scenario: Reassurance for declared concerns
+- **WHEN** the user has declared at least one Home Concern
+- **THEN** the reassurance note names their goal, states that World 2 tackles their concerns directly, and clarifies that World 1 establishes the necessary foundations
+
+#### Scenario: Only scheduled Concerns are named
+- **WHEN** a declared Home Concern has no Home Stretch in World 2 for this Dog (no Lesson yet, or left out of World 2)
+- **THEN** the reassurance note does not name it, and a note with no Concern left is the standard welcome
+
+#### Scenario: Dog without a name
+- **WHEN** the Dog's name is blank
+- **THEN** the reassurance title omits the name instead of inserting a placeholder phrase
+
+#### Scenario: System back from the overview
+- **WHEN** the user presses the system back on the method overview
+- **THEN** the funnel returns to the Personal Plan
+
+#### Scenario: No declared concerns
+- **WHEN** the user has skipped or declared no Concerns
+- **THEN** the reassurance note presents a standard welcome to the foundational curriculum

@@ -1,0 +1,275 @@
+id: park-jogger
+mode: stage
+prerequisites: []
+simulation:
+  scenario:
+    world: 5
+    theme: open_park
+    fixedStep: 0.016666666666666666
+    leashLength: 3
+    leashTolerance: 0.1
+    quickSpeed: 2
+    walkStrength: 0.6
+    handlerStart:
+      x: 0
+      y: 0
+    dogStart:
+      x: 1
+      y: 0
+    waypoint:
+      x: 90
+      y: 20
+    waypoints:
+      - x: 50
+        y: 0
+    waypointRadius: 2
+    walls: []
+    scenery:
+      - type: picnic_table
+        pos:
+          x: 20
+          y: -6.5
+        angle: 0
+      - type: bench
+        pos:
+          x: 23.4
+          y: -6.5
+        angle: 0
+      - type: fountain
+        pos:
+          x: 30
+          y: 7.5
+      - type: kiosk
+        pos:
+          x: 70
+          y: 4
+      - type: bin
+        pos:
+          x: 0.8952396911477167
+          y: 5.70759824803099
+      - type: conifer
+        pos:
+          x: 5.971977609880099
+          y: -6.031681074295193
+      - type: flower_bed
+        pos:
+          x: 7.3413354588846875
+          y: 5.314500970765948
+        angle: 0
+      - type: tree
+        pos:
+          x: 12.079212825038883
+          y: -8.047981414478272
+      - type: bench
+        pos:
+          x: 14.370332916434075
+          y: 5.329627241939306
+        angle: 0
+      - type: sign
+        pos:
+          x: 18.377304110587573
+          y: -5.081801136024296
+      - type: bush
+        pos:
+          x: 21.327605325435368
+          y: 4.753664845833555
+      - type: fountain
+        pos:
+          x: 24.97481463393277
+          y: -5.51717544766143
+      - type: lamp_post
+        pos:
+          x: 27.164789348195768
+          y: 8.254438509233296
+      - type: picnic_table
+        pos:
+          x: 30.931956481160743
+          y: -4.154605968855321
+        angle: 0
+      - type: pond
+        pos:
+          x: 35.6246833937519
+          y: 6.39781272248365
+      - type: kiosk
+        pos:
+          x: 38.560300659624126
+          y: -7.784136677859351
+      - type: bin
+        pos:
+          x: 41.182575231797735
+          y: 7.5929765668697655
+      - type: kiosk
+        pos:
+          x: 45.277399808396474
+          y: -4.917059778003022
+      - type: bench
+        pos:
+          x: 48.42983079187396
+          y: 8.381363298743963
+        angle: 0.4636476090008061
+      - type: lamp_post
+        pos:
+          x: 55.19531076208285
+          y: -4.062245933830743
+      - type: flower_bed
+        pos:
+          x: 53.69803845351568
+          y: 6.851477522126321
+        angle: 0.4636476090008061
+      - type: bush
+        pos:
+          x: 60.252765471704734
+          y: -2.501289590662913
+      - type: sign
+        pos:
+          x: 58.11324984030899
+          y: 13.626934709984802
+      - type: fountain
+        pos:
+          x: 68.15804841502948
+          y: -0.7794225070437051
+      - type: conifer
+        pos:
+          x: 63.349774265246964
+          y: 14.504699665347367
+      - type: picnic_table
+        pos:
+          x: 72.67404573340076
+          y: 3.470403959611698
+        angle: 0.4636476090008061
+      - type: pond
+        pos:
+          x: 70.88138454375213
+          y: 18.43291178078917
+      - type: tree
+        pos:
+          x: 77.78807764806699
+          y: 8.266150767899617
+      - type: bin
+        pos:
+          x: 77.64599006844601
+          y: 20.280969659068507
+      - type: kiosk
+        pos:
+          x: 84.52880309557051
+          y: 9.901040626439602
+      - type: tree
+        pos:
+          x: 80.25651057442668
+          y: 24.740729165743737
+      - type: picnic_table
+        pos:
+          x: 90.81086166021008
+          y: 14.503646951405383
+        angle: 0.4636476090008061
+    cues:
+      - lets-go
+    dogGoalSpeed: 1.6
+    dogFixationSpeed: 1
+    dogReturnSpeed: 1.6
+    dogReturnDistance: 1
+    wanderMaxAngle: 0.5
+    wanderTurnRate: 2
+    distractor:
+      kind: other
+      speed: 3.6
+      triggerRadius: 12
+      activateAfterMeters: 30
+      startOffset: 28
+      path:
+        from:
+          x: 42
+          y: -10
+        to:
+          x: 42
+          y: 14
+    moreDistractors: []
+    calmSeconds: 3
+    rewardWindowSeconds: 1.1
+    markBudget: 5
+    checkInWindow: 1
+    learning:
+      attributes:
+        reconnectionLatency: 0.2
+        reactivityThreshold: 0.2
+        followChance: 0.5
+        checkInFrequency: 0.2
+      triggerProfile:
+        child: 2
+        bicycle: 2
+        dog: 2
+        skateboard: 2
+        food: 2
+        other: 2
+        hand: 2
+      equipment: collar
+      capacityMultiplier: 1
+      posture: 0
+    ranges:
+      reconnectionSeconds:
+        worst: 1.5
+        best: 0.3
+      reactivityThreshold:
+        worst: 15
+        best: 60
+      checkInMeanInterval:
+        worst: 14
+        best: 5
+    arousal:
+      k: 30
+      minDistance: 2
+      decayPerSecond: 3
+      rigidPullRate: 4
+      disengagementDrop: 25
+      markerHitDrop: 20
+      posteJolt: 15
+      smoothStopFactor: 0.3
+      slowedSeconds: 0.5
+    cue:
+      cooldownSeconds: 3
+      fixatedFactor: 0.3
+      repeatFactor: 0.5
+      arousalDrop: 10
+      followBoostSeconds: 2
+      followBoost: 0.25
+      followCap: 0.95
+    reaction:
+      alertFraction: 0.6
+      lungeAccel: 1.5
+      lungeMaxSpeed: 4
+      alertSlowdown: 0.85
+    sintonia:
+      minSpeed: 0.4
+      minTurnRate: 0.2
+      maxTurnRate: 1.8
+      turnWindow: 0.5
+      holdSeconds: 2
+    goSniff:
+      offerSeconds: 3
+      durationSeconds: 4
+      speed: 0.4
+      decayFactor: 3
+    turnAngle: 0.7853981633974483
+    followSeconds: 1.5
+    correctionWaitSeconds: 4
+    pullStrength: 0.8
+    configVersion: bundled
+    camera:
+      closeZoom: 2.2
+      farZoom: 1.5
+      padding: 90
+      smoothing: 3
+    endCondition:
+      kind: reach-waypoint
+exercises:
+  - metric: poste
+    key: node.jogger.exercise1
+  - metric: tension
+    key: node.jogger.exercise2
+primerCards:
+  - kind: real-world
+    media:
+      type: image
+      url: ""
+      art: theory-long-leash-1
+  - kind: virtual-dog

@@ -1,5 +1,7 @@
 # Writing a theory Lesson
 
+See also [Content Pack Format](../../content/FORMAT.md) for the pack file layout, schema, channels, and authoring workflow.
+
 How to write the theory Lessons of the Library and the trails, their illustrations and the Checkpoint questions that
 test them. A Lesson is plain data (`theoryLesson()` in `src/shell/lessons/content.ts`); its words live in the Spanish
 catalog (`src/i18n/es.ts` for the first week, `src/i18n/es.trail.ts` for the trails) and its pictures in

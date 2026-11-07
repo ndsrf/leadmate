@@ -32,6 +32,7 @@ import { theme, usePalette } from '../ui/theme';
 import { useMotion } from '../ui/useMotion';
 import { Screen } from './Screen';
 import { AdBanner, prepareAds } from '../ads';
+import { BetaContentBadge } from '../ui/BetaContentBadge';
 
 export interface WorldMapProps {
   t: Translate;
@@ -1214,7 +1215,10 @@ export function WorldMapScreen({
             accessibilityLabel={libraryToday ? `${t('library.chip')}. ${t('library.chipToday')}` : t('library.chip')}
           />
         </View>
-        <IconChip icon={<GearGlyph />} onPress={onSettings} accessibilityLabel={t('map.settings')} />
+        <View className="flex-row items-center" style={{ gap: theme.space[2] }}>
+          <BetaContentBadge t={t} />
+          <IconChip icon={<GearGlyph />} onPress={onSettings} accessibilityLabel={t('map.settings')} />
+        </View>
       </View>
       <View className="flex-row flex-wrap items-center" style={{ gap: theme.space[2] }}>
         <PlusChip t={t} state={state} daysRemaining={days} isSubscribed={isSubscribed} onPress={handlePlusPress} />

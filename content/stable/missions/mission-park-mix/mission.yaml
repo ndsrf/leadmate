@@ -1,0 +1,22 @@
+id: mission-park-mix
+technique: park-mix
+reps: 1
+trains:
+  - kind: node
+    id: park-mix
+problems:
+  - id: overwhelmed
+    label: overwhelmed
+    practise:
+      kind: node
+      id: park-mix
+  - id: food
+    label: food
+    practise:
+      kind: node
+      id: park-mix
+  - id: me
+    label: me
+    practise:
+      kind: node
+      id: park-mix

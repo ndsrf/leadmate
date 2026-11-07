@@ -1,0 +1,10 @@
+id: theory-long-leash
+kind: theory
+images:
+  - theory-long-leash-1
+  - theory-long-leash-2
+compare:
+  do: theory-long-leash-do
+  dont: theory-long-leash-dont
+steps: 5
+takeaways: 4

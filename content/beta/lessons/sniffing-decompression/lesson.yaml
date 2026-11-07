@@ -1,0 +1,12 @@
+id: sniffing-decompression
+kind: theory
+day: 5
+images:
+  - sniffing-decompression-1
+  - sniffing-decompression-2
+compare:
+  do: sniffing-decompression-do
+  dont: sniffing-decompression-dont
+animation: sniffing-decompression
+steps: 5
+takeaways: 3

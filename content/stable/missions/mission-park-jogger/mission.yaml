@@ -1,0 +1,22 @@
+id: mission-park-jogger
+technique: long-leash
+reps: 2
+trains:
+  - kind: node
+    id: park-jogger
+problems:
+  - id: chases
+    label: chases
+    practise:
+      kind: node
+      id: park-jogger
+  - id: tangle
+    label: tangle
+    practise:
+      kind: lesson
+      id: howto-long-leash
+  - id: surprise
+    label: surprise
+    practise:
+      kind: node
+      id: park-jogger

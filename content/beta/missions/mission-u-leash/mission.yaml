@@ -1,0 +1,22 @@
+id: mission-u-leash
+technique: slack-u
+reps: 1
+trains:
+  - kind: node
+    id: slack-u
+problems:
+  - id: lost
+    label: lost
+    practise:
+      kind: node
+      id: slack-u
+  - id: zigzag
+    label: zigzag
+    practise:
+      kind: node
+      id: slack-u
+  - id: treats
+    label: treats
+    practise:
+      kind: node
+      id: slack-u

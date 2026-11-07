@@ -9,8 +9,8 @@ import type { ButtonVariant } from './ui/styles';
 import { lightColor, usePalette } from './ui/theme';
 
 /** The shell's standard button, drawn by the game kit; `secondary` sits beside a primary, `quiet` is a link. */
-export function Button({ label, onPress, tone = 'primary', disabled, accessibilityLabel }: { label: string; onPress: () => void; tone?: ButtonVariant; disabled?: boolean; accessibilityLabel?: string }) {
-  return <GameButton label={label} onPress={onPress} variant={tone} disabled={disabled} accessibilityLabel={accessibilityLabel} />;
+export function Button({ label, onPress, tone = 'primary', disabled, accessibilityLabel, testID }: { label: string; onPress: () => void; tone?: ButtonVariant; disabled?: boolean; accessibilityLabel?: string; testID?: string }) {
+  return <GameButton label={label} onPress={onPress} variant={tone} disabled={disabled} accessibilityLabel={accessibilityLabel} testID={testID} />;
 }
 
 export function Backdrop({ children }: { children: React.ReactNode }) {

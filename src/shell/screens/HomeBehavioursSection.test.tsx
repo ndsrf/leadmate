@@ -86,11 +86,15 @@ describe('Home Behaviours section buttons', () => {
     mockPressables.length = 0;
   });
 
-  it('shows no Exercise button on a biting row', () => {
-    const markup = renderToStaticMarkup(<BehaviourActions t={t} entry={row('bite-owner', 1)} done={none} onOpen={() => {}} onBecomeConcern={() => {}} />);
-    const text = buttons(markup).map((b) => b.text);
-    expect(text).toEqual([es['home.part.lesson'], es['home.part.mission']]);
-    expect(markup).not.toContain(es['home.part.exercise']);
+  it('shows no Exercise button on bite-others row, but shows Exercise on bite-owner', () => {
+    const markupOthers = renderToStaticMarkup(<BehaviourActions t={t} entry={row('bite-others', 1)} done={none} onOpen={() => {}} onBecomeConcern={() => {}} />);
+    const textOthers = buttons(markupOthers).map((b) => b.text);
+    expect(textOthers).toEqual([es['home.part.lesson'], es['home.part.mission']]);
+    expect(markupOthers).not.toContain(es['home.part.exercise']);
+
+    const markupOwner = renderToStaticMarkup(<BehaviourActions t={t} entry={row('bite-owner', 1)} done={none} onOpen={() => {}} onBecomeConcern={() => {}} />);
+    const textOwner = buttons(markupOwner).map((b) => b.text);
+    expect(textOwner).toEqual([es['home.part.lesson'], es['home.part.exercise'], es['home.part.mission']]);
   });
 
   it('shows Lesson, Exercise and Mission on the others', () => {

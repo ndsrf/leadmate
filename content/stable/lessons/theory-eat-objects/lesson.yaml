@@ -1,0 +1,9 @@
+id: theory-eat-objects
+kind: theory
+images:
+  - theory-leave-it-1
+  - theory-leave-it-2
+compare: {}
+notice: lesson.note.vet
+steps: 6
+takeaways: 4

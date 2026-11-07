@@ -1,0 +1,22 @@
+id: mission-poste
+technique: poste
+reps: 3
+trains:
+  - kind: node
+    id: poste-practice
+problems:
+  - id: pulls
+    label: pulls
+    practise:
+      kind: node
+      id: poste-practice
+  - id: pulled
+    label: pulled
+    practise:
+      kind: lesson
+      id: theory-poste
+  - id: long
+    label: long
+    practise:
+      kind: node
+      id: poste-practice

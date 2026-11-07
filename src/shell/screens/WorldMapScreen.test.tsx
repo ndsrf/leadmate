@@ -68,7 +68,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { createTranslator, es } from '../../i18n';
 import { BarkdokuChip, NEXT_UP_PULSE_CYCLES, PlusChip, TrialStatusModal, WorldMapScreen } from './WorldMapScreen';
 import { NO_STREAK } from '../streak';
-import { findWorld, progressOf, stopsOf, worldTitle, type Progress, type Stop, type WorldDef } from '../world';
+import { findWorld, isWorldUnlocked, progressOf, stopsOf, worldTitle, type Progress, type Stop, type WorldDef } from '../world';
 import { LESSONS } from '../lessons/content';
 import { PUPPY_SATELLITE_STOPS } from '../puppyTrack';
 
@@ -412,10 +412,12 @@ describe('WorldMapScreen - Completed Worlds', () => {
   });
 
   it('keeps a World with an Owed Mission open, with its "Cerrar el mundo" panel', () => {
-    const missionId = stopsOf(basics).find((s) => s.kind === 'mission')!.id;
-    const markup = render({ progress: done(['basics'], { [missionId]: skipped }) });
-    expect(mockPressables.filter((p) => String(p.accessibilityLabel ?? '').includes(es['map.worldCompleted']))).toEqual([]);
-    expect(markup).toContain('testID="environmental-backdrop-basics"');
+    const home = findWorld('home')!;
+    const homeTitle = worldTitle(home, t);
+    const missionId = stopsOf(home).find((s) => s.kind === 'mission')!.id;
+    const markup = render({ progress: done(['basics', 'home'], { [missionId]: skipped }) });
+    expect(mockPressables.filter((p) => String(p.accessibilityLabel ?? '').startsWith(homeTitle))).toEqual([]);
+    expect(markup).toContain('testID="environmental-backdrop-home"');
     expect(markup).toContain(es['map.closeWorld.title']);
   });
 });
@@ -766,6 +768,47 @@ describe('WorldMapScreen - Home Behaviours section', () => {
 
   it('hides the section without the home props', () => {
     expect(renderToStaticMarkup(<WorldMapScreen {...base} />)).not.toContain(es['home.title']);
+  });
+});
+
+describe('Task 6.1b: Pack-marked Plus World paywall verification', () => {
+  const t = createTranslator(es);
+
+  it('verifies pack-marked Plus World still shows the paywall to a free user', () => {
+    const onPaywall = jest.fn();
+    // In the resolved pack, world 6 ('recall') is tier: 'plus'
+    const recallWorld = findWorld('recall');
+    expect(recallWorld).toBeDefined();
+    expect(recallWorld?.tier).toBe('plus');
+
+    // Free user without Plus entitlement
+    const freeProgress = progressOf([]);
+    expect(freeProgress.plus).toBeFalsy();
+    expect(isWorldUnlocked(recallWorld!, freeProgress)).toBe(false);
+
+    const base = {
+      t,
+      progress: freeProgress,
+      stars: {},
+      now: new Date('2026-10-28T09:00:00'),
+      streak: NO_STREAK,
+      today: '2026-10-28',
+      dailyBest: undefined,
+      rustyPrompt: false,
+      rusty: false,
+      skippedWarmup: false,
+      onWarmup: () => {},
+      onSkipWarmup: () => {},
+      onDaily: () => {},
+      onBarkdoku: () => {},
+      onOpenStop: () => {},
+      onSettings: () => {},
+      onPaywall,
+    };
+
+    const markup = renderToStaticMarkup(<WorldMapScreen {...base} />);
+    // The Plus badge for pack-marked plus worlds is rendered
+    expect(markup).toContain(es['world.plusBadge']);
   });
 });
 

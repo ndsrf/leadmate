@@ -1,0 +1,10 @@
+id: theory-poste
+kind: theory
+images:
+  - theory-poste-1
+  - theory-poste-2
+compare:
+  do: theory-poste-do
+  dont: theory-poste-dont
+steps: 5
+takeaways: 3

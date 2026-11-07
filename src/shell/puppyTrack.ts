@@ -44,7 +44,7 @@ export const PUPPY_SATELLITE_STOPS: readonly PuppySatelliteStopDef[] = [
   {
     id: 'puppy-bite',
     lessonId: 'puppy-bite',
-    parentStopId: 'calm-hands',
+    parentStopId: 'dog-as-dog',
     stretchIndex: 0,
     title: 'trail.puppy-bite.title',
   },

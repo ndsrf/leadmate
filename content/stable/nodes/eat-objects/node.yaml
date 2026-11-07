@@ -1,0 +1,16 @@
+id: eat-objects
+mode: minigame
+prerequisites: []
+simulation:
+  minigame: eat-objects
+exercises:
+  - metric: timing
+    key: node.eatobjects.exercise1
+  - metric: tension
+    key: node.eatobjects.exercise2
+primerCards:
+  - kind: real-world
+    media:
+      type: image
+      url: ""
+      art: theory-leave-it-1
