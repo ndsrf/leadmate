@@ -4,6 +4,7 @@ import type { Celebration } from '../celebrations';
 import { clockTime, stopTitle } from '../mapText';
 import { activeTarget, briefTitle, checkInQuestion, checkInOpensAt, offerEasier, opensAtMidnight, OTHER_PROBLEM, todaysAttempt, type Fix, type MissionDef, type MissionState } from '../missions/mission';
 import type { DiaryOutcome } from '../streak';
+import { withDogName } from '../onboarding/intro';
 import { Button } from '../Overlays';
 import { Badge, OptionCard, Panel } from '../ui/components';
 import { CelebrationList } from '../ui/CelebrationList';
@@ -59,6 +60,45 @@ function EasierOffer({ t, onAccept }: { t: Translate; onAccept: () => void }) {
       <Text className="mt-1 text-body text-ink">{t('mission.offer.body')}</Text>
       <Button label={t('mission.offer.accept')} onPress={onAccept} />
     </Panel>
+  );
+}
+
+/**
+ * A World 1 Check: asks the user if they already practice this behaviour at home.
+ * Answering "Yes" completes the mission immediately (no wait), while "No" proceeds to the full Mission Brief.
+ */
+export function MissionCheckScreen({
+  t,
+  mission,
+  dogName,
+  onAlreadyDone,
+  onNeedMission,
+  onClose,
+}: {
+  t: Translate;
+  mission: MissionDef;
+  dogName?: string;
+  onAlreadyDone: () => void;
+  onNeedMission: () => void;
+  onClose: () => void;
+}) {
+  const neutral = t('dog.neutral');
+  const question = withDogName(t('mission.check.question'), dogName || '', neutral);
+  return (
+    <Screen>
+      <MissionHeading t={t} mission={mission} heading="mission.check.heading" />
+      <Panel tone="info" className="mb-4">
+        <Text className="font-display text-title text-ink">{question}</Text>
+        <Text className="mt-2 text-body text-inkMuted leading-relaxed">{t('mission.check.hint')}</Text>
+      </Panel>
+      <Panel tone="warn" className="mb-4">
+        <Text className="font-display text-label text-ink">{t('mission.brief.what')}</Text>
+        <Text className="mt-1 text-bodyL text-ink leading-relaxed">{t(mission.target)}</Text>
+      </Panel>
+      <Button label={t('mission.check.alreadyDone')} onPress={onAlreadyDone} />
+      <Button label={t('mission.check.needMission')} tone="secondary" onPress={onNeedMission} />
+      <Button label={t('mission.brief.later')} tone="quiet" onPress={onClose} />
+    </Screen>
   );
 }
 

@@ -536,6 +536,21 @@ export function applyMissionCheckIn(record: DogRecord, mission: MissionDef, outc
 }
 
 /**
+ * Completes a Mission directly without a waiting gate (e.g. for the World 1 check when the user already does it).
+ * Marks the day active on the Streak.
+ */
+export function passMissionDirectly(record: DogRecord, missionId: string, now: Date): DogRecord {
+  const before = record.missions[missionId] ?? NEW_MISSION;
+  const date = localDateString(now);
+  const after: MissionState = { ...before, passedOn: date };
+  return {
+    ...record,
+    missions: { ...record.missions, [missionId]: after },
+    streak: markActive(record.streak, date),
+  };
+}
+
+/**
  * A Day Skip (ADR 0014): the waiting Mission becomes owed and the skip is logged for the Diary. A skip that does not
  * apply returns the same record. Streak, Walk Diary and Learning Attributes are never touched.
  */

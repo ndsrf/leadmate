@@ -5,20 +5,26 @@ import { canCheckIn, type MissionState } from './mission';
 
 /**
  * Which screen a Mission opens on: the passed screen once passed (or grandfathered, so "Start mission" can never
- * un-grandfather it), its brief before "Start mission", the check-in once due, the wait otherwise.
+ * un-grandfather it), its World 1 check if not started, its brief before "Start mission", the check-in once due, the wait otherwise.
  */
-export type MissionEntry = 'brief' | 'waiting' | 'checkin' | 'passed';
+export type MissionEntry = 'check' | 'brief' | 'waiting' | 'checkin' | 'passed';
 
-export function missionEntryView(state: MissionState | undefined, now: Date, grandfathered = false): MissionEntry {
+/** True for a Mission that belongs to World 1 (the Basics World). */
+export function isWorldOneMission(missionId: string, worlds: readonly WorldDef[] = WORLDS): boolean {
+  return placeOf({ kind: 'mission', id: missionId }, worlds)?.world.id === 'basics';
+}
+
+export function missionEntryView(state: MissionState | undefined, now: Date, grandfathered = false, isWorldOne = false): MissionEntry {
   if (state?.passedOn || grandfathered) return 'passed';
-  if (!state?.startedAt) return 'brief';
+  if (!state?.startedAt) return isWorldOne ? 'check' : 'brief';
   return canCheckIn(state, now) ? 'checkin' : 'waiting';
 }
 
 /** The entry screen of a Mission Stop for the Dog's progress, a grandfathered Mission included. */
-export function missionEntryOf(missionId: string, progress: Progress, now: Date): MissionEntry {
-  const grandfathered = !!stopStatus({ kind: 'mission', id: missionId }, progress, now).grandfathered;
-  return missionEntryView(progress.missions[missionId], now, grandfathered);
+export function missionEntryOf(missionId: string, progress: Progress, now: Date, worlds: readonly WorldDef[] = WORLDS): MissionEntry {
+  const grandfathered = !!stopStatus({ kind: 'mission', id: missionId }, progress, now, worlds).grandfathered;
+  const isWorldOne = isWorldOneMission(missionId, worlds);
+  return missionEntryView(progress.missions[missionId], now, grandfathered, isWorldOne);
 }
 
 /**

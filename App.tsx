@@ -21,7 +21,7 @@ import { BUNDLE_MESSAGE_TYPES, decode, type BundleMessage, type ShellMessage, ty
 import { newSeed } from './src/sim/rng';
 import { playDogSound, playResolvedCue, prepareAudio } from './src/shell/audio';
 import { createVocalizer } from './src/shell/vocalize';
-import { applyDaySkip, applyMissionCheckIn, recordDailyBarkdoku, setHomeConcern, toSnapshot, updateMission } from './src/shell/dogRecord';
+import { applyDaySkip, applyMissionCheckIn, passMissionDirectly, recordDailyBarkdoku, setHomeConcern, toSnapshot, updateMission } from './src/shell/dogRecord';
 import { rebuildPlan } from './src/shell/onboarding/plan';
 import { starsFor } from './src/shell/stars';
 import { lookOf } from './src/shell/onboarding/look';
@@ -47,9 +47,9 @@ import { homeMissionAfter } from './src/shell/homeBehaviours';
 import { canSkipDay, missionAfterDebrief, missionEntryOf, missionForDebrief } from './src/shell/missions/missionView';
 import { getBillingService } from './src/shell/billing';
 import { applyBillingSubscription, canStartTrial, computeTrialRecap, isPlus, pendingSkipMission, progressAt, startTrialThen, subscribeThen, trialState, type PendingPlusAction } from './src/shell/plus';
-import { FixScreen, MissionBriefScreen, MissionCheckInScreen, MissionPassedScreen, MissionProblemScreen, MissionWaitingScreen } from './src/shell/screens/MissionScreens';
+import { FixScreen, MissionBriefScreen, MissionCheckInScreen, MissionCheckScreen, MissionPassedScreen, MissionProblemScreen, MissionWaitingScreen } from './src/shell/screens/MissionScreens';
 import type { Concern } from './src/shell/concerns';
-import { worldsFor, type Stop } from './src/shell/world';
+import { WORLDS, worldsFor, type Stop } from './src/shell/world';
 import { lessonDay, markLessonRead, todaysLesson } from './src/shell/lessons/lesson';
 import { LessonScreen, LibraryScreen } from './src/shell/screens/LessonScreens';
 import { WorldMapScreen } from './src/shell/screens/WorldMapScreen';
@@ -108,7 +108,7 @@ type Flow =
   /** The paywall from the map, or from a Plus-only action (`then`) that "Empezar prueba" completes. */
   | { name: 'paywall'; then?: PendingPlusAction }
   | { name: 'puzzle'; date: string };
-type MissionView = 'brief' | 'waiting' | 'checkin' | 'problem' | 'fix' | 'passed';
+type MissionView = 'check' | 'brief' | 'waiting' | 'checkin' | 'problem' | 'fix' | 'passed';
 
 function isCloseExerciseFlow(route: Route<Flow>): boolean {
   return route.name === 'flow' && route.flow.name === 'node' && route.flow.run.node.mode === 'close_exercise';
@@ -613,12 +613,13 @@ export default function App() {
     });
 
   /** The screen a Mission opens on now. */
-  const missionEntry = (id: string) => {
+  const missionEntry = (id: string): MissionView => {
     const now = new Date();
-    return recordRef.current ? missionEntryOf(id, progressAt(recordRef.current, now), now) : 'brief';
+    const worlds = recordRef.current ? worldsFor(recordRef.current.onboarding.plan, recordRef.current) : WORLDS;
+    return recordRef.current ? missionEntryOf(id, progressAt(recordRef.current, now), now, worlds) : 'brief';
   };
 
-  /** Opens a Stop by kind: a Lesson Stop returns to the map, a Node starts, a Mission opens on its brief, wait or check-in. */
+  /** Opens a Stop by kind: a Lesson Stop returns to the map, a Node starts, a Mission opens on its check, brief, wait or check-in. */
   const openStop = (stop: Stop) => {
     setSettingsOpen(false);
     if (stop.kind === 'lesson') setFlow({ name: 'lesson', id: stop.id, returnTo: 'map' });
@@ -626,6 +627,21 @@ export default function App() {
       const node = findNode(stop.id);
       if (node) startNodeRun(node);
     } else setFlow({ name: 'mission', id: stop.id, view: missionEntry(stop.id) });
+  };
+
+  /** Completes a World 1 check immediately without a waiting gate. */
+  const confirmMissionCheck = (id: string) => {
+    const mission = findMission(id);
+    if (!mission) return;
+    const now = new Date();
+    let diff: Celebration[] = [];
+    update((r) => {
+      const after = passMissionDirectly(r, id, now);
+      diff = celebrationsFor(progressAt(r, now), progressAt(after, now), { kind: 'mission', missionId: id });
+      return after;
+    });
+    setCelebrations({ id: `mission:${id}`, list: diff });
+    setFlow({ name: 'mission', id, view: 'passed' });
   };
 
   /** A Mission check-in answer: "Costó un poco" first asks what went wrong; a pass celebrates. */
@@ -1072,6 +1088,17 @@ export default function App() {
       const state = record.missions[f.id];
       const close = () => (f.returnTo === 'library' ? setFlow({ name: 'library' }) : goHome());
       if (!mission) screen = null;
+      else if (f.view === 'check')
+        screen = (
+          <MissionCheckScreen
+            t={t}
+            mission={mission}
+            dogName={record.name}
+            onAlreadyDone={() => confirmMissionCheck(mission.id)}
+            onNeedMission={() => setFlow({ ...f, view: 'brief' })}
+            onClose={withBack(close)}
+          />
+        );
       else if (f.view === 'brief')
         screen = (
           <MissionBriefScreen
@@ -1292,7 +1319,7 @@ export default function App() {
               // a Home Node's Debrief opens its Home Mission's brief; a Stretch's last Node opens the Stretch's Mission
               const next = homeMissionAfter({ kind: 'node', id: run.node.id }, record) ?? missionAfterDebrief(run.node.id, progressAt(record, new Date()), new Date(), worldsFor(record.onboarding.plan, record));
               if (next) {
-                setFlow({ name: 'mission', id: next, view: 'brief' });
+                setFlow({ name: 'mission', id: next, view: missionEntry(next) });
               } else {
                 if (recordRef.current && !isPlus(recordRef.current, new Date())) {
                   await getAdService().showInterstitial().catch(() => {});

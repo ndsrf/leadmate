@@ -10,11 +10,17 @@ stretches:
       id: howto-choose-action
     - kind: node
       id: dog-as-dog
+    - kind: mission
+      id: mission-dog-as-dog
   - - kind: lesson
       id: theory-home-rest
     - kind: node
       id: home-rest
+    - kind: mission
+      id: mission-home-rest
   - - kind: lesson
       id: theory-calm-first
     - kind: node
       id: calm-first
+    - kind: mission
+      id: mission-calm-first

@@ -33,6 +33,10 @@ export const BASELINE_PACK: ContentPack = {
             {
               "kind": "node",
               "id": "dog-as-dog"
+            },
+            {
+              "kind": "mission",
+              "id": "mission-dog-as-dog"
             }
           ],
           [
@@ -43,6 +47,10 @@ export const BASELINE_PACK: ContentPack = {
             {
               "kind": "node",
               "id": "home-rest"
+            },
+            {
+              "kind": "mission",
+              "id": "mission-home-rest"
             }
           ],
           [
@@ -53,6 +61,10 @@ export const BASELINE_PACK: ContentPack = {
             {
               "kind": "node",
               "id": "calm-first"
+            },
+            {
+              "kind": "mission",
+              "id": "mission-calm-first"
             }
           ]
         ]

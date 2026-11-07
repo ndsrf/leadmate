@@ -71,10 +71,11 @@ describe('World unlocking', () => {
     for (const id of ['home', 'sidewalk', 'urban', 'park', 'recall', 'cafe', 'trails', 'crowds']) expect(isWorldUnlocked(world(id), progressOf([]))).toBe(false);
   });
 
-  it('keeps Home locked until every Stop of the Basics World is done', () => {
+  it('keeps Home locked until every Stop of the Basics World is done, its last Mission included', () => {
     const basics = finished('basics');
-    const almost = { ...basics, completedNodes: basics.completedNodes.filter((id) => id !== 'calm-first') };
-    expect(isWorldUnlocked(world('home'), almost)).toBe(false);
+    const lastBasics = world('basics').stretches[2][2].id;
+    const waitingBasics = { ...basics, missions: { ...basics.missions, [lastBasics]: { target: 'full' as const, skipRun: 0, attempts: [], startedAt: '2026-05-01T08:00:00.000Z' } } };
+    expect(isWorldUnlocked(world('home'), waitingBasics)).toBe(false);
     expect(isWorldUnlocked(world('home'), basics)).toBe(true);
   });
 
@@ -248,7 +249,7 @@ function trailProblems(worlds: readonly WorldDef[], missions: readonly MissionDe
     w.stretches.forEach((stops, i) => {
       const where = `${w.id} stretch ${i + 1}`;
       const missionsHere = stops.filter((s) => s.kind === 'mission');
-      if (w.id !== 'basics' && (missionsHere.length !== 1 || stops[stops.length - 1].kind !== 'mission')) problems.push(`${where}: must end in exactly one Mission`);
+      if (missionsHere.length !== 1 || stops[stops.length - 1].kind !== 'mission') problems.push(`${where}: must end in exactly one Mission`);
       const def = missions.find((m) => m.id === stops[stops.length - 1]?.id);
       for (const s of stops) {
         const key = `${s.kind}:${s.id}`;
@@ -570,14 +571,15 @@ describe('worldTitle', () => {
 describe('World 1: the Basics World', () => {
   const basics = world('basics');
 
-  it('holds three Stretches without missions or pauses, with a theory Lesson before each Node', () => {
+  it('holds three Stretches, each ending in its home Mission, with a theory Lesson before each Node', () => {
     expect(basics.worldNumber).toBe(1);
     expect(basics.unlockedBy).toBeUndefined();
     expect(basics.stretches.map((s) => s.map((x) => x.id))).toEqual([
-      ['theory-named-behaviours', 'theory-dog-as-dog', 'howto-choose-action', 'dog-as-dog'],
-      ['theory-home-rest', 'home-rest'],
-      ['theory-calm-first', 'calm-first'],
+      ['theory-named-behaviours', 'theory-dog-as-dog', 'howto-choose-action', 'dog-as-dog', 'mission-dog-as-dog'],
+      ['theory-home-rest', 'home-rest', 'mission-home-rest'],
+      ['theory-calm-first', 'calm-first', 'mission-calm-first'],
     ]);
+    for (const s of stopsOf(basics).filter((x) => x.kind === 'mission')) expect(MISSIONS.find((m) => m.id === s.id)!.place).toBe('home');
     expect(findLesson('howto-choose-action')!.kind).toBe('how-to-play');
   });
 
@@ -618,9 +620,10 @@ describe('Lessons of a Stretch and the how-to-play Lesson', () => {
     expect(stopLock({ kind: 'node', id: 'dog-as-dog' }, progressOf([], { readLessons: ['theory-dog-as-dog', 'theory-named-behaviours'] }))).toMatchObject({ kind: 'stops', stops: [lessonStop('howto-choose-action')] });
     const allRead = progressOf([], { readLessons: ['howto-choose-action', 'theory-dog-as-dog', 'theory-named-behaviours'] });
     expect(stopLock({ kind: 'node', id: 'dog-as-dog' }, allRead)).toBeNull();
+    expect(stopLock({ kind: 'mission', id: 'mission-dog-as-dog' }, allRead)).toMatchObject({ kind: 'stops' });
   });
-  it('still closes a Lesson behind an uncompleted earlier Node or a locked World', () => {
-    expect(stopLock(lessonStop('theory-home-rest'), progressOf([]))).toMatchObject({ kind: 'stops' });
+  it('still closes a Lesson behind an unpassed earlier Mission or a locked World', () => {
+    expect(stopLock(lessonStop('theory-home-rest'), progressOf([]))).toMatchObject({ kind: 'mission', id: 'mission-dog-as-dog' });
     expect(stopLock(lessonStop('theory-harness'), progressOf([]))).toEqual({ kind: 'world' });
   });
   it('starts World 1 with "Tiene nombre", and every living-room Node requires how to play', () => {
@@ -688,7 +691,7 @@ describe('worldsFor', () => {
   it('opens the first Stretch a Dog can finish, even when the plan names a later one', () => {
     const worlds = worldsFor([{ stretchId: 'theory-home-rest' }], progressOf([]));
     expect(stopLock({ kind: 'lesson', id: 'howto-choose-action' }, progressOf([]), worlds)).toBeNull();
-    expect(stopLock({ kind: 'lesson', id: 'theory-home-rest' }, progressOf([]), worlds)).toMatchObject({ kind: 'stops' });
+    expect(stopLock({ kind: 'lesson', id: 'theory-home-rest' }, progressOf([]), worlds)).toMatchObject({ kind: 'mission' });
   });
 
   it('ignores an unknown Stretch', () => {

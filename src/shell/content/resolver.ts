@@ -367,9 +367,6 @@ export function resolvePack(pack: ContentPack, language: string = 'es', options?
   // 4. Resolve Missions
   const trailMissionIds = worlds.flatMap((w) => w.stretches.flatMap((s) => s.filter((st) => st.kind === 'mission').map((st) => st.id)));
   const homeMissionOrder = [
-    'mission-dog-as-dog',
-    'mission-home-rest',
-    'mission-calm-first',
     'mission-bite-owner',
     'mission-bite-others',
     'mission-bark-home',
