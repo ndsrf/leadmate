@@ -412,10 +412,12 @@ describe('WorldMapScreen - Completed Worlds', () => {
   });
 
   it('keeps a World with an Owed Mission open, with its "Cerrar el mundo" panel', () => {
-    const missionId = stopsOf(basics).find((s) => s.kind === 'mission')!.id;
-    const markup = render({ progress: done(['basics'], { [missionId]: skipped }) });
-    expect(mockPressables.filter((p) => String(p.accessibilityLabel ?? '').includes(es['map.worldCompleted']))).toEqual([]);
-    expect(markup).toContain('testID="environmental-backdrop-basics"');
+    const home = findWorld('home')!;
+    const homeTitle = worldTitle(home, t);
+    const missionId = stopsOf(home).find((s) => s.kind === 'mission')!.id;
+    const markup = render({ progress: done(['basics', 'home'], { [missionId]: skipped }) });
+    expect(mockPressables.filter((p) => String(p.accessibilityLabel ?? '').startsWith(homeTitle))).toEqual([]);
+    expect(markup).toContain('testID="environmental-backdrop-home"');
     expect(markup).toContain(es['map.closeWorld.title']);
   });
 });

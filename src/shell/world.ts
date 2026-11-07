@@ -246,7 +246,10 @@ export function stopLock(stop: Stop, progress: Progress, worlds: readonly WorldD
   if (!isWorldUnlocked(world, progress, worlds) && !startedHome) return { kind: 'world' };
   for (let s = 0; s < stretch; s++) {
     const last = world.stretches[s].length - 1;
-    if (!doneness(world, s, last, progress).done) return { kind: 'mission', id: world.stretches[s][last].id };
+    const lastStop = world.stretches[s][last];
+    if (!doneness(world, s, last, progress).done) {
+      return lastStop.kind === 'mission' ? { kind: 'mission', id: lastStop.id } : { kind: 'stops', stops: [lastStop] };
+    }
   }
   // the Lessons of a Stretch are all open at once; a Node or Mission needs every Stop before it done
   // a Node that opens after one Lesson (the close-view drill) does not wait for the Stretch's other Lessons

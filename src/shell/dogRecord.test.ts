@@ -454,8 +454,8 @@ describe('Dog record: version 7 (Missions)', () => {
   it('migrates an older record: empty Missions and Fixes, and a snapshot of its completed Nodes', () => {
     const r = migrateRecord({ version: 6, completedNodes: ['harness-ritual', 'doorbell-mat'] });
     expect(r.version).toBe(10);
-    // only the Basics World's Missions, passed by the version 8 migration
-    expect(Object.keys(r.missions).sort()).toEqual(['mission-calm-first', 'mission-dog-as-dog', 'mission-home-rest']);
+    // Basics World now has no Missions, so missions map remains empty
+    expect(Object.keys(r.missions).sort()).toEqual([]);
     expect(r.seenFixes).toEqual([]);
     expect(r.legacyNodes).toEqual(['harness-ritual', 'doorbell-mat']);
   });

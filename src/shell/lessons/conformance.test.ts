@@ -134,9 +134,8 @@ describe('World 1 teaches no physical correction', () => {
   const BANNED = /(pegar|golpe|patada|empujar|zarandear|cachete)/i;
   const stops = stopsOf(findWorld('basics')!);
   const lessonKeys = stops.flatMap((s) => (s.kind === 'lesson' ? [findLesson(s.id)!.title, ...lessonTextKeys(findLesson(s.id)!.blocks)] : []));
-  const missionKeys = stops.flatMap((s) => {
-    if (s.kind !== 'mission') return [];
-    const m = findMission(s.id)!;
+  const basicsMissions = ['mission-dog-as-dog', 'mission-home-rest', 'mission-calm-first'].map((id) => findMission(id)!).filter(Boolean);
+  const missionKeys = basicsMissions.flatMap((m) => {
     const fixes = [...m.problems.map((p) => p.fix), m.generalFix];
     return [m.title, m.target, m.successSign, ...m.problems.map((p) => p.label), ...fixes.flatMap((f) => [...lessonTextKeys(f.blocks), f.easierTarget])];
   });
