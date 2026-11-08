@@ -400,7 +400,7 @@ Educational content lives in plain Markdown and YAML under `content/<channel>/` 
 
 ```
 content/<channel>/
-  pack.yaml                    # formatVersion, minAppVersion, languages, retired IDs
+  pack.yaml                    # formatVersion, contentVersion, minAppVersion, languages, retired IDs
   worlds/<id>.yaml             # stretches, tier, unlocks
   worlds/<id>/<lang>.md        # world title and topics
   lessons/<id>/                # lesson.yaml, es.md, media/
@@ -425,7 +425,7 @@ When authoring lessons, worlds, nodes or missions locally:
    ```bash
    npm run content:promote
    ```
-   This command validates `beta`, syncs verified changes into `content/stable/`, and regenerates `src/shell/content/baseline.generated.ts`. Metro immediately hot-reloads the changes into Expo Go or emulators—**no backend, credentials, or cloud setup required**.
+   This command validates `beta`, syncs verified changes into `content/stable/`, and regenerates `src/shell/content/baseline.generated.ts`. It intentionally preserves `content/stable/pack.yaml`'s existing `contentVersion` as a staging safeguard. Metro immediately hot-reloads the changes into Expo Go or emulators—**no backend, credentials, or cloud setup required**.
 
 #### 2. Remote Over-The-Air Publishing (Supabase)
 
@@ -436,17 +436,16 @@ To push content updates dynamically to installed apps over the air without code 
    ```bash
    EXPO_PUBLIC_CONTENT_BASE="https://<project-ref>.supabase.co/storage/v1/object/public/content"
    ```
-3. **Publish content**:
+3. **Bump version in `pack.yaml`**: In `content/<channel>/pack.yaml`, increment `contentVersion` (positive integer). Git is the single source of truth for pack versions.
+4. **Publish content**:
    ```bash
    SUPABASE_SERVICE_ROLE_KEY="..." EXPO_PUBLIC_SUPABASE_URL="https://<project-ref>.supabase.co" npm run content:publish -- --channel beta
    ```
-4. **Switch in app**: In **Ajustes (Settings)**, tap the version number 7 times to reveal the content channel selector, then select **Beta**. The app downloads the pack into native storage, validates it, and hot-swaps to the Beta channel with the "Beta content" indicator. Switching back to Stable works offline.
+   The publish command automatically validates, builds the pack, checks remote `latest.json`, verifies that `pack.yaml.contentVersion > remote.contentVersion`, and uploads hashed files, manifests, and pointer files.
+5. **Switch in app**: In **Ajustes (Settings)**, tap the version number 7 times to reveal the content channel selector, then select **Beta**. The app downloads the pack into native storage, validates it, and hot-swaps to the Beta channel with the "Beta content" indicator. Switching back to Stable works offline.
 
 **Content versions.** Apps compare version numbers, not file contents: an edit published under the same
-`contentVersion` is ignored by devices that already have it. Build every change with a higher number, then publish:
-`npm run content:build -- --channel beta --content-version 3`. Settings shows the live version once the Content
-channel control is visible ("Beta · v3"). The app checks once per launch: a release build stages the new pack and
-applies it on the next launch; a development build applies it at once. A progress banner shows while files download.
+`contentVersion` is ignored by devices that already have it. Always bump `contentVersion` in `content/<channel>/pack.yaml` before publishing. The publisher will fail fast if the version has not been incremented past remote `latest.json`. Settings shows the live version once the Content channel control is visible (e.g. "Beta · v4" or "Stable · v1"). On launch, if the app binary already bundles a baseline with matching or higher `contentVersion`, it resolves immediately as up-to-date with zero network downloads. When an update is detected, the app checks once per launch: a release build stages the new pack and applies it on the next launch; a development build applies it at once. A progress banner shows while files download.
 
 ### Authoring Commands
 
@@ -463,7 +462,7 @@ npm run content:build -- --channel beta
 # Watch channel for changes and rebuild automatically during development
 npm run content:watch -- --channel beta
 
-# Promote validated beta content to stable (syncs content/beta/ to content/stable/ and regenerates bundled baseline)
+# Promote validated beta content to stable (syncs content/beta/ to content/stable/, preserves stable pack.yaml contentVersion, and regenerates bundled baseline)
 npm run content:promote
 
 # Publish channel to Supabase Storage (uploads hashed files, manifests, and latest.json)
@@ -483,7 +482,8 @@ Publishing uploads files into the public `content` bucket in Supabase Storage (`
    export SUPABASE_SERVICE_ROLE_KEY="eyJhbGci..."
    ```
 2. **SECURITY WARNING:** NEVER add `SUPABASE_SERVICE_ROLE_KEY` to client-facing `.env.local` with the `EXPO_PUBLIC_` prefix, and NEVER commit service-role keys to git. Service-role keys must only exist on trusted author machines and CI runners.
-3. Stable publication protection: `npm run content:publish -- --channel stable` always prompts for explicit confirmation naming the version to prevent accidental production deployments, unless overridden with `--yes`.
+3. **Version drift protection:** `npm run content:publish` queries remote `latest.json` and rejects publishing if `pack.yaml`'s `contentVersion` is less than or equal to the remote channel version (unless `--rollback` is explicitly provided).
+4. **Stable publication protection:** `npm run content:publish -- --channel stable` always prompts for explicit confirmation naming the version to prevent accidental production deployments, unless overridden with `--yes`.
 
 ## UI kit and feedback
 
