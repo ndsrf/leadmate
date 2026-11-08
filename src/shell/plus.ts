@@ -92,6 +92,7 @@ export interface VideoGatingProps {
 export type PendingPlusAction =
   | { kind: 'skip'; missionId: string }
   | { kind: 'video'; lessonId: string; returnTo?: 'map' | 'library' }
+  | { kind: 'barkdoku' }
   | { skipMission: string };
 
 /** Extracts the mission id if this pending action is a day skip (supporting legacy untagged shape). */

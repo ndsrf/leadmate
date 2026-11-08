@@ -22,6 +22,7 @@ function mockStub(name: string) {
   const Stub = (props: any) => {
     mockProps[name] = props;
     R.useEffect(() => {
+      mockProps[name] = props;
       mockMounted[name] = (mockMounted[name] ?? 0) + 1;
       return () => {
         mockMounted[name] -= 1;
@@ -72,7 +73,7 @@ jest.mock('./shell/audio', () => ({ playDogSound: () => {}, playResolvedCue: () 
 jest.mock('./shell/billing', () => ({
   getBillingService: () => ({ initialize: () => Promise.resolve(), checkEntitlements: () => Promise.resolve(null) }),
 }));
-jest.mock('./shell/ads', () => ({ getAdService: () => ({ preloadInterstitial: () => Promise.resolve(), showInterstitial: () => Promise.resolve() }) }));
+jest.mock('./shell/ads', () => ({ getAdService: () => ({ preloadInterstitial: () => Promise.resolve(), showInterstitial: () => Promise.resolve(), clearCache: () => {} }) }));
 jest.mock('./shell/storage', () => ({
   dogStore: {
     getItem: async (k: string) => mockStore.get(k) ?? null,
@@ -131,6 +132,7 @@ jest.mock('./shell/Overlays', () => mockScreens());
 
 import App from '../App';
 import { newDogRecord, NEW_ONBOARDING, RECORD_KEY, RECORD_VERSION } from './shell/dogRecord';
+import { todayString } from './shell/daily';
 import { BARKDOKU_INTRO_NODE, CALM_HANDS_NODE, CLOSE_PASS_NODE, WALK_DISTRACTION } from './shell/nodes/content';
 
 const LOAD_TIMEOUT_MS = 20000;
@@ -393,5 +395,103 @@ describe('App - Stage view lifecycle', () => {
     expect(latest('ResumeOverlay')).toBeUndefined();
     expect(latest('DailyResultScreen')).toBeDefined();
     expect(mockSim.live).toBe(0);
+  });
+
+  describe('Barkdoku multi-board and tier integration', () => {
+    it('free user sees practice mode on replay and triggers paywall on upgrade', async () => {
+      await openMap();
+      // Open Barkdoku from WorldMapScreen
+      act(() => latest('WorldMapScreen').onBarkdoku());
+      expect(latest('BarkdokuView')).toBeDefined();
+      expect(latest('BarkdokuView').tier).toBe('free');
+      expect(latest('BarkdokuView').practice).toBe(false);
+      expect(latest('BarkdokuView').boardIndex).toBe(0);
+
+      // Solve first board of the day
+      act(() => {
+        latest('BarkdokuView').onFinish(
+          { solved: true, durationSeconds: 60, mistakes: 0, treatsLeft: 3, stars: 3, withinTarget: true },
+          { size: 5, difficulty: 'easy', durationSeconds: 60, mistakes: 0, treatsLeft: 3 },
+        );
+      });
+
+      // Returned to map
+      expect(latest('WorldMapScreen')).toBeDefined();
+
+      // Replay on same day
+      act(() => latest('WorldMapScreen').onBarkdoku());
+      expect(latest('BarkdokuView')).toBeDefined();
+      expect(latest('BarkdokuView').tier).toBe('free');
+      expect(latest('BarkdokuView').practice).toBe(true);
+      expect(latest('BarkdokuView').boardIndex).toBe(0);
+
+      // Free user taps upgrade
+      act(() => latest('BarkdokuView').onUpgrade());
+      expect(latest('PaywallScreen')).toBeDefined();
+
+      // Converts by starting trial
+      await act(async () => {
+        latest('PaywallScreen').onStartTrial();
+      });
+
+      // Directly transitions to fresh Barkdoku board 1
+      expect(latest('BarkdokuView')).toBeDefined();
+      expect(latest('BarkdokuView').boardIndex).toBe(1);
+      expect(latest('BarkdokuView').practice).toBe(false);
+      expect(latest('BarkdokuView').tier).toBe('trial');
+    });
+
+    it('Plus subscriber advances through multiple distinct boards', async () => {
+      // Setup Plus subscriber
+      const record = {
+        ...newDogRecord(),
+        onboarding: { ...NEW_ONBOARDING, step: 'done' as const, mockSubscribed: true },
+        version: RECORD_VERSION,
+      };
+      mockStore.set(RECORD_KEY, JSON.stringify(record));
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+
+      // Open Barkdoku
+      act(() => latest('WorldMapScreen').onBarkdoku());
+      expect(latest('BarkdokuView')).toBeDefined();
+      expect(latest('BarkdokuView').tier).toBe('plus');
+      expect(latest('BarkdokuView').boardIndex).toBe(0);
+      expect(latest('BarkdokuView').practice).toBe(false);
+
+      // Complete board 0
+      act(() => {
+        latest('BarkdokuView').onFinish(
+          { solved: true, durationSeconds: 50, mistakes: 0, treatsLeft: 3, stars: 3, withinTarget: true },
+          { size: 5, difficulty: 'easy', durationSeconds: 50, mistakes: 0, treatsLeft: 3 },
+        );
+      });
+
+      // Re-enter from map
+      act(() => latest('WorldMapScreen').onBarkdoku());
+      expect(latest('BarkdokuView')).toBeDefined();
+      expect(latest('BarkdokuView').boardIndex).toBe(1);
+      expect(latest('BarkdokuView').practice).toBe(false);
+
+      // Can also advance directly via onNewBoard(metrics, summary) and it persists the solve
+      act(() => {
+        latest('BarkdokuView').onNewBoard(
+          { solved: true, durationSeconds: 70, mistakes: 0, treatsLeft: 3, stars: 3, withinTarget: true },
+          { size: 6, difficulty: 'easy', durationSeconds: 70, mistakes: 0, treatsLeft: 3 },
+        );
+      });
+      expect(latest('BarkdokuView')).toBeDefined();
+      expect(latest('BarkdokuView').boardIndex).toBe(2);
+      expect(latest('BarkdokuView').practice).toBe(false);
+
+      // Verify the solved Plus board 1 was persisted in dogStore
+      const savedRecord = JSON.parse(mockStore.get(RECORD_KEY)!);
+      expect(savedRecord.dailyBarkdoku[todayString()].plusSolves).toBe(1);
+      expect(savedRecord.activityLog.filter((e: any) => e.kind === 'barkdoku').length).toBe(2);
+    });
   });
 });

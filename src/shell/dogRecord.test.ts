@@ -1,5 +1,5 @@
 import { DEFAULT_ATTRIBUTES } from '../sim/learning';
-import { applyActivity, applyDaySkip, applyMissionCheckIn, passMissionDirectly, updateMission, applyStage, failedPoste, touch, loadDogRecord, mergeLegacyNodes, migrateRecord, newDogRecord, RECORD_KEY, recordDailyBarkdoku, recordDailyScore, saveDogRecord, setTriggerLevel, setMainConcerns, setHomeConcern, setAgeBand, setSex, toSnapshot, type KeyValueStore } from './dogRecord';
+import { applyActivity, applyDaySkip, applyMissionCheckIn, passMissionDirectly, updateMission, applyStage, failedPoste, touch, getBarkdokuBoardIndex, loadDogRecord, mergeLegacyNodes, migrateRecord, newDogRecord, RECORD_KEY, recordDailyBarkdoku, recordPlusBarkdoku, recordDailyScore, saveDogRecord, setTriggerLevel, setMainConcerns, setHomeConcern, setAgeBand, setSex, toSnapshot, type KeyValueStore } from './dogRecord';
 import { payloadWith } from './testPayload';
 import { lookOf } from './onboarding/look';
 import { advance, onDebrief, startNode, type NodeRun } from './nodes/node';
@@ -625,6 +625,38 @@ describe('Dog record: Daily Barkdoku', () => {
     expect(Object.keys(r.dailyBarkdoku)).toEqual(['2026-10-28']);
     expect(r.streak.lastActiveDate).toBe('2026-10-29');
     expect(r.activityLog[0].date).toBe('2026-10-29');
+  });
+
+  it('appends Plus Board solves to activityLog without modifying first daily solve time or streak', () => {
+    const morning = new Date(2026, 9, 28, 9, 0);
+    const afternoon = new Date(2026, 9, 28, 14, 0);
+    const initial = recordDailyBarkdoku(newDogRecord(), 'b-5', summary, 2, '2026-10-28', morning);
+    const plusSummary = { ...summary, durationSeconds: 95 };
+    const plusRecord = recordPlusBarkdoku(initial, 'b-6-plus-1', plusSummary, 3, afternoon);
+
+    // First solve remains sole benchmark for Daily Solve Time and target
+    expect(plusRecord.dailyBarkdoku['2026-10-28'].seconds).toBe(initial.dailyBarkdoku['2026-10-28'].seconds);
+    expect(plusRecord.dailyBarkdoku['2026-10-28'].targetSeconds).toBe(initial.dailyBarkdoku['2026-10-28'].targetSeconds);
+    expect(plusRecord.dailyBarkdoku['2026-10-28'].plusSolves).toBe(1);
+
+    // getBarkdokuBoardIndex calculates progress without touching activityLog
+    expect(getBarkdokuBoardIndex(initial, '2026-10-28', true)).toBe(1);
+    expect(getBarkdokuBoardIndex(plusRecord, '2026-10-28', true)).toBe(2);
+    expect(getBarkdokuBoardIndex(plusRecord, '2026-10-28', false)).toBe(0);
+
+    // Streak is not double-credited or modified
+    expect(plusRecord.streak).toEqual(initial.streak);
+    // activityLog contains both solves
+    expect(plusRecord.activityLog.length).toBe(2);
+    expect(plusRecord.activityLog[1]).toEqual(
+      expect.objectContaining({
+        kind: 'barkdoku',
+        id: 'b-6-plus-1',
+        stars: 3,
+        date: '2026-10-28',
+        puzzle: plusSummary,
+      }),
+    );
   });
 });
 

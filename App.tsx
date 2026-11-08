@@ -21,7 +21,7 @@ import { BUNDLE_MESSAGE_TYPES, decode, type BundleMessage, type ShellMessage, ty
 import { newSeed } from './src/sim/rng';
 import { playDogSound, playResolvedCue, prepareAudio } from './src/shell/audio';
 import { createVocalizer } from './src/shell/vocalize';
-import { answerAlone, shouldAskAlone, applyDaySkip, applyMissionCheckIn, passMissionDirectly, recordDailyBarkdoku, setHomeConcern, toSnapshot, updateMission } from './src/shell/dogRecord';
+import { answerAlone, shouldAskAlone, applyDaySkip, applyMissionCheckIn, getBarkdokuBoardIndex, passMissionDirectly, recordDailyBarkdoku, recordPlusBarkdoku, setHomeConcern, toSnapshot, updateMission } from './src/shell/dogRecord';
 import { rebuildPlan } from './src/shell/onboarding/plan';
 import { starsFor } from './src/shell/stars';
 import { lookOf } from './src/shell/onboarding/look';
@@ -36,7 +36,7 @@ import { advance, onDebrief, shouldShowPosteLink, startNode, type Metric, type N
 import { DailyResultScreen } from './src/shell/screens/DailyResultScreen';
 import { DiaryScreen } from './src/shell/screens/DiaryScreen';
 import { DoorbellMatView } from './src/shell/screens/DoorbellMatView';
-import { barkdokuResult, BarkdokuView } from './src/shell/screens/BarkdokuView';
+import { barkdokuResult, BarkdokuView, type BarkdokuTier } from './src/shell/screens/BarkdokuView';
 import { getDailyBoard } from './src/shell/puzzle/boards';
 import type { PuzzleSummary } from './src/shell/puzzle/types';
 import { findLesson, LESSONS } from './src/shell/lessons/content';
@@ -108,7 +108,7 @@ type Flow =
   | { name: 'mission'; id: string; view: MissionView; fixId?: string; returnTo?: 'map' | 'library' }
   /** The paywall from the map, or from a Plus-only action (`then`) that "Empezar prueba" completes. */
   | { name: 'paywall'; then?: PendingPlusAction }
-  | { name: 'puzzle'; date: string };
+  | { name: 'puzzle'; date: string; boardIndex?: number };
 type MissionView = 'check' | 'brief' | 'waiting' | 'checkin' | 'problem' | 'fix' | 'passed';
 
 function isCloseExerciseFlow(route: Route<Flow>): boolean {
@@ -1183,6 +1183,14 @@ export default function App() {
           setFlow({ name: 'lesson', id: action.lessonId, returnTo, autoPlayVideo: unlocked });
           return;
         }
+        if ('kind' in action && action.kind === 'barkdoku') {
+          if (unlocked) {
+            setFlow({ name: 'puzzle', date: todayString(), boardIndex: 1 });
+          } else {
+            setFlow({ name: 'puzzle', date: todayString(), boardIndex: 0 });
+          }
+          return;
+        }
         const missionId = pendingSkipMission(action);
         if (missionId) {
           if (unlocked) {
@@ -1249,21 +1257,50 @@ export default function App() {
     } else if (f.name === 'register') {
       screen = <RegisterPrompt t={t} onCreate={() => setFlow({ name: 'auth', mode: 'signup', returnTo: 'map' })} onNotNow={withBack(goHome)} />;
     } else if (f.name === 'puzzle' && record) {
-      // The board is pinned to the date the puzzle was opened, so playing past midnight keeps it. Once the date's
-      // board is solved, replays are practice and save nothing (ADR 0014).
-      const board = getDailyBoard(f.date);
-      const practice = record.dailyBarkdoku[f.date] !== undefined;
+      // The board is pinned to the date the puzzle was opened, so playing past midnight keeps it.
+      // Once the date's board is solved, free replays are practice (ADR 0014).
+      // Plus and trial users receive fresh distinct Plus Boards (ADR 0027).
+      const now = new Date();
+      const userIsPlus = isPlus(record, now);
+      const userTrial = trialState(record, now) === 'active';
+      const isPlusMember = userTrial || userIsPlus;
+      const tier: BarkdokuTier = userTrial ? 'trial' : userIsPlus ? 'plus' : 'free';
+
+      const alreadySolvedToday = record.dailyBarkdoku[f.date] !== undefined;
+      const practice = !isPlusMember && alreadySolvedToday;
+      const defaultIndex = getBarkdokuBoardIndex(record, f.date, isPlusMember);
+      const activeBoardIndex = f.boardIndex ?? defaultIndex;
+      const board = getDailyBoard(f.date, activeBoardIndex);
+
       screen = (
         <BarkdokuView
-          key={f.date}
+          key={`${f.date}-${activeBoardIndex}`}
           t={t}
           board={board}
           breed={record.breed}
           coat={record.coat}
           practice={practice}
+          tier={tier}
+          membership={record}
+          boardIndex={activeBoardIndex}
+          onNewBoard={(metrics, summary) => {
+            if (metrics.solved) {
+              if (activeBoardIndex === 0 && !practice) {
+                update((r) => recordDailyBarkdoku(r, board.id, summary, metrics.stars, f.date, new Date()));
+              } else if (activeBoardIndex > 0) {
+                update((r) => recordPlusBarkdoku(r, board.id, summary, metrics.stars, f.date, new Date()));
+              }
+            }
+            setFlow({ name: 'puzzle', date: f.date, boardIndex: activeBoardIndex + 1 });
+          }}
+          onUpgrade={() => setFlow({ name: 'paywall', then: { kind: 'barkdoku' } })}
           onFinish={(metrics, summary) => {
-            if (metrics.solved && !practice) {
-              update((r) => recordDailyBarkdoku(r, board.id, summary, metrics.stars, f.date, new Date()));
+            if (metrics.solved) {
+              if (activeBoardIndex === 0 && !practice) {
+                update((r) => recordDailyBarkdoku(r, board.id, summary, metrics.stars, f.date, new Date()));
+              } else if (activeBoardIndex > 0) {
+                update((r) => recordPlusBarkdoku(r, board.id, summary, metrics.stars, f.date, new Date()));
+              }
             }
             goHome();
           }}

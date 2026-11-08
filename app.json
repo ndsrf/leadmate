@@ -45,7 +45,7 @@
       [
         "react-native-google-mobile-ads",
         {
-          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "androidAppId": "ca-app-pub-4360697323123231~9450557486",
           "iosAppId": "ca-app-pub-3940256099942544~1458002511",
           "userTrackingUsageDescription": "LeadMate utiliza este identificador para personalizar los anuncios y financiar el contenido de entrenamiento gratuito."
         }
