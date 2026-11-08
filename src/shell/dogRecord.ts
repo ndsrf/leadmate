@@ -131,6 +131,8 @@ export interface DailyBarkdokuSolve {
   at: string;
   /** The Target Time it was played against; absent when the board had none. */
   targetSeconds?: number;
+  /** Number of additional Plus Boards solved on this date. */
+  plusSolves?: number;
 }
 
 /** Dog and Handler weights in kilograms; null until entered (setup lets the user skip). */
@@ -244,6 +246,7 @@ function readDailyBarkdoku(raw: unknown): Record<string, DailyBarkdokuSolve> {
     if (typeof r.at !== 'string' || Number.isNaN(Date.parse(r.at))) continue;
     const solve: DailyBarkdokuSolve = { seconds: Math.round(r.seconds), at: r.at };
     if (typeof r.targetSeconds === 'number' && Number.isFinite(r.targetSeconds) && r.targetSeconds > 0) solve.targetSeconds = r.targetSeconds;
+    if (typeof r.plusSolves === 'number' && Number.isFinite(r.plusSolves) && r.plusSolves > 0) solve.plusSolves = Math.round(r.plusSolves);
     solves[date] = solve;
   }
   return solves;
@@ -621,22 +624,44 @@ export function recordDailyBarkdoku(record: DogRecord, boardId: string, summary:
 /**
  * Records a solve of an additional Plus Board (ADR 0027 amending ADR 0014).
  * Appends the solve with its Stars and duration to `DogRecord.activityLog` for Diary display,
- * without modifying `dailyBarkdoku` or double-crediting the Streak.
+ * and increments `plusSolves` on the date's solve without altering the first Daily Solve Time or Streak.
  */
 export function recordPlusBarkdoku(
   record: DogRecord,
   boardId: string,
   summary: PuzzleSummary,
   stars: Stars,
-  now: Date,
+  boardDateOrNow: string | Date,
+  maybeNow?: Date,
 ): DogRecord {
+  const boardDate = typeof boardDateOrNow === 'string' ? boardDateOrNow : localDateString(boardDateOrNow);
+  const now = maybeNow ?? (typeof boardDateOrNow === 'string' ? new Date() : boardDateOrNow);
+  const existing = record.dailyBarkdoku[boardDate];
+  const updatedSolve: DailyBarkdokuSolve = existing
+    ? { ...existing, plusSolves: (existing.plusSolves ?? 0) + 1 }
+    : { seconds: summary.durationSeconds, at: now.toISOString(), targetSeconds: summary.targetSeconds, plusSolves: 1 };
+
   return {
     ...record,
+    dailyBarkdoku: {
+      ...record.dailyBarkdoku,
+      [boardDate]: updatedSolve,
+    },
     activityLog: addActivity(
       record.activityLog,
       activityAt(now, { kind: 'barkdoku', id: boardId, stars, puzzle: summary }),
     ),
   };
+}
+
+/**
+ * Returns the Barkdoku board index for `date`:
+ * 0 for free users or unsolved dates, and 1 + (plusSolves ?? 0) for Plus/trial members who already solved board 0.
+ */
+export function getBarkdokuBoardIndex(record: DogRecord, date: string, isPlusMember: boolean): number {
+  const daily = record.dailyBarkdoku[date];
+  if (!daily || !isPlusMember) return 0;
+  return 1 + (daily.plusSolves ?? 0);
 }
 
 export interface DailyResult {

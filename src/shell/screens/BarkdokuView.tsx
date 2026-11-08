@@ -46,6 +46,8 @@ import { feedback } from '../ui/feedback';
 import { useAppActive } from '../ui/useAppActive';
 import { useTicker } from '../ui/useTicker';
 import { theme, usePalette } from '../ui/theme';
+import { isPlus, plusEndsAt, trialState } from '../plus';
+import type { DogRecord } from '../dogRecord';
 import { Screen } from './Screen';
 
 /** Dog head silhouette for region tracker when not yet satisfied. */
@@ -345,7 +347,7 @@ export function SolvedCard({
       ? t('minigame.barkdoku.yourTime').replace('{time}', time)
       : t('minigame.barkdoku.yourTimeTarget').replace('{time}', time).replace('{target}', formatClock(metrics.targetSeconds));
 
-  const isFreePractice = practice || tier === 'free';
+  const isFreePractice = practice && (!tier || tier === 'free');
 
   return (
     <View testID="victory-card" className="mt-3 rounded-2xl border border-brand/50 bg-brand/10 p-4 items-center">
@@ -406,8 +408,10 @@ export interface BarkdokuViewProps {
   /** A replay of a Daily Barkdoku already solved today: marked, unrated, and saved by no one. */
   practice?: boolean;
   tier?: BarkdokuTier;
+  membership?: Pick<DogRecord, 'onboarding' | 'billing'>;
+  now?: Date;
   boardIndex?: number;
-  onNewBoard?: () => void;
+  onNewBoard?: (metrics: BarkdokuMetrics, summary: PuzzleSummary) => void;
   onUpgrade?: () => void;
   onFinish?: (metrics: BarkdokuMetrics, summary: PuzzleSummary) => void;
   onExit?: () => void;
@@ -424,7 +428,9 @@ export function BarkdokuView({
   breed = 'mestizo',
   coat = 'golden',
   practice = false,
-  tier,
+  tier: tierProp,
+  membership,
+  now: nowProp,
   boardIndex = 0,
   onNewBoard,
   onUpgrade,
@@ -432,6 +438,22 @@ export function BarkdokuView({
   onExit,
 }: BarkdokuViewProps) {
   const color = usePalette();
+  const [clock, setClock] = useState(() => new Date());
+  const at = nowProp ?? clock;
+  const plusEnd = membership ? (plusEndsAt(membership, at)?.getTime() ?? null) : null;
+
+  useEffect(() => {
+    if (!membership || plusEnd === null) return;
+    const delay = Math.max(0, plusEnd - Date.now() + 250);
+    const timer = setTimeout(() => setClock(new Date()), delay);
+    return () => clearTimeout(timer);
+  }, [membership, plusEnd]);
+
+  const effectiveTier: BarkdokuTier = membership
+    ? (trialState(membership, at) === 'active' ? 'trial' : isPlus(membership, at) ? 'plus' : 'free')
+    : (tierProp ?? 'free');
+
+  const isFreePractice = practice && effectiveTier === 'free';
   // Without a board, each mount deals a fresh 4x4 so replays never repeat.
   const [board] = useState(() => boardProp ?? generateBoard(4, newSeed()));
   // The last tap's event rides along with the state so rapid taps chain through the updater.
@@ -493,6 +515,13 @@ export function BarkdokuView({
     }
   };
 
+  const handleNewBoard = () => {
+    if (onNewBoard) {
+      const metrics = computeMetrics(state);
+      onNewBoard(metrics, puzzleSummary(board, metrics));
+    }
+  };
+
   // Find rows or columns with line-of-sight conflict to render sightline indicators
   const rowConflicts = new Set<number>();
   const colConflicts = new Set<number>();
@@ -511,10 +540,10 @@ export function BarkdokuView({
             <Text className="text-body font-bold text-ink">
               {board.name ?? t('minigame.barkdoku.title')}
             </Text>
-            {(practice || tier === 'free') && (
+            {isFreePractice && (
               <Badge label={t('minigame.barkdoku.tierPractice')} tone="info" />
             )}
-            {tier === 'trial' && (
+            {effectiveTier === 'trial' && (
               <Badge
                 label={
                   boardIndex > 0
@@ -524,7 +553,7 @@ export function BarkdokuView({
                 tone="accent"
               />
             )}
-            {tier === 'plus' && (
+            {effectiveTier === 'plus' && (
               <Badge
                 label={
                   boardIndex > 0
@@ -535,7 +564,7 @@ export function BarkdokuView({
               />
             )}
           </View>
-          {(practice || tier === 'free') && (
+          {isFreePractice && (
             <Text testID="practice-subtitle" className="text-xs text-inkMuted">
               {t('minigame.barkdoku.practiceSubtitle')}
             </Text>
@@ -712,11 +741,11 @@ export function BarkdokuView({
         <SolvedCard
           t={t}
           metrics={computeMetrics(state)}
-          practice={practice}
-          tier={tier}
+          practice={isFreePractice}
+          tier={effectiveTier}
           boardIndex={boardIndex}
           onContinue={handleComplete}
-          onNewBoard={onNewBoard}
+          onNewBoard={effectiveTier !== 'free' && onNewBoard ? handleNewBoard : undefined}
           onUpgrade={onUpgrade}
         />
       )}

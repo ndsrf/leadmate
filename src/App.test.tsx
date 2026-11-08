@@ -132,6 +132,7 @@ jest.mock('./shell/Overlays', () => mockScreens());
 
 import App from '../App';
 import { newDogRecord, NEW_ONBOARDING, RECORD_KEY, RECORD_VERSION } from './shell/dogRecord';
+import { todayString } from './shell/daily';
 import { BARKDOKU_INTRO_NODE, CALM_HANDS_NODE, CLOSE_PASS_NODE, WALK_DISTRACTION } from './shell/nodes/content';
 
 const LOAD_TIMEOUT_MS = 20000;
@@ -476,11 +477,21 @@ describe('App - Stage view lifecycle', () => {
       expect(latest('BarkdokuView').boardIndex).toBe(1);
       expect(latest('BarkdokuView').practice).toBe(false);
 
-      // Can also advance directly via onNewBoard()
-      act(() => latest('BarkdokuView').onNewBoard());
+      // Can also advance directly via onNewBoard(metrics, summary) and it persists the solve
+      act(() => {
+        latest('BarkdokuView').onNewBoard(
+          { solved: true, durationSeconds: 70, mistakes: 0, treatsLeft: 3, stars: 3, withinTarget: true },
+          { size: 6, difficulty: 'easy', durationSeconds: 70, mistakes: 0, treatsLeft: 3 },
+        );
+      });
       expect(latest('BarkdokuView')).toBeDefined();
       expect(latest('BarkdokuView').boardIndex).toBe(2);
       expect(latest('BarkdokuView').practice).toBe(false);
+
+      // Verify the solved Plus board 1 was persisted in dogStore
+      const savedRecord = JSON.parse(mockStore.get(RECORD_KEY)!);
+      expect(savedRecord.dailyBarkdoku[todayString()].plusSolves).toBe(1);
+      expect(savedRecord.activityLog.filter((e: any) => e.kind === 'barkdoku').length).toBe(2);
     });
   });
 });

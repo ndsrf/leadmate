@@ -32,7 +32,16 @@ function mergeDailyBarkdoku(a: DogRecord['dailyBarkdoku'], b: DogRecord['dailyBa
   const first = { ...a };
   for (const [date, solve] of Object.entries(b)) {
     const mine = first[date];
-    if (mine === undefined || Date.parse(solve.at) < Date.parse(mine.at)) first[date] = solve;
+    if (mine === undefined) {
+      first[date] = solve;
+    } else {
+      const earlier = Date.parse(solve.at) < Date.parse(mine.at) ? solve : mine;
+      const plusSolves = Math.max(mine.plusSolves ?? 0, solve.plusSolves ?? 0);
+      first[date] = {
+        ...earlier,
+        ...(plusSolves > 0 ? { plusSolves } : {}),
+      };
+    }
   }
   return first;
 }

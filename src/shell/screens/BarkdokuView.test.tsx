@@ -367,7 +367,23 @@ describe('SolvedCard', () => {
     expect(html).toContain('Jugar otro tablero');
   });
 
-  it('renders same-board notice and "Desbloquear con Plus" button for free tier on completion', () => {
+  it('renders stars and target verdict on a free user first solve (not practice)', () => {
+    const html = renderToStaticMarkup(
+      <SolvedCard
+        t={t}
+        metrics={metrics({ targetSeconds: 120, durationSeconds: 60, withinTarget: true, stars: 3 })}
+        practice={false}
+        tier="free"
+        onContinue={() => {}}
+      />
+    );
+    expect(html).toContain('target-met');
+    expect(html).toContain('3 estrellas');
+    expect(html).not.toContain('practice-kept');
+    expect(html).not.toContain('free-tier-notice');
+  });
+
+  it('renders same-board notice and "Desbloquear con Plus" button for free tier on practice replay', () => {
     const html = renderToStaticMarkup(
       <SolvedCard
         t={t}
@@ -378,6 +394,7 @@ describe('SolvedCard', () => {
         onUpgrade={() => {}}
       />
     );
+    expect(html).toContain('practice-kept');
     expect(html).toContain('free-tier-notice');
     expect(html).toContain('Desbloquear con Plus');
     expect(html).toContain('Los usuarios de la versión gratuita juegan el mismo tablero cada día. Pasa a Plus para desbloquear tableros nuevos ilimitados.');

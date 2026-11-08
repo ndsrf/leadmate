@@ -21,7 +21,7 @@ import { BUNDLE_MESSAGE_TYPES, decode, type BundleMessage, type ShellMessage, ty
 import { newSeed } from './src/sim/rng';
 import { playDogSound, playResolvedCue, prepareAudio } from './src/shell/audio';
 import { createVocalizer } from './src/shell/vocalize';
-import { answerAlone, shouldAskAlone, applyDaySkip, applyMissionCheckIn, passMissionDirectly, recordDailyBarkdoku, recordPlusBarkdoku, setHomeConcern, toSnapshot, updateMission } from './src/shell/dogRecord';
+import { answerAlone, shouldAskAlone, applyDaySkip, applyMissionCheckIn, getBarkdokuBoardIndex, passMissionDirectly, recordDailyBarkdoku, recordPlusBarkdoku, setHomeConcern, toSnapshot, updateMission } from './src/shell/dogRecord';
 import { rebuildPlan } from './src/shell/onboarding/plan';
 import { starsFor } from './src/shell/stars';
 import { lookOf } from './src/shell/onboarding/look';
@@ -1263,17 +1263,12 @@ export default function App() {
       const now = new Date();
       const userIsPlus = isPlus(record, now);
       const userTrial = trialState(record, now) === 'active';
+      const isPlusMember = userTrial || userIsPlus;
       const tier: BarkdokuTier = userTrial ? 'trial' : userIsPlus ? 'plus' : 'free';
 
-      const todayBarkdokuSolves = record.activityLog.filter(
-        (entry) => entry.kind === 'barkdoku' && entry.date === f.date,
-      ).length;
-
-      const isFree = tier === 'free';
       const alreadySolvedToday = record.dailyBarkdoku[f.date] !== undefined;
-
-      const practice = isFree && alreadySolvedToday;
-      const defaultIndex = isFree ? 0 : Math.max(todayBarkdokuSolves, alreadySolvedToday ? 1 : 0);
+      const practice = !isPlusMember && alreadySolvedToday;
+      const defaultIndex = getBarkdokuBoardIndex(record, f.date, isPlusMember);
       const activeBoardIndex = f.boardIndex ?? defaultIndex;
       const board = getDailyBoard(f.date, activeBoardIndex);
 
@@ -1286,15 +1281,25 @@ export default function App() {
           coat={record.coat}
           practice={practice}
           tier={tier}
+          membership={record}
           boardIndex={activeBoardIndex}
-          onNewBoard={() => setFlow({ name: 'puzzle', date: f.date, boardIndex: activeBoardIndex + 1 })}
+          onNewBoard={(metrics, summary) => {
+            if (metrics.solved) {
+              if (activeBoardIndex === 0 && !practice) {
+                update((r) => recordDailyBarkdoku(r, board.id, summary, metrics.stars, f.date, new Date()));
+              } else if (activeBoardIndex > 0) {
+                update((r) => recordPlusBarkdoku(r, board.id, summary, metrics.stars, f.date, new Date()));
+              }
+            }
+            setFlow({ name: 'puzzle', date: f.date, boardIndex: activeBoardIndex + 1 });
+          }}
           onUpgrade={() => setFlow({ name: 'paywall', then: { kind: 'barkdoku' } })}
           onFinish={(metrics, summary) => {
             if (metrics.solved) {
               if (activeBoardIndex === 0 && !practice) {
                 update((r) => recordDailyBarkdoku(r, board.id, summary, metrics.stars, f.date, new Date()));
               } else if (activeBoardIndex > 0) {
-                update((r) => recordPlusBarkdoku(r, board.id, summary, metrics.stars, new Date()));
+                update((r) => recordPlusBarkdoku(r, board.id, summary, metrics.stars, f.date, new Date()));
               }
             }
             goHome();

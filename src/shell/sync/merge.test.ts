@@ -64,6 +64,17 @@ describe('resolve', () => {
     for (const merged of [resolve(a, b), resolve(b, a)]) expect(merged.dailyBarkdoku).toEqual({ '2026-05-01': phone, '2026-05-02': only });
   });
 
+  it('merges plusSolves across devices taking the higher count', () => {
+    const a = rec({ dailyBarkdoku: { '2026-05-01': { seconds: 130, at: '2026-05-01T09:00:00.000Z', plusSolves: 2 } }, ...at('2026-05-01T00:00:00.000Z') });
+    const b = rec({ dailyBarkdoku: { '2026-05-01': { seconds: 110, at: '2026-05-01T20:00:00.000Z', plusSolves: 4 } }, ...at('2026-05-02T00:00:00.000Z') });
+    const merged = resolve(a, b);
+    expect(merged.dailyBarkdoku['2026-05-01']).toEqual({
+      seconds: 130,
+      at: '2026-05-01T09:00:00.000Z',
+      plusSolves: 4,
+    });
+  });
+
   it('unions Daily Barkdoku log entries without duplicates', () => {
     const solve = activityAt(new Date('2026-05-01T09:00:00.000Z'), { kind: 'barkdoku', id: 'b-5', stars: 2, puzzle: { size: 5, durationSeconds: 130, mistakes: 0 } });
     const other = activityAt(new Date('2026-05-01T20:00:00.000Z'), { kind: 'barkdoku', id: 'b-5', stars: 3, puzzle: { size: 5, durationSeconds: 110, mistakes: 0 } });
