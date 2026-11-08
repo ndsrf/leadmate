@@ -64,7 +64,7 @@ import { PlanScreen } from './src/shell/screens/PlanScreen';
 import { MethodOverviewScreen } from './src/shell/screens/MethodOverviewScreen';
 import { ConcernScreen, DogLookScreen, PayoffOverlay, TasteBriefScreen } from './src/shell/screens/IntroScreens';
 import { SetupScreen } from './src/shell/screens/SetupScreen';
-import { SettingsScreen } from './src/shell/screens/SettingsScreen';
+import { SettingsScreen, type SettingsTab } from './src/shell/screens/SettingsScreen';
 import { SplashScreen } from './src/shell/screens/SplashScreen';
 import { initNativeContent, switchContentChannel } from './src/shell/content/nativeRuntime';
 import { getActiveContent, type RuntimeContent } from './src/shell/content/runtime';
@@ -165,6 +165,7 @@ export default function App() {
   const [bundle, setBundle] = useState<'loading' | 'ready' | 'error'>('loading');
   const [paused, setPaused] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<SettingsTab>('dog');
   const [trialModalOpen, setTrialModalOpen] = useState(false);
   const [contentSession, setContentSession] = useState<RuntimeContent>(() => getActiveContent());
 
@@ -454,6 +455,7 @@ export default function App() {
     const returnTo = f?.name === 'auth' ? f.returnTo : undefined;
     setFlow(null);
     if (returnTo === 'settings') {
+      setSettingsInitialTab('account');
       setSettingsOpen(true);
     } else {
       setSettingsOpen(false);
@@ -610,6 +612,14 @@ export default function App() {
   const [expandedCompleted, setExpandedCompleted] = useState<ReadonlySet<string>>(() => new Set());
   const toggleCompleted = (worldId: string) =>
     setExpandedCompleted((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(worldId)) next.add(worldId);
+      return next;
+    });
+  // the Locked and Coming-soon Worlds the user opened on the map this session; every other locked world starts folded
+  const [expandedWorlds, setExpandedWorlds] = useState<ReadonlySet<string>>(() => new Set());
+  const toggleExpandWorld = (worldId: string) =>
+    setExpandedWorlds((prev) => {
       const next = new Set(prev);
       if (!next.delete(worldId)) next.add(worldId);
       return next;
@@ -802,7 +812,12 @@ export default function App() {
           onScroll={(y) => (mapScroll.current = y)}
           expandedCompleted={expandedCompleted}
           onToggleCompleted={toggleCompleted}
-          onSettings={() => setSettingsOpen(true)}
+          expandedWorlds={expandedWorlds}
+          onToggleExpand={toggleExpandWorld}
+          onSettings={() => {
+            setSettingsInitialTab('dog');
+            setSettingsOpen(true);
+          }}
           breed={record.breed}
           coat={record.coat}
           ageBand={record.ageBand}
@@ -840,6 +855,7 @@ export default function App() {
             onReset={handleReset}
             contentChannel={contentSession.channel}
             onSwitchChannel={handleSwitchChannel}
+            initialTab={settingsInitialTab}
           />
         ) : (
           overlay

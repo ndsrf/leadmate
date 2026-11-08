@@ -129,6 +129,7 @@ describe('Settings content channel control & beta indicator (Task 5.3)', () => {
           ui={{ settings: DEFAULT_UI_SETTINGS, change: () => {} }}
           onReset={() => {}}
           isDev={false}
+          initialTab="account"
         />
       );
     });
@@ -159,6 +160,7 @@ describe('Settings content channel control & beta indicator (Task 5.3)', () => {
           ui={{ settings: DEFAULT_UI_SETTINGS, change: () => {} }}
           onReset={() => {}}
           isDev={false}
+          initialTab="account"
         />
       );
     });
@@ -206,6 +208,7 @@ describe('Settings content channel control & beta indicator (Task 5.3)', () => {
           ui={{ settings: DEFAULT_UI_SETTINGS, change: () => {} }}
           onReset={() => {}}
           isDev={true}
+          initialTab="account"
         />
       );
       await Promise.resolve();

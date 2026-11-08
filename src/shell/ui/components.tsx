@@ -326,7 +326,19 @@ export function StarRow({ stars, size = 20, label }: { stars: number; size?: num
 }
 
 /** A selectable pill for a short list of choices (at least 44 points tall); the chosen one is brand green with a short shadow. */
-export function Choice({ label, selected, onPress, testID }: { label: string; selected: boolean; onPress: () => void; testID?: string }) {
+export function Choice({
+  label,
+  selected,
+  onPress,
+  testID,
+  accessibilityRole = 'button',
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+  testID?: string;
+  accessibilityRole?: 'button' | 'tab';
+}) {
   const focus = useFocus();
   const c = choiceStyle(usePalette(), selected);
   return (
@@ -335,7 +347,7 @@ export function Choice({ label, selected, onPress, testID }: { label: string; se
       onPress={() => handlePress(onPress)}
       onFocus={focus.onFocus}
       onBlur={focus.onBlur}
-      accessibilityRole="button"
+      accessibilityRole={accessibilityRole}
       accessibilityState={{ selected }}
       className="mr-2 mt-2"
       style={{ minHeight: theme.size.touchMin, minWidth: theme.size.touchMin }}

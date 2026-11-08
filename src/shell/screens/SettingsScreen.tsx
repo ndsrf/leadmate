@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Modal, Platform, Pressable, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Modal, Platform, Pressable, Text, View, type ScrollViewInstance } from 'react-native';
 import Constants from 'expo-constants';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { RecordingPresets, requestRecordingPermissionsAsync, useAudioRecorder } from 'expo-audio';
@@ -33,6 +33,14 @@ export const CHECKPOINT_OPTIONS: { value: CheckpointSeconds; key: 'settings.chec
   { value: 15, key: 'settings.checkpoint.15' },
   { value: 10, key: 'settings.checkpoint.10' },
   { value: 0, key: 'settings.checkpoint.off' },
+];
+
+export type SettingsTab = 'dog' | 'preferences' | 'account';
+
+export const SETTINGS_TABS: { id: SettingsTab; labelKey: 'settings.tab.dog' | 'settings.tab.preferences' | 'settings.tab.account' }[] = [
+  { id: 'dog', labelKey: 'settings.tab.dog' },
+  { id: 'preferences', labelKey: 'settings.tab.preferences' },
+  { id: 'account', labelKey: 'settings.tab.account' },
 ];
 
 const KIND_KEYS = {
@@ -121,6 +129,7 @@ export function SettingsScreen({
   contentChannel: contentChannelProp,
   onSwitchChannel,
   isDev: isDevProp,
+  initialTab = 'dog',
 }: {
   t: Translate;
   language: Language;
@@ -136,7 +145,24 @@ export function SettingsScreen({
   contentChannel?: ContentChannel;
   onSwitchChannel?: SwitchChannelFn;
   isDev?: boolean;
+  initialTab?: SettingsTab;
 }) {
+  const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
+  const scrollRef = useRef<ScrollViewInstance>(null);
+
+  const handleTabPress = (tab: SettingsTab) => {
+    setActiveTab(tab);
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  };
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  }, [activeTab]);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
   const isDev =
     isDevProp ?? (typeof __DEV__ !== 'undefined' ? __DEV__ : process.env.NODE_ENV !== 'production');
   const [activeChannel, setActiveChannel] = useState<ContentChannel>(
@@ -270,228 +296,256 @@ export function SettingsScreen({
     });
   };
 
-  return (
-    <Screen>
+  const header = (
+    <View>
       <Text className="font-display text-displayM text-ink">{t('settings.title')}</Text>
-      <LeadLine className="mb-4 mt-1" />
+      <LeadLine className="mb-2 mt-1" />
+      <View className="flex-row flex-wrap" accessibilityRole="tablist">
+        {SETTINGS_TABS.map((tab) => (
+          <Choice
+            key={tab.id}
+            testID={`settings-tab-${tab.id}`}
+            label={t(tab.labelKey)}
+            selected={activeTab === tab.id}
+            onPress={() => handleTabPress(tab.id)}
+            accessibilityRole="tab"
+          />
+        ))}
+      </View>
+    </View>
+  );
 
-      <Section title={t('settings.equipment')}>
-        <View className="flex-row flex-wrap">
-          {(['collar', 'harness'] as Equipment[]).map((e) => (
-            <Choice key={e} label={t(e === 'collar' ? 'settings.equipment.collar' : 'settings.equipment.harness')} selected={record.equipment === e} onPress={() => update((r) => ({ ...r, equipment: e }))} />
-          ))}
-        </View>
-        <Text className="mt-2 text-body text-inkMuted">{t(record.equipment === 'collar' ? 'settings.equipment.collarNote' : 'settings.equipment.harnessNote')}</Text>
-      </Section>
-
-      <Section title={t('settings.dogName')}>
-        <DogNameField label={t('settings.dogName')} value={record.name} onCommit={(name) => update((r) => renameDog(r, name))} />
-      </Section>
-
-      <Section title={t('settings.coat')}>
-        <View className="flex-row flex-wrap">
-          {DOG_COAT_NAMES.map((c) => (
-            <Choice key={c} label={t(`coat.${c}`)} selected={record.coat === c} onPress={() => update((r) => ({ ...r, coat: c }))} />
-          ))}
-        </View>
-      </Section>
-
-      <Section title={t('settings.about')}>
-        <Text className="mb-1 text-caption text-inkMuted">{t('settings.about.help')}</Text>
-        <Text className="mt-2 font-display text-bodyL text-ink">{t('settings.about.main')}</Text>
-        <MainConcernChips t={t} value={record.mainConcerns} onToggle={(concern) => updatePlanned((r) => toggleMainConcern(r, concern))} />
-        <Text className="mt-4 font-display text-bodyL text-ink">{t('setup.home.title')}</Text>
-        <HomeConcernChips t={t} record={record} update={updatePlanned} all />
-        <Text className="mt-4 font-display text-bodyL text-ink">{t('setup.about.title')}</Text>
-        <AgeSexChips t={t} record={record} update={updatePlanned} />
-      </Section>
-
-      <Section title={t('settings.triggers')}>
-        <Text className="mb-1 text-caption text-inkMuted">{t('settings.triggers.help')}</Text>
-        {DISTRACTOR_KINDS.map((kind: DistractorKind) => (
-          <View key={kind} className="mt-2">
-            <Text className="text-body text-ink">{t(KIND_KEYS[kind])}</Text>
-            <View className="flex-row">
-              {([0, 1, 2, 3] as TriggerLevel[]).map((level) => (
-                <Choice key={level} label={String(level)} selected={record.triggerProfile[kind] === level} onPress={() => updatePlanned((r) => setTriggerLevel(r, kind, level))} />
+  return (
+    <Screen header={header} scrollRef={scrollRef}>
+      {activeTab === 'dog' && (
+        <>
+          <Section title={t('settings.equipment')}>
+            <View className="flex-row flex-wrap">
+              {(['collar', 'harness'] as Equipment[]).map((e) => (
+                <Choice key={e} label={t(e === 'collar' ? 'settings.equipment.collar' : 'settings.equipment.harness')} selected={record.equipment === e} onPress={() => update((r) => ({ ...r, equipment: e }))} />
               ))}
             </View>
-          </View>
-        ))}
-      </Section>
+            <Text className="mt-2 text-body text-inkMuted">{t(record.equipment === 'collar' ? 'settings.equipment.collarNote' : 'settings.equipment.harnessNote')}</Text>
+          </Section>
 
-      <Section title={t('settings.checkpoint')}>
-        <View className="flex-row flex-wrap">
-          {CHECKPOINT_OPTIONS.map((o) => (
-            <Choice key={o.value} label={t(o.key)} selected={record.checkpointSeconds === o.value} onPress={() => update((r) => ({ ...r, checkpointSeconds: o.value }))} />
-          ))}
-        </View>
-      </Section>
+          <Section title={t('settings.dogName')}>
+            <DogNameField label={t('settings.dogName')} value={record.name} onCommit={(name) => update((r) => renameDog(r, name))} />
+          </Section>
 
-      <Section title={t('settings.feedback')}>
-        <View className="mt-2 flex-row items-center justify-between">
-          <Text className="shrink text-body text-ink">{t('settings.feedback.sounds')}</Text>
-          <Toggle label={t('settings.feedback.sounds')} value={ui.settings.sounds} onChange={(sounds) => ui.change({ sounds })} />
-        </View>
-        <View className="flex-row items-center justify-between">
-          <Text className="shrink text-body text-ink">{t('settings.feedback.haptics')}</Text>
-          <Toggle label={t('settings.feedback.haptics')} value={ui.settings.haptics} onChange={(haptics) => ui.change({ haptics })} />
-        </View>
-        <Text className="mt-2 text-caption text-inkMuted">{t('settings.feedback.help')}</Text>
-      </Section>
+          <Section title={t('settings.coat')}>
+            <View className="flex-row flex-wrap">
+              {DOG_COAT_NAMES.map((c) => (
+                <Choice key={c} label={t(`coat.${c}`)} selected={record.coat === c} onPress={() => update((r) => ({ ...r, coat: c }))} />
+              ))}
+            </View>
+          </Section>
 
-      <AppearanceSection t={t} ui={ui} />
+          <Section title={t('settings.about')}>
+            <Text className="mb-1 text-caption text-inkMuted">{t('settings.about.help')}</Text>
+            <Text className="mt-2 font-display text-bodyL text-ink">{t('settings.about.main')}</Text>
+            <MainConcernChips t={t} value={record.mainConcerns} onToggle={(concern) => updatePlanned((r) => toggleMainConcern(r, concern))} />
+            <Text className="mt-4 font-display text-bodyL text-ink">{t('setup.home.title')}</Text>
+            <HomeConcernChips t={t} record={record} update={updatePlanned} all />
+            <Text className="mt-4 font-display text-bodyL text-ink">{t('setup.about.title')}</Text>
+            <AgeSexChips t={t} record={record} update={updatePlanned} />
+          </Section>
 
-      <Section title={t('settings.voicePack')}>
-        <View className="flex-row flex-wrap">
-          {VOICE_PACKS.map((pack) => (
-            <Choice
-              key={pack.id}
-              label={t(pack.name)}
-              selected={record.voicePack === pack.id}
-              onPress={() => {
-                update((r) => ({ ...r, voicePack: pack.id }));
-                // let the user hear the pack they just picked
-                playResolvedCue(resolveCue({ voicePack: pack.id, customCues: {} }, language));
-              }}
-            />
-          ))}
-        </View>
-      </Section>
-
-      <Section title={t('settings.customCue')}>
-        <Text className="text-body text-inkMuted">{t('settings.customCue.help')}</Text>
-        {!canRecord && <Text className="mt-2 text-body text-dangerText">{t('settings.customCue.webUnavailable')}</Text>}
-        <Text className="mt-2 text-body text-ink">{hasCustom ? t('settings.customCue.saved') : t('settings.customCue.none')}</Text>
-        {recording === 'denied' && <Text className="mt-2 text-body text-dangerText">{t('settings.customCue.denied')}</Text>}
-        {canRecord && <Button label={recording === 'recording' ? t('settings.customCue.recording') : t('settings.customCue.record')} onPress={() => recording !== 'recording' && recordCue()} />}
-        {hasCustom && <Button label={t('settings.customCue.play')} tone="secondary" onPress={() => playResolvedCue(resolveCue(record, language))} />}
-        {hasCustom && <Button label={t('settings.customCue.remove')} tone="secondary" onPress={removeCue} />}
-      </Section>
-
-      <Section title={t('settings.subscription')}>
-        <View className="mb-3 flex-row items-center justify-between">
-          <Text className="text-body text-ink">{t('settings.subscription.status')}</Text>
-          <Badge label={plus ? t('settings.subscription.active') : t('settings.subscription.free')} tone={plus ? 'accent' : 'quiet'} />
-        </View>
-        {restoreFeedback && (
-          <Panel tone="info" className="mb-2">
-            <Text className="text-body text-ink">{restoreFeedback}</Text>
-          </Panel>
-        )}
-        <Button label={t('settings.subscription.restore')} tone="secondary" onPress={handleRestorePurchases} disabled={restoring} />
-      </Section>
-
-      <AccountSection t={t} account={account} onLogIn={onLogIn} onForget={account.forgetAccount} />
-
-      {shouldShowResetSection(account.signedIn) && (
-        <Panel className="mb-5">
-          <Text className="mb-1 font-display text-title text-dangerText">{t('settings.reset.title')}</Text>
-          <Text className="mb-3 text-body text-inkMuted">{t('settings.reset.desc')}</Text>
-          <Button label={t('settings.reset.button')} tone="danger" onPress={() => setShowResetModal(true)} />
-        </Panel>
+          <Section title={t('settings.triggers')}>
+            <Text className="mb-1 text-caption text-inkMuted">{t('settings.triggers.help')}</Text>
+            {DISTRACTOR_KINDS.map((kind: DistractorKind) => (
+              <View key={kind} className="mt-2">
+                <Text className="text-body text-ink">{t(KIND_KEYS[kind])}</Text>
+                <View className="flex-row">
+                  {([0, 1, 2, 3] as TriggerLevel[]).map((level) => (
+                    <Choice key={level} label={String(level)} selected={record.triggerProfile[kind] === level} onPress={() => updatePlanned((r) => setTriggerLevel(r, kind, level))} />
+                  ))}
+                </View>
+              </View>
+            ))}
+          </Section>
+        </>
       )}
 
-      {showResetModal && (
-        <Modal
-          visible
-          transparent
-          animationType="fade"
-          onRequestClose={() => setShowResetModal(false)}
-        >
-          <SafeAreaProvider>
-          <PaletteRoot className="flex-1">
-          <SafeAreaView className="flex-1 items-center justify-center bg-outline/70 p-4">
-            <Panel className="w-full max-w-sm">
-              <ResetConfirmText t={t} paired={account.sync.dogId !== null} />
-              <View className="mt-4 gap-3">
-                <Button label={t('settings.reset.cancelButton')} tone="secondary" onPress={() => setShowResetModal(false)} />
-                <Button
-                  label={t('settings.reset.confirmButton')}
-                  tone="danger"
+      {activeTab === 'preferences' && (
+        <>
+          <Section title={t('settings.checkpoint')}>
+            <View className="flex-row flex-wrap">
+              {CHECKPOINT_OPTIONS.map((o) => (
+                <Choice key={o.value} label={t(o.key)} selected={record.checkpointSeconds === o.value} onPress={() => update((r) => ({ ...r, checkpointSeconds: o.value }))} />
+              ))}
+            </View>
+          </Section>
+
+          <Section title={t('settings.feedback')}>
+            <View className="mt-2 flex-row items-center justify-between">
+              <Text className="shrink text-body text-ink">{t('settings.feedback.sounds')}</Text>
+              <Toggle label={t('settings.feedback.sounds')} value={ui.settings.sounds} onChange={(sounds) => ui.change({ sounds })} />
+            </View>
+            <View className="flex-row items-center justify-between">
+              <Text className="shrink text-body text-ink">{t('settings.feedback.haptics')}</Text>
+              <Toggle label={t('settings.feedback.haptics')} value={ui.settings.haptics} onChange={(haptics) => ui.change({ haptics })} />
+            </View>
+            <Text className="mt-2 text-caption text-inkMuted">{t('settings.feedback.help')}</Text>
+          </Section>
+
+          <AppearanceSection t={t} ui={ui} />
+
+          <Section title={t('settings.voicePack')}>
+            <View className="flex-row flex-wrap">
+              {VOICE_PACKS.map((pack) => (
+                <Choice
+                  key={pack.id}
+                  label={t(pack.name)}
+                  selected={record.voicePack === pack.id}
                   onPress={() => {
-                    setShowResetModal(false);
-                    onReset();
+                    update((r) => ({ ...r, voicePack: pack.id }));
+                    // let the user hear the pack they just picked
+                    playResolvedCue(resolveCue({ voicePack: pack.id, customCues: {} }, language));
                   }}
                 />
-              </View>
-            </Panel>
-          </SafeAreaView>
-          </PaletteRoot>
-          </SafeAreaProvider>
-        </Modal>
-      )}
-
-      {(isDev || unlocked) && (
-        <Section title={t('settings.contentChannel')}>
-          <Text className="mb-2 text-body text-inkMuted">{t('settings.contentChannel.help')}</Text>
-          <View className="flex-row flex-wrap">
-            <Choice
-              testID="channel-choice-stable"
-              label={t('settings.contentChannel.stable')}
-              selected={activeChannel === 'stable'}
-              onPress={() => handleChannelSelect('stable')}
-            />
-            <Choice
-              testID="channel-choice-beta"
-              label={t('settings.contentChannel.beta')}
-              selected={activeChannel === 'beta'}
-              onPress={() => handleChannelSelect('beta')}
-            />
-          </View>
-          {switchError && (
-            <Panel tone="warn" className="mt-2">
-              <Text testID="channel-error-text" className="text-body text-dangerText">
-                {switchError}
-              </Text>
-            </Panel>
-          )}
-          {activeChannel === 'stable' && !isDev && (
-            <View className="mt-2">
-              <Button
-                testID="channel-hide-button"
-                label={t('settings.contentChannel.hide')}
-                tone="secondary"
-                onPress={handleHideChannel}
-              />
+              ))}
             </View>
+          </Section>
+
+          <Section title={t('settings.customCue')}>
+            <Text className="text-body text-inkMuted">{t('settings.customCue.help')}</Text>
+            {!canRecord && <Text className="mt-2 text-body text-dangerText">{t('settings.customCue.webUnavailable')}</Text>}
+            <Text className="mt-2 text-body text-ink">{hasCustom ? t('settings.customCue.saved') : t('settings.customCue.none')}</Text>
+            {recording === 'denied' && <Text className="mt-2 text-body text-dangerText">{t('settings.customCue.denied')}</Text>}
+            {canRecord && <Button label={recording === 'recording' ? t('settings.customCue.recording') : t('settings.customCue.record')} onPress={() => recording !== 'recording' && recordCue()} />}
+            {hasCustom && <Button label={t('settings.customCue.play')} tone="secondary" onPress={() => playResolvedCue(resolveCue(record, language))} />}
+            {hasCustom && <Button label={t('settings.customCue.remove')} tone="secondary" onPress={removeCue} />}
+          </Section>
+        </>
+      )}
+
+      {activeTab === 'account' && (
+        <>
+          <Section title={t('settings.subscription')}>
+            <View className="mb-3 flex-row items-center justify-between">
+              <Text className="text-body text-ink">{t('settings.subscription.status')}</Text>
+              <Badge label={plus ? t('settings.subscription.active') : t('settings.subscription.free')} tone={plus ? 'accent' : 'quiet'} />
+            </View>
+            {restoreFeedback && (
+              <Panel tone="info" className="mb-2">
+                <Text className="text-body text-ink">{restoreFeedback}</Text>
+              </Panel>
+            )}
+            <Button label={t('settings.subscription.restore')} tone="secondary" onPress={handleRestorePurchases} disabled={restoring} />
+          </Section>
+
+          <AccountSection t={t} account={account} onLogIn={onLogIn} onForget={account.forgetAccount} />
+
+          {shouldShowResetSection(account.signedIn) && (
+            <Panel className="mb-5">
+              <Text className="mb-1 font-display text-title text-dangerText">{t('settings.reset.title')}</Text>
+              <Text className="mb-3 text-body text-inkMuted">{t('settings.reset.desc')}</Text>
+              <Button label={t('settings.reset.button')} tone="danger" onPress={() => setShowResetModal(true)} />
+            </Panel>
           )}
-        </Section>
-      )}
 
-      {(isDev || unlocked) && (
-        <Section title={t('settings.testTools')}>
-          <Text className="mb-2 text-body text-inkMuted">{t('settings.testTools.help')}</Text>
-          <Button
-            testID="test-expire-trial"
-            label={t('settings.testTools.expireTrial')}
-            tone="secondary"
-            onPress={() => update((r) => setTrialStartedAt(r, daysAgo(TRIAL_DAYS + 1)))}
-          />
-          <Button
-            testID="test-reset-trial"
-            label={t('settings.testTools.resetTrial')}
-            tone="secondary"
-            onPress={() => update((r) => setTrialStartedAt(r, null))}
-          />
-        </Section>
-      )}
+          {showResetModal && (
+            <Modal
+              visible
+              transparent
+              animationType="fade"
+              onRequestClose={() => setShowResetModal(false)}
+            >
+              <SafeAreaProvider>
+              <PaletteRoot className="flex-1">
+              <SafeAreaView className="flex-1 items-center justify-center bg-outline/70 p-4">
+                <Panel className="w-full max-w-sm">
+                  <ResetConfirmText t={t} paired={account.sync.dogId !== null} />
+                  <View className="mt-4 gap-3">
+                    <Button label={t('settings.reset.cancelButton')} tone="secondary" onPress={() => setShowResetModal(false)} />
+                    <Button
+                      label={t('settings.reset.confirmButton')}
+                      tone="danger"
+                      onPress={() => {
+                        setShowResetModal(false);
+                        onReset();
+                      }}
+                    />
+                  </View>
+                </Panel>
+              </SafeAreaView>
+              </PaletteRoot>
+              </SafeAreaProvider>
+            </Modal>
+          )}
 
-      <View className="items-center my-3">
-        <Pressable
-          testID="settings-version-label"
-          onPress={handleVersionTap}
-          accessibilityRole="button"
-          accessibilityLabel={`Versión ${versionLabel}`}
-        >
-          <Text className="text-caption text-inkMuted">{versionLabel}</Text>
-        </Pressable>
-        {(isDev || unlocked) && (
-          <Text testID="settings-content-version" className="mt-1 text-caption text-inkMuted">
-            {contentVersionLabel}
-          </Text>
-        )}
-      </View>
+          {(isDev || unlocked) && (
+            <Section title={t('settings.contentChannel')}>
+              <Text className="mb-2 text-body text-inkMuted">{t('settings.contentChannel.help')}</Text>
+              <View className="flex-row flex-wrap">
+                <Choice
+                  testID="channel-choice-stable"
+                  label={t('settings.contentChannel.stable')}
+                  selected={activeChannel === 'stable'}
+                  onPress={() => handleChannelSelect('stable')}
+                />
+                <Choice
+                  testID="channel-choice-beta"
+                  label={t('settings.contentChannel.beta')}
+                  selected={activeChannel === 'beta'}
+                  onPress={() => handleChannelSelect('beta')}
+                />
+              </View>
+              {switchError && (
+                <Panel tone="warn" className="mt-2">
+                  <Text testID="channel-error-text" className="text-body text-dangerText">
+                    {switchError}
+                  </Text>
+                </Panel>
+              )}
+              {activeChannel === 'stable' && !isDev && (
+                <View className="mt-2">
+                  <Button
+                    testID="channel-hide-button"
+                    label={t('settings.contentChannel.hide')}
+                    tone="secondary"
+                    onPress={handleHideChannel}
+                  />
+                </View>
+              )}
+            </Section>
+          )}
+
+          {(isDev || unlocked) && (
+            <Section title={t('settings.testTools')}>
+              <Text className="mb-2 text-body text-inkMuted">{t('settings.testTools.help')}</Text>
+              <Button
+                testID="test-expire-trial"
+                label={t('settings.testTools.expireTrial')}
+                tone="secondary"
+                onPress={() => update((r) => setTrialStartedAt(r, daysAgo(TRIAL_DAYS + 1)))}
+              />
+              <Button
+                testID="test-reset-trial"
+                label={t('settings.testTools.resetTrial')}
+                tone="secondary"
+                onPress={() => update((r) => setTrialStartedAt(r, null))}
+              />
+            </Section>
+          )}
+
+          <View className="items-center my-3">
+            <Pressable
+              testID="settings-version-label"
+              onPress={handleVersionTap}
+              accessibilityRole="button"
+              accessibilityLabel={`Versión ${versionLabel}`}
+            >
+              <Text className="text-caption text-inkMuted">{versionLabel}</Text>
+            </Pressable>
+            {(isDev || unlocked) && (
+              <Text testID="settings-content-version" className="mt-1 text-caption text-inkMuted">
+                {contentVersionLabel}
+              </Text>
+            )}
+          </View>
+        </>
+      )}
 
       <Button label={t('settings.close')} onPress={onClose} />
     </Screen>

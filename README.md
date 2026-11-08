@@ -1,6 +1,40 @@
 # LeadMate
 
+> *Train the human. Calm the dog.*
+
 A "flight simulator" for dog owners: short simulated walks build leash-handling reflexes and timing.
+
+## Vision
+
+**A world where every dog walk is a calm walk.** Anyone, in any city, should have the confidence and
+the reflexes to walk their dog without pulling, fear or drama. "My dog is reactive" should stop being
+a life sentence and become a solved problem.
+
+## Mission
+
+**Make dog training a skill you practise the way pilots learn to fly: in a simulator.** LeadMate gives
+Handlers a safe, repeatable and fun environment to build timing, dog-reading and leash handling, so they
+arrive on the street already trained. Short sessions, immediate feedback, measurable progress. No risk
+for you, no stress for your dog.
+
+## Who we are
+
+Pilots don't learn to land with 200 passengers on board. Dog owners do: they learn through tugs, barks
+and the odd skateboarder. We are building the fix.
+
+- **Problem:** millions of reactive dogs and frustrated humans, and training that depends on expensive
+  classes, impossible schedules and theory that never gets practised.
+- **Solution:** a simulator with real leash physics, Dogs that learn and remember you, Worlds that scale
+  in difficulty, and a four-step learning loop: **Theory Primer → Checkpoint → Interactive Simulation → Debrief**.
+- **Habit:** daily Streak, "El Paseo del Día" and the Walk Diary turn five minutes a day into a better
+  life together.
+- **Moat:** a pure, seeded, reproducible simulation; a Content Pack engine that ships lessons without a
+  store release; and an Arousal-driven Dog model instead of scripted tricks.
+- **Culture:** animal behaviour science, game design and obsessive engineering. We think in reflexes,
+  not screens.
+
+## Status
+
 Terms (Handler, Dog, Stage, Tension Ratio, Poste, Marker…) follow [`GLOSSARY.md`](GLOSSARY.md).
 
 `base-leadmate` is the first playable slice: one Stage, a walk to a final waypoint where a skateboarder

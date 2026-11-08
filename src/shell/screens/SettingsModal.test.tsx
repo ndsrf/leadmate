@@ -14,7 +14,7 @@ jest.mock('react-native', () => {
     View: (props: any) => React.createElement('div', props, props.children),
     Text: (props: any) => React.createElement('span', props, props.children),
     TextInput: () => null,
-    ScrollView: (props: any) => React.createElement('div', props, props.children),
+    ScrollView: ({ children }: any) => React.createElement('div', null, children),
     Pressable: (props: any) => {
       const body = typeof props.children === 'function' ? props.children({ pressed: false }) : props.children;
       const t = text(body);
@@ -113,6 +113,7 @@ describe('SettingsModal', () => {
         ui={{ settings: DEFAULT_UI_SETTINGS, change: jest.fn() }}
         onReset={jest.fn()}
         billingService={mockBilling}
+        initialTab="account"
       />
     );
 
@@ -142,6 +143,7 @@ describe('SettingsModal', () => {
         ui={{ settings: DEFAULT_UI_SETTINGS, change: jest.fn() }}
         onReset={jest.fn()}
         billingService={mockBilling}
+        initialTab="account"
       />
     );
 
@@ -195,6 +197,7 @@ describe('SettingsModal', () => {
           ui={{ settings: DEFAULT_UI_SETTINGS, change: jest.fn() }}
           onReset={jest.fn()}
           billingService={new MockBillingService()}
+          initialTab="account"
         />
       );
 
