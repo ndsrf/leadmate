@@ -93,6 +93,10 @@ export interface WorldMapProps {
   expandedCompleted?: ReadonlySet<string>;
   /** Tapping a Completed World's header: open or fold its trail. */
   onToggleCompleted?: (worldId: string) => void;
+  /** The Locked and Coming-soon Worlds the user opened this session; every other locked world starts folded. */
+  expandedWorlds?: ReadonlySet<string>;
+  /** Tapping a Locked or Coming-soon World's header: open or fold its trail. */
+  onToggleExpand?: (worldId: string) => void;
   /** The Dog's age band, used to render life-stage tracks such as puppy companion satellite stops. */
   ageBand?: AgeBand | null;
   /** Whether the LeadMate Plus active trial status modal is open. */
@@ -899,6 +903,7 @@ function WorldArena({
   const color = usePalette();
   // the first locked World starts folded to its header; a tap opens its preview
   const isArenaActive = entry.unlocked || isExpanded;
+  const isCollapsible = entry.complete || !entry.unlocked;
   const palette =
 worldPalette(entry.world.id);
 
@@ -955,7 +960,7 @@ worldPalette(entry.world.id);
           {worldWalkSubtitle(entry, t)} · {t(entry.topics)}
         </Text>
       </View>
-      {entry.complete && (
+      {isCollapsible && (
         <Text className="font-display text-body text-inkMuted">
           ▲
         </Text>
@@ -970,6 +975,15 @@ worldPalette(entry.world.id);
           onPress={() => handlePress(onToggleCompleted)}
           accessibilityRole="button"
           accessibilityLabel={completedWorldLabel(entry, t, true)}
+          accessibilityState={{ expanded: true }}
+        >
+          {titleRow}
+        </Pressable>
+      ) : !entry.unlocked ? (
+        <Pressable
+          onPress={() => handlePress(onToggleExpand)}
+          accessibilityRole="button"
+          accessibilityLabel={`${worldTitle(entry.world, t)}. ${t('map.collapsePreview')}`}
           accessibilityState={{ expanded: true }}
         >
           {titleRow}
@@ -1259,6 +1273,8 @@ export function WorldMapScreen({
   covered = false,
   expandedCompleted,
   onToggleCompleted = () => {},
+  expandedWorlds: expandedWorldsProp,
+  onToggleExpand: onToggleExpandProp,
   trialModalOpen,
   onOpenTrialModal,
   onCloseTrialModal,
@@ -1300,7 +1316,8 @@ export function WorldMapScreen({
   const scroll = useRef<ScrollViewInstance>(null);
   const [width, setWidth] = useState(theme.size.readableWidth);
   const [lockNote, setLockNote] = useState<string | null>(null);
-  const [expandedWorlds, setExpandedWorlds] = useState<Record<string, boolean>>({});
+  const [localExpandedWorlds, setLocalExpandedWorlds] = useState<ReadonlySet<string>>(() => new Set());
+  const expandedWorlds = expandedWorldsProp ?? localExpandedWorlds;
   const offsets = useRef<{ blocks: Record<string, number>; paths: Record<string, number> }>({ blocks: {}, paths: {} });
   const focus = model.nextUp ?? model.waitingAt ?? null;
   const focusKey = focus ? `${focus.worldId}:${focus.stop.kind}:${focus.stop.id}` : undefined;
@@ -1346,7 +1363,15 @@ export function WorldMapScreen({
   };
 
   const toggleExpand = (worldId: string) => {
-    setExpandedWorlds((prev) => ({ ...prev, [worldId]: !prev[worldId] }));
+    if (onToggleExpandProp) {
+      onToggleExpandProp(worldId);
+    } else {
+      setLocalExpandedWorlds((prev) => {
+        const next = new Set(prev);
+        if (!next.delete(worldId)) next.add(worldId);
+        return next;
+      });
+    }
   };
 
   const header = (
@@ -1425,7 +1450,7 @@ export function WorldMapScreen({
             pulse={motion.pulse}
             live={live}
             isFirstLocked={world.world.id === firstLockedWorldId}
-            isExpanded={!!expandedWorlds[world.world.id]}
+            isExpanded={expandedWorlds.has(world.world.id)}
             onToggleExpand={() => toggleExpand(world.world.id)}
             completedOpen={!!expandedCompleted?.has(world.world.id)}
             onToggleCompleted={() => onToggleCompleted(world.world.id)}

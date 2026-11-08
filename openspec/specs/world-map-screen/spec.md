@@ -6,7 +6,7 @@ Presents progression as a World Map the user travels along, so the next lesson i
 ## Requirements
 
 ### Requirement: Map of Worlds and Nodes
-The system SHALL show the World Map as a continuous winding trail traversing titled World regions, rendering active worlds with visible Stops along the path, the immediately next locked world with an unlock requirement banner, and subsequent locked worlds as compact collapsible headers.
+The system SHALL show the World Map as a continuous winding trail traversing titled World regions, rendering active worlds with visible Stops along the path, the immediately next locked world with an unlock requirement banner, and subsequent locked worlds as compact collapsible headers. Every collapsible world header SHALL provide visible chevrons (▼ to expand, ▲ to collapse) indicating its state and SHALL toggle expansion when activated.
 
 #### Scenario: Worlds listed
 - **WHEN** the World Map is shown
@@ -27,6 +27,22 @@ The system SHALL show the World Map as a continuous winding trail traversing tit
 #### Scenario: Subsequent locked Worlds collapsed
 - **WHEN** a World follows an already-locked World
 - **THEN** it is displayed as a compact collapsible header row with a lock icon, and tapping the header toggles inline expansion of its trail
+
+#### Scenario: Expanded locked or Coming-soon World shows collapse chevron
+- **WHEN** a locked World or Coming-soon World is expanded
+- **THEN** its header row displays an upward chevron ("▲") and activating the header collapses it back to its compact header row
+
+#### Scenario: Screen reader on expanded locked World
+- **WHEN** a screen reader focuses the header of an expanded locked or Coming-soon World
+- **THEN** it is announced as a button with the World title and that activating it collapses the preview ("Cerrar adelanto"), with expanded state true
+
+#### Scenario: Plus badge tap target on header
+- **WHEN** the user taps the Plus badge on an expanded or collapsed Plus-tier World header
+- **THEN** the Paywall opens and the World header does not toggle its expansion state
+
+#### Scenario: Expanded locked World choice kept while visiting a Stop or Paywall
+- **WHEN** the user expands a locked or Coming-soon World, visits a Stop, the Paywall, or Settings and returns to the World Map
+- **THEN** that World is still expanded and the map is at the same scroll position
 
 #### Scenario: Long World
 - **WHEN** a World holds twelve or more Stops

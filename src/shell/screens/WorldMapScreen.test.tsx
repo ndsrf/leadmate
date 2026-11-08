@@ -1144,3 +1144,130 @@ describe('MoreComingCard at the end of the map (Task 4.2)', () => {
     }
   });
 });
+
+describe('WorldMapScreen - Expand and Collapse World Headers (Task 2.1)', () => {
+  const t = createTranslator(es);
+  const passed = { target: 'full' as const, skipRun: 0, attempts: [], startedAt: '2026-10-01T09:00:00.000Z', passedOn: '2026-10-02' };
+  const done = (ids: string[]) => {
+    const stops = ids.flatMap((id) => stopsOf(findWorld(id)!));
+    return progressOf(stops.filter((s) => s.kind === 'node').map((s) => s.id), {
+      readLessons: stops.filter((s) => s.kind === 'lesson').map((s) => s.id),
+      missions: Object.fromEntries(stops.filter((s) => s.kind === 'mission').map((s) => [s.id, passed])) as Progress['missions'],
+    });
+  };
+
+  const basicsDone = done(['basics']);
+  const render = (props: Partial<React.ComponentProps<typeof WorldMapScreen>> = {}) => {
+    mockPressables.length = 0;
+    return renderToStaticMarkup(
+      <WorldMapScreen
+        t={t}
+        progress={basicsDone}
+        stars={{}}
+        now={new Date('2026-10-28T09:00:00')}
+        streak={NO_STREAK}
+        today="2026-10-28"
+        dailyBest={undefined}
+        rustyPrompt={false}
+        rusty={false}
+        skippedWarmup={false}
+        onWarmup={() => {}}
+        onSkipWarmup={() => {}}
+        onDaily={() => {}}
+        onBarkdoku={() => {}}
+        onOpenStop={() => {}}
+        onSettings={() => {}}
+        {...props}
+      />,
+    );
+  };
+
+  it('renders an expanded Locked World header with ▲ and pressing it calls onToggleExpand', () => {
+    const onToggleExpand = jest.fn();
+    const sidewalkTitle = worldTitle(findWorld('sidewalk')!, t);
+    const markup = render({
+      expandedWorlds: new Set(['sidewalk']),
+      onToggleExpand,
+    });
+
+    const expectedLabel = `${sidewalkTitle}. ${es['map.collapsePreview']}`;
+    const header = mockPressables.find((p) => p.accessibilityLabel === expectedLabel);
+    expect(header).toBeDefined();
+    expect(header.accessibilityRole).toBe('button');
+    expect(header.accessibilityState).toEqual({ expanded: true });
+    expect(markup).toContain('▲');
+
+    header.onPress();
+    expect(onToggleExpand).toHaveBeenCalledWith('sidewalk');
+  });
+
+  it('renders an expanded Coming-soon World header with ▲ and pressing it calls onToggleExpand', () => {
+    const onToggleExpand = jest.fn();
+    const recallTitle = worldTitle(findWorld('recall')!, t);
+    const markup = render({
+      expandedWorlds: new Set(['recall']),
+      onToggleExpand,
+    });
+
+    const expectedLabel = `${recallTitle}. ${es['map.collapsePreview']}`;
+    const header = mockPressables.find((p) => p.accessibilityLabel === expectedLabel);
+    expect(header).toBeDefined();
+    expect(header.accessibilityRole).toBe('button');
+    expect(header.accessibilityState).toEqual({ expanded: true });
+    expect(markup).toContain('▲');
+
+    header.onPress();
+    expect(onToggleExpand).toHaveBeenCalledWith('recall');
+  });
+
+  it('keeps the active In-Progress World non-interactive without a chevron', () => {
+    const homeTitle = worldTitle(findWorld('home')!, t);
+    render({
+      expandedWorlds: new Set(['sidewalk']),
+    });
+
+    expect(mockPressables.filter((p) => String(p.accessibilityLabel ?? '').startsWith(homeTitle))).toEqual([]);
+  });
+
+  it('tapping the Plus badge on a Locked/Coming-soon World header opens paywall without toggling expansion', () => {
+    const onPaywall = jest.fn();
+    const onToggleExpand = jest.fn();
+    render({
+      expandedWorlds: new Set(['recall']),
+      onToggleExpand,
+      onPaywall,
+    });
+
+    const plusBadges = mockPressables.filter((p) => p.accessibilityLabel === es['world.plusBadge']);
+    expect(plusBadges.length).toBeGreaterThan(0);
+
+    plusBadges[0].onPress();
+    expect(onPaywall).toHaveBeenCalled();
+    expect(onToggleExpand).not.toHaveBeenCalled();
+  });
+
+  it('continues to toggle Completed Worlds via onToggleCompleted', () => {
+    const onToggleCompleted = jest.fn();
+    const onToggleExpand = jest.fn();
+    const basicsTitle = worldTitle(findWorld('basics')!, t);
+    const label = (expanded: boolean) => `${basicsTitle}. ${es['map.worldCompleted']}. ${expanded ? es['map.hideStops'] : es['map.showStops']}`;
+
+    // Folded
+    render({ onToggleCompleted, onToggleExpand });
+    const foldedHeader = mockPressables.find((p) => p.accessibilityLabel === label(false));
+    expect(foldedHeader).toBeDefined();
+    foldedHeader.onPress();
+    expect(onToggleCompleted).toHaveBeenCalledWith('basics');
+    expect(onToggleExpand).not.toHaveBeenCalled();
+
+    // Expanded
+    onToggleCompleted.mockClear();
+    render({ expandedCompleted: new Set(['basics']), onToggleCompleted, onToggleExpand });
+    const expandedHeader = mockPressables.find((p) => p.accessibilityLabel === label(true));
+    expect(expandedHeader).toBeDefined();
+    expect(expandedHeader.accessibilityState).toEqual({ expanded: true });
+    expandedHeader.onPress();
+    expect(onToggleCompleted).toHaveBeenCalledWith('basics');
+    expect(onToggleExpand).not.toHaveBeenCalled();
+  });
+});
