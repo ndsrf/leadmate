@@ -158,6 +158,28 @@ export async function publishPack(options: PublishOptions = {}): Promise<Publish
   });
   const { manifest, latest } = buildResult;
 
+  // Check remote latest.json to prevent version drift or overwriting
+  const remoteLatestPath = `${channel}/latest.json`;
+  const { data: remoteLatestData, error: remoteLatestErr } = await bucket.download(remoteLatestPath);
+  if (!remoteLatestErr && remoteLatestData) {
+    let remoteContentVersion: number | undefined;
+    try {
+      const remoteLatestText = await remoteLatestData.text();
+      const remoteLatest: LatestPointer = JSON.parse(remoteLatestText);
+      if (typeof remoteLatest?.contentVersion === 'number') {
+        remoteContentVersion = remoteLatest.contentVersion;
+      }
+    } catch {
+      // Ignore invalid or empty remote latest pointer
+    }
+
+    if (typeof remoteContentVersion === 'number' && manifest.contentVersion <= remoteContentVersion) {
+      throw new Error(
+        `Remote channel "${channel}" is already at version ${remoteContentVersion}. Local pack has version ${manifest.contentVersion}. Please bump contentVersion in content/${channel}/pack.yaml before publishing.`
+      );
+    }
+  }
+
   // C. Confirm stable channel
   if (channel === 'stable' && !options.yes) {
     const prompt = options.promptFn ?? (async () => false);

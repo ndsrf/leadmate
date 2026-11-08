@@ -57,6 +57,7 @@ describe('content:validate CLI', () => {
         path.join(tmpDir, 'pack.yaml'),
         `
 formatVersion: 1
+contentVersion: 1
 minAppVersion: "1.0.0"
 languages:
   - es

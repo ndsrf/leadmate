@@ -71,4 +71,28 @@ describe('promotePack / content:promote', () => {
 
     expect(fs.readFileSync(path.join(stableMock, 'keep.txt'), 'utf8')).toBe('original content');
   });
+
+  it('preserves existing contentVersion of destination pack during promotion', () => {
+    fs.cpSync(REAL_BETA_DIR, betaMock, { recursive: true });
+    // Stable has its own existing pack.yaml with contentVersion: 1
+    fs.cpSync(REAL_BETA_DIR, stableMock, { recursive: true });
+    const stablePackYamlPath = path.join(stableMock, 'pack.yaml');
+    fs.writeFileSync(
+      stablePackYamlPath,
+      'formatVersion: 1\ncontentVersion: 1\nminAppVersion: 1.0.0\nlanguages:\n  - es\nretired: []\n'
+    );
+
+    // Beta has contentVersion: 4
+    const betaPackYamlPath = path.join(betaMock, 'pack.yaml');
+    fs.writeFileSync(
+      betaPackYamlPath,
+      'formatVersion: 1\ncontentVersion: 4\nminAppVersion: 1.0.0\nlanguages:\n  - es\nretired: []\n'
+    );
+
+    const res = promotePack({ fromDir: betaMock, toDir: stableMock });
+    expect(res.success).toBe(true);
+
+    const promotedStableYaml = fs.readFileSync(stablePackYamlPath, 'utf8');
+    expect(promotedStableYaml).toContain('contentVersion: 1');
+  });
 });

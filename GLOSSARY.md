@@ -479,6 +479,14 @@ _Avoid_: Theme, dark mode, night mode
 A deliberate, confirmed return of this device's Dog to its first-run state, available only while signed out. It ends any Pairing but never changes the account's Dog.
 _Avoid_: Delete account, wipe, factory reset
 
+**Settings Area**:
+One of the three domain-specific groupings of options within the Settings screen: Perro (Dog attributes and reactivity), Preferencias (feedback, appearance, and audio cues), or Cuenta (subscription, sync, and system tools).
+_Avoid_: Settings category, section group, settings page
+
+**Area Tab**:
+A tactile, pill-shaped control pinned at the top of the Settings screen that switches the visible Settings Area.
+_Avoid_: Settings chip, segment, toggle button
+
 **Pairing**:
 The bond between a device's Dog and one Dog saved in an account, which keeps the two in sync. Logging out keeps it; Reset Progress and account deletion end it.
 _Avoid_: Link, connection, attachment
@@ -508,6 +516,14 @@ _Avoid_: Asset bundle, CMS export, lesson pack
 **Channel**:
 A release stream for content packs (`stable` or `beta`). Each channel builds, validates, and publishes independently with its own monotonic content version counter and manifest.
 _Avoid_: Environment, branch, release track
+
+**Content Version**:
+A positive integer recorded in `pack.yaml` tracking curriculum and editorial releases for a channel, advancing monotonically with each published update.
+_Avoid_: Revision, build number, pack version
+
+**Format Version**:
+The structural schema specification number recorded in `pack.yaml` (`formatVersion`) that determines whether the app parser supports the pack's file hierarchy and fields.
+_Avoid_: Content version, API version
 
 **Baseline Pack**:
 The static copy of the stable content pack bundled directly within the app binary at build time. It ensures all screens, trails, Lessons, and Missions work immediately on first launch, without network access, and acts as the fallback after any failed update.

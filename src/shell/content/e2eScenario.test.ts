@@ -192,7 +192,7 @@ describe('Task 7.1 End-to-End Verification Scenario', () => {
     // -------------------------------------------------------------------------
     // Stable: published unchanged (matches baseline)
     const stableFiles: Record<string, string> = {
-      'pack.yaml': 'formatVersion: 1\nminAppVersion: 1.0.0\nlanguages:\n  - es\nretired: []\n',
+      'pack.yaml': 'formatVersion: 1\ncontentVersion: 1\nminAppVersion: 1.0.0\nlanguages:\n  - es\nretired: []\n',
       'worlds/basics.yaml': 'id: basics\nworldNumber: 1\ntier: free\nstretches:\n  - - kind: lesson\n      id: calm-leash\n',
       'worlds/basics/es.md': '# Fundamentos\n\n## topics\nBásicos\n',
       'lessons/calm-leash/lesson.yaml': 'id: calm-leash\nkind: theory\nday: 1\nsteps: 3\ntakeaways: 2\n',
@@ -247,7 +247,7 @@ describe('Task 7.1 End-to-End Verification Scenario', () => {
     // d) a retirement (retired-old-stop listed in pack.yaml retired)
     const specialPngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]); // PNG header magic bytes
     const betaFiles: Record<string, string | Uint8Array> = {
-      'pack.yaml': 'formatVersion: 1\nminAppVersion: 1.0.0\nlanguages:\n  - es\nretired:\n  - retired-old-stop\n',
+      'pack.yaml': 'formatVersion: 1\ncontentVersion: 2\nminAppVersion: 1.0.0\nlanguages:\n  - es\nretired:\n  - retired-old-stop\n',
       'worlds/basics.yaml': 'id: basics\nworldNumber: 1\ntier: free\nstretches:\n  - - kind: lesson\n      id: special-lesson\n    - kind: lesson\n      id: calm-leash\n',
       'worlds/basics/es.md': '# Fundamentos Beta\n\n## topics\nBásicos en beta\n',
       'lessons/calm-leash/lesson.yaml': 'id: calm-leash\nkind: theory\nday: 1\nsteps: 3\ntakeaways: 2\n',

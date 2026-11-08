@@ -173,6 +173,7 @@ describe('ContentUpdater (launch updates, diffs, compatibility, in-app validatio
 
   const validPackYaml = `
 formatVersion: 1
+contentVersion: 1
 minAppVersion: "1.0.0"
 languages:
   - es
@@ -357,6 +358,87 @@ Topics
     expect(res.updated).toBe(false);
     expect(res.reason).toBe('up_to_date');
     expect(res.filesDownloaded).toBeUndefined();
+  });
+
+  it('Scenario: Fresh install on stable channel with no stored active pack returns up_to_date when baseline matches remote', async () => {
+    const v1Files = {
+      'pack.yaml': validPackYaml,
+      'worlds/world-1.yaml': validWorldYaml,
+      'worlds/world-1/es.md': validWorldEs,
+    };
+    await hostPackVersion(1, v1Files);
+    server.setRoute(
+      `${CONTENT_BASE}/stable/latest.json`,
+      JSON.stringify({
+        channel: 'stable',
+        contentVersion: 1,
+        formatVersion: 1,
+        minAppVersion: '1.0.0',
+        manifestPath: 'packs/1/manifest.json',
+        manifestHash: 'hash',
+        createdAt: '2026-11-06T18:00:00Z',
+      })
+    );
+
+    expect(await store.getActivePointer('stable')).toBeNull();
+
+    const res = await updater.checkAndDownloadUpdate({
+      channel: 'stable',
+      currentAppVersion: '1.0.0',
+      contentBase: CONTENT_BASE,
+    });
+
+    expect(res.updated).toBe(false);
+    expect(res.reason).toBe('up_to_date');
+    expect(res.remoteVersion).toBe(1);
+    expect(res.filesDownloaded).toBeUndefined();
+    expect(server.requestedUrls.filter((u) => u.includes('/files/'))).toHaveLength(0);
+  });
+
+  it('Scenario: App update where bundled baseline exceeds stored active pointer resolves to up_to_date using baseline version', async () => {
+    const mockManifest: ContentManifest = {
+      channel: 'stable',
+      contentVersion: 0,
+      formatVersion: 1,
+      minAppVersion: '1.0.0',
+      createdAt: '2026-11-06T18:00:00Z',
+      files: {},
+    };
+    await kvStorage.setItem(
+      '@leadmate:content_active_stable',
+      JSON.stringify({
+        channel: 'stable',
+        contentVersion: 0,
+        formatVersion: 1,
+        minAppVersion: '1.0.0',
+        activatedAt: '2026-11-06T18:00:00Z',
+        manifest: mockManifest,
+      })
+    );
+
+    server.setRoute(
+      `${CONTENT_BASE}/stable/latest.json`,
+      JSON.stringify({
+        channel: 'stable',
+        contentVersion: 1,
+        formatVersion: 1,
+        minAppVersion: '1.0.0',
+        manifestPath: 'packs/1/manifest.json',
+        manifestHash: 'hash',
+        createdAt: '2026-11-06T18:00:00Z',
+      })
+    );
+
+    const res = await updater.checkAndDownloadUpdate({
+      channel: 'stable',
+      currentAppVersion: '1.0.0',
+      contentBase: CONTENT_BASE,
+    });
+
+    expect(res.updated).toBe(false);
+    expect(res.reason).toBe('up_to_date');
+    expect(res.remoteVersion).toBe(1);
+    expect(server.requestedUrls.filter((u) => u.includes('/files/'))).toHaveLength(0);
   });
 
   it('Scenario: Slow or unreachable host falls back cleanly with no error thrown', async () => {

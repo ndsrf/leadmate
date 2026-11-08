@@ -58,6 +58,7 @@ describe('pack.yaml validation', () => {
   it('accepts valid pack.yaml', () => {
     const valid = {
       formatVersion: 1,
+      contentVersion: 1,
       minAppVersion: '1.0.0',
       languages: ['es', 'en'],
       retired: ['old-node-1'],
@@ -70,10 +71,13 @@ describe('pack.yaml validation', () => {
   it('rejects invalid pack.yaml', () => {
     expect(validatePackYaml(null).valid).toBe(false);
     expect(validatePackYaml({}).valid).toBe(false);
-    expect(validatePackYaml({ formatVersion: 0, minAppVersion: '1.0.0', languages: ['es'] }).valid).toBe(false);
-    expect(validatePackYaml({ formatVersion: 1, minAppVersion: 'bad', languages: ['es'] }).valid).toBe(false);
-    expect(validatePackYaml({ formatVersion: 1, minAppVersion: '1.0.0', languages: ['en'] }).valid).toBe(false); // missing 'es'
-    expect(validatePackYaml({ formatVersion: 1, minAppVersion: '1.0.0', languages: ['es'], retired: ['Invalid_ID'] }).valid).toBe(false);
+    expect(validatePackYaml({ formatVersion: 0, contentVersion: 1, minAppVersion: '1.0.0', languages: ['es'] }).valid).toBe(false);
+    expect(validatePackYaml({ formatVersion: 1, contentVersion: 0, minAppVersion: '1.0.0', languages: ['es'] }).valid).toBe(false);
+    expect(validatePackYaml({ formatVersion: 1, contentVersion: '1', minAppVersion: '1.0.0', languages: ['es'] }).valid).toBe(false);
+    expect(validatePackYaml({ formatVersion: 1, minAppVersion: '1.0.0', languages: ['es'] }).valid).toBe(false); // missing contentVersion
+    expect(validatePackYaml({ formatVersion: 1, contentVersion: 1, minAppVersion: 'bad', languages: ['es'] }).valid).toBe(false);
+    expect(validatePackYaml({ formatVersion: 1, contentVersion: 1, minAppVersion: '1.0.0', languages: ['en'] }).valid).toBe(false); // missing 'es'
+    expect(validatePackYaml({ formatVersion: 1, contentVersion: 1, minAppVersion: '1.0.0', languages: ['es'], retired: ['Invalid_ID'] }).valid).toBe(false);
   });
 });
 

@@ -1,3 +1,4 @@
+import { BASELINE_PACK } from './baseline.generated';
 import { type ContentManifest } from './build';
 import { channelFileUrl, channelLatestUrl, channelManifestUrl, hasRemoteContent } from './config';
 import { endContentProgress, reportContentProgress } from './progress';
@@ -208,7 +209,9 @@ export class ContentUpdater {
 
     // 3. Check against installed version
     const activePointer = await this.store.getActivePointer(channel);
-    if (activePointer && activePointer.contentVersion >= contentVersion) {
+    const baselineVersion = channel === 'stable' ? BASELINE_PACK.pack.contentVersion : undefined;
+    const installedVersion = Math.max(activePointer?.contentVersion ?? 0, baselineVersion ?? 0);
+    if (installedVersion >= contentVersion) {
       return { updated: false, reason: 'up_to_date', remoteVersion: contentVersion };
     }
 

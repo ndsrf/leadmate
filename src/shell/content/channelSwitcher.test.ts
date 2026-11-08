@@ -181,6 +181,7 @@ describe('switchChannel (Task 5.2)', () => {
     const files: Record<string, string> = {
       'pack.yaml': `
 formatVersion: 1
+contentVersion: ${version}
 minAppVersion: "1.0.0"
 languages:
   - es

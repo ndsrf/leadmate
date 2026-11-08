@@ -95,14 +95,14 @@ describe('publishPack / content:publish', () => {
     // Verify storage has files, manifest and latest.json under beta/
     expect(mockClient.bucket.files.has('beta/latest.json')).toBe(true);
     expect(mockClient.bucket.files.has('beta/manifest.json')).toBe(true);
-    expect(mockClient.bucket.files.has('beta/packs/1/manifest.json')).toBe(true);
+    expect(mockClient.bucket.files.has('beta/packs/4/manifest.json')).toBe(true);
 
-    // Verify latest.json points to packs/1/manifest.json
+    // Verify latest.json points to packs/4/manifest.json
     const latestRaw = mockClient.bucket.files.get('beta/latest.json')!.toString();
     const latest = JSON.parse(latestRaw);
     expect(latest.channel).toBe('beta');
-    expect(latest.contentVersion).toBe(1);
-    expect(latest.manifestPath).toBe('packs/1/manifest.json');
+    expect(latest.contentVersion).toBe(4);
+    expect(latest.manifestPath).toBe('packs/4/manifest.json');
   });
 
   it('interrupted upload leaves latest.json untouched', async () => {
@@ -123,6 +123,28 @@ describe('publishPack / content:publish', () => {
 
     // latest.json MUST remain the existing one!
     expect(mockClient.bucket.files.get('beta/latest.json')).toBe('existing-latest-v0');
+  });
+
+  it('rejects publishing when pack contentVersion does not advance beyond remote latest.json', async () => {
+    const remoteLatest = {
+      channel: 'beta',
+      contentVersion: 4,
+      formatVersion: 1,
+      minAppVersion: '1.0.0',
+      manifestPath: 'packs/4/manifest.json',
+      manifestHash: 'hash',
+      createdAt: '2026-11-06T18:00:00Z',
+    };
+    mockClient.bucket.files.set('beta/latest.json', JSON.stringify(remoteLatest));
+
+    await expect(
+      publishPack({
+        channel: 'beta',
+        packDir: BETA_DIR,
+        outDir: tmpOutDir,
+        storageClient: mockClient,
+      })
+    ).rejects.toThrow(/Remote channel "beta" is already at version 4/);
   });
 
   it('publishing to stable prompts for confirmation and aborts if not confirmed', async () => {
@@ -166,13 +188,14 @@ describe('publishPack / content:publish', () => {
     expect(res.channel).toBe('stable');
     expect(mockClient.bucket.files.has('stable/latest.json')).toBe(true);
 
-    // Also test with yes: true (should not call promptFn)
+    // Also test with yes: true (should not call promptFn) using fresh storage client
     promptCalled = false;
+    const mockClientYes = new MockStorageClient();
     const resYes = await publishPack({
       channel: 'stable',
       packDir: BETA_DIR,
       outDir: tmpOutDir,
-      storageClient: mockClient,
+      storageClient: mockClientYes,
       yes: true,
       promptFn,
     });

@@ -299,6 +299,7 @@ describe('Progress rules across content updates and channels (Task 5.4)', () => 
       const files: Record<string, string> = {
         'pack.yaml': `
 formatVersion: 1
+contentVersion: 2
 minAppVersion: "1.0.0"
 languages:
   - es

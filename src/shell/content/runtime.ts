@@ -41,7 +41,7 @@ export function getActiveContent(): RuntimeContent {
   activeContentSession = {
     channel: 'stable',
     isBaseline: true,
-    contentVersion: 1,
+    contentVersion: BASELINE_PACK.pack.contentVersion ?? 1,
     pack: BASELINE_PACK,
     resolved,
   };
@@ -108,13 +108,13 @@ export async function initContentRuntime(options: InitRuntimeOptions = {}): Prom
   // 2. Try to load active pack from store
   let pack: ContentPack | null = null;
   let isBaseline = false;
-  let contentVersion = 1;
+  let contentVersion = baseline.pack.contentVersion ?? 1;
 
   if (options.store) {
     pack = await options.store.loadActivePack(channel);
     if (pack) {
       const pointer = await options.store.getActivePointer(channel);
-      contentVersion = pointer?.contentVersion ?? 1;
+      contentVersion = pointer?.contentVersion ?? (pack.pack.contentVersion ?? 1);
     }
   }
 
@@ -122,7 +122,7 @@ export async function initContentRuntime(options: InitRuntimeOptions = {}): Prom
   if (!pack) {
     pack = baseline;
     isBaseline = true;
-    contentVersion = 1;
+    contentVersion = baseline.pack.contentVersion ?? 1;
   }
 
   // 4. Resolve pack

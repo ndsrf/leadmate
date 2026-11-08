@@ -6,7 +6,7 @@ Defines how the app discovers, downloads, verifies and activates the newest publ
 ## Requirements
 
 ### Requirement: Bundled baseline content
-The system SHALL include the stable pack in the app as its baseline so that every screen works on first launch, with no network, and after any failed or rejected update.
+The system SHALL include the stable pack in the app as its baseline with its explicit `contentVersion` preserved from `pack.yaml`, so that every screen works on first launch, with no network, after any failed or rejected update, and exposes its authentic content version to the runtime.
 
 #### Scenario: First launch offline
 - **WHEN** the app starts for the first time with no connection
@@ -15,6 +15,10 @@ The system SHALL include the stable pack in the app as its baseline so that ever
 #### Scenario: Baseline equals current content
 - **WHEN** the app resolves the baseline pack
 - **THEN** its Worlds, Lessons, Nodes, Missions and text equal what the app shipped before this change
+
+#### Scenario: Baseline reflects pack content version
+- **WHEN** the app starts with no active downloaded pack and falls back to the baseline pack
+- **THEN** the active runtime contentVersion matches the bundled baseline's `contentVersion`
 
 ### Requirement: Content channel setting
 The system SHALL offer a Content channel setting with Stable and Beta, SHALL default to Stable, SHALL keep the choice on the device only, and SHALL show a visible indicator while Beta is selected.
@@ -77,7 +81,7 @@ The system SHALL, when the user changes the channel, fetch that channel's pack a
 - **THEN** stable content shows immediately, even offline
 
 ### Requirement: Check for new content at launch
-The system SHALL check the selected channel's published pointer in the background when the app starts, without delaying the first interactive screen, and SHALL NOT poll during a session.
+The system SHALL check the selected channel's published pointer in the background when the app starts, without delaying the first interactive screen, SHALL compare the remote version against the highest of the installed pack version and the bundled baseline pack version, and SHALL NOT poll during a session.
 
 #### Scenario: New content published
 - **WHEN** the app starts online and the channel has a newer content version
@@ -86,6 +90,10 @@ The system SHALL check the selected channel's published pointer in the backgroun
 #### Scenario: Nothing new
 - **WHEN** the published version equals the installed one
 - **THEN** no content file is downloaded
+
+#### Scenario: Bundled baseline already matches remote version
+- **WHEN** a newly installed app or updated binary starts with no cached pack, and the published remote content version is less than or equal to the bundled baseline pack version
+- **THEN** the updater reports up-to-date and downloads no files
 
 #### Scenario: Slow or unreachable host
 - **WHEN** the pointer cannot be fetched within a short timeout

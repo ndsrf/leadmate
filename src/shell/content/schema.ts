@@ -54,6 +54,7 @@ export interface FieldDoc {
 
 export const PACK_SCHEMA_FIELDS: readonly FieldDoc[] = [
   { name: 'formatVersion', type: 'number', required: true, description: 'Version of the pack file format (positive integer, e.g. 1)' },
+  { name: 'contentVersion', type: 'number', required: true, description: 'Monotonic curriculum content release version (positive integer, e.g. 1)' },
   { name: 'minAppVersion', type: 'string', required: true, description: 'Minimum semver app version required to load this pack (e.g. "1.0.0")' },
   { name: 'languages', type: 'string[]', required: true, description: 'List of language codes in use; must include "es"' },
   { name: 'retired', type: 'string[]', required: false, description: 'List of retired content item IDs to preserve user progress' },
@@ -114,6 +115,7 @@ export interface StopYaml {
 
 export interface PackYaml {
   formatVersion: number;
+  contentVersion: number;
   minAppVersion: string;
   languages: string[];
   retired?: string[];
@@ -257,6 +259,10 @@ export function validatePackYaml(raw: unknown, file: string = 'pack.yaml'): Vali
 
   if (typeof obj.formatVersion !== 'number' || !Number.isInteger(obj.formatVersion) || obj.formatVersion < 1) {
     errors.push({ file, field: 'formatVersion', message: 'formatVersion must be a positive integer', hint: 'Set formatVersion: 1' });
+  }
+
+  if (typeof obj.contentVersion !== 'number' || !Number.isInteger(obj.contentVersion) || obj.contentVersion < 1) {
+    errors.push({ file, field: 'contentVersion', message: 'contentVersion must be a positive integer', hint: 'Set contentVersion: 1' });
   }
 
   if (!isSemver(obj.minAppVersion)) {

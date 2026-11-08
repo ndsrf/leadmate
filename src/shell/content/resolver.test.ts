@@ -7,6 +7,7 @@ function makeFixturePack(): ContentPack {
   return {
     pack: {
       formatVersion: 1,
+      contentVersion: 1,
       minAppVersion: '1.0.0',
       languages: ['es', 'en'],
     },

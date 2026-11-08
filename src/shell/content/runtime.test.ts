@@ -200,6 +200,7 @@ describe('Runtime content loading & session stability', () => {
     const v2Files = {
       'pack.yaml': `
 formatVersion: 1
+contentVersion: 2
 minAppVersion: "1.0.0"
 languages:
   - es

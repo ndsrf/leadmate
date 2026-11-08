@@ -1,5 +1,6 @@
-import { cpSync, existsSync, rmSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { cpSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { parse, stringify } from 'yaml';
 import { loadPackFromDisk } from './loader';
 import { validatePack } from './validator';
 
@@ -38,11 +39,33 @@ export function promotePack(options: PromoteOptions = {}): PromoteResult {
     throw new Error(`Source validation failed with ${sourceReport.errors.length} errors. Promotion refused:\n${errorDetails}`);
   }
 
+  // Preserve existing destination contentVersion if present
+  const destPackYamlPath = join(toDir, 'pack.yaml');
+  let preservedContentVersion: number | undefined;
+
+  if (existsSync(destPackYamlPath)) {
+    try {
+      const parsed = parse(readFileSync(destPackYamlPath, 'utf8'));
+      if (typeof parsed?.contentVersion === 'number') {
+        preservedContentVersion = parsed.contentVersion;
+      }
+    } catch {
+      // Ignore read errors
+    }
+  }
+
   // 2. Copy source to destination
   if (existsSync(toDir)) {
     rmSync(toDir, { recursive: true, force: true });
   }
   cpSync(fromDir, toDir, { recursive: true });
+
+  // Restore preserved contentVersion in destination pack.yaml
+  if (typeof preservedContentVersion === 'number' && existsSync(destPackYamlPath)) {
+    const parsed = parse(readFileSync(destPackYamlPath, 'utf8'));
+    parsed.contentVersion = preservedContentVersion;
+    writeFileSync(destPackYamlPath, stringify(parsed), 'utf8');
+  }
 
   // 3. Validate destination
   const destPack = loadPackFromDisk(toDir);

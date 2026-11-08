@@ -51,6 +51,7 @@ content/<channel>/                 channel = beta | stable
 | Field | Type | Required | Allowed Values | Description |
 | --- | --- | --- | --- | --- |
 | `formatVersion` | `number` | **Yes** | - | Version of the pack file format (positive integer, e.g. 1) |
+| `contentVersion` | `number` | **Yes** | - | Monotonic curriculum content release version (positive integer, e.g. 1) |
 | `minAppVersion` | `string` | **Yes** | - | Minimum semver app version required to load this pack (e.g. "1.0.0") |
 | `languages` | `string[]` | **Yes** | - | List of language codes in use; must include "es" |
 | `retired` | `string[]` | No | - | List of retired content item IDs to preserve user progress |

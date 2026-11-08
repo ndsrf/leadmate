@@ -142,6 +142,7 @@ describe('ContentStore (staging, hash verification, pointer, retention, GC)', ()
 
   const validPackYaml = `
 formatVersion: 1
+contentVersion: 1
 minAppVersion: "1.0.0"
 languages:
   - es
