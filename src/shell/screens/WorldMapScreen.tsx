@@ -1211,6 +1211,7 @@ export function TrialStatusModal({
             { key: 'videos', text: t('trialModal.perk.videos') },
             { key: 'skips', text: t('trialModal.perk.skips') },
             { key: 'worlds', text: t('trialModal.perk.worlds') },
+            { key: 'barkdoku', text: t('trialModal.perk.barkdoku') },
             { key: 'adfree', text: t('trialModal.perk.adfree') },
           ] as const).map((perk) => (
             <View key={perk.key} className="flex-row items-center gap-2">

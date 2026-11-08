@@ -3,7 +3,7 @@ jest.mock('react-native', () => {
   return {
     View: (props: any) => React.createElement('div', props, props.children),
     Text: (props: any) => React.createElement('span', props, props.children),
-    Pressable: (props: any) => React.createElement('button', props, props.children),
+    Pressable: (props: any) => React.createElement('button', props, typeof props.children === 'function' ? props.children({ pressed: false }) : props.children),
     ScrollView: (props: any) => React.createElement('div', props, props.children),
     Dimensions: { get: () => ({ width: 390, height: 844 }) },
     useWindowDimensions: () => ({ width: 390, height: 844 }),
@@ -281,6 +281,15 @@ describe('Solve Time clock', () => {
   it('marks a practice board', () => {
     expect(renderToStaticMarkup(<BarkdokuView t={t} board={board5} practice />)).toContain('Práctica');
   });
+
+  it('renders tier badges in header: trial badge for trial user and upfront practice warning for free practice', () => {
+    const trialMarkup = renderToStaticMarkup(<BarkdokuView t={t} board={board5} tier="trial" boardIndex={1} />);
+    expect(trialMarkup).toContain('Prueba Plus');
+
+    const freeMarkup = renderToStaticMarkup(<BarkdokuView t={t} board={board5} practice tier="free" />);
+    expect(freeMarkup).toContain('Práctica · Tablero diario');
+    expect(freeMarkup).toContain('Los usuarios de la versión gratuita juegan el mismo tablero cada día');
+  });
 });
 
 describe('SolvedCard', () => {
@@ -324,6 +333,54 @@ describe('SolvedCard', () => {
     expect(html).toContain('practice-kept');
     expect(html).not.toContain('estrellas');
     expect(html).not.toContain('target-met');
+  });
+
+  it('renders trial notice and "Jugar otro tablero" button for trial members', () => {
+    const html = renderToStaticMarkup(
+      <SolvedCard
+        t={t}
+        metrics={metrics()}
+        tier="trial"
+        boardIndex={1}
+        onContinue={() => {}}
+        onNewBoard={() => {}}
+      />
+    );
+    expect(html).toContain('trial-perk-notice');
+    expect(html).toContain('Incluido en tu prueba de LeadMate Plus');
+    expect(html).toContain('Jugar otro tablero');
+  });
+
+  it('renders Plus notice and "Jugar otro tablero" button for subscribed Plus members', () => {
+    const html = renderToStaticMarkup(
+      <SolvedCard
+        t={t}
+        metrics={metrics()}
+        tier="plus"
+        boardIndex={1}
+        onContinue={() => {}}
+        onNewBoard={() => {}}
+      />
+    );
+    expect(html).toContain('plus-perk-notice');
+    expect(html).toContain('LeadMate Plus: ¡Puedes jugar tantos tableros nuevos como quieras hoy!');
+    expect(html).toContain('Jugar otro tablero');
+  });
+
+  it('renders same-board notice and "Desbloquear con Plus" button for free tier on completion', () => {
+    const html = renderToStaticMarkup(
+      <SolvedCard
+        t={t}
+        metrics={metrics()}
+        practice={true}
+        tier="free"
+        onContinue={() => {}}
+        onUpgrade={() => {}}
+      />
+    );
+    expect(html).toContain('free-tier-notice');
+    expect(html).toContain('Desbloquear con Plus');
+    expect(html).toContain('Los usuarios de la versión gratuita juegan el mismo tablero cada día. Pasa a Plus para desbloquear tableros nuevos ilimitados.');
   });
 });
 

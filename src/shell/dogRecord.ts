@@ -618,6 +618,27 @@ export function recordDailyBarkdoku(record: DogRecord, boardId: string, summary:
   };
 }
 
+/**
+ * Records a solve of an additional Plus Board (ADR 0027 amending ADR 0014).
+ * Appends the solve with its Stars and duration to `DogRecord.activityLog` for Diary display,
+ * without modifying `dailyBarkdoku` or double-crediting the Streak.
+ */
+export function recordPlusBarkdoku(
+  record: DogRecord,
+  boardId: string,
+  summary: PuzzleSummary,
+  stars: Stars,
+  now: Date,
+): DogRecord {
+  return {
+    ...record,
+    activityLog: addActivity(
+      record.activityLog,
+      activityAt(now, { kind: 'barkdoku', id: boardId, stars, puzzle: summary }),
+    ),
+  };
+}
+
 export interface DailyResult {
   record: DogRecord;
   /** The first score of the day. */

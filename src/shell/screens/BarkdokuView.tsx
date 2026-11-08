@@ -315,20 +315,55 @@ function PuzzleClock({ t, state }: { t: Translate; state: BarkdokuState }) {
   );
 }
 
+export type BarkdokuTier = 'free' | 'trial' | 'plus';
+
+export interface SolvedCardProps {
+  t: Translate;
+  metrics: BarkdokuMetrics;
+  practice?: boolean;
+  tier?: BarkdokuTier;
+  boardIndex?: number;
+  onContinue: () => void;
+  onNewBoard?: () => void;
+  onUpgrade?: () => void;
+}
+
 /** The solved card: the Solve Time, and outside practice the Stars and the Target Time verdict. */
-export function SolvedCard({ t, metrics, practice = false, onContinue }: { t: Translate; metrics: BarkdokuMetrics; practice?: boolean; onContinue: () => void }) {
+export function SolvedCard({
+  t,
+  metrics,
+  practice = false,
+  tier,
+  boardIndex = 0,
+  onContinue,
+  onNewBoard,
+  onUpgrade,
+}: SolvedCardProps) {
   const time = formatClock(metrics.durationSeconds);
   const timeLine =
     metrics.targetSeconds === undefined
       ? t('minigame.barkdoku.yourTime').replace('{time}', time)
       : t('minigame.barkdoku.yourTimeTarget').replace('{time}', time).replace('{target}', formatClock(metrics.targetSeconds));
+
+  const isFreePractice = practice || tier === 'free';
+
   return (
     <View testID="victory-card" className="mt-3 rounded-2xl border border-brand/50 bg-brand/10 p-4 items-center">
       <Text className="text-h3 font-bold text-brandText mb-1">{t('minigame.barkdoku.solvedTitle')}</Text>
       <Text className="text-center text-xs text-inkMuted mb-2">{t('minigame.barkdoku.solvedBody')}</Text>
       <Text testID="solve-time" className="text-center font-bold text-body text-ink">{timeLine}</Text>
-      {practice ? (
-        <Text testID="practice-kept" className="mt-1 text-center text-xs text-inkMuted">{t('minigame.barkdoku.practiceKept')}</Text>
+      {isFreePractice ? (
+        <>
+          <Text testID="practice-kept" className="mt-1 text-center text-xs text-inkMuted">{t('minigame.barkdoku.practiceKept')}</Text>
+          <Text testID="free-tier-notice" className="mt-2 text-center text-xs text-inkMuted">
+            {t('minigame.barkdoku.solvedFreeNotice')}
+          </Text>
+          {onUpgrade && (
+            <View className="mt-3">
+              <Button label={t('minigame.barkdoku.unlockWithPlus')} onPress={onUpgrade} />
+            </View>
+          )}
+        </>
       ) : (
         <>
           {metrics.targetSeconds !== undefined && (
@@ -339,10 +374,25 @@ export function SolvedCard({ t, metrics, practice = false, onContinue }: { t: Tr
           <View className="mt-2">
             <StarRow stars={metrics.stars} label={`${metrics.stars} ${t('map.starsOf3')}`} />
           </View>
+          {tier === 'trial' && (
+            <Text testID="trial-perk-notice" className="mt-2 text-center text-xs text-inkMuted">
+              {t('minigame.barkdoku.solvedTrialNotice')}
+            </Text>
+          )}
+          {tier === 'plus' && (
+            <Text testID="plus-perk-notice" className="mt-2 text-center text-xs text-inkMuted">
+              {t('minigame.barkdoku.solvedPlusNotice')}
+            </Text>
+          )}
+          {onNewBoard && (
+            <View className="mt-3">
+              <Button label={t('minigame.barkdoku.playNewBoard')} onPress={onNewBoard} />
+            </View>
+          )}
         </>
       )}
       <View className="mt-3">
-        <Button label={t('results.continue')} onPress={onContinue} />
+        <Button label={t('results.continue')} tone={onNewBoard || (isFreePractice && onUpgrade) ? 'quiet' : 'accent'} onPress={onContinue} />
       </View>
     </View>
   );
@@ -355,6 +405,10 @@ export interface BarkdokuViewProps {
   coat?: DogCoat;
   /** A replay of a Daily Barkdoku already solved today: marked, unrated, and saved by no one. */
   practice?: boolean;
+  tier?: BarkdokuTier;
+  boardIndex?: number;
+  onNewBoard?: () => void;
+  onUpgrade?: () => void;
   onFinish?: (metrics: BarkdokuMetrics, summary: PuzzleSummary) => void;
   onExit?: () => void;
 }
@@ -370,6 +424,10 @@ export function BarkdokuView({
   breed = 'mestizo',
   coat = 'golden',
   practice = false,
+  tier,
+  boardIndex = 0,
+  onNewBoard,
+  onUpgrade,
   onFinish,
   onExit,
 }: BarkdokuViewProps) {
@@ -453,8 +511,35 @@ export function BarkdokuView({
             <Text className="text-body font-bold text-ink">
               {board.name ?? t('minigame.barkdoku.title')}
             </Text>
-            {practice && <Badge label={t('minigame.barkdoku.practice')} tone="info" />}
+            {(practice || tier === 'free') && (
+              <Badge label={t('minigame.barkdoku.tierPractice')} tone="info" />
+            )}
+            {tier === 'trial' && (
+              <Badge
+                label={
+                  boardIndex > 0
+                    ? t('minigame.barkdoku.tierTrialBoard').replace('{n}', String(boardIndex + 1))
+                    : t('minigame.barkdoku.tierTrial')
+                }
+                tone="accent"
+              />
+            )}
+            {tier === 'plus' && (
+              <Badge
+                label={
+                  boardIndex > 0
+                    ? t('minigame.barkdoku.tierPlusBoard').replace('{n}', String(boardIndex + 1))
+                    : t('minigame.barkdoku.tierPlus')
+                }
+                tone="accent"
+              />
+            )}
           </View>
+          {(practice || tier === 'free') && (
+            <Text testID="practice-subtitle" className="text-xs text-inkMuted">
+              {t('minigame.barkdoku.practiceSubtitle')}
+            </Text>
+          )}
           <Text className="text-xs text-inkMuted">
             {`${board.size}x${board.size} • ${dogs.length}/${board.size} `}
             {t('minigame.barkdoku.dogs')}
@@ -624,7 +709,16 @@ export function BarkdokuView({
 
       {/* Win State Overlay Card */}
       {state.status === 'solved' && (
-        <SolvedCard t={t} metrics={computeMetrics(state)} practice={practice} onContinue={handleComplete} />
+        <SolvedCard
+          t={t}
+          metrics={computeMetrics(state)}
+          practice={practice}
+          tier={tier}
+          boardIndex={boardIndex}
+          onContinue={handleComplete}
+          onNewBoard={onNewBoard}
+          onUpgrade={onUpgrade}
+        />
       )}
 
       {/* Failure State Overlay Card */}

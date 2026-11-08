@@ -114,4 +114,34 @@ describe('Barkdoku Boards Catalog', () => {
     const b3 = getDailyBoard('2026-10-29');
     expect(b3).toBeDefined();
   });
+
+  test('getDailyBoard with boardIndex > 0 deterministically cycles sizes 5, 6, 7, 8', () => {
+    const date = '2026-11-08';
+    const b0 = getDailyBoard(date, 0);
+    const b1 = getDailyBoard(date, 1);
+    const b2 = getDailyBoard(date, 2);
+    const b3 = getDailyBoard(date, 3);
+    const b4 = getDailyBoard(date, 4);
+    const b5 = getDailyBoard(date, 5);
+
+    // boardIndex 0 matches default call
+    expect(b0.id).toBe(getDailyBoard(date).id);
+
+    // Sizes cycle 5 -> 6 -> 7 -> 8 -> 5
+    expect(b1.size).toBe(5);
+    expect(b2.size).toBe(6);
+    expect(b3.size).toBe(7);
+    expect(b4.size).toBe(8);
+    expect(b5.size).toBe(5);
+
+    // Deterministic across repeated calls
+    expect(getDailyBoard(date, 1).id).toBe(b1.id);
+    expect(getDailyBoard(date, 2).id).toBe(b2.id);
+
+    // Generated boards have valid unique solutions
+    for (const board of [b1, b2, b3, b4]) {
+      expect(board.solution.length).toBe(board.size);
+      expect(solveBoard(board, 2).length).toBe(1);
+    }
+  });
 });

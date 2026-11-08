@@ -524,6 +524,7 @@ describe('PlusChip and TrialStatusModal', () => {
     expect(markup).toContain('Demostraciones en vídeo desbloqueadas');
     expect(markup).toContain('Saltos de día ilimitados en misiones');
     expect(markup).toContain('Acceso a los mundos avanzados de Plus');
+    expect(markup).toContain('Tableros ilimitados de Guaudoku cada día');
     expect(markup).toContain('Entendido');
   });
 
@@ -540,6 +541,7 @@ describe('PlusChip and TrialStatusModal', () => {
     expect(markup).toContain('Activo');
     expect(markup).toContain('Disfruta de todas las ventajas incluidas con tu suscripción.');
     expect(markup).toContain('Demostraciones en vídeo desbloqueadas');
+    expect(markup).toContain('Tableros ilimitados de Guaudoku cada día');
   });
 
   it('renders TrialStatusModal via viewport overlay outside scroll container when trialModalOpen is true', () => {

@@ -1,3 +1,5 @@
+import { dateSeed } from '../daily';
+import { generateBoard } from './generator';
 import type { BarkdokuBoard, CellCoord } from './types';
 
 /** Curated catalog of verified unique-solution Barkdoku boards across sizes 4x4 to 9x9. */
@@ -1190,9 +1192,16 @@ export function solveBoard(board: BarkdokuBoard, maxSolutions = 2): CellCoord[][
 
 /**
  * Return a date-seeded daily Barkdoku board.
- * Picks between sizes 5x5 and 8x8 for varied daily mental exercises.
+ * For boardIndex = 0 (default), picks from curated boards sizes 5x5 to 8x8.
+ * For boardIndex > 0 (Plus boards), deterministically generates fresh unique boards cycling sizes 5x5, 6x6, 7x7, 8x8.
  */
-export function getDailyBoard(dateString: string): BarkdokuBoard {
+export function getDailyBoard(dateString: string, boardIndex: number = 0): BarkdokuBoard {
+  if (boardIndex > 0) {
+    const SIZES = [5, 6, 7, 8];
+    const size = SIZES[(boardIndex - 1) % SIZES.length];
+    const seed = dateSeed(`${dateString}-plus-${boardIndex}`);
+    return generateBoard(size, seed);
+  }
   // Simple deterministic integer hash of YYYY-MM-DD
   let hash = 0;
   for (let i = 0; i < dateString.length; i++) {

@@ -176,6 +176,10 @@ _Avoid_: Zona de Calma, Meowdoku, Queens, dog puzzle, Star Battle
 The Barkdoku board of the day, chosen by date and opened from the Map Header. It credits the Streak and is not a Node.
 _Avoid_: Zona de Calma, Daily Calm Zone, daily puzzle
 
+**Plus Board**:
+An additional, distinct Barkdoku board available to users with Plus membership after completing the date's Daily Barkdoku. Solves are logged in the Activity Log and evaluated against Target Time, but do not overwrite the Daily Solve Time or duplicate Streak credit.
+_Avoid_: Extra puzzle, bonus board, premium level
+
 **Solve Time**:
 The active play time of one Barkdoku attempt, from its first tap to its solve, excluding time with the app in the background. A reset or retry starts a new attempt.
 _Avoid_: Duration, completion time
@@ -185,7 +189,7 @@ The Solve Time a non-tutorial Barkdoku board asks for; meeting it is required fo
 _Avoid_: Par, goal time, time limit
 
 **Daily Solve Time**:
-The Solve Time of the first solve of a date's Daily Barkdoku. Later solves that day are practice and do not count.
+The Solve Time of the first solve of a date's Daily Barkdoku. Subsequent solves that day are practice (for Free Tier users) or Plus Boards (for Plus members) and do not overwrite it.
 _Avoid_: Best Solve Time, best time, record
 
 **Checkpoint**:

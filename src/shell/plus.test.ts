@@ -162,6 +162,18 @@ describe('a Day Skip held by the paywall', () => {
     expect(isOwed(after.missions['mission-harness'])).toBe(false);
   });
 
+  it('supports kind: barkdoku pending action which starts trial or subscribe without applying skip', () => {
+    const afterTrial = startTrialThen(waiting(null), { kind: 'barkdoku' }, now);
+    expect(afterTrial.onboarding.trialStartedAt).toBe(now.toISOString());
+    expect(isPlus(afterTrial, now)).toBe(true);
+    expect(afterTrial.activityLog).toEqual([]);
+    expect(isOwed(afterTrial.missions['mission-harness'])).toBe(false);
+
+    const afterSub = subscribeThen(waiting(start.toISOString()), { kind: 'barkdoku' }, now);
+    expect(afterSub.onboarding.mockSubscribed).toBe(true);
+    expect(isPlus(afterSub, now)).toBe(true);
+  });
+
   it('supports subscribeThen with skip or video pending action', () => {
     const afterSkip = subscribeThen(waiting(start.toISOString()), { kind: 'skip', missionId: 'mission-harness' }, now);
     expect(afterSkip.onboarding.mockSubscribed).toBe(true);
