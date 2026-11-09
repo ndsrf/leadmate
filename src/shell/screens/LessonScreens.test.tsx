@@ -1,11 +1,16 @@
+const mockPressables: any[] = [];
+
 jest.mock('react-native', () => {
   const React = require('react');
   return {
     View: (props: any) => React.createElement('div', props, props.children),
     Text: (props: any) => React.createElement('span', props, props.children),
     Pressable: (props: any) => {
+      mockPressables.push(props);
+      const { style, ...rest } = props;
+      const resolvedStyle = typeof style === 'function' ? style({ pressed: false }) : style;
       const body = typeof props.children === 'function' ? props.children({ pressed: false }) : props.children;
-      return React.createElement('button', props, body);
+      return React.createElement('button', { ...rest, style: resolvedStyle }, body);
     },
     ScrollView: (props: any) => React.createElement('div', props, props.children),
     Image: (props: any) => React.createElement('img', { alt: props.accessibilityLabel }),
@@ -65,6 +70,8 @@ import { createTranslator, es } from '../../i18n';
 import type { LessonDef } from '../lessons/lesson';
 import { findLesson } from '../lessons/content';
 import { LessonScreen } from './LessonScreens';
+import { getActiveContent, setActiveContent } from '../content/runtime';
+import type { ResolvedShop } from '../content/resolver';
 
 describe('LessonScreen video gating and text readability', () => {
   const t = createTranslator(es);
@@ -158,5 +165,139 @@ describe('Home Behaviour Lessons', () => {
     }
     expect(HOME_LESSONS.find((l) => l.id === 'theory-eat-objects')!.blocks[0]).toEqual({ type: 'notice', text: 'lesson.note.vet' });
     for (const id of ['theory-bark-home', 'theory-destroy']) expect(HOME_LESSONS.find((l) => l.id === id)!.blocks[0].type).toBe('heading');
+  });
+
+  describe('Shop recommendations (Task 7.1)', () => {
+    const sampleShop: ResolvedShop = {
+      categories: [
+        {
+          id: 'collares',
+          title: 'Collares',
+          description: 'Collares',
+          subcategories: [
+            {
+              id: 'arneses',
+              title: 'Arneses',
+              description: 'Arneses',
+              products: [
+                {
+                  id: 'arnes-ergonomico-y',
+                  name: 'Arnés ergonómico en Y',
+                  description: 'Arnés anti-tiro',
+                  url: 'https://example.com/arnes',
+                },
+                {
+                  id: 'collar-plano-acolchado',
+                  name: 'Collar plano acolchado',
+                  description: 'Collar',
+                  url: 'https://example.com/collar',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      idToKind: {
+        collares: 'category',
+        arneses: 'subcategory',
+        'arnes-ergonomico-y': 'product',
+        'collar-plano-acolchado': 'product',
+      },
+    };
+
+    it('renders up to two view recommendations before takeaways and calls onShop when tapped', () => {
+      const baseContent = getActiveContent();
+      setActiveContent({
+        ...baseContent,
+        resolved: {
+          ...baseContent.resolved,
+          shop: sampleShop,
+        },
+      });
+
+      try {
+        mockPressables.length = 0;
+        const onShop = jest.fn();
+        const lessonWithRecs: LessonDef = {
+          id: 'lesson-with-recs',
+          title: 'lesson.kind.theory',
+          kind: 'theory',
+          blocks: [
+            { type: 'text', text: 'lesson.kind.theory' },
+            { type: 'takeaways', items: ['lesson.kind.theory'] },
+          ],
+          recommendations: [
+            {
+              id: 'rec-1',
+              target: 'arnes-ergonomico-y',
+              targetKind: 'product',
+              when: 'view',
+              explanation: 'Un arnés ergonómico reduce la presión.',
+            },
+            {
+              id: 'rec-2',
+              target: 'arneses',
+              targetKind: 'subcategory',
+              when: 'view',
+              explanation: 'Explora nuestra selección de arneses.',
+            },
+            {
+              id: 'rec-3-excess',
+              target: 'collar-plano-acolchado',
+              targetKind: 'product',
+              when: 'view',
+              explanation: 'Tercera recomendación que debe omitirse por límite de 2.',
+            },
+            {
+              id: 'rec-trouble-not-view',
+              target: 'arnes-ergonomico-y',
+              targetKind: 'product',
+              when: 'poste-trouble',
+              explanation: 'Esta es para trouble, no para view.',
+            },
+            {
+              id: 'rec-unknown-target',
+              target: 'non-existent-product',
+              targetKind: 'product',
+              when: 'view',
+              explanation: 'Producto inexistente.',
+            },
+          ],
+        };
+
+        const markup = renderToStaticMarkup(
+          <LessonScreen
+            t={t}
+            lesson={lessonWithRecs}
+            onDone={() => {}}
+            onBack={() => {}}
+            onShop={onShop}
+          />,
+        );
+
+        // Verify rec 1 and rec 2 are rendered
+        expect(markup).toContain('Un arnés ergonómico reduce la presión.');
+        expect(markup).toContain('Explora nuestra selección de arneses.');
+        // Verify excess rec (> 2) is not rendered
+        expect(markup).not.toContain('Tercera recomendación que debe omitirse por límite de 2.');
+        // Verify non-view rec is not rendered as in-content card
+        expect(markup).not.toContain('Esta es para trouble, no para view.');
+        // Verify unknown target is ignored
+        expect(markup).not.toContain('Producto inexistente.');
+
+        // Verify position: cards appear BEFORE takeaways in markup
+        const rec1Pos = markup.indexOf('Un arnés ergonómico reduce la presión.');
+        const takeawayPos = markup.indexOf(es['lesson.takeawaysLabel']);
+        expect(rec1Pos).toBeLessThan(takeawayPos);
+
+        // Verify tap triggers onShop
+        const buttons = mockPressables.filter((p) => p.testID === 'shop-link-card-action');
+        expect(buttons.length).toBe(2);
+        buttons[0].onPress();
+        expect(onShop).toHaveBeenCalledWith({ level: 'product', id: 'arnes-ergonomico-y' });
+      } finally {
+        setActiveContent(baseContent);
+      }
+    });
   });
 });

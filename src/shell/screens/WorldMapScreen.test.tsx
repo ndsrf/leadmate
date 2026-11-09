@@ -7,9 +7,11 @@ jest.mock('react-native', () => {
     Text: (props: any) => React.createElement('span', props, props.children),
     Pressable: (props: any) => {
       mockPressables.push(props);
+      const { style, ...rest } = props;
+      const resolvedStyle = typeof style === 'function' ? style({ pressed: false }) : style;
       return React.createElement(
         'button',
-        props,
+        { ...rest, style: resolvedStyle },
         typeof props.children === 'function'
           ? props.children({ pressed: false })
           : props.children,
@@ -18,6 +20,10 @@ jest.mock('react-native', () => {
     ScrollView: (props: any) => React.createElement('div', { ...props, 'data-testid': 'map-scroll-view' }, props.children),
     AppState: {
       currentState: 'active',
+      addEventListener: () => ({ remove: () => {} }),
+    },
+    AccessibilityInfo: {
+      isScreenReaderEnabled: () => Promise.resolve(false),
       addEventListener: () => ({ remove: () => {} }),
     },
     Dimensions: { get: () => ({ width: 390, height: 844 }) },
@@ -67,6 +73,8 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createTranslator, es } from '../../i18n';
 import { BarkdokuChip, ComingSoonCard, MORE_COMING_SCENARIO_KEYS, MoreComingCard, NEXT_UP_PULSE_CYCLES, PlusChip, PreviewTeaser, TrialStatusModal, WorldBlock, WorldMapScreen } from './WorldMapScreen';
+import { ShopPopup } from './ShopPopup';
+import type { ResolvedShop } from '../content/resolver';
 import { NO_STREAK } from '../streak';
 import { findWorld, isWorldUnlocked, progressOf, stopsOf, worldsFor, worldTitle, type Progress, type Stop, type WorldDef } from '../world';
 import { mapModel, type MapWorld } from '../mapModel';
@@ -280,18 +288,19 @@ describe('WorldMapScreen - Map Header', () => {
     };
   };
 
-  it('shows Streak, Library, and gear in row 1, and Plus, Daily Paseo, and Guaudoku in row 2', () => {
+  it('shows Streak, Library, basket, and gear in row 1, and Plus, Daily Paseo, and Guaudoku in row 2', () => {
     const { labels, markup } = renderHeader();
     const start = labels.findIndex((l) => l.startsWith(es['streak.flame']));
     expect(start).toBeGreaterThanOrEqual(0);
-    // Row 1: Streak, Library, and Settings gear on the right
+    // Row 1: Streak, Library, and Basket + Settings gear on the right
     expect(labels[start]).toContain(es['diary.chip']);
     expect(labels[start + 1]).toBe(es['library.chip']);
-    expect(labels[start + 2]).toBe(es['map.settings']);
+    expect(labels[start + 2]).toBe(es['map.shopButton']);
+    expect(labels[start + 3]).toBe(es['map.settings']);
     // Row 2: Plus, Daily Paseo, Guaudoku
-    expect(labels[start + 3]).toBe('Plus. 7 días gratis');
-    expect(labels[start + 4]).toBe(es['daily.title']);
-    expect(labels[start + 5].startsWith(es['map.barkdoku.daily'])).toBe(true);
+    expect(labels[start + 4]).toBe('Plus. 7 días gratis');
+    expect(labels[start + 5]).toBe(es['daily.title']);
+    expect(labels[start + 6].startsWith(es['map.barkdoku.daily'])).toBe(true);
 
     // Verifies two-row container layout
     expect(markup).toContain('flex-row items-center justify-between');
@@ -1142,6 +1151,136 @@ describe('MoreComingCard at the end of the map (Task 4.2)', () => {
     for (const key of MORE_COMING_SCENARIO_KEYS) {
       expect(markup).toContain(es[key]);
     }
+  });
+
+  describe('WorldMapScreen - Recommended Shop entry point (Tasks 6.1 & 6.2)', () => {
+    const sampleShop: ResolvedShop = {
+      categories: [
+        {
+          id: 'collares',
+          title: 'Collares y arneses',
+          description: 'Collares y arneses para pasear',
+          subcategories: [
+            {
+              id: 'arneses',
+              title: 'Arneses',
+              description: 'Arneses ergonómicos en Y',
+              products: [
+                {
+                  id: 'arnes-ergonomico-y',
+                  name: 'Arnés ergonómico en Y',
+                  description: 'Arnés anti-tiro',
+                  url: 'https://example.com/arnes',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      idToKind: {
+        collares: 'category',
+        arneses: 'subcategory',
+        'arnes-ergonomico-y': 'product',
+      },
+    };
+
+    const baseMapProps = {
+      t,
+      progress: progressOf([]),
+      stars: {},
+      now: new Date('2026-10-28T09:00:00'),
+      streak: NO_STREAK,
+      today: '2026-10-28',
+      dailyBest: undefined,
+      rustyPrompt: false,
+      rusty: false,
+      skippedWarmup: false,
+      onWarmup: () => {},
+      onSkipWarmup: () => {},
+      onDaily: () => {},
+      onBarkdoku: () => {},
+      onOpenStop: () => {},
+      onSettings: () => {},
+    };
+
+    it('renders basket IconChip next to gear when shop is available and calls onShop when tapped', () => {
+      mockPressables.length = 0;
+      const mockOnShop = jest.fn();
+      const markup = renderToStaticMarkup(
+        <WorldMapScreen {...baseMapProps} shop={sampleShop} onShop={mockOnShop} />,
+      );
+      expect(markup).toContain(es['map.shopButton']);
+      const basketPressable = mockPressables.find(
+        (p) => p.accessibilityLabel === es['map.shopButton'],
+      );
+      expect(basketPressable).toBeDefined();
+      basketPressable.onPress();
+      expect(mockOnShop).toHaveBeenCalledTimes(1);
+    });
+
+    it('hides basket IconChip when shop is empty', () => {
+      mockPressables.length = 0;
+      const emptyShop: ResolvedShop = { categories: [], idToKind: {} };
+      const markup = renderToStaticMarkup(
+        <WorldMapScreen {...baseMapProps} shop={emptyShop} onShop={() => {}} />,
+      );
+      expect(markup).not.toContain(es['map.shopButton']);
+      const basketPressable = mockPressables.find(
+        (p) => p.accessibilityLabel === es['map.shopButton'],
+      );
+      expect(basketPressable).toBeUndefined();
+      // Gear button is still present
+      expect(markup).toContain(es['map.settings']);
+    });
+
+    it('renders both basket and gear chips in narrow-width layout case without clipping', () => {
+      mockPressables.length = 0;
+      const markup = renderToStaticMarkup(
+        <div style={{ width: 320 }}>
+          <WorldMapScreen {...baseMapProps} shop={sampleShop} onShop={() => {}} />
+        </div>,
+      );
+      expect(markup).toContain(es['map.shopButton']);
+      expect(markup).toContain(es['map.settings']);
+      const basketPressable = mockPressables.find(
+        (p) => p.accessibilityLabel === es['map.shopButton'],
+      );
+      const gearPressable = mockPressables.find(
+        (p) => p.accessibilityLabel === es['map.settings'],
+      );
+      expect(basketPressable).toBeDefined();
+      expect(gearPressable).toBeDefined();
+    });
+
+    it('renders general shop offer popup in overlay when shopPopup prop is provided', () => {
+      mockPressables.length = 0;
+      const mockOnOpen = jest.fn();
+      const mockOnClose = jest.fn();
+      const popup = (
+        <ShopPopup
+          text={es['shop.popup.offerText']}
+          onOpen={mockOnOpen}
+          onClose={mockOnClose}
+        />
+      );
+      const markup = renderToStaticMarkup(
+        <WorldMapScreen {...baseMapProps} shop={sampleShop} shopPopup={popup} />,
+      );
+      expect(markup).toContain(es['shop.popup.offerText']);
+      expect(markup).toContain(es['shop.popup.viewAction']);
+      expect(markup).toContain(es['shop.popup.close']);
+
+      const openBtn = mockPressables.find((p) => p.testID === 'shop-popup-action');
+      const closeBtn = mockPressables.find((p) => p.testID === 'shop-popup-close');
+      expect(openBtn).toBeDefined();
+      expect(closeBtn).toBeDefined();
+
+      openBtn.onPress();
+      expect(mockOnOpen).toHaveBeenCalledTimes(1);
+
+      closeBtn.onPress();
+      expect(mockOnClose).toHaveBeenCalledTimes(1);
+    });
   });
 });
 

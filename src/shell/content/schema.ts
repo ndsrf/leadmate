@@ -42,6 +42,12 @@ export type NodeMode = (typeof NODE_MODES)[number];
 export const WORLD_TIERS = ['free', 'plus'] as const;
 export type WorldTier = (typeof WORLD_TIERS)[number];
 
+export const PRODUCT_SOURCES = ['amazon', 'manual'] as const;
+export type ProductSource = (typeof PRODUCT_SOURCES)[number];
+
+export const RECOMMENDATION_TRIGGERS = ['view', 'poste-trouble', 'poor-score'] as const;
+export type RecommendationTrigger = (typeof RECOMMENDATION_TRIGGERS)[number] | `problem:${string}`;
+
 // -- Field documentation metadata for FORMAT.md generation -------------------
 
 export interface FieldDoc {
@@ -82,6 +88,7 @@ export const LESSON_SCHEMA_FIELDS: readonly FieldDoc[] = [
   { name: 'steps', type: 'number', required: false, description: 'Number of how-to steps (theory lessons, typically 3-6)' },
   { name: 'takeaways', type: 'number', required: false, description: 'Number of takeaway bullet points (typically 2-4)' },
   { name: 'controls', type: 'number', required: false, description: 'Number of control recap sections (for how-to-play lessons)' },
+  { name: 'recommendations', type: 'object[]', required: false, description: 'Optional list of shop recommendations ({ id, target, when })' },
 ];
 
 export const NODE_SCHEMA_FIELDS: readonly FieldDoc[] = [
@@ -94,6 +101,7 @@ export const NODE_SCHEMA_FIELDS: readonly FieldDoc[] = [
   { name: 'primerCards', type: 'object[]', required: false, description: 'Structured recap cards ({ kind, media?, tutorialUrl? })' },
   { name: 'checkpoint', type: 'object[]', required: false, description: 'Quiz questions ({ question, options, explanation })' },
   { name: 'debrief', type: 'object', required: false, description: 'Hand drill debrief text keys ({ calm, notCalm })' },
+  { name: 'recommendations', type: 'object[]', required: false, description: 'Optional list of shop recommendations ({ id, target, when })' },
 ];
 
 export const MISSION_SCHEMA_FIELDS: readonly FieldDoc[] = [
@@ -104,6 +112,36 @@ export const MISSION_SCHEMA_FIELDS: readonly FieldDoc[] = [
   { name: 'trains', type: 'Stop[]', required: true, description: 'Stops that train the target of this Mission' },
   { name: 'problems', type: 'object[]', required: true, description: 'List of problem items ({ id, label?, practise? })' },
   { name: 'sharedNote', type: 'string', required: false, description: 'Shared safety note key substituted into problem fixes' },
+  { name: 'recommendations', type: 'object[]', required: false, description: 'Optional list of shop recommendations ({ id, target, when })' },
+];
+
+export const SHOP_SCHEMA_FIELDS: readonly FieldDoc[] = [
+  { name: 'categories', type: 'string[]', required: true, description: 'Ordered list of Category IDs in the shop' },
+];
+
+export const CATEGORY_SCHEMA_FIELDS: readonly FieldDoc[] = [
+  { name: 'id', type: 'string', required: true, description: 'Unique kebab-case identifier for the Category' },
+  { name: 'subcategories', type: 'string[]', required: true, description: 'Ordered list of Subcategory IDs in this Category' },
+];
+
+export const SUBCATEGORY_SCHEMA_FIELDS: readonly FieldDoc[] = [
+  { name: 'id', type: 'string', required: true, description: 'Unique kebab-case identifier for the Subcategory' },
+  { name: 'products', type: 'string[]', required: true, description: 'Ordered list of Product IDs in this Subcategory' },
+];
+
+export const PRODUCT_SCHEMA_FIELDS: readonly FieldDoc[] = [
+  { name: 'id', type: 'string', required: true, description: 'Unique kebab-case identifier for the Product' },
+  { name: 'source', type: 'string', required: false, description: 'Product origin ("amazon" or "manual")', allowedValues: PRODUCT_SOURCES },
+  { name: 'urls', type: 'Record<string, string>', required: true, description: 'Map of language code to HTTPS buy link (es required)' },
+  { name: 'price', type: 'string', required: false, description: 'Optional approximate display price (e.g. "24,99 €")' },
+  { name: 'priceCheckedAt', type: 'string', required: false, description: 'Month price was checked in YYYY-MM format' },
+  { name: 'image', type: 'string', required: false, description: 'Optional relative media path in media/' },
+];
+
+export const RECOMMENDATION_SCHEMA_FIELDS: readonly FieldDoc[] = [
+  { name: 'id', type: 'string', required: true, description: 'Unique kebab-case identifier for the Recommendation' },
+  { name: 'target', type: 'string', required: true, description: 'Target Product, Subcategory, or Category ID' },
+  { name: 'when', type: 'string', required: true, description: 'Trigger condition ("view", "poste-trouble", "poor-score", or "problem:<id>")' },
 ];
 
 // -- TypeScript Types --------------------------------------------------------
@@ -131,6 +169,12 @@ export interface WorldYaml {
   stretches: StopYaml[][];
 }
 
+export interface RecommendationYaml {
+  id: string;
+  target: string;
+  when: string;
+}
+
 export interface LessonYaml {
   id: string;
   kind: LessonKind;
@@ -146,6 +190,7 @@ export interface LessonYaml {
   steps?: number;
   takeaways?: number;
   controls?: number;
+  recommendations?: RecommendationYaml[];
 }
 
 export interface NodeYaml {
@@ -185,6 +230,7 @@ export interface NodeYaml {
     calm?: string;
     notCalm?: string;
   };
+  recommendations?: RecommendationYaml[];
 }
 
 export interface MissionYaml {
@@ -199,6 +245,30 @@ export interface MissionYaml {
     practise?: StopYaml;
   }>;
   sharedNote?: string;
+  recommendations?: RecommendationYaml[];
+}
+
+export interface ShopYaml {
+  categories: string[];
+}
+
+export interface CategoryYaml {
+  id: string;
+  subcategories: string[];
+}
+
+export interface SubcategoryYaml {
+  id: string;
+  products: string[];
+}
+
+export interface ProductYaml {
+  id: string;
+  source?: ProductSource;
+  urls: Record<string, string>;
+  price?: string;
+  priceCheckedAt?: string;
+  image?: string;
 }
 
 // -- Validation Results ------------------------------------------------------
@@ -240,6 +310,23 @@ export function isRelativeMediaPath(path: unknown): boolean {
   if (/^[a-zA-Z]+:\/\//.test(path)) return false;
   const segments = path.split('/');
   return !segments.includes('..') && !segments.includes('.');
+}
+
+export function isHttpsUrl(url: unknown): url is string {
+  if (typeof url !== 'string' || url.trim() === '') return false;
+  return /^https:\/\/[^\s]+$/.test(url.trim());
+}
+
+const YEAR_MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
+export function isYearMonth(value: unknown): value is string {
+  return typeof value === 'string' && YEAR_MONTH_REGEX.test(value);
+}
+
+export function isRecommendationTrigger(when: unknown): when is string {
+  if (typeof when !== 'string') return false;
+  if (RECOMMENDATION_TRIGGERS.includes(when as any)) return true;
+  if (when.startsWith('problem:')) return isContentId(when.slice('problem:'.length));
+  return false;
 }
 
 // -- Safe YAML Parsing -------------------------------------------------------
@@ -415,6 +502,16 @@ export function validateLessonYaml(raw: unknown, file: string = 'lesson.yaml'): 
     }
   }
 
+  if (obj.recommendations !== undefined) {
+    if (!Array.isArray(obj.recommendations)) {
+      errors.push({ file, field: 'recommendations', message: 'recommendations must be an array of Recommendation objects', hint: 'recommendations: [{ id: "...", target: "...", when: "..." }]' });
+    } else {
+      obj.recommendations.forEach((rec, idx) => {
+        errors.push(...validateRecommendationYaml(rec, `recommendations[${idx}]`, file));
+      });
+    }
+  }
+
   return { valid: errors.length === 0, errors };
 }
 
@@ -475,6 +572,16 @@ export function validateNodeYaml(raw: unknown, file: string = 'node.yaml'): Vali
     }
   }
 
+  if (obj.recommendations !== undefined) {
+    if (!Array.isArray(obj.recommendations)) {
+      errors.push({ file, field: 'recommendations', message: 'recommendations must be an array of Recommendation objects', hint: 'recommendations: [{ id: "...", target: "...", when: "..." }]' });
+    } else {
+      obj.recommendations.forEach((rec, idx) => {
+        errors.push(...validateRecommendationYaml(rec, `recommendations[${idx}]`, file));
+      });
+    }
+  }
+
   return { valid: errors.length === 0, errors };
 }
 
@@ -527,5 +634,142 @@ export function validateMissionYaml(raw: unknown, file: string = 'mission.yaml')
     });
   }
 
+  if (obj.recommendations !== undefined) {
+    if (!Array.isArray(obj.recommendations)) {
+      errors.push({ file, field: 'recommendations', message: 'recommendations must be an array of Recommendation objects', hint: 'recommendations: [{ id: "...", target: "...", when: "..." }]' });
+    } else {
+      obj.recommendations.forEach((rec, idx) => {
+        errors.push(...validateRecommendationYaml(rec, `recommendations[${idx}]`, file));
+      });
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+export function validateRecommendationYaml(raw: unknown, location: string, file?: string): ValidationError[] {
+  const errors: ValidationError[] = [];
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    errors.push({ file, field: location, message: 'Recommendation must be an object with { id, target, when }', hint: 'Example: { id: "rec-1", target: "collar-1", when: "view" }' });
+    return errors;
+  }
+  const r = raw as Record<string, unknown>;
+  if (!isContentId(r.id)) {
+    errors.push({ file, field: `${location}.id`, message: `Invalid recommendation ID "${String(r.id)}"`, hint: 'Use lowercase kebab-case for IDs' });
+  }
+  if (!isContentId(r.target)) {
+    errors.push({ file, field: `${location}.target`, message: `Invalid recommendation target ID "${String(r.target)}"`, hint: 'Target must be a valid content/shop ID' });
+  }
+  if (!isRecommendationTrigger(r.when)) {
+    errors.push({
+      file,
+      field: `${location}.when`,
+      message: `Invalid trigger "${String(r.when)}"`,
+      hint: 'Allowed triggers: "view", "poste-trouble", "poor-score", or "problem:<problem-id>"',
+    });
+  }
+  return errors;
+}
+
+export function validateShopYaml(raw: unknown, file: string = 'shop.yaml'): ValidationResult {
+  const errors: ValidationError[] = [];
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { valid: false, errors: [{ file, message: 'shop.yaml definition must be a YAML object', hint: 'Provide categories list at root' }] };
+  }
+  const obj = raw as Record<string, unknown>;
+  if (!Array.isArray(obj.categories)) {
+    errors.push({ file, field: 'categories', message: 'categories must be an array of Category IDs', hint: 'categories: ["collares", "camas"]' });
+  } else {
+    obj.categories.forEach((catId, idx) => {
+      if (!isContentId(catId)) {
+        errors.push({ file, field: `categories[${idx}]`, message: `Invalid Category ID "${String(catId)}"`, hint: 'Use lowercase kebab-case' });
+      }
+    });
+  }
+  return { valid: errors.length === 0, errors };
+}
+
+export function validateCategoryYaml(raw: unknown, file: string = 'category.yaml'): ValidationResult {
+  const errors: ValidationError[] = [];
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { valid: false, errors: [{ file, message: 'Category definition must be a YAML object', hint: 'Provide category properties at root' }] };
+  }
+  const obj = raw as Record<string, unknown>;
+  if (!isContentId(obj.id)) {
+    errors.push({ file, field: 'id', message: `Invalid Category ID "${String(obj.id)}"`, hint: 'Use lowercase kebab-case' });
+  }
+  if (!Array.isArray(obj.subcategories)) {
+    errors.push({ file, field: 'subcategories', message: 'subcategories must be an array of Subcategory IDs', hint: 'subcategories: ["arneses"]' });
+  } else {
+    obj.subcategories.forEach((subId, idx) => {
+      if (!isContentId(subId)) {
+        errors.push({ file, field: `subcategories[${idx}]`, message: `Invalid Subcategory ID "${String(subId)}"`, hint: 'Use lowercase kebab-case' });
+      }
+    });
+  }
+  return { valid: errors.length === 0, errors };
+}
+
+export function validateSubcategoryYaml(raw: unknown, file: string = 'subcategory.yaml'): ValidationResult {
+  const errors: ValidationError[] = [];
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { valid: false, errors: [{ file, message: 'Subcategory definition must be a YAML object', hint: 'Provide subcategory properties at root' }] };
+  }
+  const obj = raw as Record<string, unknown>;
+  if (!isContentId(obj.id)) {
+    errors.push({ file, field: 'id', message: `Invalid Subcategory ID "${String(obj.id)}"`, hint: 'Use lowercase kebab-case' });
+  }
+  if (!Array.isArray(obj.products)) {
+    errors.push({ file, field: 'products', message: 'products must be an array of Product IDs', hint: 'products: ["arnes-anti-tirones"]' });
+  } else {
+    obj.products.forEach((prodId, idx) => {
+      if (!isContentId(prodId)) {
+        errors.push({ file, field: `products[${idx}]`, message: `Invalid Product ID "${String(prodId)}"`, hint: 'Use lowercase kebab-case' });
+      }
+    });
+  }
+  return { valid: errors.length === 0, errors };
+}
+
+export function validateProductYaml(raw: unknown, file: string = 'product.yaml'): ValidationResult {
+  const errors: ValidationError[] = [];
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { valid: false, errors: [{ file, message: 'Product definition must be a YAML object', hint: 'Provide product properties at root' }] };
+  }
+  const obj = raw as Record<string, unknown>;
+  if (!isContentId(obj.id)) {
+    errors.push({ file, field: 'id', message: `Invalid Product ID "${String(obj.id)}"`, hint: 'Use lowercase kebab-case' });
+  }
+  if (obj.source !== undefined && !PRODUCT_SOURCES.includes(obj.source as ProductSource)) {
+    errors.push({ file, field: 'source', message: `Invalid product source "${String(obj.source)}"`, hint: `Expected one of: ${PRODUCT_SOURCES.join(', ')}` });
+  }
+  if (!obj.urls || typeof obj.urls !== 'object' || Array.isArray(obj.urls)) {
+    errors.push({ file, field: 'urls', message: 'urls must be a map of language codes to buy links', hint: 'urls: { es: "https://..." }' });
+  } else {
+    const urls = obj.urls as Record<string, unknown>;
+    const langs = Object.keys(urls);
+    if (!langs.includes('es')) {
+      errors.push({ file, field: 'urls', message: 'urls must include "es" (Spanish buy link is required)', hint: 'Add "es" buy link' });
+    }
+    for (const [lang, url] of Object.entries(urls)) {
+      if (!LANG_REGEX.test(lang)) {
+        errors.push({ file, field: `urls.${lang}`, message: `Invalid language key "${lang}" in urls`, hint: 'Use lowercase language code like "es"' });
+      }
+      if (!isHttpsUrl(url)) {
+        errors.push({ file, field: `urls.${lang}`, message: `Invalid buy link "${String(url)}" (must be an https address)`, hint: 'Provide a valid https:// URL' });
+      }
+    }
+  }
+  if (obj.price !== undefined && typeof obj.price !== 'string') {
+    errors.push({ file, field: 'price', message: 'price must be a string if provided', hint: 'Set price: "24,99 €"' });
+  }
+  if (obj.priceCheckedAt !== undefined && !isYearMonth(obj.priceCheckedAt)) {
+    errors.push({ file, field: 'priceCheckedAt', message: `Invalid priceCheckedAt date "${String(obj.priceCheckedAt)}"`, hint: 'Use YYYY-MM format (e.g. "2026-11")' });
+  }
+  if (obj.image !== undefined) {
+    if (typeof obj.image !== 'string' || !isRelativeMediaPath(obj.image)) {
+      errors.push({ file, field: 'image', message: `Invalid image path "${String(obj.image)}" (must be relative inside folder, no ".." or "/")`, hint: 'Use simple filenames or media/filename' });
+    }
+  }
   return { valid: errors.length === 0, errors };
 }

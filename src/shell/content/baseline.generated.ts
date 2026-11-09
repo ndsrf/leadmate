@@ -3983,11 +3983,18 @@ export const BASELINE_PACK: ContentPack = {
               "art": "theory-poste-do"
             }
           }
+        ],
+        "recommendations": [
+          {
+            "id": "rec-poste-arnes",
+            "target": "arneses",
+            "when": "poste-trouble"
+          }
         ]
       },
       "text": {
-        "en": "# Practice: The Poste\n\n## primer\n### card 1\nRemember: when the leash goes Taut, stop like a Poste until it returns to Slack.\n- caption: How to stop like a Poste when the Dog pulls\n\n## checkpoint\n### tq1\nWhat does your Dog learn if you keep moving forward while it pulls?\n- [x] That pulling gets it where it wants to go\n- [ ] That it should walk by your side\n- [ ] That pulling achieves nothing\n- why: Every step you take with a Taut leash rewards the pull: pulling brings it closer to what it wants.\n\n### tq2\nWhat happens if you pull back?\n- [x] It learns to pull even harder\n- [ ] It learns to always walk by your side\n- [ ] It loses interest in what it saw\n- why: It is a reflex: if you pull backward, its body pushes in opposition and you both end up pulling harder.\n\n### tq3\nYou use Poste. When do you resume walking?\n- [x] As soon as the leash returns to Slack\n- [ ] When you count to ten seconds\n- [ ] When it stops looking around\n- why: A Slack leash is what reopens the path forward; that way the Dog knows exactly what it did right.\n\n## exercises\n- poste: Outside: the next time your Dog pulls, stop like a Poste and count to five before moving.\n- tension: At home: walk through the living room with a Slack leash and stop each time it goes Taut.\n",
-        "es": "# Práctica: el Poste\n\n## primer\n### card 1\nRecuerda: cuando la correa se tensa, te paras como un poste hasta que se afloja.\n- caption: Cómo detenerte como un poste cuando el perro tira\n\n## checkpoint\n### tq1\n¿Qué aprende tu perro si avanzas mientras tira?\n- [x] Que tirar le lleva adonde quiere\n- [ ] Que debe caminar a tu lado\n- [ ] Que tirar no sirve de nada\n- why: Cada paso que das con la correa tensa le paga el tirón: tirar le acerca a lo que quiere.\n\n### tq2\n¿Qué pasa si tiras tú de vuelta?\n- [x] Aprende a tirar todavía más fuerte\n- [ ] Aprende a ir siempre a tu lado\n- [ ] Deja de interesarle lo que veía\n- why: Es un reflejo: si tiras hacia atrás, su cuerpo empuja en contra y acabáis los dos tirando más fuerte.\n\n### tq3\nHaces poste. ¿Cuándo vuelves a caminar?\n- [x] En cuanto la correa se afloja\n- [ ] Cuando cuentas diez segundos\n- [ ] Cuando deja de mirar a su alrededor\n- why: La correa floja es lo que reabre el camino; así sabe exactamente qué ha hecho bien.\n\n## exercises\n- poste: En la calle: la próxima vez que tu perro tire, párate y cuenta hasta cinco antes de moverte.\n- tension: En casa: camina por el salón con la correa floja y párate cada vez que se tense.\n\n"
+        "en": "# Practice: The Poste\n\n## primer\n### card 1\nRemember: when the leash goes Taut, stop like a Poste until it returns to Slack.\n- caption: How to stop like a Poste when the Dog pulls\n\n## checkpoint\n### tq1\nWhat does your Dog learn if you keep moving forward while it pulls?\n- [x] That pulling gets it where it wants to go\n- [ ] That it should walk by your side\n- [ ] That pulling achieves nothing\n- why: Every step you take with a Taut leash rewards the pull: pulling brings it closer to what it wants.\n\n### tq2\nWhat happens if you pull back?\n- [x] It learns to pull even harder\n- [ ] It learns to always walk by your side\n- [ ] It loses interest in what it saw\n- why: It is a reflex: if you pull backward, its body pushes in opposition and you both end up pulling harder.\n\n### tq3\nYou use Poste. When do you resume walking?\n- [x] As soon as the leash returns to Slack\n- [ ] When you count to ten seconds\n- [ ] When it stops looking around\n- why: A Slack leash is what reopens the path forward; that way the Dog knows exactly what it did right.\n\n## exercises\n- poste: Outside: the next time your Dog pulls, stop like a Poste and count to five before moving.\n- tension: At home: walk through the living room with a Slack leash and stop each time it goes Taut.\n\n## recommendations\n### rec-poste-arnes\nWith a proper Y-harness, practicing the Poste is much more comfortable for your Dog and prevents harsh pulls.\n",
+        "es": "# Práctica: el Poste\n\n## primer\n### card 1\nRecuerda: cuando la correa se tensa, te paras como un poste hasta que se afloja.\n- caption: Cómo detenerte como un poste cuando el perro tira\n\n## checkpoint\n### tq1\n¿Qué aprende tu perro si avanzas mientras tira?\n- [x] Que tirar le lleva adonde quiere\n- [ ] Que debe caminar a tu lado\n- [ ] Que tirar no sirve de nada\n- why: Cada paso que das con la correa tensa le paga el tirón: tirar le acerca a lo que quiere.\n\n### tq2\n¿Qué pasa si tiras tú de vuelta?\n- [x] Aprende a tirar todavía más fuerte\n- [ ] Aprende a ir siempre a tu lado\n- [ ] Deja de interesarle lo que veía\n- why: Es un reflejo: si tiras hacia atrás, su cuerpo empuja en contra y acabáis los dos tirando más fuerte.\n\n### tq3\nHaces poste. ¿Cuándo vuelves a caminar?\n- [x] En cuanto la correa se afloja\n- [ ] Cuando cuentas diez segundos\n- [ ] Cuando deja de mirar a su alrededor\n- why: La correa floja es lo que reabre el camino; así sabe exactamente qué ha hecho bien.\n\n## exercises\n- poste: En la calle: la próxima vez que tu perro tire, párate y cuenta hasta cinco antes de moverte.\n- tension: En casa: camina por el salón con la correa floja y párate cada vez que se tense.\n\n## recommendations\n### rec-poste-arnes\nCon un arnés en Y adecuado hacer el Poste es mucho más cómodo para tu perro y evita tirones bruscos.\n\n"
       },
       "files": [
         "media/theory-poste-do.png"
@@ -6364,6 +6371,203 @@ export const BASELINE_PACK: ContentPack = {
         "es": "# Cinco minutos con una distracción\n\n## target\nPasea 5 minutos con la correa floja pasando cerca de una distracción.\n\n## success\nPasas junto a la distracción sin un tirón largo.\n\n## problems\n### fixates\n- label: Se fija y no me escucha\n- reassure: Fijarse en algo es lo más natural del mundo para un perro.\n- cause: Probablemente estabais demasiado cerca de la distracción.\n- c1: Aumenta la distancia hasta que pueda mirarte.\n- c2: Marca en cuanto aparte la mirada de la distracción.\n- easier: Ver la distracción de lejos y mirarte, 3 veces.\n- alt: Un perro mira a una bici lejana y luego a su persona\n- caption: Más distancia\n\n### pulls\n- label: Tira desde el principio\n- reassure: Tirar al salir es lo más habitual. Llega con muchas ganas.\n- cause: La excitación del principio del paseo aún está muy alta.\n- c1: Deja que olfatee un par de minutos antes de pedirle nada.\n- c2: Haz poste en cada tirón, sin excepciones.\n- easier: Dos minutos de correa floja en una calle tranquila.\n- alt: Un perro olfateando junto al portal antes del paseo\n- caption: Olfatear primero\n\n### lunges\n- label: Se lanza hacia la distracción\n- reassure: Lanzarse asusta, pero tiene arreglo con distancia y tiempo.\n- cause: La distracción llegó demasiado cerca o demasiado rápido.\n- c1: Cruza de acera o gira antes de que esté cerca.\n- c2: Si se lanza, haz poste y espera a que vuelva, sin regañar.\n- easier: Pasar a una acera de distancia de la distracción, 2 veces.\n- alt: Una persona cruza la acera para dejar espacio a una bici\n- caption: Dejar espacio\n\n## general\n- reassure: Los paseos de verdad tienen sorpresas. Un mal día no deshace nada.\n- cause: Lo habitual es elegir una calle con demasiado movimiento.\n- c1: Elige una hora y una calle más tranquilas.\n- c2: Acorta el paseo y termínalo bien.\n- easier: Tres minutos de correa floja sin distracciones.\n- alt: Una calle tranquila a primera hora\n- caption: Una calle tranquila\n\n"
       },
       "files": []
+    }
+  },
+  "shop": {
+    "categories": {
+      "camas": {
+        "config": {
+          "id": "camas",
+          "subcategories": [
+            "camas-relax"
+          ]
+        },
+        "text": {
+          "en": {
+            "title": "Beds & Rest",
+            "description": "Cozy resting spaces to foster calm at home."
+          },
+          "es": {
+            "title": "Camas y descanso",
+            "description": "Espacios de descanso acogedores para favorecer la calma en casa."
+          }
+        },
+        "files": []
+      },
+      "collares": {
+        "config": {
+          "id": "collares",
+          "subcategories": [
+            "arneses",
+            "collares-fijos"
+          ]
+        },
+        "text": {
+          "en": {
+            "title": "Collars & Harnesses",
+            "description": "Safe and ergonomic gear to walk with comfort and without pulling."
+          },
+          "es": {
+            "title": "Collares y arneses",
+            "description": "Material seguro y ergonómico para pasear con comodidad y sin tirones."
+          }
+        },
+        "files": []
+      },
+      "comida": {
+        "config": {
+          "id": "comida",
+          "subcategories": [
+            "premios-entrenamiento"
+          ]
+        },
+        "text": {
+          "en": {
+            "title": "Food & Treats",
+            "description": "Natural snacks and high-quality food to reward your Dog."
+          },
+          "es": {
+            "title": "Comida y premios",
+            "description": "Snacks naturales y comida de alta calidad para premiar a tu perro."
+          }
+        },
+        "files": []
+      }
+    },
+    "subcategories": {
+      "arneses": {
+        "config": {
+          "id": "arneses",
+          "products": [
+            "arnes-ergonomico-y"
+          ]
+        },
+        "text": {
+          "en": {
+            "title": "Y-Harnesses",
+            "description": "Y-shaped harnesses that free the shoulders and avoid pressure on the neck."
+          },
+          "es": {
+            "title": "Arneses en Y",
+            "description": "Arneses en forma de Y que liberan los hombros y evitan la presión en el cuello."
+          }
+        },
+        "files": []
+      },
+      "camas-relax": {
+        "config": {
+          "id": "camas-relax",
+          "products": []
+        },
+        "text": {
+          "en": {
+            "title": "Calming Beds",
+            "description": "Plush beds to help your Dog unwind and sleep comfortably."
+          },
+          "es": {
+            "title": "Camas relajantes",
+            "description": "Camas mullidas para que el perro desconecte y duerma con comodidad."
+          }
+        },
+        "files": []
+      },
+      "collares-fijos": {
+        "config": {
+          "id": "collares-fijos",
+          "products": [
+            "collar-plano-acolchado"
+          ]
+        },
+        "text": {
+          "en": {
+            "title": "Flat Collars",
+            "description": "Wide, padded flat collars for relaxed and secure walks."
+          },
+          "es": {
+            "title": "Collares planos",
+            "description": "Collares fijos anchos y acolchados para paseos relajados y seguros."
+          }
+        },
+        "files": []
+      },
+      "premios-entrenamiento": {
+        "config": {
+          "id": "premios-entrenamiento",
+          "products": []
+        },
+        "text": {
+          "en": {
+            "title": "Training Treats",
+            "description": "Tasty, small-sized treats to reward at the exact right moment."
+          },
+          "es": {
+            "title": "Premios de entrenamiento",
+            "description": "Snacks sabrosos y de tamaño reducido para premiar en el momento exacto."
+          }
+        },
+        "files": []
+      }
+    },
+    "products": {
+      "arnes-ergonomico-y": {
+        "config": {
+          "id": "arnes-ergonomico-y",
+          "source": "manual",
+          "urls": {
+            "es": "https://example.com/shop/arnes-ergonomico-y",
+            "en": "https://example.com/shop/arnes-ergonomico-y"
+          },
+          "price": "36,90 €",
+          "priceCheckedAt": "2026-11",
+          "image": "arnes-ergonomico.png"
+        },
+        "text": {
+          "en": {
+            "title": "Ergonomic Y-Harness",
+            "description": "Padded Y-shaped harness with front and back clip rings for walks without pressure on the trachea."
+          },
+          "es": {
+            "title": "Arnés ergonómico en Y",
+            "description": "Arnés acolchado en forma de Y con anilla frontal y dorsal para un paseo sin presión en la tráquea."
+          }
+        },
+        "files": [
+          "media/arnes-ergonomico.png"
+        ]
+      },
+      "collar-plano-acolchado": {
+        "config": {
+          "id": "collar-plano-acolchado",
+          "source": "manual",
+          "urls": {
+            "es": "https://example.com/shop/collar-plano-acolchado",
+            "en": "https://example.com/shop/collar-plano-acolchado"
+          },
+          "price": "18,50 €",
+          "priceCheckedAt": "2026-11",
+          "image": "collar-acolchado.png"
+        },
+        "text": {
+          "en": {
+            "title": "Padded Flat Collar",
+            "description": "Soft nylon collar with breathable neoprene padding and a secure buckle."
+          },
+          "es": {
+            "title": "Collar plano acolchado",
+            "description": "Collar de nylon suave con acolchado de neopreno transpirable y cierre seguro."
+          }
+        },
+        "files": [
+          "media/collar-acolchado.png"
+        ]
+      }
+    },
+    "config": {
+      "categories": [
+        "collares",
+        "camas",
+        "comida"
+      ]
     }
   }
 };

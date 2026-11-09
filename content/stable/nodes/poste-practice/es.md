@@ -31,3 +31,7 @@ Haces poste. ¿Cuándo vuelves a caminar?
 - poste: En la calle: la próxima vez que tu perro tire, párate y cuenta hasta cinco antes de moverte.
 - tension: En casa: camina por el salón con la correa floja y párate cada vez que se tense.
 
+## recommendations
+### rec-poste-arnes
+Con un arnés en Y adecuado hacer el Poste es mucho más cómodo para tu perro y evita tirones bruscos.
+

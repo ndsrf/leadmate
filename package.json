@@ -18,6 +18,7 @@
     "content:watch": "node scripts/content-watch.mjs",
     "content:promote": "node scripts/content-promote.mjs",
     "content:publish": "node scripts/content-publish.mjs",
+    "content:shop-import": "node scripts/content-shop-import.mjs",
     "eas-build-post-install": "npm run sim:embed"
   },
   "dependencies": {

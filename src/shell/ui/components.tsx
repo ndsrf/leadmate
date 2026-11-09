@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Pressable, Text, TextInput, View, type TextInputProps, type ViewProps, type ViewStyle } from 'react-native';
-import Svg, { Circle, Rect } from 'react-native-svg';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { vars } from 'nativewind';
 import { handlePress } from './press';
@@ -272,13 +272,14 @@ export function Chip({
 }
 
 /** A round, icon-only Chip: same face height and depth as `Chip`, the label only for screen readers. */
-export function IconChip({ icon, onPress, accessibilityLabel }: { icon: React.ReactNode; onPress: () => void; accessibilityLabel: string }) {
+export function IconChip({ icon, onPress, accessibilityLabel, testID }: { icon: React.ReactNode; onPress: () => void; accessibilityLabel: string; testID?: string }) {
   const color = usePalette();
   const focus = useFocus();
   const size = theme.size.touchMin - 8;
   const target = touchTarget(size);
   return (
     <Pressable
+      testID={testID}
       onPress={() => handlePress(onPress)}
       onFocus={focus.onFocus}
       onBlur={focus.onBlur}
@@ -293,6 +294,22 @@ export function IconChip({ icon, onPress, accessibilityLabel }: { icon: React.Re
         </Raised>
       )}
     </Pressable>
+  );
+}
+
+/** A shop basket drawn in ink, decorative: the control around it carries the label. */
+export function BasketGlyph({ size = 20 }: { size?: number }) {
+  const color = usePalette();
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <Path
+        d="M4 10h16l-2 10H6L4 10zm4 0V7a4 4 0 118 0v3"
+        stroke={color.ink}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
   );
 }
 

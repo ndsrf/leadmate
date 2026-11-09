@@ -349,6 +349,23 @@ _Avoid_: Finished World, done World, closed World
 The corrective material shown when a Mission check-in did not go well: reassurance, what likely went wrong, what to change, an easier target and what to practise again.
 _Avoid_: Troubleshooting, tip, remedy
 
+### Shop
+**Shop** (*Tienda*):
+The curated catalogue of recommended physical products for dog and owner, authored in the Content Pack and bought outside the app. Not the Store Offering.
+_Avoid_: Store, marketplace, basket, cart
+
+**Shop Category / Shop Subcategory**:
+The two levels that group Products (e.g. "Collares y arneses", then "Collares"). Each has a title and a brief description.
+_Avoid_: Department, section, aisle
+
+**Product** (*Producto*):
+A physical item in the Shop with a name, description, picture, approximate price and a buy link per language. It may be imported from an Amazon page by an author; it is never fetched by the app.
+_Avoid_: Item, listing, Store Offering
+
+**Recommendation** (*Recomendación*):
+An authored pointer from a Lesson, Node or Mission to a Product, Shop Subcategory or Shop Category, with its own explanation of why it helps ("Con un collar como estos hacer el Poste es mucho más fácil…"). Shown either as a card on the item or as a self-dismissing popup when the user is in trouble.
+_Avoid_: Shop link, ad, sponsored link, Tutorial Link
+
 ### Monetization & Advertising
 
 **Plus World**:
@@ -369,7 +386,7 @@ _Avoid_: Billing plan, membership package, subscription option
 
 **Store Offering**:
 The set of localized Subscription Tiers and pricing packages retrieved dynamically from the Apple App Store or Google Play Store.
-_Avoid_: Product list, catalog, store inventory
+_Avoid_: Product list, catalog, store inventory. Not a Shop Product: it prices Plus, not physical goods.
 
 **Restore Purchases**:
 The action of re-validating native app store receipts to re-establish Plus membership on a new or reset device.

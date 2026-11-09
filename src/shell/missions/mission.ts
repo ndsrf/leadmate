@@ -39,6 +39,13 @@ export interface MissionDef {
   generalFix: Fix;
   /** Where the target is practised: `home` for a Mission done at home, absent for one on a walk. */
   place?: 'home';
+  recommendations?: Array<{
+    id: string;
+    target: string;
+    targetKind: 'category' | 'subcategory' | 'product';
+    when: string;
+    explanation: TextKey;
+  }>;
 }
 
 /** The problem id of "Otra cosa": it leads to the general Fix. */

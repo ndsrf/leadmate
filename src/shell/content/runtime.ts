@@ -12,6 +12,7 @@ export interface RuntimeContent {
   contentVersion: number;
   pack: ContentPack;
   resolved: ResolvedPack;
+  language?: string;
 }
 
 export interface InitRuntimeOptions {
@@ -44,6 +45,7 @@ export function getActiveContent(): RuntimeContent {
     contentVersion: BASELINE_PACK.pack.contentVersion ?? 1,
     pack: BASELINE_PACK,
     resolved,
+    language: 'es',
   };
   return activeContentSession;
 }
@@ -61,10 +63,14 @@ export function setActiveContent(content: RuntimeContent | null): void {
  */
 export function switchContentLanguage(language: string): RuntimeContent {
   const current = getActiveContent();
+  if (current.language === language) {
+    return current;
+  }
   const resolved = resolvePack(current.pack, language);
   activeContentSession = {
     ...current,
     resolved,
+    language,
   };
   return activeContentSession;
 }
@@ -149,6 +155,7 @@ export async function initContentRuntime(options: InitRuntimeOptions = {}): Prom
     contentVersion,
     pack,
     resolved,
+    language,
   };
 
   // 6. Production: look for newer content in the background. Not awaited, so the first screen is never delayed, and

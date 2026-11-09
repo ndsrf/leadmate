@@ -15,6 +15,7 @@ const mockProps: Record<string, any> = {};
 const mockMounted: Record<string, number> = {};
 const mockSim = { mounts: 0, unmounts: 0, live: 0, posts: [] as any[], props: null as any };
 const mockAppStateListeners: ((state: string) => void)[] = [];
+const mockBackHandlerListeners: (() => boolean | undefined | null)[] = [];
 const mockStore = new Map<string, string>();
 
 function mockStub(name: string) {
@@ -29,7 +30,7 @@ function mockStub(name: string) {
         if (mockMounted[name] === 0) delete mockProps[name];
       };
     }, []);
-    return null;
+    return props?.shopPopup ?? null;
   };
   Stub.displayName = name;
   return Stub;
@@ -49,6 +50,19 @@ function mockScreens() {
 jest.mock('../global.css', () => ({}), { virtual: true });
 jest.mock('react-native', () => ({
   View: (p: any) => require('react').createElement('View', p, p.children),
+  Text: (p: any) => require('react').createElement('Text', p, p.children),
+  Pressable: (p: any) => require('react').createElement('Pressable', p, p.children),
+  ScrollView: (p: any) => require('react').createElement('ScrollView', p, p.children),
+  Image: (p: any) => require('react').createElement('Image', p, p.children),
+  AccessibilityInfo: {
+    isScreenReaderEnabled: () => Promise.resolve(false),
+    addEventListener: () => ({ remove: () => {} }),
+  },
+  Linking: {
+    openURL: jest.fn(() => Promise.resolve()),
+    canOpenURL: jest.fn(() => Promise.resolve(true)),
+  },
+  processColor: (c: any) => c,
   AppState: {
     currentState: 'active',
     addEventListener: (_: string, cb: (s: string) => void) => {
@@ -56,9 +70,29 @@ jest.mock('react-native', () => ({
       return { remove: () => mockAppStateListeners.splice(mockAppStateListeners.indexOf(cb), 1) };
     },
   },
-  BackHandler: { addEventListener: () => ({ remove: () => {} }) },
+  BackHandler: {
+    addEventListener: (_: string, cb: () => boolean | undefined | null) => {
+      mockBackHandlerListeners.push(cb);
+      return {
+        remove: () => {
+          const idx = mockBackHandlerListeners.indexOf(cb);
+          if (idx !== -1) mockBackHandlerListeners.splice(idx, 1);
+        },
+      };
+    },
+    exitApp: () => {},
+  },
   useColorScheme: () => 'light',
 }));
+jest.mock('react-native-svg', () => {
+  const R = require('react');
+  return {
+    __esModule: true,
+    default: (p: any) => R.createElement('Svg', p, p.children),
+    Path: (p: any) => R.createElement('Path', p, p.children),
+    Svg: (p: any) => R.createElement('Svg', p, p.children),
+  };
+});
 jest.mock('expo-splash-screen', () => ({ hideAsync: () => Promise.resolve(), preventAutoHideAsync: () => Promise.resolve() }));
 jest.mock('expo-status-bar', () => ({ StatusBar: () => null }));
 jest.mock('expo-font', () => ({ useFonts: () => [true] }));
@@ -67,13 +101,37 @@ jest.mock('react-native-safe-area-context', () => ({ SafeAreaProvider: (p: any) 
 jest.mock('./shell/ui/feedbackBackends', () => ({ installFeedback: () => {} }));
 jest.mock('./shell/ui/useUiSettings', () => ({ useUiSettings: () => ({ settings: { appearance: 'light' }, change: () => {} }) }));
 jest.mock('./shell/ui/components', () => ({ PaletteRoot: (p: any) => p.children }));
-jest.mock('./shell/ui/theme', () => ({ PaletteProvider: (p: any) => p.children }));
+jest.mock('./shell/ui/theme', () => {
+  const actual = jest.requireActual('./shell/ui/theme');
+  return {
+    ...actual,
+    PaletteProvider: (p: any) => p.children,
+    usePalette: () => actual.lightColor,
+  };
+});
 jest.mock('./shell/ui/ContentUpdateBanner', () => ({ ContentUpdateBanner: () => null }));
 jest.mock('./shell/audio', () => ({ playDogSound: () => {}, playResolvedCue: () => {}, prepareAudio: () => {} }));
 jest.mock('./shell/billing', () => ({
   getBillingService: () => ({ initialize: () => Promise.resolve(), checkEntitlements: () => Promise.resolve(null) }),
 }));
-jest.mock('./shell/ads', () => ({ getAdService: () => ({ preloadInterstitial: () => Promise.resolve(), showInterstitial: () => Promise.resolve(), clearCache: () => {} }) }));
+let interstitialResolver: (() => void) | null = null;
+let interstitialTriggered = false;
+let pendingAd = false;
+jest.mock('./shell/ads', () => ({
+  getAdService: () => ({
+    preloadInterstitial: () => Promise.resolve(),
+    showInterstitial: () => {
+      interstitialTriggered = true;
+      if (pendingAd) {
+        return new Promise<void>((resolve) => {
+          interstitialResolver = resolve;
+        });
+      }
+      return Promise.resolve();
+    },
+    clearCache: () => {},
+  }),
+}));
 jest.mock('./shell/storage', () => ({
   LANGUAGE_STORAGE_KEY: 'leadmate.language',
   loadStoredLanguage: async () => mockStore.get('leadmate.language') ?? null,
@@ -132,11 +190,51 @@ for (const m of [
   jest.mock(`./shell/screens/${m}`, () => mockScreens());
 }
 jest.mock('./shell/Overlays', () => mockScreens());
+jest.mock('./shell/screens/ShopScreen', () => {
+  const actual = jest.requireActual('./shell/screens/ShopScreen');
+  const R = require('react');
+  return {
+    ...actual,
+    ShopScreen: (props: any) => {
+      mockProps['ShopScreen'] = props;
+      R.useEffect(() => {
+        mockMounted['ShopScreen'] = (mockMounted['ShopScreen'] ?? 0) + 1;
+        return () => {
+          mockMounted['ShopScreen'] -= 1;
+          if (mockMounted['ShopScreen'] === 0) delete mockProps['ShopScreen'];
+        };
+      }, []);
+      return R.createElement(actual.ShopScreen, props);
+    },
+  };
+});
+jest.mock('./shell/screens/ShopPopup', () => {
+  const actual = jest.requireActual('./shell/screens/ShopPopup');
+  const R = require('react');
+  return {
+    ...actual,
+    ShopPopup: (props: any) => {
+      mockProps['ShopPopup'] = props;
+      R.useEffect(() => {
+        mockMounted['ShopPopup'] = (mockMounted['ShopPopup'] ?? 0) + 1;
+        return () => {
+          mockMounted['ShopPopup'] -= 1;
+          if (mockMounted['ShopPopup'] === 0) delete mockProps['ShopPopup'];
+        };
+      }, []);
+      return R.createElement('ShopPopup', props);
+    },
+  };
+});
 
 import App from '../App';
 import { newDogRecord, NEW_ONBOARDING, RECORD_KEY, RECORD_VERSION } from './shell/dogRecord';
 import { todayString } from './shell/daily';
-import { BARKDOKU_INTRO_NODE, CALM_HANDS_NODE, CLOSE_PASS_NODE, WALK_DISTRACTION } from './shell/nodes/content';
+import { BARKDOKU_INTRO_NODE, CALM_HANDS_NODE, CLOSE_PASS_NODE, WALK_DISTRACTION, findNode } from './shell/nodes/content';
+import { getActiveContent, setActiveContent } from './shell/content/runtime';
+import type { ResolvedShop } from './shell/content/resolver';
+import { SHOP_STATE_STORAGE_KEY, DEFAULT_SHOP_STATE } from './shell/shop';
+import { POOR_SCORE_BELOW } from './shell/stars';
 
 const LOAD_TIMEOUT_MS = 20000;
 const latest = (name: string) => mockProps[name];
@@ -159,6 +257,13 @@ async function openMap() {
 
 const openStop = (id: string) => act(() => latest('WorldMapScreen').onOpenStop({ kind: 'node', id }));
 const sendFromView = (message: unknown) => act(() => mockSim.props.onMessage(message));
+function triggerBack(): boolean {
+  for (let i = mockBackHandlerListeners.length - 1; i >= 0; i--) {
+    const handled = mockBackHandlerListeners[i]();
+    if (handled) return true;
+  }
+  return false;
+}
 
 /** Reads every Primer card and answers the Checkpoint, ending on the Node's simulation step. */
 function throughPrimerAndCheckpoint() {
@@ -175,17 +280,31 @@ beforeAll(() => {
   });
 });
 
+const baseIntl = global.Intl;
 beforeEach(() => {
   jest.useFakeTimers();
+  setActiveContent(null);
+  global.Intl = {
+    ...baseIntl,
+    DateTimeFormat: (() => ({
+      resolvedOptions: () => ({ locale: 'es-ES' }),
+    })) as unknown as typeof Intl.DateTimeFormat,
+  };
+  interstitialResolver = null;
+  interstitialTriggered = false;
+  pendingAd = false;
   mockStore.clear();
   for (const k of Object.keys(mockProps)) delete mockProps[k];
   for (const k of Object.keys(mockMounted)) delete mockMounted[k];
   Object.assign(mockSim, { mounts: 0, unmounts: 0, live: 0, posts: [], props: null });
   mockAppStateListeners.length = 0;
+  mockBackHandlerListeners.length = 0;
 });
 
 afterEach(() => {
   act(() => renderer?.unmount());
+  setActiveContent(null);
+  global.Intl = baseIntl;
   jest.useRealTimers();
 });
 
@@ -578,6 +697,583 @@ describe('App - Stage view lifecycle', () => {
         expect(latest('LanguageScreen').selectedLanguage).toBe('en');
       } finally {
         global.Intl = originalIntl;
+      }
+    });
+  });
+
+  describe('Shop flow', () => {
+    it('maintains map scroll position and system back pops shop levels before returning to map', async () => {
+      const baseContent = getActiveContent();
+      const mockShop: ResolvedShop = {
+        categories: [
+          {
+            id: 'collares',
+            title: 'Collares y arneses',
+            description: 'Collares y arneses para pasear sin tirones',
+            subcategories: [
+              {
+                id: 'arneses',
+                title: 'Arneses',
+                description: 'Arneses ergonómicos en Y',
+                products: [
+                  {
+                    id: 'arnes-ergonomico-y',
+                    name: 'Arnés ergonómico en Y',
+                    description: 'Arnés anti-tiro',
+                    url: 'https://example.com/arnes',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        idToKind: {
+          collares: 'category',
+          arneses: 'subcategory',
+          'arnes-ergonomico-y': 'product',
+        },
+      };
+      setActiveContent({
+        ...baseContent,
+        resolved: {
+          ...baseContent.resolved,
+          shop: mockShop,
+        },
+      });
+
+      try {
+        await openMap();
+
+        // Simulate map scrolling to 350
+        act(() => {
+          latest('WorldMapScreen').onScroll(350);
+        });
+
+        // Open shop with deep link to a subcategory (e.g. 'arneses')
+        act(() => {
+          latest('WorldMapScreen').onShop({ level: 'subcategory', id: 'arneses' });
+        });
+
+        // ShopScreen should be mounted, and WorldMapScreen should remain mounted underneath
+        expect(latest('ShopScreen')).toBeDefined();
+        expect(mockMounted['ShopScreen']).toBe(1);
+        expect(mockMounted['WorldMapScreen']).toBe(1);
+        expect(latest('WorldMapScreen').initialScrollY).toBe(350);
+
+        // System back 1: pops from subcategory level to category level
+        let handled = false;
+        act(() => {
+          handled = triggerBack();
+        });
+        expect(handled).toBe(true);
+        expect(mockMounted['ShopScreen']).toBe(1);
+
+        // System back 2: pops from category level to shop home level
+        act(() => {
+          handled = triggerBack();
+        });
+        expect(handled).toBe(true);
+        expect(mockMounted['ShopScreen']).toBe(1);
+
+        // System back 3: at home level, pops out of shop back to map
+        act(() => {
+          handled = triggerBack();
+        });
+        expect(handled).toBe(true);
+        expect(latest('ShopScreen')).toBeUndefined();
+        expect(mockMounted['ShopScreen'] ?? 0).toBe(0);
+
+        // WorldMapScreen is still mounted and scroll position is kept
+        expect(mockMounted['WorldMapScreen']).toBe(1);
+        expect(latest('WorldMapScreen').initialScrollY).toBe(350);
+      } finally {
+        setActiveContent(baseContent);
+      }
+    });
+  });
+
+  describe('Shop popups and trouble triggers (Tasks 6.2 & 7.2)', () => {
+    const mockShop: ResolvedShop = {
+      categories: [
+        {
+          id: 'collares',
+          title: 'Collares y arneses',
+          description: 'Collares y arneses para pasear sin tirones',
+          subcategories: [
+            {
+              id: 'arneses',
+              title: 'Arneses',
+              description: 'Arneses ergonómicos en Y',
+              products: [
+                {
+                  id: 'arnes-ergonomico-y',
+                  name: 'Arnés ergonómico en Y',
+                  description: 'Arnés anti-tiro',
+                  url: 'https://example.com/arnes',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      idToKind: {
+        collares: 'category',
+        arneses: 'subcategory',
+        'arnes-ergonomico-y': 'product',
+      },
+    };
+
+    it('suppresses general offer on day 1 (user first active day)', async () => {
+      const baseContent = getActiveContent();
+      setActiveContent({
+        ...baseContent,
+        resolved: { ...baseContent.resolved, shop: mockShop },
+      });
+
+      try {
+        await openMap();
+        expect(latest('WorldMapScreen')).toBeDefined();
+        expect(latest('ShopPopup')).toBeUndefined();
+      } finally {
+        setActiveContent(baseContent);
+      }
+    });
+
+    it('shows general offer popup on World Map when 3-day cadence is met, opens shop on tap and resets ignore count', async () => {
+      const baseContent = getActiveContent();
+      setActiveContent({
+        ...baseContent,
+        resolved: { ...baseContent.resolved, shop: mockShop },
+      });
+
+      mockStore.set(
+        SHOP_STATE_STORAGE_KEY,
+        JSON.stringify({
+          ...DEFAULT_SHOP_STATE,
+          firstSeenDate: '2026-11-01',
+          lastGeneralOfferDate: '2026-11-01',
+          generalOfferIgnoredCount: 1,
+        }),
+      );
+
+      try {
+        await openMap();
+        expect(latest('WorldMapScreen')).toBeDefined();
+        expect(latest('ShopPopup')).toBeDefined();
+        expect(latest('ShopPopup').text).toBe('¿Quieres ver productos recomendados para tu perro?');
+
+        // Tap "Ver" on the popup
+        await act(async () => {
+          await latest('ShopPopup').onOpen();
+        });
+
+        // Opens Shop
+        expect(latest('ShopScreen')).toBeDefined();
+
+        // Ignored count is reset in storage
+        const saved = JSON.parse(mockStore.get(SHOP_STATE_STORAGE_KEY)!);
+        expect(saved.generalOfferIgnoredCount).toBe(0);
+        expect(saved.lastGeneralOfferDate).toBe(todayString());
+      } finally {
+        setActiveContent(baseContent);
+      }
+    });
+
+    it('dismissing general offer increments ignored count and suppresses offer permanently after 3 ignores', async () => {
+      const baseContent = getActiveContent();
+      setActiveContent({
+        ...baseContent,
+        resolved: { ...baseContent.resolved, shop: mockShop },
+      });
+
+      mockStore.set(
+        SHOP_STATE_STORAGE_KEY,
+        JSON.stringify({
+          ...DEFAULT_SHOP_STATE,
+          firstSeenDate: '2026-11-01',
+          lastGeneralOfferDate: '2026-11-01',
+          generalOfferIgnoredCount: 2,
+        }),
+      );
+
+      try {
+        await openMap();
+        expect(latest('ShopPopup')).toBeDefined();
+
+        // Tap "Cerrar" (ignore)
+        await act(async () => {
+          await latest('ShopPopup').onClose();
+        });
+
+        // Ignored count is now 3
+        const saved = JSON.parse(mockStore.get(SHOP_STATE_STORAGE_KEY)!);
+        expect(saved.generalOfferIgnoredCount).toBe(3);
+
+        // Remount map on a future day: offer is suppressed permanently
+        mockStore.set(
+          SHOP_STATE_STORAGE_KEY,
+          JSON.stringify({
+            ...saved,
+            lastPopupDate: '2026-11-05',
+            lastGeneralOfferDate: '2026-11-05',
+          }),
+        );
+        act(() => renderer?.unmount());
+        await openMap();
+        expect(latest('ShopPopup')).toBeUndefined();
+      } finally {
+        setActiveContent(baseContent);
+      }
+    });
+
+    it('never renders general offer popup over simulations, minigames or lessons in progress', async () => {
+      const baseContent = getActiveContent();
+      const nodeNoMission = {
+        ...WALK_DISTRACTION,
+        id: 'node-no-mission',
+      };
+      setActiveContent({
+        ...baseContent,
+        resolved: {
+          ...baseContent.resolved,
+          shop: mockShop,
+          nodes: [...baseContent.resolved.nodes, nodeNoMission],
+        },
+      });
+
+      mockStore.set(
+        SHOP_STATE_STORAGE_KEY,
+        JSON.stringify({
+          ...DEFAULT_SHOP_STATE,
+          firstSeenDate: '2026-11-01',
+          lastGeneralOfferDate: '2026-11-01',
+          generalOfferIgnoredCount: 0,
+        }),
+      );
+
+      try {
+        await openMap();
+        expect(latest('ShopPopup')).toBeDefined();
+
+        // Start a Stage
+        openStop('node-no-mission');
+        expect(latest('PrimerScreen')).toBeDefined();
+        // Popup must NOT be rendered over PrimerScreen
+        expect(latest('ShopPopup')).toBeUndefined();
+
+        throughPrimerAndCheckpoint();
+        await sendFromView({ type: 'ready' });
+        // Popup must NOT be rendered over active simulation
+        expect(latest('ShopPopup')).toBeUndefined();
+
+        // Finish simulation to reach debrief
+        await sendFromView({ type: 'debrief', payload: { handlingScore: 800 } });
+        expect(latest('DebriefScreen')).toBeDefined();
+        expect(latest('ShopPopup')).toBeUndefined();
+
+        await act(async () => {
+          await latest('DebriefScreen').onDone();
+        });
+        // Back on map, popup is available
+        expect(latest('WorldMapScreen')).toBeDefined();
+        expect(latest('ShopPopup')).toBeDefined();
+      } finally {
+        setActiveContent(baseContent);
+      }
+    });
+
+    it('queues poste-trouble popup during Stage debrief and shows it once back on World Map', async () => {
+      const baseContent = getActiveContent();
+      const nodeWithTrouble = {
+        ...WALK_DISTRACTION,
+        id: 'node-poste-trouble',
+        recommendations: [
+          {
+            id: 'rec-poste-arnes',
+            target: 'arnes-ergonomico-y',
+            targetKind: 'product' as const,
+            when: 'poste-trouble',
+            explanation: 'El poste se te complica: prueba este arnés.',
+          },
+        ],
+      };
+
+      setActiveContent({
+        ...baseContent,
+        resolved: {
+          ...baseContent.resolved,
+          shop: mockShop,
+          nodes: [...baseContent.resolved.nodes, nodeWithTrouble],
+        },
+      });
+
+      const record = {
+        ...newDogRecord(),
+        posteFailures: 2,
+        onboarding: { ...NEW_ONBOARDING, step: 'done' as const },
+        version: RECORD_VERSION,
+      };
+      mockStore.set(RECORD_KEY, JSON.stringify(record));
+
+      try {
+        await act(async () => {
+          renderer = create(<App />);
+        });
+        await act(async () => {
+          jest.advanceTimersByTime(2500);
+        });
+
+        openStop('node-poste-trouble');
+        throughPrimerAndCheckpoint();
+        await sendFromView({ type: 'ready' });
+        await sendFromView({ type: 'debrief', payload: { handlingScore: 600 } });
+
+        // On DebriefScreen: popup must NOT be visible yet
+        expect(latest('DebriefScreen')).toBeDefined();
+        expect(latest('ShopPopup')).toBeUndefined();
+
+        // Exit Debrief to return to map
+        await act(async () => {
+          await latest('DebriefScreen').onDone();
+        });
+
+        // Now on World Map: popup is displayed
+        expect(latest('WorldMapScreen')).toBeDefined();
+        expect(latest('ShopPopup')).toBeDefined();
+        expect(latest('ShopPopup').text).toBe('El poste se te complica: prueba este arnés.');
+
+        // Tap "Ver"
+        await act(async () => {
+          await latest('ShopPopup').onOpen();
+        });
+
+        // Opens Shop directly at the recommended product detail
+        expect(latest('ShopScreen')).toBeDefined();
+        expect(latest('ShopScreen').initialTarget).toEqual({ level: 'product', id: 'arnes-ergonomico-y' });
+      } finally {
+        setActiveContent(baseContent);
+      }
+    });
+
+    it('evaluates poor-score trigger: ignores score = 200, but queues and shows popup for score = 199', async () => {
+      const baseContent = getActiveContent();
+      const nodeWithScore = {
+        ...WALK_DISTRACTION,
+        id: 'node-poor-score',
+        recommendations: [
+          {
+            id: 'rec-score-sub',
+            target: 'arneses',
+            targetKind: 'subcategory' as const,
+            when: 'poor-score',
+            explanation: 'Puntuación baja: te vendrá bien revisar los arneses.',
+          },
+        ],
+      };
+
+      setActiveContent({
+        ...baseContent,
+        resolved: {
+          ...baseContent.resolved,
+          shop: mockShop,
+          nodes: [...baseContent.resolved.nodes, nodeWithScore],
+        },
+      });
+
+      try {
+        // Run 1: handlingScore = 200 (not poor, exactly at threshold)
+        await openMap();
+        openStop('node-poor-score');
+        throughPrimerAndCheckpoint();
+        await sendFromView({ type: 'ready' });
+        await sendFromView({ type: 'debrief', payload: { handlingScore: POOR_SCORE_BELOW } });
+        await act(async () => {
+          await latest('DebriefScreen').onDone();
+        });
+        expect(latest('WorldMapScreen')).toBeDefined();
+        expect(latest('ShopPopup')).toBeUndefined();
+
+        // Run 2: handlingScore = 199 (< POOR_SCORE_BELOW)
+        openStop('node-poor-score');
+        throughPrimerAndCheckpoint();
+        await sendFromView({ type: 'ready' });
+        await sendFromView({ type: 'debrief', payload: { handlingScore: POOR_SCORE_BELOW - 1 } });
+        expect(latest('DebriefScreen')).toBeDefined();
+        expect(latest('ShopPopup')).toBeUndefined();
+
+        await act(async () => {
+          await latest('DebriefScreen').onDone();
+        });
+        expect(latest('WorldMapScreen')).toBeDefined();
+        expect(latest('ShopPopup')).toBeDefined();
+        expect(latest('ShopPopup').text).toBe('Puntuación baja: te vendrá bien revisar los arneses.');
+      } finally {
+        setActiveContent(baseContent);
+      }
+    });
+
+    it('queues trouble popup when mission check-in reports a struggled problem and displays it on map exit', async () => {
+      const baseContent = getActiveContent();
+      const fixSample = { id: 'pulls-ahead', blocks: [], easierTarget: 'target', practise: { kind: 'node' as const, id: 'test' } };
+      const missionWithRec = {
+        id: 'mission-problem-rec',
+        title: 'Misión paseo',
+        target: 'Paseo',
+        reps: 3,
+        successSign: 'Paseo',
+        technique: 'test',
+        trains: [],
+        problems: [{ id: 'pulls-ahead', label: 'Tira', fix: fixSample }],
+        generalFix: fixSample,
+        recommendations: [
+          {
+            id: 'rec-problem-pulls',
+            target: 'arnes-ergonomico-y',
+            targetKind: 'product' as const,
+            when: 'problem:pulls-ahead',
+            explanation: 'Para los tirones en el paseo te recomendamos este arnés.',
+          },
+        ],
+      };
+
+      setActiveContent({
+        ...baseContent,
+        resolved: {
+          ...baseContent.resolved,
+          shop: mockShop,
+          missions: [...baseContent.resolved.missions, missionWithRec as any],
+        },
+      });
+
+      const record = {
+        ...newDogRecord(),
+        missions: {
+          'mission-problem-rec': {
+            target: 'target',
+            repsRemaining: 2,
+            status: 'in_progress' as const,
+            startedAt: '2026-11-01T00:00:00.000Z',
+          },
+        },
+        onboarding: { ...NEW_ONBOARDING, step: 'done' as const },
+        version: RECORD_VERSION,
+      };
+      mockStore.set(RECORD_KEY, JSON.stringify(record));
+
+      try {
+        await act(async () => {
+          renderer = create(<App />);
+        });
+        await act(async () => {
+          jest.advanceTimersByTime(2500);
+        });
+
+        // Open mission check-in
+        act(() => {
+          latest('WorldMapScreen').onOpenStop({ kind: 'mission', id: 'mission-problem-rec' });
+        });
+
+        expect(latest('MissionCheckInScreen')).toBeDefined();
+        act(() => {
+          latest('MissionCheckInScreen').onAnswer('struggled');
+        });
+
+        expect(latest('MissionProblemScreen')).toBeDefined();
+        act(() => {
+          latest('MissionProblemScreen').onPick('pulls-ahead');
+        });
+
+        // Now on FixScreen: popup must NOT be visible yet
+        expect(latest('FixScreen')).toBeDefined();
+        expect(latest('ShopPopup')).toBeUndefined();
+
+        // Exit FixScreen to map
+        act(() => {
+          latest('FixScreen').onDone();
+        });
+
+        // Now on World Map: trouble popup is displayed
+        expect(latest('WorldMapScreen')).toBeDefined();
+        expect(latest('ShopPopup')).toBeDefined();
+        expect(latest('ShopPopup').text).toBe('Para los tirones en el paseo te recomendamos este arnés.');
+      } finally {
+        setActiveContent(baseContent);
+      }
+    });
+
+    it('delays trouble popup until interstitial advert closes and World Map mounts for free-tier users', async () => {
+      const baseContent = getActiveContent();
+      const nodeWithTrouble = {
+        ...WALK_DISTRACTION,
+        id: 'node-poste-ad',
+        recommendations: [
+          {
+            id: 'rec-poste-arnes-ad',
+            target: 'arnes-ergonomico-y',
+            targetKind: 'product' as const,
+            when: 'poste-trouble',
+            explanation: 'Arnés para el poste tras el anuncio.',
+          },
+        ],
+      };
+
+      setActiveContent({
+        ...baseContent,
+        resolved: {
+          ...baseContent.resolved,
+          shop: mockShop,
+          nodes: [...baseContent.resolved.nodes, nodeWithTrouble],
+        },
+      });
+
+      const record = {
+        ...newDogRecord(),
+        posteFailures: 2,
+        onboarding: { ...NEW_ONBOARDING, step: 'done' as const },
+        version: RECORD_VERSION,
+      };
+      mockStore.set(RECORD_KEY, JSON.stringify(record));
+
+      try {
+        await act(async () => {
+          renderer = create(<App />);
+        });
+        await act(async () => {
+          jest.advanceTimersByTime(2500);
+        });
+
+        openStop('node-poste-ad');
+        throughPrimerAndCheckpoint();
+        await sendFromView({ type: 'ready' });
+        await sendFromView({ type: 'debrief', payload: { handlingScore: 600 } });
+
+        expect(latest('DebriefScreen')).toBeDefined();
+
+        // Enable pending interstitial
+        pendingAd = true;
+
+        // Tap Done on Debrief
+        act(() => {
+          latest('DebriefScreen').onDone();
+        });
+
+        // Advert was triggered, but promise is not resolved yet
+        expect(interstitialTriggered).toBe(true);
+        // Map is not mounted yet, and popup is NOT mounted yet
+        expect(latest('WorldMapScreen')).toBeUndefined();
+        expect(latest('ShopPopup')).toBeUndefined();
+
+        // Close the advert
+        await act(async () => {
+          interstitialResolver?.();
+        });
+
+        // Now map has mounted and popup appears
+        expect(latest('WorldMapScreen')).toBeDefined();
+        expect(latest('ShopPopup')).toBeDefined();
+        expect(latest('ShopPopup').text).toBe('Arnés para el poste tras el anuncio.');
+      } finally {
+        setActiveContent(baseContent);
       }
     });
   });

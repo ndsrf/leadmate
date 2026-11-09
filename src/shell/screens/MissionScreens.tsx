@@ -12,6 +12,8 @@ import { LessonBlocks } from '../ui/LessonBlocks';
 import { theme } from '../ui/theme';
 import { DIARY_KEYS, WalkDiaryBar } from './NodeScreens';
 import { Screen } from './Screen';
+import { RecommendationCardList } from './RecommendationCard';
+import { getActiveContent } from '../content/runtime';
 
 /** The title block every Mission screen opens with: "Misión" and the Mission's title. */
 function MissionHeading({ t, mission, heading }: { t: Translate; mission: MissionDef; heading: TextKey }) {
@@ -168,7 +170,21 @@ export function MissionCheckInScreen({ t, mission, state, onAnswer, onAcceptEasi
 }
 
 /** After "Costó un poco": the Mission's fixed problems plus "Otra cosa"; there is no free text. */
-export function MissionProblemScreen({ t, mission, onPick, onBack }: { t: Translate; mission: MissionDef; onPick: (problemId: string) => void; onBack: () => void }) {
+export function MissionProblemScreen({
+  t,
+  mission,
+  onPick,
+  onBack,
+  onShop,
+}: {
+  t: Translate;
+  mission: MissionDef;
+  onPick: (problemId: string) => void;
+  onBack: () => void;
+  onShop?: (target: { level: 'home' | 'category' | 'subcategory' | 'product'; id?: string }) => void;
+}) {
+  const activeShop = getActiveContent()?.resolved?.shop;
+
   return (
     <Screen>
       <MissionHeading t={t} mission={mission} heading="mission.problem.title" />
@@ -178,6 +194,12 @@ export function MissionProblemScreen({ t, mission, onPick, onBack }: { t: Transl
         ))}
         <OptionCard label={t('mission.problem.other')} onPress={() => onPick(OTHER_PROBLEM)} />
       </View>
+      <RecommendationCardList
+        recommendations={mission.recommendations}
+        activeShop={activeShop}
+        onOpenShop={onShop}
+        t={t}
+      />
       <Button label={t('mission.back')} tone="secondary" onPress={onBack} />
     </Screen>
   );
@@ -196,6 +218,7 @@ export function FixScreen({
   onPractise,
   onMoveOn,
   onDone,
+  onShop,
 }: {
   t: Translate;
   mission: MissionDef;
@@ -205,6 +228,7 @@ export function FixScreen({
   onPractise: () => void;
   onMoveOn: () => void;
   onDone: () => void;
+  onShop?: (target: { level: 'home' | 'category' | 'subcategory' | 'product'; id?: string }) => void;
 }) {
   return (
     <Screen>

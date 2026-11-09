@@ -257,4 +257,238 @@ describe('resolvePack', () => {
     // 4. App supported languages includes Spanish and English
     expect(SUPPORTED_LANGUAGES).toEqual(['es', 'en']);
   });
+
+  describe('Shop and Recommendation resolution', () => {
+    function makeShopFixturePack(): ContentPack {
+      const pack = makeFixturePack();
+      pack.shop = {
+        config: {
+          categories: ['collares', 'camas'],
+        },
+        categories: {
+          collares: {
+            config: {
+              id: 'collares',
+              subcategories: ['arneses', 'collares-fijos'],
+            },
+            text: {
+              es: {
+                title: 'Collares y arneses',
+                description: 'Todo tipo de accesorios para paseo',
+              },
+              en: {
+                title: 'Collars & Harnesses',
+                // description omitted -> will fall back to Spanish!
+              },
+            },
+          },
+          camas: {
+            config: {
+              id: 'camas',
+              subcategories: ['camas-relax'],
+            },
+            text: {
+              es: {
+                title: 'Camas',
+                description: 'Camas de descanso',
+              },
+            },
+          },
+        },
+        subcategories: {
+          arneses: {
+            config: {
+              id: 'arneses',
+              products: ['arnes-front', 'arnes-es-only'],
+            },
+            text: {
+              es: {
+                title: 'Arneses',
+                description: 'Arneses anti-tirones y cómodos',
+              },
+              en: {
+                title: 'Harnesses',
+                description: 'Anti-pull and comfort harnesses',
+              },
+            },
+          },
+          'collares-fijos': {
+            config: {
+              id: 'collares-fijos',
+              products: ['collar-es-only'],
+            },
+            text: {
+              es: {
+                title: 'Collares fijos',
+                description: 'Collares tradicionales',
+              },
+            },
+          },
+          'camas-relax': {
+            config: {
+              id: 'camas-relax',
+              products: ['cama-es-only'],
+            },
+            text: {
+              es: {
+                title: 'Camas relax',
+                description: 'Para descanso profundo',
+              },
+            },
+          },
+        },
+        products: {
+          'arnes-front': {
+            config: {
+              id: 'arnes-front',
+              source: 'manual',
+              urls: {
+                es: 'https://example.com/es/harness',
+                en: 'https://example.com/en/harness',
+              },
+              price: '24,99 €',
+              priceCheckedAt: '2026-11',
+              image: 'media/harness.png',
+            },
+            text: {
+              es: {
+                title: 'Arnés Frontal',
+                description: 'Evita tirones con enganche en el pecho',
+              },
+              en: {
+                title: 'Front-clip Harness',
+                // description omitted in en -> falls back to Spanish
+              },
+            },
+          },
+          'arnes-es-only': {
+            config: {
+              id: 'arnes-es-only',
+              urls: {
+                es: 'https://example.com/es/only',
+              },
+            },
+            text: {
+              es: {
+                title: 'Arnés Solo España',
+                description: 'Disponible solo en España',
+              },
+            },
+          },
+          'collar-es-only': {
+            config: {
+              id: 'collar-es-only',
+              urls: {
+                es: 'https://example.com/es/collar',
+              },
+            },
+            text: {
+              es: {
+                title: 'Collar Fijo España',
+                description: 'Collar estándar',
+              },
+            },
+          },
+          'cama-es-only': {
+            config: {
+              id: 'cama-es-only',
+              urls: {
+                es: 'https://example.com/es/cama',
+              },
+            },
+            text: {
+              es: {
+                title: 'Cama España',
+                description: 'Cama cómoda',
+              },
+            },
+          },
+        },
+      };
+
+      // Add recommendations to lesson-1:
+      // rec-1 points to arnes-front (buyable in es and en)
+      // rec-2 points to collar-es-only (buyable ONLY in es)
+      pack.lessons['lesson-1'].config.recommendations = [
+        { id: 'rec-front', target: 'arnes-front', when: 'poste-trouble' },
+        { id: 'rec-collar', target: 'collar-es-only', when: 'view' },
+      ];
+      // Attach explanations to lesson-1 text:
+      (pack.lessons['lesson-1'].text!['es'] as any).recommendations = {
+        'rec-front': 'Con este arnés practicar el Poste es más fácil.',
+        'rec-collar': 'Un collar fijo para practicar.',
+      };
+      (pack.lessons['lesson-1'].text!['en'] as any).recommendations = {
+        'rec-front': 'This front-clip harness makes the Poste easier.',
+      };
+
+      return pack;
+    }
+
+    it('resolves full ordered shop tree and idToKind index for Spanish', () => {
+      const pack = makeShopFixturePack();
+      const resolved = resolvePack(pack, 'es');
+
+      expect(resolved.shop.categories).toHaveLength(2);
+      expect(resolved.shop.categories[0].id).toBe('collares');
+      expect(resolved.catalog[resolved.shop.categories[0].title]).toBe('Collares y arneses');
+      expect(resolved.catalog[resolved.shop.categories[0].description]).toBe('Todo tipo de accesorios para paseo');
+
+      expect(resolved.shop.categories[0].subcategories).toHaveLength(2);
+      expect(resolved.shop.categories[0].subcategories[0].id).toBe('arneses');
+      expect(resolved.shop.categories[0].subcategories[0].products).toHaveLength(2);
+      expect(resolved.shop.categories[0].subcategories[0].products[0].id).toBe('arnes-front');
+      expect(resolved.shop.categories[0].subcategories[0].products[0].url).toBe('https://example.com/es/harness');
+
+      // idToKind index
+      expect(resolved.shop.idToKind['collares']).toBe('category');
+      expect(resolved.shop.idToKind['arneses']).toBe('subcategory');
+      expect(resolved.shop.idToKind['arnes-front']).toBe('product');
+      expect(resolved.shop.idToKind['camas']).toBe('category');
+
+      // Recommendations resolved with targetKind and explanation
+      const lesson = resolved.lessons.find((l) => l.id === 'lesson-1')!;
+      expect(lesson.recommendations).toHaveLength(2);
+      expect(lesson.recommendations![0].id).toBe('rec-front');
+      expect(lesson.recommendations![0].targetKind).toBe('product');
+      expect(resolved.catalog[lesson.recommendations![0].explanation]).toBe('Con este arnés practicar el Poste es más fácil.');
+      expect(lesson.recommendations![1].id).toBe('rec-collar');
+    });
+
+    it('English resolution drops products without English buy link, empty subcats/cats, and orphaned recommendations', () => {
+      const pack = makeShopFixturePack();
+      const resolved = resolvePack(pack, 'en');
+
+      // 'camas' only had 'cama-es-only' which has no English buy link -> cama dropped -> camas-relax dropped -> camas dropped!
+      // 'collares-fijos' only had 'collar-es-only' which has no English buy link -> dropped!
+      // 'collares' keeps only 'arneses' subcategory, which keeps only 'arnes-front'
+      expect(resolved.shop.categories).toHaveLength(1);
+      expect(resolved.shop.categories[0].id).toBe('collares');
+      expect(resolved.catalog[resolved.shop.categories[0].title]).toBe('Collars & Harnesses');
+      // description falls back to Spanish
+      expect(resolved.catalog[resolved.shop.categories[0].description]).toBe('Todo tipo de accesorios para paseo');
+
+      expect(resolved.shop.categories[0].subcategories).toHaveLength(1);
+      expect(resolved.shop.categories[0].subcategories[0].id).toBe('arneses');
+      expect(resolved.shop.categories[0].subcategories[0].products).toHaveLength(1);
+      expect(resolved.shop.categories[0].subcategories[0].products[0].id).toBe('arnes-front');
+      expect(resolved.shop.categories[0].subcategories[0].products[0].url).toBe('https://example.com/en/harness');
+      expect(resolved.catalog[resolved.shop.categories[0].subcategories[0].products[0].name]).toBe('Front-clip Harness');
+      expect(resolved.catalog[resolved.shop.categories[0].subcategories[0].products[0].description]).toBe('Evita tirones con enganche en el pecho');
+
+      // idToKind index contains only available items
+      expect(resolved.shop.idToKind['collares']).toBe('category');
+      expect(resolved.shop.idToKind['arneses']).toBe('subcategory');
+      expect(resolved.shop.idToKind['arnes-front']).toBe('product');
+      expect(resolved.shop.idToKind['camas']).toBeUndefined();
+      expect(resolved.shop.idToKind['collares-fijos']).toBeUndefined();
+
+      // Recommendations: rec-collar pointed to collar-es-only which vanished in en -> dropped!
+      // rec-front pointed to arnes-front -> kept!
+      const lesson = resolved.lessons.find((l) => l.id === 'lesson-1')!;
+      expect(lesson.recommendations).toHaveLength(1);
+      expect(lesson.recommendations![0].id).toBe('rec-front');
+      expect(resolved.catalog[lesson.recommendations![0].explanation]).toBe('This front-clip harness makes the Poste easier.');
+    });
+  });
 });

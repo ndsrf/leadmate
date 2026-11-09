@@ -33,6 +33,14 @@ export interface CompareSide {
 /** `theory` teaches the real dog; `how-to-play` teaches the simulator's controls and how to read the virtual Dog. */
 export type LessonKind = 'theory' | 'how-to-play';
 
+export interface LessonRecommendation {
+  id: string;
+  target: string;
+  targetKind: 'category' | 'subcategory' | 'product';
+  when: string;
+  explanation: TextKey;
+}
+
 /** A standalone piece of theory in the Theory Library; all text is catalog keys so content is plain data. */
 export interface LessonDef {
   id: string;
@@ -41,6 +49,7 @@ export interface LessonDef {
   /** Suggested day after the first Stage (Day 1 is the day it was completed); absent for a Lesson on a World's trail. */
   day?: number;
   blocks: LessonBlock[];
+  recommendations?: LessonRecommendation[];
 }
 
 /** The catalog keys of a Lesson's reading text, in order: everything but image and video captions and alt text. */

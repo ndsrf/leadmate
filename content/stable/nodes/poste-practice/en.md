@@ -30,3 +30,7 @@ You use Poste. When do you resume walking?
 ## exercises
 - poste: Outside: the next time your Dog pulls, stop like a Poste and count to five before moving.
 - tension: At home: walk through the living room with a Slack leash and stop each time it goes Taut.
+
+## recommendations
+### rec-poste-arnes
+With a proper Y-harness, practicing the Poste is much more comfortable for your Dog and prevents harsh pulls.

@@ -1,6 +1,13 @@
 import type { TextKey } from '../../i18n';
 import type { CompareSide, LessonBlock, LessonKind, VideoSource } from '../lessons/lesson';
-import type { LessonYaml } from './schema';
+import {
+  parseYaml,
+  type CategoryYaml,
+  type LessonYaml,
+  type ProductYaml,
+  type ShopYaml,
+  type SubcategoryYaml,
+} from './schema';
 
 /**
  * Error thrown when Markdown parsing fails or contains rejected markup.
@@ -85,6 +92,7 @@ export interface ParsedLessonContent {
     alt?: string;
     caption?: string;
   }>;
+  recommendations?: Record<string, string>;
 }
 
 export interface ParsedWorldContent {
@@ -110,6 +118,7 @@ export interface ParsedNodeContent {
     calm?: string;
     notCalm?: string;
   };
+  recommendations?: Record<string, string>;
 }
 
 export interface ParsedMissionFix {
@@ -134,6 +143,37 @@ export interface ParsedMissionContent {
   success: string;
   problems: ParsedMissionProblem[];
   general: ParsedMissionFix;
+  recommendations?: Record<string, string>;
+}
+
+export interface ParsedShopText {
+  title: string;
+  description: string;
+}
+
+export interface ParsedShopCategory {
+  config: CategoryYaml;
+  text: Record<string, ParsedShopText>;
+  files?: string[];
+}
+
+export interface ParsedShopSubcategory {
+  config: SubcategoryYaml;
+  text: Record<string, ParsedShopText>;
+  files?: string[];
+}
+
+export interface ParsedShopProduct {
+  config: ProductYaml;
+  text: Record<string, ParsedShopText>;
+  files?: string[];
+}
+
+export interface ParsedShopTree {
+  config?: ShopYaml;
+  categories: Record<string, ParsedShopCategory>;
+  subcategories: Record<string, ParsedShopSubcategory>;
+  products: Record<string, ParsedShopProduct>;
 }
 
 // -- Low-level Markdown AST representation -----------------------------------
@@ -387,6 +427,22 @@ export function parseLessonMarkdown(markdown: string, config?: LessonYaml): Pars
         break;
       }
 
+      case 'recommendations':
+      case 'recomendaciones': {
+        const recommendations: Record<string, string> = {};
+        if (sec.subsections.length === 0 && cleanBodyText(sec.body)) {
+          throw new MarkdownParseError('Each recommendation must have a subsection with its ID (### <id>)');
+        }
+        for (const sub of sec.subsections) {
+          if (!sub.heading.trim()) {
+            throw new MarkdownParseError('Recommendation subsection is missing an ID heading');
+          }
+          recommendations[sub.heading.trim()] = cleanBodyText(sub.body);
+        }
+        res.recommendations = recommendations;
+        break;
+      }
+
       default: {
         // Handle how-to-play controls (e.g. "Control 1", "c1", etc.)
         const cMatch = /^(?:control|c)\s*(\d+)$/i.exec(norm);
@@ -609,6 +665,7 @@ export function parseNodeMarkdown(markdown: string): ParsedNodeContent {
   const checkpoint: ParsedNodeCheckpointQuestion[] = [];
   const exercises: Record<string, string> = {};
   const debrief: { calm?: string; notCalm?: string } = {};
+  let returnRecommendations: Record<string, string> | undefined;
 
   for (const sec of sections) {
     const norm = normalizeSectionName(sec.heading);
@@ -654,10 +711,22 @@ export function parseNodeMarkdown(markdown: string): ParsedNodeContent {
       const kv = extractMetaKeyValues(sec.body);
       if (kv.calm) debrief.calm = kv.calm;
       if (kv.notcalm || kv['not_calm']) debrief.notCalm = kv.notcalm ?? kv['not_calm'];
+    } else if (norm === 'recommendations' || norm === 'recomendaciones') {
+      const recommendations: Record<string, string> = {};
+      if (sec.subsections.length === 0 && cleanBodyText(sec.body)) {
+        throw new MarkdownParseError('Each recommendation must have a subsection with its ID (### <id>)');
+      }
+      for (const sub of sec.subsections) {
+        if (!sub.heading.trim()) {
+          throw new MarkdownParseError('Recommendation subsection is missing an ID heading');
+        }
+        recommendations[sub.heading.trim()] = cleanBodyText(sub.body);
+      }
+      returnRecommendations = recommendations;
     }
   }
 
-  return { title, primer, checkpoint, exercises, debrief };
+  return { title, primer, checkpoint, exercises, debrief, recommendations: returnRecommendations };
 }
 
 // -- Mission Markdown Parser -------------------------------------------------
@@ -669,6 +738,7 @@ export function parseMissionMarkdown(markdown: string): ParsedMissionContent {
   let success = '';
   const problems: ParsedMissionProblem[] = [];
   let general: ParsedMissionFix = { reassure: '', cause: '', c1: '', easier: '', alt: '', caption: '' };
+  let recommendations: Record<string, string> | undefined;
 
   for (const sec of sections) {
     const norm = normalizeSectionName(sec.heading);
@@ -706,8 +776,47 @@ export function parseMissionMarkdown(markdown: string): ParsedMissionContent {
         alt: kv.alt ?? '',
         caption: kv.caption ?? '',
       };
+    } else if (norm === 'recommendations' || norm === 'recomendaciones') {
+      const recs: Record<string, string> = {};
+      if (sec.subsections.length === 0 && cleanBodyText(sec.body)) {
+        throw new MarkdownParseError('Each recommendation must have a subsection with its ID (### <id>)');
+      }
+      for (const sub of sec.subsections) {
+        if (!sub.heading.trim()) {
+          throw new MarkdownParseError('Recommendation subsection is missing an ID heading');
+        }
+        recs[sub.heading.trim()] = cleanBodyText(sub.body);
+      }
+      recommendations = recs;
     }
   }
 
-  return { title, target, success, problems, general };
+  return { title, target, success, problems, general, recommendations };
 }
+
+// -- Shop Item Markdown Parser & Shop Directory Reader -----------------------
+
+export function parseShopItemMarkdown(markdown: string, context?: string): ParsedShopText {
+  assertNoRejectedMarkup(markdown, context);
+  const { title: rawTitle, sections } = parseSections(markdown);
+  let title = rawTitle;
+  let description = '';
+
+  for (const sec of sections) {
+    const norm = normalizeSectionName(sec.heading);
+    if (norm === 'title' || norm === 'titulo' || norm === 'name' || norm === 'nombre') {
+      title = cleanBodyText(sec.body);
+    } else if (norm === 'description' || norm === 'descripcion') {
+      description = cleanBodyText(sec.body);
+    } else {
+      throw new MarkdownParseError(
+        `Unexpected section "${sec.heading}"${context ? ` in ${context}` : ''}`,
+        undefined,
+        sec.heading,
+      );
+    }
+  }
+
+  return { title, description };
+}
+

@@ -1,8 +1,13 @@
 import {
+  CATEGORY_SCHEMA_FIELDS,
   LESSON_SCHEMA_FIELDS,
   MISSION_SCHEMA_FIELDS,
   NODE_SCHEMA_FIELDS,
   PACK_SCHEMA_FIELDS,
+  PRODUCT_SCHEMA_FIELDS,
+  RECOMMENDATION_SCHEMA_FIELDS,
+  SHOP_SCHEMA_FIELDS,
+  SUBCATEGORY_SCHEMA_FIELDS,
   WORLD_SCHEMA_FIELDS,
   type FieldDoc,
 } from './schema';
@@ -29,5 +34,10 @@ export function getGeneratedTables() {
     lessonTable: renderFieldTable(LESSON_SCHEMA_FIELDS),
     nodeTable: renderFieldTable(NODE_SCHEMA_FIELDS),
     missionTable: renderFieldTable(MISSION_SCHEMA_FIELDS),
+    shopTable: renderFieldTable(SHOP_SCHEMA_FIELDS),
+    categoryTable: renderFieldTable(CATEGORY_SCHEMA_FIELDS),
+    subcategoryTable: renderFieldTable(SUBCATEGORY_SCHEMA_FIELDS),
+    productTable: renderFieldTable(PRODUCT_SCHEMA_FIELDS),
+    recommendationTable: renderFieldTable(RECOMMENDATION_SCHEMA_FIELDS),
   };
 }
