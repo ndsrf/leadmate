@@ -270,3 +270,22 @@ describe('resolve: the being-alone answer', () => {
     expect(roundTrip.homeConcerns.alone).toBe(3);
   });
 });
+
+describe('resolve: device language preference', () => {
+  const OLD = '2026-05-01T00:00:00.000Z';
+  const NEW = '2026-05-03T00:00:00.000Z';
+
+  it('preserves the local device language even when remote record is newer and has a different language', () => {
+    const local = rec({ ...at(OLD), language: 'en' });
+    const remote = rec({ ...at(NEW), language: 'es' });
+    const merged = resolve(local, remote);
+    expect(merged.language).toBe('en');
+  });
+
+  it('preserves local Spanish when remote record is English', () => {
+    const local = rec({ ...at(OLD), language: 'es' });
+    const remote = rec({ ...at(NEW), language: 'en' });
+    const merged = resolve(local, remote);
+    expect(merged.language).toBe('es');
+  });
+});

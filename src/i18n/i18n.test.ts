@@ -1,4 +1,4 @@
-import { createTranslator, es, t, type TextKey } from './index';
+import { createTranslator, en, es, t, type TextKey } from './index';
 import '../shell/content/runtime';
 
 describe('text catalog', () => {
@@ -52,6 +52,37 @@ describe('Barkdoku name', () => {
     expect(es['map.barkdoku.daily']).toBe('Guaudoku');
     expect(es['minigame.barkdoku.solvedTitle']).toBe('¡Guaudoku resuelto!');
     for (const value of Object.values(es)) expect(value).not.toMatch(/zona de calma/i);
+  });
+});
+
+describe('English text catalog', () => {
+  it('has every key that exists in es', () => {
+    const esKeys = Object.keys(es) as TextKey[];
+    const enKeys = new Set(Object.keys(en) as TextKey[]);
+    const missing: string[] = [];
+    for (const key of esKeys) {
+      if (!enKeys.has(key)) {
+        missing.push(key);
+      }
+    }
+    expect(missing).toEqual([]);
+  });
+
+  it('has non-empty text for every key in en and never returns raw key or empty string', () => {
+    const tr = createTranslator(en);
+    for (const key of Object.keys(es) as TextKey[]) {
+      const value = tr(key);
+      expect(value).not.toBe(key);
+      expect(value).not.toBe('');
+      expect(typeof en[key]).toBe('string');
+      expect(en[key].length).toBeGreaterThan(0);
+    }
+  });
+
+  it('names Barkdoku in English instead of Guaudoku', () => {
+    expect(en['minigame.barkdoku.title']).toBe('Barkdoku');
+    expect(en['map.barkdoku.daily']).toBe('Barkdoku');
+    expect(en['minigame.barkdoku.solvedTitle']).toBe('Barkdoku Solved!');
   });
 });
 

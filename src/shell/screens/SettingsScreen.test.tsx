@@ -224,6 +224,7 @@ describe('Settings: Area tabs navigation and section partitioning', () => {
     expect(html).not.toContain(es['settings.checkpoint']);
     expect(html).not.toContain(es['settings.feedback']);
     expect(html).not.toContain(es['settings.appearance']);
+    expect(html).not.toContain(es['settings.language']);
     expect(html).not.toContain(es['settings.subscription']);
   });
 
@@ -247,6 +248,9 @@ describe('Settings: Area tabs navigation and section partitioning', () => {
     expect(html).toContain(es['settings.checkpoint']);
     expect(html).toContain(es['settings.feedback']);
     expect(html).toContain(es['settings.appearance']);
+    expect(html).toContain(es['settings.language']);
+    expect(html).toContain(es['settings.language.es']);
+    expect(html).toContain(es['settings.language.en']);
     expect(html).toContain(es['settings.voicePack']);
     expect(html).toContain(es['settings.customCue']);
     expect(html).toContain(es['settings.close']);
@@ -334,5 +338,95 @@ describe('Settings: Area tabs navigation and section partitioning', () => {
 
     expect(root.findByProps({ testID: 'settings-tab-account' }).props.selected).toBe(true);
     expect(root.findByProps({ testID: 'settings-tab-preferences' }).props.selected).toBe(false);
+  });
+});
+
+describe('Settings: Language selection in preferences', () => {
+  const t = createTranslator(es);
+
+  it('renders language choices under Preferencias tab, with current language selected', () => {
+    const html = renderToStaticMarkup(
+      <SettingsScreen
+        t={t}
+        language="es"
+        record={newDogRecord()}
+        update={() => {}}
+        onClose={() => {}}
+        account={makeAccount()}
+        onLogIn={() => {}}
+        ui={{ settings: DEFAULT_UI_SETTINGS, change: () => {} }}
+        onReset={() => {}}
+        initialTab="preferences"
+      />,
+    );
+
+    expect(html).toContain(es['settings.language']);
+    expect(html).toContain(es['settings.language.es']);
+    expect(html).toContain(es['settings.language.en']);
+    expect(html).toContain(es['settings.language.help']);
+
+    const esButton = html.split('<button').find((b: string) => b.includes(es['settings.language.es']));
+    expect(esButton).toContain('aria-pressed="true"');
+
+    const enButton = html.split('<button').find((b: string) => b.includes(es['settings.language.en']));
+    expect(enButton).toContain('aria-pressed="false"');
+  });
+
+  it('switches to English when chosen and invokes onLanguageChange and update', () => {
+    let record: DogRecord = newDogRecord();
+    const update = jest.fn((fn: (r: DogRecord) => DogRecord) => {
+      record = fn(record);
+    });
+    const onLanguageChange = jest.fn();
+
+    renderToStaticMarkup(
+      <SettingsScreen
+        t={t}
+        language="es"
+        onLanguageChange={onLanguageChange}
+        record={record}
+        update={update}
+        onClose={() => {}}
+        account={makeAccount()}
+        onLogIn={() => {}}
+        ui={{ settings: DEFAULT_UI_SETTINGS, change: () => {} }}
+        onReset={() => {}}
+        initialTab="preferences"
+      />,
+    );
+
+    pressed[es['settings.language.en']]();
+    expect(update).toHaveBeenCalled();
+    expect(record.language).toBe('en');
+    expect(onLanguageChange).toHaveBeenCalledWith('en');
+  });
+
+  it('switches to Spanish when chosen and currently English', () => {
+    let record: DogRecord = { ...newDogRecord(), language: 'en' };
+    const update = jest.fn((fn: (r: DogRecord) => DogRecord) => {
+      record = fn(record);
+    });
+    const onLanguageChange = jest.fn();
+
+    renderToStaticMarkup(
+      <SettingsScreen
+        t={t}
+        language="en"
+        onLanguageChange={onLanguageChange}
+        record={record}
+        update={update}
+        onClose={() => {}}
+        account={makeAccount()}
+        onLogIn={() => {}}
+        ui={{ settings: DEFAULT_UI_SETTINGS, change: () => {} }}
+        onReset={() => {}}
+        initialTab="preferences"
+      />,
+    );
+
+    pressed[es['settings.language.es']]();
+    expect(update).toHaveBeenCalled();
+    expect(record.language).toBe('es');
+    expect(onLanguageChange).toHaveBeenCalledWith('es');
   });
 });

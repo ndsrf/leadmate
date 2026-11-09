@@ -49,11 +49,20 @@ describe('Dog record', () => {
   it('is versioned and repairs unreadable fields', () => {
     const fixed = migrateRecord({ attributes: { followChance: 7, reactivityThreshold: 'x' }, triggerProfile: { child: 9, dog: 1 }, equipment: 'rope' });
     expect(fixed.version).toBe(11);
+    expect(fixed.language).toBe('es');
     expect(fixed.attributes.followChance).toBe(1);
     expect(fixed.attributes.reactivityThreshold).toBe(DEFAULT_ATTRIBUTES.reactivityThreshold);
     expect(fixed.triggerProfile.child).toBe(2);
     expect(fixed.triggerProfile.dog).toBe(1);
     expect(fixed.equipment).toBe('collar');
+  });
+
+  it('migrates language defaulting to es while preserving en', () => {
+    expect(newDogRecord().language).toBe('es');
+    expect(migrateRecord({}).language).toBe('es');
+    expect(migrateRecord({ language: 'fr' }).language).toBe('es');
+    expect(migrateRecord({ language: 'en' }).language).toBe('en');
+    expect(migrateRecord({ language: 'es' }).language).toBe('es');
   });
 
   it('defaults checkpointSeconds to 15 in new records', () => {

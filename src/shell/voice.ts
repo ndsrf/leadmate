@@ -1,7 +1,7 @@
 import type { TextKey } from '../i18n';
 
 /** Languages the app ships; every Voice Pack must hold a Cue for each of them. */
-export const SUPPORTED_LANGUAGES = ['es'] as const;
+export const SUPPORTED_LANGUAGES = ['es', 'en'] as const;
 export type Language = (typeof SUPPORTED_LANGUAGES)[number];
 
 export interface VoicePack {
@@ -12,8 +12,8 @@ export interface VoicePack {
 }
 
 export const VOICE_PACKS: readonly VoicePack[] = [
-  { id: 'lets-go', name: 'voice.pack.letsGo', cues: { es: 'lets-go.es' } },
-  { id: 'aqui', name: 'voice.pack.aqui', cues: { es: 'aqui.es' } },
+  { id: 'lets-go', name: 'voice.pack.letsGo', cues: { es: 'lets-go.es', en: 'lets-go.es' } },
+  { id: 'aqui', name: 'voice.pack.aqui', cues: { es: 'aqui.es', en: 'aqui.es' } },
 ];
 
 export const DEFAULT_VOICE_PACK = VOICE_PACKS[0].id;

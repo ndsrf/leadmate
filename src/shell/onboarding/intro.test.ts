@@ -5,10 +5,12 @@ import type { OnboardingStep } from './flow';
 const at = (step: OnboardingStep): DogRecord => ({ ...newDogRecord(), onboarding: { ...newDogRecord().onboarding, step } });
 
 describe('the funnel before setup', () => {
-  it('goes welcome, dog, concern, taste, setup', () => {
+  it('goes welcome, language, dog, concern, taste, setup', () => {
     let r = newDogRecord();
     expect(r.onboarding.step).toBe('welcome');
     r = leaveWelcome(r);
+    expect(r.onboarding.step).toBe('language');
+    r = { ...r, onboarding: { ...r.onboarding, step: 'dog' } };
     expect(r.onboarding.step).toBe('dog');
     r = saveNameAndLook(r, 'Luna', 'black');
     expect(r.onboarding.step).toBe('concern');

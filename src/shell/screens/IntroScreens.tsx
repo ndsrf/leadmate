@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import type { Translate } from '../../i18n';
 import type { DogRecord } from '../dogRecord';
+import type { Language } from '../voice';
 import { AGE_BANDS, type AgeBand, type Concern } from '../concerns';
 import { AGE_KEYS, payoffKeys } from '../concernText';
 import { MainConcernChips } from '../ui/ConcernPickers';
@@ -13,6 +15,7 @@ import { cleanDogName, DOG_NAME_MAX } from '../onboarding/name';
 import { BreedArt } from '../ui/BreedArt';
 import { LightRegion, Panel, Raised, TextField } from '../ui/components';
 import { BreedTile, CoatSwatch, SelectChip, StepHeader } from '../ui/Pickers';
+import { handlePress } from '../ui/press';
 import { theme, usePalette } from '../ui/theme';
 import { Screen } from './Screen';
 
@@ -185,6 +188,59 @@ export function ConcernScreen({ t, record, onDone }: { t: Translate; record: Dog
         <MainConcernChips t={t} value={picked} onToggle={(c) => setPicked((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]))} />
         <Button label={t('concern.continue')} onPress={() => onDone(picked)} />
         <Button label={t('concern.skip')} tone="quiet" onPress={() => onDone([])} />
+      </Panel>
+    </Screen>
+  );
+}
+
+/** The language selection step in the funnel with Spanish and English options. */
+export function LanguageScreen({
+  t,
+  selectedLanguage,
+  onSelectLanguage,
+  onDone,
+  onBack,
+}: {
+  t: Translate;
+  selectedLanguage: Language;
+  onSelectLanguage: (lang: Language) => void;
+  onDone: (lang: Language) => void;
+  onBack: () => void;
+}) {
+  const [current, setCurrent] = useState<Language>(selectedLanguage);
+  const color = usePalette();
+
+  const choose = (lang: Language) => {
+    setCurrent(lang);
+    onSelectLanguage(lang);
+  };
+
+  return (
+    <Screen>
+      <View className="mb-3 flex-row items-center" style={{ gap: theme.space[2] }}>
+        {onBack ? (
+          <Pressable
+            onPress={() => handlePress(onBack)}
+            accessibilityRole="button"
+            accessibilityLabel={t('step.back')}
+            style={{ width: theme.size.touchMin, height: theme.size.touchMin, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Svg width={24} height={24} viewBox="0 0 24 24" aria-hidden>
+              <Path d="M15 5l-7 7 7 7" fill="none" stroke={color.ink} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+            </Svg>
+          </Pressable>
+        ) : null}
+        <Text className="font-display text-displayM text-ink" accessibilityRole="header">
+          {t('language.title')}
+        </Text>
+      </View>
+      <Panel>
+        <Text className="mb-4 text-body text-inkMuted">{t('language.subtitle')}</Text>
+        <View className="mb-6 flex-row flex-wrap" style={{ gap: theme.space[2] }}>
+          <SelectChip label={t('language.es')} selected={current === 'es'} onPress={() => choose('es')} />
+          <SelectChip label={t('language.en')} selected={current === 'en'} onPress={() => choose('en')} />
+        </View>
+        <Button label={t('language.continue')} onPress={() => onDone(current)} />
       </Panel>
     </Screen>
   );

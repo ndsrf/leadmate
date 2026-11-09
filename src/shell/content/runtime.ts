@@ -55,6 +55,20 @@ export function setActiveContent(content: RuntimeContent | null): void {
   activeContentSession = content;
 }
 
+/**
+ * Switches the active content session's language at runtime without reloading the screen.
+ * Re-resolves the active ContentPack with the new language and updates the session in memory.
+ */
+export function switchContentLanguage(language: string): RuntimeContent {
+  const current = getActiveContent();
+  const resolved = resolvePack(current.pack, language);
+  activeContentSession = {
+    ...current,
+    resolved,
+  };
+  return activeContentSession;
+}
+
 setContentCatalogProvider(() => getActiveContent().resolved.catalog);
 
 /**

@@ -3,7 +3,7 @@ import Constants from 'expo-constants';
 import { loadContentChannel, type ContentChannel } from './channelSetting';
 import { switchChannel, type SwitchChannelResult } from './channelSwitcher';
 import { hasRemoteContent, resolveContentBase } from './config';
-import { getActiveContent, initContentRuntime, type RuntimeContent } from './runtime';
+import { getActiveContent, initContentRuntime, switchContentLanguage, type RuntimeContent } from './runtime';
 import { ContentStore, type FileStorage, type KeyValueStorage } from './store';
 import { ContentUpdater } from './updater';
 
@@ -285,6 +285,7 @@ export function resetNativeRuntimeForTesting(storage?: FileStorage, store?: Cont
 export async function initNativeContent(options?: {
   contentBase?: string;
   isDev?: boolean;
+  language?: string;
 }): Promise<RuntimeContent> {
   const isDev =
     options?.isDev ?? (typeof __DEV__ !== 'undefined' ? __DEV__ : process.env.NODE_ENV !== 'production');
@@ -292,6 +293,9 @@ export async function initNativeContent(options?: {
   const hasRemote = hasRemoteContent(contentBase);
 
   if (!hasRemote) {
+    if (options?.language) {
+      switchContentLanguage(options.language);
+    }
     return getActiveContent();
   }
 
@@ -310,7 +314,7 @@ export async function initNativeContent(options?: {
     contentBase,
     currentAppVersion,
     isDev,
-    language: 'es',
+    language: options?.language ?? 'es',
   });
 }
 

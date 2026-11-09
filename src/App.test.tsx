@@ -75,6 +75,9 @@ jest.mock('./shell/billing', () => ({
 }));
 jest.mock('./shell/ads', () => ({ getAdService: () => ({ preloadInterstitial: () => Promise.resolve(), showInterstitial: () => Promise.resolve(), clearCache: () => {} }) }));
 jest.mock('./shell/storage', () => ({
+  LANGUAGE_STORAGE_KEY: 'leadmate.language',
+  loadStoredLanguage: async () => mockStore.get('leadmate.language') ?? null,
+  saveStoredLanguage: async (lang: string) => void mockStore.set('leadmate.language', lang),
   dogStore: {
     getItem: async (k: string) => mockStore.get(k) ?? null,
     setItem: async (k: string, v: string) => void mockStore.set(k, v),
@@ -492,6 +495,90 @@ describe('App - Stage view lifecycle', () => {
       const savedRecord = JSON.parse(mockStore.get(RECORD_KEY)!);
       expect(savedRecord.dailyBarkdoku[todayString()].plusSolves).toBe(1);
       expect(savedRecord.activityLog.filter((e: any) => e.kind === 'barkdoku').length).toBe(2);
+    });
+  });
+
+  describe('Onboarding: Language step', () => {
+    it('shows LanguageScreen after welcome, updates language preference, and advances to dog screen', async () => {
+      const record = { ...newDogRecord(), onboarding: { ...NEW_ONBOARDING, step: 'welcome' as const }, version: RECORD_VERSION };
+      mockStore.set(RECORD_KEY, JSON.stringify(record));
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+
+      // SplashScreen on welcome
+      expect(latest('SplashScreen')).toBeDefined();
+      expect(latest('SplashScreen').actions).toBeDefined();
+
+      // Start onboarding
+      act(() => latest('SplashScreen').actions.onStart());
+
+      // LanguageScreen is shown
+      expect(latest('LanguageScreen')).toBeDefined();
+      expect(latest('LanguageScreen').selectedLanguage).toBeDefined();
+
+      // Change language to 'en'
+      act(() => latest('LanguageScreen').onSelectLanguage('en'));
+      expect(mockStore.get('leadmate.language')).toBe('en');
+
+      // Finish language step with 'en'
+      act(() => latest('LanguageScreen').onDone('en'));
+
+      // Advances to DogLookScreen
+      expect(latest('DogLookScreen')).toBeDefined();
+
+      // Verify dog record updated
+      const saved = JSON.parse(mockStore.get(RECORD_KEY)!);
+      expect(saved.language).toBe('en');
+      expect(saved.onboarding.step).toBe('dog');
+    });
+
+    it('navigates back from language step to welcome', async () => {
+      const record = { ...newDogRecord(), onboarding: { ...NEW_ONBOARDING, step: 'language' as const }, version: RECORD_VERSION };
+      mockStore.set(RECORD_KEY, JSON.stringify(record));
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+
+      expect(latest('LanguageScreen')).toBeDefined();
+      act(() => latest('LanguageScreen').onBack());
+      expect(latest('SplashScreen')).toBeDefined();
+    });
+
+    it('initializes English on cold start when device locale is English and persists it', async () => {
+      const originalIntl = global.Intl;
+      global.Intl = {
+        ...originalIntl,
+        DateTimeFormat: (() => ({
+          resolvedOptions: () => ({ locale: 'en-US' }),
+        })) as unknown as typeof Intl.DateTimeFormat,
+      };
+
+      try {
+        await act(async () => {
+          renderer = create(<App />);
+        });
+        await act(async () => {
+          jest.advanceTimersByTime(2500);
+        });
+
+        // Cold start persists language
+        expect(mockStore.get('leadmate.language')).toBe('en');
+
+        // On welcome screen, advancing to language step
+        act(() => latest('SplashScreen').actions.onStart());
+        expect(latest('LanguageScreen')).toBeDefined();
+        // LanguageScreen preselects English
+        expect(latest('LanguageScreen').selectedLanguage).toBe('en');
+      } finally {
+        global.Intl = originalIntl;
+      }
     });
   });
 });

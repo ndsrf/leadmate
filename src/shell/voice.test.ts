@@ -13,6 +13,8 @@ describe('Voice Packs', () => {
   it('play the selected pack Cue in the active language', () => {
     expect(resolveCue({ voicePack: 'aqui', customCues: {} }, 'es')).toEqual({ kind: 'pack', assetId: 'aqui.es' });
     expect(resolveCue({ voicePack: 'lets-go', customCues: {} }, 'es')).toEqual({ kind: 'pack', assetId: 'lets-go.es' });
+    expect(resolveCue({ voicePack: 'aqui', customCues: {} }, 'en')).toEqual({ kind: 'pack', assetId: 'aqui.es' });
+    expect(resolveCue({ voicePack: 'lets-go', customCues: {} }, 'en')).toEqual({ kind: 'pack', assetId: 'lets-go.es' });
   });
 
   it('fall back to the first pack when the stored one is unknown', () => {

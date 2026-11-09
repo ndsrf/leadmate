@@ -254,7 +254,7 @@ describe('resolvePack', () => {
     const active = getActiveContent();
     expect(active.resolved.catalog['world.basics.title'] || defaultResolved.catalog[defaultResolved.worlds[0].title]).toBeTruthy();
 
-    // 4. App supported languages remains Spanish only (no UI language picker)
-    expect(SUPPORTED_LANGUAGES).toEqual(['es']);
+    // 4. App supported languages includes Spanish and English
+    expect(SUPPORTED_LANGUAGES).toEqual(['es', 'en']);
   });
 });
