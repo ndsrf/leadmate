@@ -18,6 +18,7 @@ import type {
   ResolvedShop,
   ResolvedSubcategory,
 } from '../content/resolver';
+import { handlePress } from '../ui/press';
 import { usePalette } from '../ui/theme';
 
 export type ShopLevel = 'home' | 'category' | 'subcategory' | 'product';
@@ -52,6 +53,7 @@ export function ShopScreen({
   const insets = useSafeAreaInsets();
   const color = usePalette();
   const [buyError, setBuyError] = useState<string | null>(null);
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   // Resolved shop from props or active runtime content
   const shop: ResolvedShop = useMemo(() => {
@@ -141,7 +143,8 @@ export function ShopScreen({
   const handleBuy = async (url: string) => {
     setBuyError(null);
 
-    if (isOffline) {
+    const offline = isOffline || (typeof navigator !== 'undefined' && navigator.onLine === false);
+    if (offline) {
       setBuyError(t('shop.buyOffline'));
       return;
     }
@@ -158,7 +161,11 @@ export function ShopScreen({
 
       await open(url);
     } catch {
-      setBuyError(t('shop.buyError'));
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        setBuyError(t('shop.buyOffline'));
+      } else {
+        setBuyError(t('shop.buyError'));
+      }
     }
   };
 
@@ -230,11 +237,15 @@ export function ShopScreen({
       >
         <Pressable
           testID="shop-back-button"
-          onPress={handlePop}
+          onPress={() => handlePress(handlePop)}
           accessibilityRole="button"
           accessibilityLabel={t('shop.back')}
           hitSlop={8}
           style={({ pressed }) => ({
+            minWidth: 44,
+            minHeight: 44,
+            justifyContent: 'center',
+            alignItems: 'center',
             padding: 6,
             borderRadius: 8,
             backgroundColor: pressed ? color.surfaceSunken : 'transparent',
@@ -309,7 +320,7 @@ export function ShopScreen({
                 <Pressable
                   key={cat.id}
                   testID={`category-card-${cat.id}`}
-                  onPress={() => pushLevel('category', cat.id)}
+                  onPress={() => handlePress(() => pushLevel('category', cat.id))}
                   accessibilityRole="button"
                   style={({ pressed }) => ({
                     backgroundColor: color.surface,
@@ -353,7 +364,7 @@ export function ShopScreen({
                 <Pressable
                   key={sub.id}
                   testID={`subcategory-card-${sub.id}`}
-                  onPress={() => pushLevel('subcategory', sub.id)}
+                  onPress={() => handlePress(() => pushLevel('subcategory', sub.id))}
                   accessibilityRole="button"
                   style={({ pressed }) => ({
                     backgroundColor: color.surface,
@@ -401,10 +412,11 @@ export function ShopScreen({
                 }}
               >
                 {/* Product Picture or Themed Placeholder */}
-                {prod.image ? (
+                {prod.image && !failedImages[prod.id] ? (
                   <Image
                     testID="product-image"
                     source={{ uri: prod.image }}
+                    onError={() => setFailedImages((prev) => ({ ...prev, [prod.id]: true }))}
                     style={{ width: 80, height: 80, borderRadius: 12, backgroundColor: color.surfaceSunken }}
                     resizeMode="cover"
                   />
@@ -435,7 +447,7 @@ export function ShopScreen({
                 <View style={{ flex: 1, gap: 4 }}>
                   <Pressable
                     testID={`product-title-${prod.id}`}
-                    onPress={() => pushLevel('product', prod.id)}
+                    onPress={() => handlePress(() => pushLevel('product', prod.id))}
                   >
                     <Text style={{ fontSize: 15, fontWeight: '700', color: color.ink }}>
                       {t(prod.name)}
@@ -463,13 +475,15 @@ export function ShopScreen({
                   <View style={{ marginTop: 4, flexDirection: 'row', gap: 8 }}>
                     <Pressable
                       testID={`buy-button-${prod.id}`}
-                      onPress={() => handleBuy(prod.url)}
+                      onPress={() => handlePress(() => handleBuy(prod.url))}
                       accessibilityRole="button"
                       accessibilityLabel={`${t('shop.buyAction')} ${t(prod.name)}`}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       style={({ pressed }) => ({
                         backgroundColor: pressed ? color.brandDeep : color.brand,
                         paddingHorizontal: 16,
-                        paddingVertical: 7,
+                        minHeight: 44,
+                        justifyContent: 'center',
                         borderRadius: 16,
                         alignItems: 'center',
                       })}
@@ -489,10 +503,11 @@ export function ShopScreen({
         {current.level === 'product' && activeProduct && (
           <View style={{ gap: 16, backgroundColor: color.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: color.edge }}>
             {/* Main Picture or Placeholder */}
-            {activeProduct.image ? (
+            {activeProduct.image && !failedImages[activeProduct.id] ? (
               <Image
                 testID="product-detail-image"
                 source={{ uri: activeProduct.image }}
+                onError={() => setFailedImages((prev) => ({ ...prev, [activeProduct.id]: true }))}
                 style={{ width: '100%', height: 220, borderRadius: 16, backgroundColor: color.surfaceSunken }}
                 resizeMode="contain"
               />
@@ -501,7 +516,7 @@ export function ShopScreen({
                 testID="product-image-placeholder"
                 style={{
                   width: '100%',
-                  height: 180,
+                  height: 220,
                   borderRadius: 16,
                   backgroundColor: color.surfaceSunken,
                   alignItems: 'center',
@@ -541,12 +556,13 @@ export function ShopScreen({
 
               <Pressable
                 testID={`buy-button-${activeProduct.id}`}
-                onPress={() => handleBuy(activeProduct!.url)}
+                onPress={() => handlePress(() => handleBuy(activeProduct!.url))}
                 accessibilityRole="button"
                 accessibilityLabel={`${t('shop.buyAction')} ${t(activeProduct.name)}`}
                 style={({ pressed }) => ({
                   backgroundColor: pressed ? color.brandDeep : color.brand,
-                  paddingVertical: 12,
+                  minHeight: 44,
+                  justifyContent: 'center',
                   borderRadius: 16,
                   alignItems: 'center',
                   marginTop: 8,

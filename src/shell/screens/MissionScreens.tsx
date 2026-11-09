@@ -12,7 +12,7 @@ import { LessonBlocks } from '../ui/LessonBlocks';
 import { theme } from '../ui/theme';
 import { DIARY_KEYS, WalkDiaryBar } from './NodeScreens';
 import { Screen } from './Screen';
-import { ShopLinkCard } from './ShopLinkCard';
+import { RecommendationCardList } from './RecommendationCard';
 import { getActiveContent } from '../content/runtime';
 
 /** The title block every Mission screen opens with: "Misión" and the Mission's title. */
@@ -184,9 +184,6 @@ export function MissionProblemScreen({
   onShop?: (target: { level: 'home' | 'category' | 'subcategory' | 'product'; id?: string }) => void;
 }) {
   const activeShop = getActiveContent()?.resolved?.shop;
-  const viewRecs = (mission.recommendations ?? [])
-    .filter((rec) => rec.when === 'view' && Boolean(activeShop?.idToKind && activeShop.idToKind[rec.target]))
-    .slice(0, 2);
 
   return (
     <Screen>
@@ -197,14 +194,12 @@ export function MissionProblemScreen({
         ))}
         <OptionCard label={t('mission.problem.other')} onPress={() => onPick(OTHER_PROBLEM)} />
       </View>
-      {viewRecs.map((rec) => (
-        <ShopLinkCard
-          key={rec.id}
-          t={t}
-          explanation={t(rec.explanation) || (rec.explanation as string)}
-          onOpen={() => onShop?.({ level: rec.targetKind, id: rec.target })}
-        />
-      ))}
+      <RecommendationCardList
+        recommendations={mission.recommendations}
+        activeShop={activeShop}
+        onOpenShop={onShop}
+        t={t}
+      />
       <Button label={t('mission.back')} tone="secondary" onPress={onBack} />
     </Screen>
   );
@@ -235,15 +230,6 @@ export function FixScreen({
   onDone: () => void;
   onShop?: (target: { level: 'home' | 'category' | 'subcategory' | 'product'; id?: string }) => void;
 }) {
-  const activeShop = getActiveContent()?.resolved?.shop;
-  const problemRecs = (mission.recommendations ?? [])
-    .filter(
-      (rec) =>
-        (rec.when === 'problem' || rec.when === `problem:${fix.id}`) &&
-        Boolean(activeShop?.idToKind && activeShop.idToKind[rec.target]),
-    )
-    .slice(0, 2);
-
   return (
     <Screen>
       <View className="flex-row flex-wrap items-center" style={{ gap: theme.space[2] }}>
@@ -256,14 +242,6 @@ export function FixScreen({
         <Text className="font-display text-label text-ink">{t('fix.easier')}</Text>
         <Text className="mt-1 text-bodyL text-ink">{t(fix.easierTarget)}</Text>
       </Panel>
-      {problemRecs.map((rec) => (
-        <ShopLinkCard
-          key={rec.id}
-          t={t}
-          explanation={t(rec.explanation) || (rec.explanation as string)}
-          onOpen={() => onShop?.({ level: rec.targetKind, id: rec.target })}
-        />
-      ))}
       <Button label={t('fix.practise')} onPress={onPractise} />
       {canMoveOn && (
         <View className="mt-2">

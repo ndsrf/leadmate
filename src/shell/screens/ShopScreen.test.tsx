@@ -246,6 +246,34 @@ describe('ShopScreen component', () => {
     expect(placeholder.props.style.height).toBe(80);
   });
 
+  it('falls back to themed placeholder when image load triggers onError', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(
+        <ShopScreen
+          t={mockTranslate}
+          onBack={() => {}}
+          shop={sampleShop}
+          initialTarget={{ level: 'subcategory', id: 'arneses' }}
+        />
+      );
+    });
+
+    const root = renderer!.root;
+    const arnesCard = root.findByProps({ testID: 'product-card-arnes-pro' });
+    const img = arnesCard.findByProps({ testID: 'product-image' });
+    expect(img).toBeDefined();
+
+    act(() => {
+      img.props.onError({ nativeEvent: { error: 'failed' } });
+    });
+
+    const placeholder = arnesCard.findByProps({ testID: 'product-image-placeholder' });
+    expect(placeholder).toBeDefined();
+    expect(placeholder.props.style.width).toBe(80);
+    expect(placeholder.props.style.height).toBe(80);
+  });
+
   describe('Buy Action (Task 5.2)', () => {
     it('opens product buy URL via Linking.openURL on success', async () => {
       const mockOpen = jest.fn().mockResolvedValue(true);

@@ -93,12 +93,13 @@ import { ShopScreen, type ShopLevel } from './src/shell/screens/ShopScreen';
 import { ShopPopup } from './src/shell/screens/ShopPopup';
 import {
   DEFAULT_SHOP_STATE,
+  detectDebriefTroubleRecommendation,
   loadShopState,
   recordGeneralOfferIgnored,
   recordShopPopupShown,
   resetGeneralOfferIgnored,
   shouldOfferShop,
-  shouldShowLink,
+  shouldShowRecommendation,
   type ShopState,
 } from './src/shell/shop';
 
@@ -483,32 +484,14 @@ export default function App() {
           ? f.run.result.handlingScore
           : undefined;
 
-    const posteFails = afterRecord?.posteFailures ?? recordRef.current?.posteFailures ?? 0;
-    let matchedRec: any;
-    let matchedWhen: string | undefined;
-
-    if (posteFails >= 2) {
-      matchedRec = f.run.node.recommendations?.find(
-        (cand) => cand.when === 'poste-trouble' && Boolean(activeShop?.idToKind && activeShop.idToKind[cand.target]),
-      );
-      if (matchedRec) matchedWhen = 'poste-trouble';
-    }
-
-    if (!matchedRec && score !== undefined && score < POOR_SCORE_BELOW) {
-      matchedRec = f.run.node.recommendations?.find(
-        (cand) => cand.when === 'poor-score' && Boolean(activeShop?.idToKind && activeShop.idToKind[cand.target]),
-      );
-      if (matchedRec) matchedWhen = 'poor-score';
-    }
-
-    if (matchedRec && matchedWhen) {
-      setPendingTrouble({
-        recommendationId: matchedRec.id,
-        target: matchedRec.target,
-        targetKind: matchedRec.targetKind ?? (activeShop!.idToKind[matchedRec.target] as 'category' | 'subcategory' | 'product'),
-        when: matchedWhen,
-        explanation: matchedRec.explanation,
-      });
+    const trouble = detectDebriefTroubleRecommendation({
+      recommendations: f.run.node.recommendations,
+      posteFailures: afterRecord?.posteFailures ?? recordRef.current?.posteFailures ?? 0,
+      score,
+      shopCatalogue: activeShop,
+    });
+    if (trouble) {
+      setPendingTrouble(trouble);
     }
   }, [debriefId, update]);
 
@@ -701,6 +684,35 @@ export default function App() {
     } else setFlow({ name: 'mission', id: stop.id, view: missionEntry(stop.id) });
   };
 
+  /** Opens the Shop with a target and return destination, resetting the 3-ignore opt-out count. */
+  const openShop = useCallback(
+    (
+      target?: { level: ShopLevel; id?: string },
+      options?: {
+        previousFlow?: Flow | null;
+        returnTo?: 'map' | 'lesson' | 'node' | 'mission' | 'library';
+        currentState?: ShopState;
+      },
+    ) => {
+      setShopState((current) => {
+        const base = options?.currentState ?? current;
+        if (base.generalOfferIgnoredCount > 0) {
+          resetGeneralOfferIgnored(base, dogStore)
+            .then((updated) => setShopState(updated))
+            .catch(() => {});
+        }
+        return base;
+      });
+      setFlow({
+        name: 'shop',
+        target,
+        previousFlow: options?.previousFlow,
+        returnTo: options?.returnTo ?? 'map',
+      });
+    },
+    [dogStore],
+  );
+
   /** Completes a World 1 check immediately without a waiting gate. */
   const confirmMissionCheck = (id: string) => {
     const mission = findMission(id);
@@ -861,7 +873,7 @@ export default function App() {
     if (!pendingTrouble) return;
     if (route.name === 'map') {
       const activeShop = getActiveContent()?.resolved?.shop;
-      const canShow = shouldShowLink({
+      const canShow = shouldShowRecommendation({
         recommendationId: pendingTrouble.recommendationId,
         trigger: pendingTrouble.when,
         state: shopState,
@@ -887,7 +899,7 @@ export default function App() {
     if (overlay === null && !trialModalOpen && route.name === 'map') {
       if (
         pendingTrouble &&
-        shouldShowLink({
+        shouldShowRecommendation({
           recommendationId: pendingTrouble.recommendationId,
           trigger: pendingTrouble.when,
           state: shopState,
@@ -907,7 +919,7 @@ export default function App() {
               setShopState(updated);
               const target = { level: pendingTrouble.targetKind, id: pendingTrouble.target };
               setPendingTrouble(null);
-              setFlow({ name: 'shop', target, returnTo: 'map' });
+              openShop(target, { returnTo: 'map' });
             }}
             onClose={async () => {
               const updated = await recordShopPopupShown(shopState, {
@@ -939,7 +951,7 @@ export default function App() {
                 storage: dogStore,
               });
               setShopState(updated);
-              setFlow({ name: 'shop', returnTo: 'map' });
+              openShop(undefined, { returnTo: 'map', currentState: updated });
             }}
             onClose={async () => {
               let updated = await recordGeneralOfferIgnored(shopState, dogStore);
@@ -977,7 +989,7 @@ export default function App() {
           onWarmup={() => setFlow({ name: 'warmup' })}
           onSkipWarmup={() => setWarmup('skipped')}
           onOpenStop={openStop}
-          onShop={(target) => setFlow({ name: 'shop', target, returnTo: 'map' })}
+          onShop={(target) => openShop(target, { returnTo: 'map' })}
           shopPopup={shopPopupNode}
           initialScrollY={mapScroll.current}
           onScroll={(y) => (mapScroll.current = y)}
@@ -1245,6 +1257,7 @@ export default function App() {
         <ShopScreen
           t={t}
           initialTarget={f.target}
+          isOffline={typeof navigator !== 'undefined' && navigator.onLine === false}
           onBack={withBack(() => {
             if (f.previousFlow) setFlow(f.previousFlow);
             else goHome();
@@ -1275,7 +1288,7 @@ export default function App() {
               else back();
             }}
             onBack={back}
-            onShop={(target) => setFlow({ name: 'shop', target, previousFlow: f, returnTo: f.returnTo })}
+            onShop={(target) => openShop(target, { previousFlow: f, returnTo: f.returnTo })}
           />
         ) : null,
       );
@@ -1331,7 +1344,7 @@ export default function App() {
             mission={mission}
             onPick={(problemId) => answerMission(mission.id, 'struggled', problemId)}
             onBack={withBack(() => setFlow({ ...f, view: 'checkin' }))}
-            onShop={(target) => setFlow({ name: 'shop', target, previousFlow: f })}
+            onShop={(target) => openShop(target, { previousFlow: f })}
           />
         );
       else if (f.view === 'fix' && f.fixId) {
@@ -1346,7 +1359,7 @@ export default function App() {
             onPractise={() => openStop(found.fix.practise)}
             onMoveOn={() => moveOnMission(mission.id)}
             onDone={withBack(close)}
-            onShop={(target) => setFlow({ name: 'shop', target, previousFlow: f })}
+            onShop={(target) => openShop(target, { previousFlow: f })}
           />
         ) : null;
       } else if (f.view === 'passed')
@@ -1520,7 +1533,7 @@ export default function App() {
             run={run}
             onNext={() => act({ type: 'next' })}
             onExit={withBack(goHome)}
-            onShop={(target) => setFlow({ name: 'shop', target, previousFlow: f })}
+            onShop={(target) => openShop(target, { previousFlow: f })}
           />
         );
       else if (run.step === 'checkpoint')
@@ -1565,7 +1578,7 @@ export default function App() {
             celebrations={celebrations?.id === `${run.node.id}:${f.attempt}` ? celebrations.list : []}
             onPosteLink={() => startNodeRun(POSTE_PRACTICE)}
             onPlayAgain={() => setFlow({ ...f, run: { ...run, step: 'simulation', result: null }, attempt: f.attempt + 1 })}
-            onShop={(target) => setFlow({ name: 'shop', target, previousFlow: f })}
+            onShop={(target) => openShop(target, { previousFlow: f })}
             onDone={withBack(async () => {
               // the Debrief of a Stretch's last Node opens its Mission brief
               // a Home Node's Debrief opens its Home Mission's brief; a Stretch's last Node opens the Stretch's Mission

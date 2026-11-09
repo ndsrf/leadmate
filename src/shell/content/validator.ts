@@ -44,6 +44,16 @@ import {
   type WorldYaml,
 } from './schema';
 
+export const EXPECTED_AMAZON_MARKETPLACES: Record<string, string[]> = {
+  es: ['es'],
+  en: ['com', 'co.uk', 'ca', 'com.au'],
+  de: ['de'],
+  fr: ['fr'],
+  it: ['it'],
+  pt: ['com.br', 'pt'],
+  ja: ['co.jp'],
+};
+
 export const SUPPORTED_SCENARIO_NAMES = [
   'default',
   'HALLWAY',
@@ -562,11 +572,12 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
           const amzMatch = /https:\/\/(?:www\.)?amazon\.([a-z.]+)/i.exec(url);
           if (amzMatch) {
             const domain = amzMatch[1].toLowerCase();
-            if (lang === 'es' && domain !== 'es') {
+            const expectedDomains = EXPECTED_AMAZON_MARKETPLACES[lang];
+            if (expectedDomains && !expectedDomains.includes(domain)) {
               warnings.push({
                 file,
                 field: `urls.${lang}`,
-                message: `Amazon buy link for language "${lang}" is on "amazon.${domain}" instead of expected marketplace "amazon.es"`,
+                message: `Amazon buy link for language "${lang}" is on "amazon.${domain}" instead of expected marketplace "${expectedDomains.map((d) => `amazon.${d}`).join(', ')}"`,
               });
             }
           }

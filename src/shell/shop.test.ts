@@ -1,4 +1,5 @@
 import {
+  detectDebriefTroubleRecommendation,
   diffCalendarDays,
   loadShopState,
   recordGeneralOfferIgnored,
@@ -7,6 +8,7 @@ import {
   saveShopState,
   shouldOfferShop,
   shouldShowLink,
+  shouldShowRecommendation,
   toCalendarDateString,
   type ShopState,
   type ShopStorage,
@@ -348,5 +350,53 @@ describe('shop state storage operations', () => {
 
     state = await resetGeneralOfferIgnored(state, storage);
     expect(state.generalOfferIgnoredCount).toBe(0);
+  });
+
+  describe('detectDebriefTroubleRecommendation', () => {
+    const shopCatalogue = {
+      idToKind: {
+        'arnes-y': 'product' as const,
+        'collar-fijo': 'product' as const,
+      },
+    };
+
+    const recommendations = [
+      { id: 'rec-poste', target: 'arnes-y', when: 'poste-trouble', explanation: 'Ayuda con Poste' },
+      { id: 'rec-score', target: 'collar-fijo', when: 'poor-score', explanation: 'Ayuda con Score' },
+    ];
+
+    it('detects poste trouble recommendation when posteFailures >= 2', () => {
+      const result = detectDebriefTroubleRecommendation({
+        recommendations,
+        posteFailures: 2,
+        score: 80,
+        shopCatalogue,
+      });
+      expect(result).toBeDefined();
+      expect(result?.recommendationId).toBe('rec-poste');
+      expect(result?.when).toBe('poste-trouble');
+    });
+
+    it('detects poor score recommendation when score < 200 and no poste trouble', () => {
+      const result = detectDebriefTroubleRecommendation({
+        recommendations,
+        posteFailures: 1,
+        score: 150,
+        shopCatalogue,
+      });
+      expect(result).toBeDefined();
+      expect(result?.recommendationId).toBe('rec-score');
+      expect(result?.when).toBe('poor-score');
+    });
+
+    it('returns undefined when score is high and posteFailures < 2', () => {
+      const result = detectDebriefTroubleRecommendation({
+        recommendations,
+        posteFailures: 0,
+        score: 750,
+        shopCatalogue,
+      });
+      expect(result).toBeUndefined();
+    });
   });
 });

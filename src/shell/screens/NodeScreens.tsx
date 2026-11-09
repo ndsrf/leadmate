@@ -18,7 +18,7 @@ import { readDogSceneOf } from '../nodes/readDog';
 import type { CheckpointSeconds } from '../dogRecord';
 import { DIARY_OUTCOMES, type DiaryOutcome } from '../streak';
 import { Screen } from './Screen';
-import { ShopLinkCard } from './ShopLinkCard';
+import { RecommendationCardList } from './RecommendationCard';
 import { getActiveContent } from '../content/runtime';
 
 export function PrimerScreen({
@@ -38,9 +38,6 @@ export function PrimerScreen({
   const card = primerCardOf(run.node.primerCards[run.card]);
   const [guideOpen, setGuideOpen] = useState(false);
   const activeShop = getActiveContent()?.resolved?.shop;
-  const viewRecs = (run.node.recommendations ?? [])
-    .filter((rec) => rec.when === 'view' && Boolean(activeShop?.idToKind && activeShop.idToKind[rec.target]))
-    .slice(0, 2);
 
   return (
     <Screen>
@@ -52,14 +49,12 @@ export function PrimerScreen({
         {card.media && <MediaPlaceholder key={`${run.node.id}:${run.card}`} t={t} media={card.media} />}
         {card.tutorialUrl && <Button label={t('primer.openGuide')} tone="quiet" onPress={() => setGuideOpen(true)} />}
       </Panel>
-      {viewRecs.map((rec) => (
-        <ShopLinkCard
-          key={rec.id}
-          t={t}
-          explanation={t(rec.explanation) || (rec.explanation as string)}
-          onOpen={() => onShop?.({ level: rec.targetKind, id: rec.target })}
-        />
-      ))}
+      <RecommendationCardList
+        recommendations={run.node.recommendations}
+        activeShop={activeShop}
+        onOpenShop={onShop}
+        t={t}
+      />
       <Text className="text-center font-display text-label text-inkMuted">{`${run.card + 1} / ${total}`}</Text>
       <Button label={t('node.next')} onPress={onNext} />
       <Button label={t('node.back')} tone="quiet" onPress={onExit} />
@@ -284,9 +279,6 @@ function DebriefBody({
   const reveal = useReveal({ score, stars: earned });
   const { phase, scoreShown, starsShown } = reveal.state;
   const activeShop = getActiveContent()?.resolved?.shop;
-  const viewRecs = (run.node.recommendations ?? [])
-    .filter((rec) => rec.when === 'view' && Boolean(activeShop?.idToKind && activeShop.idToKind[rec.target]))
-    .slice(0, 2);
   const revealing = phase !== 'done';
   const showRows = phase === 'rows' || phase === 'done';
   return (
@@ -349,14 +341,12 @@ function DebriefBody({
               <Button label={t('results.posteLink')} onPress={onPosteLink} />
             </Panel>
           )}
-          {viewRecs.map((rec) => (
-            <ShopLinkCard
-              key={rec.id}
-              t={t}
-              explanation={t(rec.explanation) || (rec.explanation as string)}
-              onOpen={() => onShop?.({ level: rec.targetKind, id: rec.target })}
-            />
-          ))}
+          <RecommendationCardList
+            recommendations={run.node.recommendations}
+            activeShop={activeShop}
+            onOpenShop={onShop}
+            t={t}
+          />
           <Button label={t('results.playAgain')} onPress={onPlayAgain} />
           <Button label={t('results.continue')} tone="secondary" onPress={onDone} />
         </>

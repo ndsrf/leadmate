@@ -7,12 +7,15 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
+import { t as defaultTranslate, type Translate } from '../../i18n';
+import { handlePress } from '../ui/press';
 import { usePalette } from '../ui/theme';
 
 export interface ShopPopupProps {
   text: string;
   onOpen: () => void;
   onClose: () => void;
+  t?: Translate;
   actionLabel?: string;
   closeLabel?: string;
   testID?: string;
@@ -29,13 +32,16 @@ export function ShopPopup({
   text,
   onOpen,
   onClose,
-  actionLabel = 'Ver',
-  closeLabel = 'Cerrar',
+  t = defaultTranslate,
+  actionLabel,
+  closeLabel,
   testID = 'shop-popup',
   autoDismissMs = 10000,
 }: ShopPopupProps) {
   const insets = useSafeAreaInsets();
   const color = usePalette();
+  const resolvedActionLabel = actionLabel ?? t('shop.popup.viewAction');
+  const resolvedCloseLabel = closeLabel ?? t('shop.popup.close');
 
   useEffect(() => {
     let mounted = true;
@@ -152,13 +158,14 @@ export function ShopPopup({
         {/* Open / Action Button */}
         <Pressable
           testID="shop-popup-action"
-          onPress={onOpen}
+          onPress={() => handlePress(onOpen)}
           accessibilityRole="button"
-          accessibilityLabel={actionLabel}
+          accessibilityLabel={resolvedActionLabel}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           style={({ pressed }) => ({
             backgroundColor: pressed ? color.brandDeep : color.brand,
             paddingHorizontal: 14,
-            paddingVertical: 7,
+            minHeight: 44,
             borderRadius: 20,
             justifyContent: 'center',
             alignItems: 'center',
@@ -171,18 +178,20 @@ export function ShopPopup({
               fontSize: 13,
             }}
           >
-            {actionLabel}
+            {resolvedActionLabel}
           </Text>
         </Pressable>
 
         {/* Close Button */}
         <Pressable
           testID="shop-popup-close"
-          onPress={onClose}
+          onPress={() => handlePress(onClose)}
           accessibilityRole="button"
-          accessibilityLabel={closeLabel}
+          accessibilityLabel={resolvedCloseLabel}
           hitSlop={8}
           style={({ pressed }) => ({
+            minWidth: 44,
+            minHeight: 44,
             padding: 4,
             opacity: pressed ? 0.6 : 1,
             justifyContent: 'center',

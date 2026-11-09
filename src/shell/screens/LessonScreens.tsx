@@ -13,7 +13,7 @@ import { theme } from '../ui/theme';
 import { Screen } from './Screen';
 import { BetaContentBadge } from '../ui/BetaContentBadge';
 import type { TrialState, VideoGatingProps } from '../plus';
-import { ShopLinkCard } from './ShopLinkCard';
+import { RecommendationCardList } from './RecommendationCard';
 import { getActiveContent } from '../content/runtime';
 
 /**
@@ -189,10 +189,6 @@ export function LessonScreen({
   );
 
   const activeShop = getActiveContent()?.resolved?.shop;
-  const viewRecs = (lesson.recommendations ?? [])
-    .filter((rec) => rec.when === 'view' && Boolean(activeShop?.idToKind && activeShop.idToKind[rec.target]))
-    .slice(0, 2);
-
   const takeawayIdx = lesson.blocks.findIndex((b) => b.type === 'takeaways');
   const bodyBlocks = takeawayIdx !== -1 ? lesson.blocks.slice(0, takeawayIdx) : lesson.blocks;
   const trailingBlocks = takeawayIdx !== -1 ? lesson.blocks.slice(takeawayIdx) : [];
@@ -207,14 +203,12 @@ export function LessonScreen({
       {bodyBlocks.map((b, i) => (
         <Item key={`body-${i}`} t={t} item={b} onDone={onDone} videoGating={gating} />
       ))}
-      {viewRecs.map((rec) => (
-        <ShopLinkCard
-          key={rec.id}
-          t={t}
-          explanation={t(rec.explanation) || (rec.explanation as string)}
-          onOpen={() => onShop?.({ level: rec.targetKind, id: rec.target })}
-        />
-      ))}
+      <RecommendationCardList
+        recommendations={lesson.recommendations}
+        activeShop={activeShop}
+        onOpenShop={onShop}
+        t={t}
+      />
       {trailingBlocks.map((b, i) => (
         <Item key={`trailing-${i}`} t={t} item={b} onDone={onDone} videoGating={gating} />
       ))}

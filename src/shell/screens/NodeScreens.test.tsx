@@ -287,7 +287,7 @@ describe('Node and Mission screens - ShopLinkCard recommendations (Task 7.1)', (
       );
       expect(problemMarkup).toContain('Recomendación en la lista de problemas.');
 
-      // 2. FixScreen
+      // 2. FixScreen: Spec requires trouble triggers to NEVER show while reviewing the fix
       const fixMarkup = renderToStaticMarkup(
         <FixScreen
           t={t}
@@ -301,7 +301,7 @@ describe('Node and Mission screens - ShopLinkCard recommendations (Task 7.1)', (
           onShop={onShop}
         />,
       );
-      expect(fixMarkup).toContain('Recomendación junto al fix de tirones.');
+      expect(fixMarkup).not.toContain('Recomendación junto al fix de tirones.');
     } finally {
       setActiveContent(baseContent);
     }

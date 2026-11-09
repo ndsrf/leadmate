@@ -1,4 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { POOR_SCORE_BELOW } from './stars';
+
+export { POOR_SCORE_BELOW };
 
 export const SHOP_STATE_STORAGE_KEY = 'leadmate.shopState';
 
@@ -48,14 +51,50 @@ export function diffCalendarDays(dateStr1: string, dateStr2: string): number {
   return Math.round(Math.abs(utc1 - utc2) / msPerDay);
 }
 
-export interface ShouldOfferShopOptions {
+export type AppFlowName =
+  | 'map'
+  | 'warmup'
+  | 'register'
+  | 'auth'
+  | 'daily'
+  | 'node'
+  | 'library'
+  | 'diary'
+  | 'lesson'
+  | 'mission'
+  | 'paywall'
+  | 'puzzle'
+  | 'shop'
+  | (string & {});
+
+export interface ShopTimeContext {
   state: ShopState;
+  now?: Date;
+  today?: string;
+}
+
+export interface ShopFlowContext {
+  isTrainingActive?: boolean;
+  currentFlow?: AppFlowName;
+}
+
+/** Determines if a given flow or training flag represents active training. */
+export function isTrainingFlow(flow?: AppFlowName, isTrainingActive?: boolean): boolean {
+  if (isTrainingActive !== undefined) return isTrainingActive;
+  if (!flow) return false;
+  return ['stage', 'minigame', 'close', 'lesson', 'node'].includes(flow);
+}
+
+export interface ShouldOfferShopOptions {
+  time?: ShopTimeContext;
+  flow?: ShopFlowContext;
+  state?: ShopState;
   now?: Date;
   today?: string;
   hasShopItems?: boolean;
   hasPendingTrouble?: boolean;
   isTrainingActive?: boolean;
-  currentFlow?: string;
+  currentFlow?: AppFlowName;
   isFirstDay?: boolean;
 }
 
@@ -71,14 +110,12 @@ export interface ShouldOfferShopOptions {
  * 7. Cadence: At most every 3 calendar days.
  */
 export function shouldOfferShop(options: ShouldOfferShopOptions): boolean {
+  const state = options.time?.state ?? options.state!;
+  const now = options.time?.now ?? options.now ?? new Date();
+  const today = options.time?.today ?? options.today ?? toCalendarDateString(now);
   const {
-    state,
-    now = new Date(),
-    today = toCalendarDateString(now),
     hasShopItems = true,
     hasPendingTrouble = false,
-    isTrainingActive,
-    currentFlow,
     isFirstDay,
   } = options;
 
@@ -86,9 +123,10 @@ export function shouldOfferShop(options: ShouldOfferShopOptions): boolean {
   if (!hasShopItems) return false;
 
   // 2. Training gate: Never show during training
-  const training =
-    isTrainingActive ??
-    (currentFlow ? ['stage', 'minigame', 'close', 'lesson'].includes(currentFlow) : false);
+  const training = isTrainingFlow(
+    options.flow?.currentFlow ?? options.currentFlow,
+    options.flow?.isTrainingActive ?? options.isTrainingActive,
+  );
   if (training) return false;
 
   // 3. Trouble beats general offer
@@ -113,19 +151,24 @@ export function shouldOfferShop(options: ShouldOfferShopOptions): boolean {
   return true;
 }
 
-export interface ShouldShowLinkOptions {
+export interface ShouldShowRecommendationOptions {
   recommendationId: string;
   trigger?: string;
-  state: ShopState;
+  time?: ShopTimeContext;
+  flow?: ShopFlowContext;
+  state?: ShopState;
   now?: Date;
   today?: string;
   targetInShop?: boolean;
   isTrainingActive?: boolean;
-  currentFlow?: string;
+  currentFlow?: AppFlowName;
 }
 
+export type ShouldShowLinkOptions = ShouldShowRecommendationOptions;
+
 /**
- * Pure function determining whether a Recommendation link/popup should be displayed.
+ * Pure function determining whether an authored Recommendation popup should be displayed.
+ * Conforms to GLOSSARY.md domain terminology ("Recommendation").
  * Rules:
  * - Target must exist and be buyable in the resolved shop catalogue.
  * - 'view' trigger renders as an in-content card (not a popup) and is always shown when target is available.
@@ -134,17 +177,16 @@ export interface ShouldShowLinkOptions {
  *   2. At most one popup per calendar day overall.
  *   3. At most one popup per recommendation per calendar day.
  */
-export function shouldShowLink(options: ShouldShowLinkOptions): boolean {
+export function shouldShowRecommendation(options: ShouldShowRecommendationOptions): boolean {
   const {
     recommendationId,
     trigger = 'view',
-    state,
-    now = new Date(),
-    today = toCalendarDateString(now),
     targetInShop = true,
-    isTrainingActive,
-    currentFlow,
   } = options;
+
+  const state = options.time?.state ?? options.state!;
+  const now = options.time?.now ?? options.now ?? new Date();
+  const today = options.time?.today ?? options.today ?? toCalendarDateString(now);
 
   // Target must be present and buyable
   if (!targetInShop) return false;
@@ -156,9 +198,10 @@ export function shouldShowLink(options: ShouldShowLinkOptions): boolean {
 
   // Trouble popup triggers:
   // 1. Training gate
-  const training =
-    isTrainingActive ??
-    (currentFlow ? ['stage', 'minigame', 'close', 'lesson'].includes(currentFlow) : false);
+  const training = isTrainingFlow(
+    options.flow?.currentFlow ?? options.currentFlow,
+    options.flow?.isTrainingActive ?? options.isTrainingActive,
+  );
   if (training) return false;
 
   // 2. One popup per calendar day cap
@@ -170,6 +213,85 @@ export function shouldShowLink(options: ShouldShowLinkOptions): boolean {
   }
 
   return true;
+}
+
+// Backward-compatible alias
+export const shouldShowLink = shouldShowRecommendation;
+
+export interface PendingShopRecommendation {
+  recommendationId: string;
+  target: string;
+  targetKind: 'category' | 'subcategory' | 'product';
+  when: string;
+  explanation: string;
+}
+
+export interface DetectDebriefTroubleParams {
+  recommendations?: Array<{
+    id: string;
+    target: string;
+    targetKind?: 'category' | 'subcategory' | 'product';
+    when: string;
+    explanation: string | any;
+  }>;
+  posteFailures: number;
+  score?: number;
+  shopCatalogue?: {
+    idToKind: Record<string, string>;
+  };
+  poorScoreThreshold?: number;
+}
+
+/**
+ * Pure helper detecting whether a debrief's performance (poste failures or low score)
+ * qualifies for a trouble recommendation popup. Eliminates Feature Envy from application screens.
+ */
+export function detectDebriefTroubleRecommendation(
+  params: DetectDebriefTroubleParams,
+): PendingShopRecommendation | undefined {
+  const {
+    recommendations,
+    posteFailures,
+    score,
+    shopCatalogue,
+    poorScoreThreshold = POOR_SCORE_BELOW,
+  } = params;
+
+  if (!recommendations || recommendations.length === 0 || !shopCatalogue) {
+    return undefined;
+  }
+
+  let matchedRec: (typeof recommendations)[number] | undefined;
+  let matchedWhen: string | undefined;
+
+  if (posteFailures >= 2) {
+    matchedRec = recommendations.find(
+      (cand) => cand.when === 'poste-trouble' && Boolean(shopCatalogue.idToKind && shopCatalogue.idToKind[cand.target]),
+    );
+    if (matchedRec) matchedWhen = 'poste-trouble';
+  }
+
+  if (!matchedRec && score !== undefined && score < poorScoreThreshold) {
+    matchedRec = recommendations.find(
+      (cand) => cand.when === 'poor-score' && Boolean(shopCatalogue.idToKind && shopCatalogue.idToKind[cand.target]),
+    );
+    if (matchedRec) matchedWhen = 'poor-score';
+  }
+
+  if (matchedRec && matchedWhen) {
+    return {
+      recommendationId: matchedRec.id,
+      target: matchedRec.target,
+      targetKind:
+        (matchedRec.targetKind as 'category' | 'subcategory' | 'product') ??
+        (shopCatalogue.idToKind[matchedRec.target] as 'category' | 'subcategory' | 'product') ??
+        'product',
+      when: matchedWhen,
+      explanation: matchedRec.explanation,
+    };
+  }
+
+  return undefined;
 }
 
 /**
@@ -269,6 +391,9 @@ export async function resetGeneralOfferIgnored(
   state: ShopState,
   storage: ShopStorage = AsyncStorage
 ): Promise<ShopState> {
+  if (state.generalOfferIgnoredCount === 0) {
+    return state;
+  }
   const updated: ShopState = {
     ...state,
     generalOfferIgnoredCount: 0,

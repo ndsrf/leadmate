@@ -458,6 +458,21 @@ describe('validatePack scenarios', () => {
       expect(report.errors.some((e) => e.field === 'urls.es' && e.message.includes('no buy link in Spanish'))).toBe(true);
     });
 
+    it('Scenario: Warns when Amazon buy link is not on marketplace of its language', () => {
+      const pack = makeValidPackWithShop();
+      pack.shop!.products!['arnes-front'].config.urls = {
+        es: 'https://www.amazon.de/dp/123',
+        en: 'https://www.amazon.es/dp/123',
+      };
+      const report = validatePack(pack);
+      const warnEs = report.warnings.find((w) => w.field === 'urls.es');
+      const warnEn = report.warnings.find((w) => w.field === 'urls.en');
+      expect(warnEs).toBeDefined();
+      expect(warnEs?.message).toContain('expected marketplace "amazon.es"');
+      expect(warnEn).toBeDefined();
+      expect(warnEn?.message).toContain('expected marketplace');
+    });
+
     it('Scenario: Picture path leaves item folder or is absolute', () => {
       const pack = makeValidPackWithShop();
       pack.shop!.products!['arnes-front'].config.image = '../other/photo.png';

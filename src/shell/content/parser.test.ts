@@ -10,8 +10,8 @@ import {
   parseNodeMarkdown,
   parseShopItemMarkdown,
   parseWorldMarkdown,
-  readShopDirectory,
 } from './parser';
+import { readShopDirectory } from './loader';
 import type { LessonYaml } from './schema';
 
 describe('markdown rejected markup check', () => {
