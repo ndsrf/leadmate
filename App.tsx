@@ -989,6 +989,7 @@ export default function App() {
           onWarmup={() => setFlow({ name: 'warmup' })}
           onSkipWarmup={() => setWarmup('skipped')}
           onOpenStop={openStop}
+          shop={contentSession.resolved.shop}
           onShop={(target) => openShop(target, { returnTo: 'map' })}
           shopPopup={shopPopupNode}
           initialScrollY={mapScroll.current}

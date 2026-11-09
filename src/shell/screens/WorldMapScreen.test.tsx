@@ -288,18 +288,19 @@ describe('WorldMapScreen - Map Header', () => {
     };
   };
 
-  it('shows Streak, Library, and gear in row 1, and Plus, Daily Paseo, and Guaudoku in row 2', () => {
+  it('shows Streak, Library, basket, and gear in row 1, and Plus, Daily Paseo, and Guaudoku in row 2', () => {
     const { labels, markup } = renderHeader();
     const start = labels.findIndex((l) => l.startsWith(es['streak.flame']));
     expect(start).toBeGreaterThanOrEqual(0);
-    // Row 1: Streak, Library, and Settings gear on the right
+    // Row 1: Streak, Library, and Basket + Settings gear on the right
     expect(labels[start]).toContain(es['diary.chip']);
     expect(labels[start + 1]).toBe(es['library.chip']);
-    expect(labels[start + 2]).toBe(es['map.settings']);
+    expect(labels[start + 2]).toBe(es['map.shopButton']);
+    expect(labels[start + 3]).toBe(es['map.settings']);
     // Row 2: Plus, Daily Paseo, Guaudoku
-    expect(labels[start + 3]).toBe('Plus. 7 días gratis');
-    expect(labels[start + 4]).toBe(es['daily.title']);
-    expect(labels[start + 5].startsWith(es['map.barkdoku.daily'])).toBe(true);
+    expect(labels[start + 4]).toBe('Plus. 7 días gratis');
+    expect(labels[start + 5]).toBe(es['daily.title']);
+    expect(labels[start + 6].startsWith(es['map.barkdoku.daily'])).toBe(true);
 
     // Verifies two-row container layout
     expect(markup).toContain('flex-row items-center justify-between');
