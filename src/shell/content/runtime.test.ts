@@ -1,4 +1,4 @@
-import { getActiveContent, initContentRuntime, setActiveContent } from './runtime';
+import { getActiveContent, initContentRuntime, setActiveContent, switchContentLanguage } from './runtime';
 import { ContentUpdater, type HttpFetcher, type HttpResponse } from './updater';
 import { ContentStore, type FileStorage, type KeyValueStorage } from './store';
 import { type ContentManifest } from './build';
@@ -276,6 +276,15 @@ New topics
     expect(session2.isBaseline).toBe(false);
     expect(session2.resolved.worlds.some((w) => w.id === 'world-custom')).toBe(true);
     expect(getActiveContent().contentVersion).toBe(2);
+  });
+  it('switches content language at runtime', () => {
+    setActiveContent(null);
+    const sessionEs = getActiveContent();
+    expect(sessionEs.resolved.catalog['world.home.title']).toBe('Casa y umbrales');
+
+    const sessionEn = switchContentLanguage('en');
+    expect(sessionEn.resolved.catalog['world.home.title']).toBe('Home and Thresholds');
+    expect(getActiveContent()).toBe(sessionEn);
   });
 });
 

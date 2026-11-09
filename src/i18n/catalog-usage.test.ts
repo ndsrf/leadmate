@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
+import { createTranslator, en, es, type TextKey } from './index';
 
 const ROOT = join(__dirname, '..', '..');
 
@@ -41,5 +42,26 @@ describe('user-visible text comes from the catalog', () => {
   it('catches a literal when one slips in', () => {
     const bad = `this.add.text(0, 0, 'Hello', {})`;
     expect(/\.text\(\s*[^,]+,\s*[^,]+,\s*(['"`])([^'"`]*)\1/.test(bad)).toBe(true);
+  });
+});
+
+describe('English catalog completeness', () => {
+  it('has every key in es.ts present in en.ts with non-empty text', () => {
+    const esKeys = Object.keys(es) as TextKey[];
+    const enKeys = new Set(Object.keys(en) as TextKey[]);
+    for (const key of esKeys) {
+      expect(enKeys.has(key)).toBe(true);
+      expect(typeof en[key]).toBe('string');
+      expect(en[key].trim().length).toBeGreaterThan(0);
+    }
+  });
+
+  it('translator with en never returns a raw key or empty string for valid keys', () => {
+    const tEn = createTranslator(en);
+    for (const key of Object.keys(es) as TextKey[]) {
+      const result = tEn(key);
+      expect(result).not.toBe(key);
+      expect(result.trim().length).toBeGreaterThan(0);
+    }
   });
 });

@@ -27,6 +27,7 @@ import { getBillingService, type BillingService } from '../billing';
 import { isBetaUnlocked, loadContentChannel, setBetaUnlocked, type ContentChannel } from '../content/channelSetting';
 import { getActiveContent } from '../content/runtime';
 import { switchChannel } from '../content/channelSwitcher';
+import { saveStoredLanguage } from '../storage';
 
 export const CHECKPOINT_OPTIONS: { value: CheckpointSeconds; key: 'settings.checkpoint.20' | 'settings.checkpoint.15' | 'settings.checkpoint.10' | 'settings.checkpoint.off' }[] = [
   { value: 20, key: 'settings.checkpoint.20' },
@@ -118,6 +119,7 @@ export interface SwitchChannelFn {
 export function SettingsScreen({
   t,
   language,
+  onLanguageChange,
   record,
   update,
   onClose,
@@ -133,6 +135,7 @@ export function SettingsScreen({
 }: {
   t: Translate;
   language: Language;
+  onLanguageChange?: (lang: Language) => void;
   record: DogRecord;
   update: (fn: (r: DogRecord) => DogRecord) => void;
   onClose: () => void;
@@ -162,6 +165,13 @@ export function SettingsScreen({
   useEffect(() => {
     setActiveTab(initialTab);
   }, [initialTab]);
+
+  const selectLanguage = (newLang: Language) => {
+    if (language === newLang) return;
+    update((r) => ({ ...r, language: newLang }));
+    void saveStoredLanguage(newLang);
+    onLanguageChange?.(newLang);
+  };
 
   const isDev =
     isDevProp ?? (typeof __DEV__ !== 'undefined' ? __DEV__ : process.env.NODE_ENV !== 'production');
@@ -389,6 +399,22 @@ export function SettingsScreen({
           </Section>
 
           <AppearanceSection t={t} ui={ui} />
+
+          <Section title={t('settings.language')}>
+            <View className="flex-row flex-wrap">
+              <Choice
+                label={t('settings.language.es')}
+                selected={language === 'es'}
+                onPress={() => selectLanguage('es')}
+              />
+              <Choice
+                label={t('settings.language.en')}
+                selected={language === 'en'}
+                onPress={() => selectLanguage('en')}
+              />
+            </View>
+            <Text className="mt-2 text-caption text-inkMuted">{t('settings.language.help')}</Text>
+          </Section>
 
           <Section title={t('settings.voicePack')}>
             <View className="flex-row flex-wrap">

@@ -29,7 +29,7 @@ The Settings screen SHALL render the screen title and area selector tabs within 
 - **THEN** the screen title and area tabs remain pinned at the top of the viewport
 
 ### Requirement: Section grouping by area
-The Settings screen SHALL partition configuration sections across the three area tabs: "Perro" contains dog identity, traits, equipment, and reactivity; "Preferencias" contains checkpoint timing, interface feedback, appearance, and voice cues; "Cuenta" contains subscription, account sync, progress reset, and developer tools.
+The Settings screen SHALL partition configuration sections across the three area tabs: "Perro" contains dog identity, traits, equipment, and reactivity; "Preferencias" contains checkpoint timing, interface feedback, appearance, voice cues, and language selection; "Cuenta" contains subscription, account sync, progress reset, and developer tools.
 
 #### Scenario: Perro tab contents
 - **WHEN** the "Perro" tab is active
@@ -37,7 +37,7 @@ The Settings screen SHALL partition configuration sections across the three area
 
 #### Scenario: Preferencias tab contents
 - **WHEN** the "Preferencias" tab is active
-- **THEN** the user can adjust checkpoint time, interface feedback, appearance theme, voice pack, and custom cue audio
+- **THEN** the user can adjust checkpoint time, interface feedback, appearance theme, voice pack, custom cue audio, and active language
 
 #### Scenario: Cuenta tab contents
 - **WHEN** the "Cuenta" tab is active
@@ -63,3 +63,14 @@ The area selector tabs SHALL be accessible to screen readers and assistive techn
 #### Scenario: Tab accessibility state
 - **WHEN** an assistive technology inspects the area tabs
 - **THEN** each tab declares its accessible name and whether it is currently selected
+
+### Requirement: Language selection in preferences
+The Settings screen SHALL provide an "Idioma / Language" selector on the "Preferencias" tab offering Spanish and English, highlighting the active selection, and immediately switching the visible Settings interface and content pack without dismissing or reloading the screen.
+
+#### Scenario: Switching language from settings
+- **WHEN** the user selects a different language on the "Preferencias" tab
+- **THEN** the application shell, settings labels, and content translations switch immediately to the chosen language
+
+#### Scenario: Selection state indicator
+- **WHEN** the "Preferencias" tab is visible
+- **THEN** the currently active language is clearly shown as selected

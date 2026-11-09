@@ -11,7 +11,7 @@ import {
   type TriggerProfile,
 } from '../sim/learning';
 import type { SimulationDebriefPayload } from '../sim/payload';
-import { DEFAULT_VOICE_PACK } from './voice';
+import { DEFAULT_VOICE_PACK, type Language } from './voice';
 import { bestStars, isStars, starsFor, type Stars } from './stars';
 import { isCoat, type DogCoat } from './onboarding/look';
 import { DEFAULT_BREED, isBreed, type BreedId } from './onboarding/breeds';
@@ -43,6 +43,7 @@ export type CheckpointSeconds = 0 | 10 | 15 | 20;
  */
 export interface DogRecord {
   version: typeof RECORD_VERSION;
+  language?: Language;
   attributes: LearningAttributes;
   triggerProfile: TriggerProfile;
   /** Calm encounters counted toward lowering each kind's level. */
@@ -159,6 +160,7 @@ export const NEW_ONBOARDING: OnboardingState = { step: 'welcome', firstStageComp
 export function newDogRecord(): DogRecord {
   return {
     version: RECORD_VERSION,
+    language: 'es',
     attributes: { ...DEFAULT_ATTRIBUTES },
     triggerProfile: { ...DEFAULT_TRIGGER_PROFILE },
     calmCounts: {},
@@ -375,8 +377,10 @@ export function migrateRecord(raw: unknown): DogRecord {
   const completedNodes = strings(r.completedNodes);
   const beforeMissions = typeof r.version !== 'number' || r.version < 7;
   const billing = readBilling(r.billing);
+  const language: Language = r.language === 'en' ? 'en' : 'es';
   return moveHomeStretchesToWorldTwo(skipBasicsWorld({
     version: RECORD_VERSION,
+    language,
     attributes,
     triggerProfile: profile,
     calmCounts: typeof r.calmCounts === 'object' && r.calmCounts ? (r.calmCounts as DogRecord['calmCounts']) : {},

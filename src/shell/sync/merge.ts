@@ -142,6 +142,7 @@ export function resolve(local: DogRecord, remote: DogRecord): DogRecord {
   const entryKey = (e: WalkDiaryEntry) => `${e.date}|${diarySubject(e)}`;
   return {
     ...base,
+    language: local.language ?? base.language,
     readLessons: union(base.readLessons, other.readLessons, (id) => id),
     legacyNodes: mergeLegacyNodes(base, other),
     missions: mergeMissions(base.missions, other.missions),

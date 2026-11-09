@@ -344,4 +344,16 @@ describe('reset and the hand drill (task 3.3)', () => {
     expect(closeMarksOn(played.seenHints, {}, false)).toEqual({ gather: false, poste: false, marker: false });
     expect(closeMarksOn(reset.seenHints, {}, false)).toEqual({ gather: true, poste: true, marker: true });
   });
+
+  it('preserves the user chosen language across reset', () => {
+    const playedEn = {
+      ...newDogRecord(),
+      language: 'en' as const,
+      name: 'Max',
+      completedNodes: ['calm-hands'],
+    };
+    const reset = createResetRecord(playedEn);
+    expect(reset.language).toBe('en');
+    expect(reset.onboarding.step).toBe('welcome');
+  });
 });

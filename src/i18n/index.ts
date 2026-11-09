@@ -1,9 +1,19 @@
 import { es, type Catalog, type TextKey } from './es';
+import { en } from './en';
 import { getContentCatalog, setContentCatalogProvider } from './catalogProvider';
+import type { Language } from '../shell/voice';
 
 export type { Catalog, TextKey } from './es';
 export { es } from './es';
+export { en } from './en';
 export { getContentCatalog, setContentCatalogProvider } from './catalogProvider';
+export { detectDeviceLanguage } from './language';
+
+export const CATALOGS: Record<Language, Catalog> = { es, en };
+
+export function getCatalog(language: Language): Catalog {
+  return CATALOGS[language] ?? es;
+}
 
 export type Translate = (key: TextKey) => string;
 

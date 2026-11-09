@@ -6,7 +6,7 @@ import { AppState, BackHandler, useColorScheme, View } from 'react-native';
 import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Fredoka_600SemiBold } from '@expo-google-fonts/fredoka';
-import { createTranslator, es } from './src/i18n';
+import { createTranslator, detectDeviceLanguage, getCatalog } from './src/i18n';
 import { installFeedback } from './src/shell/ui/feedbackBackends';
 import { useUiSettings } from './src/shell/ui/useUiSettings';
 import { DevPerfOverlay } from './src/shell/ui/DevPerfOverlay';
@@ -62,18 +62,18 @@ import { PaywallScreen } from './src/shell/screens/PaywallScreen';
 import { ValueRecapScreen } from './src/shell/screens/ValueRecapScreen';
 import { PlanScreen } from './src/shell/screens/PlanScreen';
 import { MethodOverviewScreen } from './src/shell/screens/MethodOverviewScreen';
-import { ConcernScreen, DogLookScreen, PayoffOverlay, TasteBriefScreen } from './src/shell/screens/IntroScreens';
+import { ConcernScreen, DogLookScreen, LanguageScreen, PayoffOverlay, TasteBriefScreen } from './src/shell/screens/IntroScreens';
 import { SetupScreen } from './src/shell/screens/SetupScreen';
 import { SettingsScreen, type SettingsTab } from './src/shell/screens/SettingsScreen';
 import { SplashScreen } from './src/shell/screens/SplashScreen';
 import { initNativeContent, switchContentChannel } from './src/shell/content/nativeRuntime';
-import { getActiveContent, type RuntimeContent } from './src/shell/content/runtime';
+import { getActiveContent, switchContentLanguage, type RuntimeContent } from './src/shell/content/runtime';
 import type { ContentChannel } from './src/shell/content/channelSetting';
 import { isRusty, sessionCapacity, warmupScenario, type WarmupOutcome } from './src/shell/rusty';
 import { SimView } from './src/shell/SimView';
 import { ContentUpdateBanner } from './src/shell/ui/ContentUpdateBanner';
 import type { SimViewHandle } from './src/shell/simViewTypes';
-import { dogStore } from './src/shell/storage';
+import { dogStore, loadStoredLanguage, saveStoredLanguage } from './src/shell/storage';
 import { completeFirstStage } from './src/shell/onboarding/firstStage';
 import { nextStep } from './src/shell/onboarding/flow';
 import { recordDiagnostic } from './src/shell/onboarding/diagnostic';
@@ -120,9 +120,6 @@ function isHandDrillFlow(route: Route<Flow>): boolean {
   return route.name === 'flow' && route.flow.name === 'node' && route.flow.run.node.mode === 'close_exercise' && route.flow.run.node.simulation.closeScenario?.controls === 'hand_drill';
 }
 
-/** The shell owns the active language; Spanish is the only one shipped. */
-const CATALOG = es;
-const LANGUAGE: Language = 'es';
 const LOAD_TIMEOUT_MS = 20000;
 const HINT_MS = 7000;
 /** The Marker Coach mark gives up after this long without a press. */
@@ -158,6 +155,41 @@ export default function App() {
   const scheme: ColorScheme = ui.settings.appearance === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : ui.settings.appearance;
   const sim = useRef<SimViewHandle>(null);
   const { record, update, replace } = useDog(dogStore);
+  const [language, setLanguage] = useState<Language>(() => detectDeviceLanguage());
+
+  useEffect(() => {
+    loadStoredLanguage().then((stored) => {
+      if (stored) {
+        setLanguage(stored);
+        switchContentLanguage(stored);
+        setContentSession(getActiveContent());
+      } else {
+        const detected = detectDeviceLanguage();
+        setLanguage(detected);
+        switchContentLanguage(detected);
+        void saveStoredLanguage(detected);
+        setContentSession(getActiveContent());
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (record && record.language !== language) {
+      update((r) => ({ ...r, language }));
+    }
+  }, [record?.language, language, update]);
+
+  const handleLanguageChange = useCallback(
+    (newLang: Language) => {
+      setLanguage(newLang);
+      switchContentLanguage(newLang);
+      saveStoredLanguage(newLang);
+      update((r) => ({ ...r, language: newLang }));
+      setContentSession(getActiveContent());
+    },
+    [update],
+  );
+
   const account = useAccount(dogStore, record, replace);
   const accountRef = useRef(account);
   accountRef.current = account;
@@ -170,10 +202,10 @@ export default function App() {
   const [contentSession, setContentSession] = useState<RuntimeContent>(() => getActiveContent());
 
   useEffect(() => {
-    initNativeContent()
+    initNativeContent({ language })
       .then((session) => setContentSession(session))
       .catch(() => {});
-  }, []);
+  }, [language]);
 
   const handleSwitchChannel = useCallback(async (channel: ContentChannel) => {
     const res = await switchContentChannel(channel);
@@ -198,7 +230,7 @@ export default function App() {
   const [attempt, setAttempt] = useState(0); // bumping it reloads the bundle
   // every text that names the Dog (`{name}`) shows its name, or "tu perro" before it has one
   const dogName = record?.name ?? '';
-  const t = useMemo(() => namedTranslator(createTranslator(CATALOG), dogName), [dogName]);
+  const t = useMemo(() => namedTranslator(createTranslator(getCatalog(language)), dogName), [language, dogName]);
 
   const flowRef = useRef(flow);
   flowRef.current = flow;
@@ -291,7 +323,7 @@ export default function App() {
       const message: ShellMessage = {
         type: 'start',
         seed,
-        catalog: CATALOG,
+        catalog: getCatalog(language),
         scenario: { ...withPull(scenario, current.weights), learning: snapshot ?? toSnapshot(current, capacityRef.current), look: lookOf(current) },
       };
       setPaused(false);
@@ -313,7 +345,7 @@ export default function App() {
       const message: ShellMessage = {
         type: 'start',
         seed,
-        catalog: CATALOG,
+        catalog: getCatalog(language),
         scenario: { ...scenario, mode: 'close_exercise', learning: snapshot ?? toSnapshot(current, capacityRef.current), look: lookOf(current) },
       };
       setPaused(false);
@@ -503,7 +535,7 @@ export default function App() {
         if (message.tier === 'reactive' && routeRef.current.name === 'taste') showTastePayoff();
       }
       else if (message.type === 'playCue') {
-        if (recordRef.current) playResolvedCue(resolveCue(recordRef.current, LANGUAGE));
+        if (recordRef.current) playResolvedCue(resolveCue(recordRef.current, language));
       } else if (message.type === 'debrief') {
         const payload: SimulationDebriefPayload = message.payload;
         const f = flowRef.current;
@@ -845,7 +877,8 @@ export default function App() {
         {overlay === 'settings' ? (
           <SettingsScreen
             t={t}
-            language={LANGUAGE}
+            language={language}
+            onLanguageChange={handleLanguageChange}
             record={record}
             update={update}
             onClose={withBack(() => setSettingsOpen(false))}
@@ -876,6 +909,19 @@ export default function App() {
             t={t}
             onShown={hideNativeSplash}
             actions={{ onStart: () => update(leaveWelcome), onLogIn: account.configured ? () => setFlow({ name: 'auth', mode: 'login', returnTo: 'map' }) : undefined }}
+          />
+        );
+      else if (route.step === 'language')
+        screen = (
+          <LanguageScreen
+            t={t}
+            selectedLanguage={language}
+            onSelectLanguage={handleLanguageChange}
+            onDone={(lang) => {
+              handleLanguageChange(lang);
+              update((r) => ({ ...r, language: lang, onboarding: { ...r.onboarding, step: 'dog' } }));
+            }}
+            onBack={withBack(() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: 'welcome' } })))}
           />
         );
       else if (route.step === 'dog') screen = <DogLookScreen t={t} record={record} onDone={(name, coat, breed, ageBand) => update((r) => saveNameAndLook(r, name, coat, breed, ageBand))} />;
@@ -1335,7 +1381,7 @@ export default function App() {
           act({ type: 'finish', result: { kind: 'minigame', metrics, handlingScore, ...(puzzle ? { puzzle } : {}) } });
         const minigame = run.node.simulation.minigame;
         const seed = f.attempt + 1 + (dateSeed(todayString()) % 1000);
-        const playCue = () => playResolvedCue(resolveCue(record, LANGUAGE));
+        const playCue = () => playResolvedCue(resolveCue(record, language));
         screen =
           minigame === 'doorbell-mat' ? (
             <DoorbellMatView key={`minigame-${f.attempt}`} t={t} coat={record.coat} seed={seed} onCue={playCue} onFinish={(r) => finish(r.metrics, r.handlingScore)} />

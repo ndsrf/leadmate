@@ -1,7 +1,7 @@
 import React from 'react';
 // @ts-ignore
 import { renderToStaticMarkup } from 'react-dom/server';
-import { DogLookScreen } from './IntroScreens';
+import { DogLookScreen, LanguageScreen } from './IntroScreens';
 import { newDogRecord } from '../dogRecord';
 import { t } from '../../i18n';
 
@@ -117,5 +117,25 @@ describe('DogLookScreen', () => {
     );
 
     expect(html).toContain(t('dog.breed.title'));
+  });
+});
+
+describe('LanguageScreen', () => {
+  it('renders Spanish and English options with pre-selected language', () => {
+    const html = renderToStaticMarkup(
+      <LanguageScreen
+        t={t}
+        selectedLanguage="en"
+        onSelectLanguage={() => {}}
+        onDone={() => {}}
+        onBack={() => {}}
+      />
+    );
+
+    expect(html).toContain(t('language.title'));
+    expect(html).toContain(t('language.subtitle'));
+    expect(html).toContain(t('language.es'));
+    expect(html).toContain(t('language.en'));
+    expect(html).toContain(t('language.continue'));
   });
 });

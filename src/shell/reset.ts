@@ -21,7 +21,7 @@ export function createResetRecord(oldRecord: DogRecord, now: Date = new Date()):
   // Ensure the timestamp is strictly later than oldRecord.updatedAt
   const previous = Date.parse(oldRecord.updatedAt);
   const stamp = Number.isNaN(previous) ? now.getTime() : Math.max(now.getTime(), previous + 1);
-  return { ...fresh, updatedAt: new Date(stamp).toISOString() };
+  return { ...fresh, language: oldRecord.language ?? fresh.language, updatedAt: new Date(stamp).toISOString() };
 }
 
 /**

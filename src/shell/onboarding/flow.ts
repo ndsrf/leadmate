@@ -1,5 +1,5 @@
 /** The funnel's steps in order; `done` comes after the paywall screen has been passed. */
-export const ONBOARDING_STEPS = ['welcome', 'dog', 'concern', 'taste', 'setup', 'diagnostic', 'plan', 'method', 'first-stage', 'paywall', 'done'] as const;
+export const ONBOARDING_STEPS = ['welcome', 'language', 'dog', 'concern', 'taste', 'setup', 'diagnostic', 'plan', 'method', 'first-stage', 'paywall', 'done'] as const;
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[number];
 
 export function isOnboardingStep(v: unknown): v is OnboardingStep {
