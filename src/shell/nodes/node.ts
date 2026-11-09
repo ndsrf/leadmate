@@ -77,6 +77,13 @@ export interface NodeDef {
   opensAfterLesson?: string;
   /** What the Debrief says about a hand drill: the Dog settled, or the time ran out first (never a failure). */
   debrief?: { calm: TextKey; notCalm: TextKey };
+  recommendations?: Array<{
+    id: string;
+    target: string;
+    targetKind: 'category' | 'subcategory' | 'product';
+    when: string;
+    explanation: TextKey;
+  }>;
 }
 
 export function missingPrerequisites(node: NodeDef, completed: readonly string[]): string[] {

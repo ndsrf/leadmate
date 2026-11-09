@@ -1,13 +1,25 @@
 import {
+  CATEGORY_SCHEMA_FIELDS,
   isContentId,
+  isHttpsUrl,
+  isRecommendationTrigger,
   isRelativeMediaPath,
   isSemver,
   isYouTubeId,
   parseYaml,
+  PRODUCT_SCHEMA_FIELDS,
+  RECOMMENDATION_SCHEMA_FIELDS,
+  SHOP_SCHEMA_FIELDS,
+  SUBCATEGORY_SCHEMA_FIELDS,
+  validateCategoryYaml,
   validateLessonYaml,
   validateMissionYaml,
   validateNodeYaml,
   validatePackYaml,
+  validateProductYaml,
+  validateRecommendationYaml,
+  validateShopYaml,
+  validateSubcategoryYaml,
   validateWorldYaml,
 } from './schema';
 
@@ -197,5 +209,121 @@ describe('mission.yaml validation', () => {
     expect(validateMissionYaml({ id: 'bad', technique: '', reps: 0 }).valid).toBe(false);
     expect(validateMissionYaml({ id: 'mission1', technique: 'tech', reps: 1, trains: [], problems: [] }).valid).toBe(false);
     expect(validateMissionYaml({ id: 'mission1', technique: 'tech', reps: 1, place: 'park', trains: [{ kind: 'node', id: 'n1' }], problems: [{ id: 'p1' }] }).valid).toBe(false);
+  });
+});
+
+describe('shop schema field documentation', () => {
+  it('includes shop kinds and recommendations in schema field tables', () => {
+    expect(SHOP_SCHEMA_FIELDS.map((f) => f.name)).toEqual(['categories']);
+    expect(CATEGORY_SCHEMA_FIELDS.map((f) => f.name)).toEqual(['id', 'subcategories']);
+    expect(SUBCATEGORY_SCHEMA_FIELDS.map((f) => f.name)).toEqual(['id', 'products']);
+    expect(PRODUCT_SCHEMA_FIELDS.map((f) => f.name)).toEqual(['id', 'source', 'urls', 'price', 'priceCheckedAt', 'image']);
+    expect(RECOMMENDATION_SCHEMA_FIELDS.map((f) => f.name)).toEqual(['id', 'target', 'when']);
+  });
+});
+
+describe('shop.yaml validation', () => {
+  it('accepts valid shop.yaml', () => {
+    const res = validateShopYaml({ categories: ['collares', 'camas'] });
+    expect(res.valid).toBe(true);
+    expect(res.errors).toEqual([]);
+  });
+
+  it('rejects invalid shop.yaml', () => {
+    expect(validateShopYaml(null).valid).toBe(false);
+    expect(validateShopYaml({ categories: 'not-an-array' }).valid).toBe(false);
+    expect(validateShopYaml({ categories: ['Invalid_ID'] }).valid).toBe(false);
+  });
+});
+
+describe('category.yaml validation', () => {
+  it('accepts valid category.yaml', () => {
+    const res = validateCategoryYaml({ id: 'collares', subcategories: ['arneses', 'collares-fijos'] });
+    expect(res.valid).toBe(true);
+    expect(res.errors).toEqual([]);
+  });
+
+  it('rejects invalid category.yaml', () => {
+    expect(validateCategoryYaml(null).valid).toBe(false);
+    expect(validateCategoryYaml({ id: 'Collares', subcategories: [] }).valid).toBe(false);
+    expect(validateCategoryYaml({ id: 'collares', subcategories: ['bad ID'] }).valid).toBe(false);
+  });
+});
+
+describe('subcategory.yaml validation', () => {
+  it('accepts valid subcategory.yaml', () => {
+    const res = validateSubcategoryYaml({ id: 'arneses', products: ['arnes-anti-tirones'] });
+    expect(res.valid).toBe(true);
+    expect(res.errors).toEqual([]);
+  });
+
+  it('rejects invalid subcategory.yaml', () => {
+    expect(validateSubcategoryYaml(null).valid).toBe(false);
+    expect(validateSubcategoryYaml({ id: 'Arneses', products: [] }).valid).toBe(false);
+    expect(validateSubcategoryYaml({ id: 'arneses', products: ['bad ID'] }).valid).toBe(false);
+  });
+});
+
+describe('product.yaml validation', () => {
+  it('accepts valid product.yaml', () => {
+    const valid = {
+      id: 'arnes-anti-tirones',
+      source: 'manual',
+      urls: { es: 'https://example.com/es/harness', en: 'https://example.com/en/harness' },
+      price: '24,99 €',
+      priceCheckedAt: '2026-11',
+      image: 'media/harness.png',
+    };
+    const res = validateProductYaml(valid);
+    expect(res.valid).toBe(true);
+    expect(res.errors).toEqual([]);
+  });
+
+  it('rejects invalid product.yaml', () => {
+    expect(validateProductYaml(null).valid).toBe(false);
+    expect(validateProductYaml({ id: 'Bad', urls: { es: 'https://example.com' } }).valid).toBe(false);
+    expect(validateProductYaml({ id: 'arnes', source: 'unknown', urls: { es: 'https://example.com' } }).valid).toBe(false);
+    expect(validateProductYaml({ id: 'arnes', urls: { en: 'https://example.com' } }).valid).toBe(false);
+    expect(validateProductYaml({ id: 'arnes', urls: { es: 'http://insecure.com' } }).valid).toBe(false);
+    expect(validateProductYaml({ id: 'arnes', urls: { es: 'https://example.com' }, priceCheckedAt: '2026-99' }).valid).toBe(false);
+    expect(validateProductYaml({ id: 'arnes', urls: { es: 'https://example.com' }, image: '../outside.png' }).valid).toBe(false);
+  });
+});
+
+describe('recommendation validation', () => {
+  it('accepts valid triggers and targets', () => {
+    expect(isRecommendationTrigger('view')).toBe(true);
+    expect(isRecommendationTrigger('poste-trouble')).toBe(true);
+    expect(isRecommendationTrigger('poor-score')).toBe(true);
+    expect(isRecommendationTrigger('problem:pulls-ahead')).toBe(true);
+    expect(isRecommendationTrigger('invalid-trigger')).toBe(false);
+    expect(isRecommendationTrigger('problem:')).toBe(false);
+    expect(isRecommendationTrigger('problem:Bad_Id')).toBe(false);
+
+    const recs = [
+      { id: 'rec-collar', target: 'collares', when: 'view' },
+      { id: 'rec-harness', target: 'arneses', when: 'poste-trouble' },
+      { id: 'rec-bed', target: 'cama-relax', when: 'poor-score' },
+      { id: 'rec-toy', target: 'juguete', when: 'problem:pulls-ahead' },
+    ];
+    for (const [idx, rec] of recs.entries()) {
+      expect(validateRecommendationYaml(rec, `recommendations[${idx}]`)).toEqual([]);
+    }
+  });
+
+  it('validates recommendations on lessons, nodes, and missions', () => {
+    const lesson = {
+      id: 'calm-leash',
+      kind: 'theory',
+      recommendations: [{ id: 'rec-1', target: 'collares', when: 'view' }],
+    };
+    expect(validateLessonYaml(lesson).valid).toBe(true);
+
+    const badLesson = {
+      id: 'calm-leash',
+      kind: 'theory',
+      recommendations: [{ id: 'rec-1', target: 'collares', when: 'bad-when' }],
+    };
+    expect(validateLessonYaml(badLesson).valid).toBe(false);
   });
 });

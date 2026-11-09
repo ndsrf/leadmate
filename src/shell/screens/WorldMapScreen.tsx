@@ -19,9 +19,11 @@ import { worldsFor, worldTitle, type Progress, type Stop } from '../world';
 import type { DogRecord } from '../dogRecord';
 import { isPlus, plusEndsAt, trialDaysRemaining, trialState, type TrialState } from '../plus';
 import { Backdrop, Button } from '../Overlays';
-import { Badge, Chip, GearGlyph, IconChip, LightRegion, Panel, ProgressBar, Raised, StarRow } from '../ui/components';
+import { Badge, BasketGlyph, Chip, GearGlyph, IconChip, LightRegion, Panel, ProgressBar, Raised, StarRow } from '../ui/components';
 import { WorldSceneryBackground, HouseLandmark, worldPalette } from '../ui/WorldSceneryBackground';
 export { HouseLandmark };
+import { getActiveContent } from '../content/runtime';
+import type { ResolvedShop } from '../content/resolver';
 import { connector, connectorVisual, labelOnRight, labelWidth, NODE_SIZE, nodeCenterX, nodeVisual, ROW_HEIGHT, SATELLITE_SIZE, satelliteCenterX, satelliteConnector, satelliteVisual, SECTION_HEADER_HEIGHT, sectionHeaderYOffset, stopYOffset, stretchFlag, type NodeGlyph } from '../ui/mapLayout';
 import { lockMessage, owedItemLabel, stopAccessibilityLabel, stopBadge, stopMarks, worldUnlockBanner, worldWalkSubtitle } from '../mapText';
 import { BreedArt } from '../ui/BreedArt';
@@ -79,6 +81,12 @@ export interface WorldMapProps {
   onLibrary?: () => void;
   /** Opens the Diary. */
   onDiary?: () => void;
+  /** Opens the Shop catalogue, optionally deep-linked to a level/id. */
+  onShop?: (target?: { level: 'home' | 'category' | 'subcategory' | 'product'; id?: string }) => void;
+  /** Resolved shop catalogue. When omitted, reads from `getActiveContent()?.resolved?.shop`. */
+  shop?: ResolvedShop;
+  /** Floating shop offer / recommendation popup to display over the map. */
+  shopPopup?: React.ReactNode;
   /** A non-blocking account card to show above the map, if any. */
   banner?: React.ReactNode;
   /** The Dog's breed, for drawing the avatar on the map. */
@@ -1248,6 +1256,9 @@ export function WorldMapScreen({
   initialScrollY,
   onScroll,
   onSettings,
+  onShop,
+  shop: shopProp,
+  shopPopup,
   libraryToday = false,
   onLibrary = () => {},
   onDiary = () => {},
@@ -1276,6 +1287,8 @@ export function WorldMapScreen({
   const days = membership ? trialDaysRemaining(membership, at) : 0;
   const [internalModalOpen, setInternalModalOpen] = useState(false);
   const isTrialModalOpen = trialModalOpen ?? internalModalOpen;
+  const activeShop = shopProp ?? getActiveContent()?.resolved?.shop;
+  const hasShop = (activeShop?.categories?.length ?? 0) > 0;
   const openTrialModal = onOpenTrialModal ?? (() => setInternalModalOpen(true));
   const closeTrialModal = onCloseTrialModal ?? (() => setInternalModalOpen(false));
 
@@ -1353,7 +1366,7 @@ export function WorldMapScreen({
     <View style={{ gap: theme.space[2] }}>
       <BetaContentBadge t={t} />
       <View className="flex-row items-center justify-between" style={{ gap: theme.space[2] }}>
-        <View className="flex-row items-center" style={{ gap: theme.space[2] }}>
+        <View className="flex-row items-center flex-shrink" style={{ gap: theme.space[2] }}>
           <StreakChip t={t} status={streakStatus(streak, today)} onPress={onDiary} />
           <Chip
             label={libraryToday ? t('library.chipToday') : undefined}
@@ -1363,7 +1376,15 @@ export function WorldMapScreen({
             accessibilityLabel={libraryToday ? `${t('library.chip')}. ${t('library.chipToday')}` : t('library.chip')}
           />
         </View>
-        <View className="flex-row items-center" style={{ gap: theme.space[2] }}>
+        <View className="flex-row items-center flex-shrink-0" style={{ gap: theme.space[2] }}>
+          {hasShop && (
+            <IconChip
+              icon={<BasketGlyph />}
+              onPress={() => onShop?.()}
+              accessibilityLabel={t('map.shopButton')}
+              testID="map-shop-button"
+            />
+          )}
           <IconChip icon={<GearGlyph />} onPress={onSettings} accessibilityLabel={t('map.settings')} />
         </View>
       </View>
@@ -1391,14 +1412,17 @@ export function WorldMapScreen({
       header={header}
       footer={!plus ? <AdBanner isPlus={plus} active={live} /> : undefined}
       overlay={
-        isTrialModalOpen && (
-          <TrialStatusModal
-            t={t}
-            daysRemaining={days}
-            isSubscribed={isSubscribed}
-            onDismiss={closeTrialModal}
-          />
-        )
+        <>
+          {isTrialModalOpen && (
+            <TrialStatusModal
+              t={t}
+              daysRemaining={days}
+              isSubscribed={isSubscribed}
+              onDismiss={closeTrialModal}
+            />
+          )}
+          {shopPopup}
+        </>
       }
       scrollRef={scroll}
       onScroll={onScroll ? (e) => onScroll(e.nativeEvent.contentOffset.y) : undefined}

@@ -308,4 +308,227 @@ describe('validatePack scenarios', () => {
     expect(report.valid).toBe(true);
     expect(report.errors).toEqual([]);
   });
+
+  describe('Shop and Recommendation validation scenarios', () => {
+    function makeValidPackWithShop(): ContentPack {
+      const pack = makeValidPack();
+      pack.shop = {
+        config: {
+          categories: ['collares'],
+        },
+        categories: {
+          collares: {
+            config: {
+              id: 'collares',
+              subcategories: ['arneses'],
+            },
+            text: {
+              es: {
+                title: 'Collares y arneses',
+                description: 'Categoría de collares y arneses',
+              },
+            },
+          },
+        },
+        subcategories: {
+          arneses: {
+            config: {
+              id: 'arneses',
+              products: ['arnes-front'],
+            },
+            text: {
+              es: {
+                title: 'Arneses',
+                description: 'Subcategoría de arneses',
+              },
+            },
+          },
+        },
+        products: {
+          'arnes-front': {
+            config: {
+              id: 'arnes-front',
+              source: 'manual',
+              urls: {
+                es: 'https://example.com/es/harness',
+              },
+              price: '24,99 €',
+              priceCheckedAt: '2026-11',
+              image: 'media/harness.png',
+            },
+            text: {
+              es: {
+                title: 'Arnés Frontal',
+                description: 'Arnés anti-tirones',
+              },
+            },
+          },
+        },
+      };
+
+      pack.lessons['lesson-1'].config.recommendations = [
+        { id: 'rec-collar', target: 'collares', when: 'view' },
+        { id: 'rec-arnes', target: 'arnes-front', when: 'poste-trouble' },
+      ];
+
+      return pack;
+    }
+
+    it('Scenario: Valid pack with shop passes validation', () => {
+      const pack = makeValidPackWithShop();
+      const report = validatePack(pack, { now: new Date('2026-11-08T00:00:00Z') });
+      expect(report.valid).toBe(true);
+      expect(report.errors).toEqual([]);
+      expect(report.warnings).toEqual([]);
+    });
+
+    it('Scenario: ID uniqueness across content and shop items', () => {
+      const pack = makeValidPackWithShop();
+      // Collide category id with existing lesson-1
+      pack.shop!.categories!['lesson-1'] = {
+        config: { id: 'lesson-1', subcategories: [] },
+        text: { es: { title: 'Dup', description: 'Dup' } },
+      };
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      expect(report.errors.some((e) => e.message.includes('Duplicate ID "lesson-1" already defined as a lesson'))).toBe(true);
+    });
+
+    it('Scenario: Missing folders - listed category in shop.yaml has no folder', () => {
+      const pack = makeValidPackWithShop();
+      pack.shop!.config!.categories.push('missing-cat');
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      expect(report.errors.some((e) => e.message.includes('Category "missing-cat" listed in shop.yaml has no folder'))).toBe(true);
+    });
+
+    it('Scenario: Missing folders - listed subcategory in category has no folder', () => {
+      const pack = makeValidPackWithShop();
+      pack.shop!.categories!['collares'].config.subcategories.push('missing-sub');
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      expect(report.errors.some((e) => e.message.includes('Subcategory "missing-sub" listed in category "collares" has no folder'))).toBe(true);
+    });
+
+    it('Scenario: Missing folders - listed product in subcategory has no folder', () => {
+      const pack = makeValidPackWithShop();
+      pack.shop!.subcategories!['arneses'].config.products.push('missing-prod');
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      expect(report.errors.some((e) => e.message.includes('Product "missing-prod" listed in subcategory "arneses" has no folder'))).toBe(true);
+    });
+
+    it('Scenario: Orphan Subcategory and Product', () => {
+      const pack = makeValidPackWithShop();
+      // Add subcategory that belongs to no category
+      pack.shop!.subcategories!['orphan-sub'] = {
+        config: { id: 'orphan-sub', products: [] },
+        text: { es: { title: 'Orphan Sub', description: 'Desc' } },
+      };
+      // Add product that belongs to no subcategory
+      pack.shop!.products!['orphan-prod'] = {
+        config: { id: 'orphan-prod', urls: { es: 'https://example.com/p' } },
+        text: { es: { title: 'Orphan Prod', description: 'Desc' } },
+      };
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      expect(report.errors.some((e) => e.message.includes('Orphan Subcategory: "orphan-sub"'))).toBe(true);
+      expect(report.errors.some((e) => e.message.includes('Orphan Product: "orphan-prod"'))).toBe(true);
+    });
+
+    it('Scenario: Non-https buy link fails naming file and field', () => {
+      const pack = makeValidPackWithShop();
+      pack.shop!.products!['arnes-front'].config.urls = {
+        es: 'http://insecure.example.com/harness',
+      };
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.file === 'shop/products/arnes-front/product.yaml' && e.field === 'urls.es');
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('https address');
+    });
+
+    it('Scenario: Missing Spanish buy link fails', () => {
+      const pack = makeValidPackWithShop();
+      pack.shop!.products!['arnes-front'].config.urls = {
+        en: 'https://example.com/en',
+      };
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      expect(report.errors.some((e) => e.field === 'urls.es' && e.message.includes('no buy link in Spanish'))).toBe(true);
+    });
+
+    it('Scenario: Picture path leaves item folder or is absolute', () => {
+      const pack = makeValidPackWithShop();
+      pack.shop!.products!['arnes-front'].config.image = '../other/photo.png';
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      expect(report.errors.some((e) => e.field === 'image' && e.message.includes('leaves item folder'))).toBe(true);
+    });
+
+    it('Scenario: Recommendation target unknown', () => {
+      const pack = makeValidPackWithShop();
+      pack.lessons['lesson-1'].config.recommendations = [
+        { id: 'rec-unknown', target: 'does-not-exist', when: 'view' },
+      ];
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.field === 'recommendations[0].target');
+      expect(err?.message).toContain('names unknown target "does-not-exist"');
+    });
+
+    it('Scenario: Recommendation names non-shop item target', () => {
+      const pack = makeValidPackWithShop();
+      pack.lessons['lesson-1'].config.recommendations = [
+        { id: 'rec-node', target: 'node-1', when: 'view' },
+      ];
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.field === 'recommendations[0].target');
+      expect(err?.message).toContain('names unknown target "node-1"');
+    });
+
+    it('Scenario: Recommendation unknown trigger fails', () => {
+      const pack = makeValidPackWithShop();
+      pack.lessons['lesson-1'].config.recommendations = [
+        { id: 'rec-bad-when', target: 'collares', when: 'invalid-trigger' },
+      ];
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.field === 'recommendations[0].when');
+      expect(err?.message).toContain('invalid-trigger');
+      expect(err?.hint).toContain('Allowed triggers');
+    });
+
+    it('Scenario: Missing Spanish text on shop items fails', () => {
+      const pack = makeValidPackWithShop();
+      delete pack.shop!.products!['arnes-front'].text?.['es'];
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      expect(report.errors.some((e) => e.file === 'shop/products/arnes-front/es.md' && e.message.includes('missing required Spanish text'))).toBe(true);
+    });
+
+    it('Scenario: Warnings - Missing picture, empty category, old priceCheckedAt, Amazon marketplace', () => {
+      const pack = makeValidPackWithShop();
+      // Missing picture
+      delete pack.shop!.products!['arnes-front'].config.image;
+      // Empty category: add 'camas' with no subcategories
+      pack.shop!.config!.categories.push('camas');
+      pack.shop!.categories!['camas'] = {
+        config: { id: 'camas', subcategories: [] },
+        text: { es: { title: 'Camas', description: 'Camas para perros' } },
+      };
+      // Old price checked (> 90 days before 2026-11-08)
+      pack.shop!.products!['arnes-front'].config.priceCheckedAt = '2026-05';
+      // Amazon link for Spanish on .com
+      pack.shop!.products!['arnes-front'].config.urls['es'] = 'https://www.amazon.com/dp/B001';
+
+      const report = validatePack(pack, { now: new Date('2026-11-08T00:00:00Z') });
+      expect(report.valid).toBe(true); // Warnings still pass validation!
+      expect(report.warnings.some((w) => w.message.includes('has no picture'))).toBe(true);
+      expect(report.warnings.some((w) => w.message.includes('has no subcategories'))).toBe(true);
+      expect(report.warnings.some((w) => w.message.includes('checked more than 90 days ago'))).toBe(true);
+      expect(report.warnings.some((w) => w.message.includes('instead of expected marketplace "amazon.es"'))).toBe(true);
+    });
+  });
 });

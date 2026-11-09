@@ -14,20 +14,63 @@ import {
   parseMissionMarkdown,
   parseNodeMarkdown,
   parseWorldMarkdown,
+  parseShopItemMarkdown,
   type ParsedLessonContent,
   type ParsedMissionContent,
   type ParsedMissionFix,
   type ParsedNodeContent,
+  type ParsedShopText,
   type ParsedWorldContent,
 } from './parser';
 import type {
   LessonYaml,
   MissionYaml,
   NodeYaml,
+  RecommendationYaml,
   StopYaml,
   WorldYaml,
 } from './schema';
 import type { ContentPack } from './validator';
+
+export type ShopItemKind = 'category' | 'subcategory' | 'product';
+
+export interface ResolvedProduct {
+  id: string;
+  name: TextKey;
+  description: TextKey;
+  price?: string;
+  priceCheckedAt?: string;
+  image?: string;
+  url: string;
+  source?: 'amazon' | 'manual';
+}
+
+export interface ResolvedSubcategory {
+  id: string;
+  title: TextKey;
+  description: TextKey;
+  products: ResolvedProduct[];
+}
+
+export interface ResolvedCategory {
+  id: string;
+  title: TextKey;
+  description: TextKey;
+  subcategories: ResolvedSubcategory[];
+}
+
+export interface ResolvedShop {
+  categories: ResolvedCategory[];
+  idToKind: Record<string, ShopItemKind>;
+}
+
+export interface ResolvedRecommendation {
+  id: string;
+  target: string;
+  targetKind: ShopItemKind;
+  when: string;
+  explanation: TextKey;
+}
 
 export interface ResolvedPack {
   worlds: WorldDef[];
@@ -35,6 +78,7 @@ export interface ResolvedPack {
   nodes: NodeDef[];
   missions: MissionDef[];
   catalog: Record<string, string>;
+  shop: ResolvedShop;
 }
 
 // Canonical mappings from IDs to existing catalog slugs for exact backward compatibility
@@ -98,6 +142,173 @@ function mapStop(stop: StopYaml): Stop {
 export function resolvePack(pack: ContentPack, language: string = 'es', options?: { mediaBase?: string }): ResolvedPack {
   const catalog: Record<string, string> = {};
   const mediaBase = options?.mediaBase !== undefined ? options.mediaBase : MEDIA_BASE;
+
+  // 0. Resolve Shop
+  const resolvedProductsMap = new Map<string, ResolvedProduct>();
+  if (pack.shop?.products) {
+    for (const [pId, pEntry] of Object.entries(pack.shop.products)) {
+      const buyUrl = pEntry.config?.urls?.[language];
+      if (!buyUrl) {
+        // Drop product if no buy link for this language
+        continue;
+      }
+      const pCfg = pEntry.config;
+      const textEsRaw = pEntry.text?.['es'];
+      const textLangRaw = language !== 'es' ? pEntry.text?.[language] : undefined;
+
+      const parsedEs: ParsedShopText = typeof textEsRaw === 'string' ? parseShopItemMarkdown(textEsRaw) : (textEsRaw as ParsedShopText) ?? { title: pId, description: '' };
+      const parsedLang: Partial<ParsedShopText> | undefined = textLangRaw ? (typeof textLangRaw === 'string' ? parseShopItemMarkdown(textLangRaw) : textLangRaw) : undefined;
+
+      const esName = parsedEs.title || pId;
+      const esDesc = parsedEs.description || '';
+      const name = (parsedLang?.title && parsedLang.title.trim()) ? parsedLang.title : esName;
+      const desc = (parsedLang?.description && parsedLang.description.trim()) ? parsedLang.description : esDesc;
+
+      const nameKey = `shop.product.${pId}.name` as TextKey;
+      const descKey = `shop.product.${pId}.description` as TextKey;
+      catalog[nameKey] = name;
+      catalog[descKey] = desc;
+
+      const resProd: ResolvedProduct = {
+        id: pId,
+        name: nameKey,
+        description: descKey,
+        url: buyUrl,
+      };
+      if (pCfg.price !== undefined) resProd.price = pCfg.price;
+      if (pCfg.priceCheckedAt !== undefined) resProd.priceCheckedAt = pCfg.priceCheckedAt;
+      if (pCfg.image !== undefined) resProd.image = pCfg.image;
+      if (pCfg.source !== undefined) resProd.source = pCfg.source;
+
+      resolvedProductsMap.set(pId, resProd);
+    }
+  }
+
+  const resolvedSubcategoriesMap = new Map<string, ResolvedSubcategory>();
+  if (pack.shop?.subcategories) {
+    for (const [sId, sEntry] of Object.entries(pack.shop.subcategories)) {
+      const childProducts = (sEntry.config?.products ?? [])
+        .map((pId) => resolvedProductsMap.get(pId))
+        .filter((p): p is ResolvedProduct => p !== undefined);
+
+      if (childProducts.length === 0) {
+        // Drop subcategory if no buyable products
+        continue;
+      }
+
+      const textEsRaw = sEntry.text?.['es'];
+      const textLangRaw = language !== 'es' ? sEntry.text?.[language] : undefined;
+
+      const parsedEs: ParsedShopText = typeof textEsRaw === 'string' ? parseShopItemMarkdown(textEsRaw) : (textEsRaw as ParsedShopText) ?? { title: sId, description: '' };
+      const parsedLang: Partial<ParsedShopText> | undefined = textLangRaw ? (typeof textLangRaw === 'string' ? parseShopItemMarkdown(textLangRaw) : textLangRaw) : undefined;
+
+      const esTitle = parsedEs.title || sId;
+      const esDesc = parsedEs.description || '';
+      const title = (parsedLang?.title && parsedLang.title.trim()) ? parsedLang.title : esTitle;
+      const desc = (parsedLang?.description && parsedLang.description.trim()) ? parsedLang.description : esDesc;
+
+      const titleKey = `shop.subcategory.${sId}.title` as TextKey;
+      const descKey = `shop.subcategory.${sId}.description` as TextKey;
+      catalog[titleKey] = title;
+      catalog[descKey] = desc;
+
+      resolvedSubcategoriesMap.set(sId, {
+        id: sId,
+        title: titleKey,
+        description: descKey,
+        products: childProducts,
+      });
+    }
+  }
+
+  const resolvedCategories: ResolvedCategory[] = [];
+  if (pack.shop?.categories) {
+    const categoryOrder = pack.shop.config?.categories ?? Object.keys(pack.shop.categories);
+    for (const cId of categoryOrder) {
+      const cEntry = pack.shop.categories[cId];
+      if (!cEntry) continue;
+
+      const childSubcategories = (cEntry.config?.subcategories ?? [])
+        .map((sId) => resolvedSubcategoriesMap.get(sId))
+        .filter((s): s is ResolvedSubcategory => s !== undefined);
+
+      if (childSubcategories.length === 0) {
+        // Drop category if no buyable subcategories
+        continue;
+      }
+
+      const textEsRaw = cEntry.text?.['es'];
+      const textLangRaw = language !== 'es' ? cEntry.text?.[language] : undefined;
+
+      const parsedEs: ParsedShopText = typeof textEsRaw === 'string' ? parseShopItemMarkdown(textEsRaw) : (textEsRaw as ParsedShopText) ?? { title: cId, description: '' };
+      const parsedLang: Partial<ParsedShopText> | undefined = textLangRaw ? (typeof textLangRaw === 'string' ? parseShopItemMarkdown(textLangRaw) : textLangRaw) : undefined;
+
+      const esTitle = parsedEs.title || cId;
+      const esDesc = parsedEs.description || '';
+      const title = (parsedLang?.title && parsedLang.title.trim()) ? parsedLang.title : esTitle;
+      const desc = (parsedLang?.description && parsedLang.description.trim()) ? parsedLang.description : esDesc;
+
+      const titleKey = `shop.category.${cId}.title` as TextKey;
+      const descKey = `shop.category.${cId}.description` as TextKey;
+      catalog[titleKey] = title;
+      catalog[descKey] = desc;
+
+      resolvedCategories.push({
+        id: cId,
+        title: titleKey,
+        description: descKey,
+        subcategories: childSubcategories,
+      });
+    }
+  }
+
+  const idToKind: Record<string, ShopItemKind> = {};
+  for (const cat of resolvedCategories) {
+    idToKind[cat.id] = 'category';
+    for (const sub of cat.subcategories) {
+      idToKind[sub.id] = 'subcategory';
+      for (const prod of sub.products) {
+        idToKind[prod.id] = 'product';
+      }
+    }
+  }
+
+  const shop: ResolvedShop = {
+    categories: resolvedCategories,
+    idToKind,
+  };
+
+  const resolveRecommendations = (
+    recs: RecommendationYaml[] | undefined,
+    itemPrefix: string,
+    parsedEsRecs?: Record<string, string>,
+    parsedLangRecs?: Record<string, string>,
+  ): ResolvedRecommendation[] | undefined => {
+    if (!recs || recs.length === 0) return undefined;
+    const resolvedRecs: ResolvedRecommendation[] = [];
+    for (const r of recs) {
+      const targetKind = idToKind[r.target];
+      if (!targetKind) {
+        // Dropped / orphaned recommendation!
+        continue;
+      }
+      const esExpl = parsedEsRecs?.[r.id] || '';
+      const langExpl = parsedLangRecs?.[r.id];
+      const explanation = (langExpl && langExpl.trim()) ? langExpl : esExpl;
+
+      const explKey = `${itemPrefix}.rec.${r.id}.explanation` as TextKey;
+      catalog[explKey] = explanation;
+
+      resolvedRecs.push({
+        id: r.id,
+        target: r.target,
+        targetKind,
+        when: r.when,
+        explanation: explKey,
+      });
+    }
+    return resolvedRecs.length > 0 ? resolvedRecs : undefined;
+  };
 
   // 1. Resolve Worlds
   const worlds: WorldDef[] = Object.entries(pack.worlds ?? {})
@@ -233,6 +444,9 @@ export function resolvePack(pack: ContentPack, language: string = 'es', options?
 
     if (cfg.day !== undefined) lessonDef.day = cfg.day;
 
+    const lessonRecs = resolveRecommendations(cfg.recommendations, `lesson.${id}`, parsedEs.recommendations, parsedLang?.recommendations);
+    if (lessonRecs) lessonDef.recommendations = lessonRecs;
+
     return lessonDef;
   });
 
@@ -345,6 +559,9 @@ export function resolvePack(pack: ContentPack, language: string = 'es', options?
       catalog[notCalmKey] = parsedLang?.debrief?.notCalm ?? parsedEs.debrief?.notCalm ?? cfg.debrief?.notCalm ?? '';
       nodeDef.debrief = { calm: calmKey, notCalm: notCalmKey };
     }
+
+    const nodeRecs = resolveRecommendations(cfg.recommendations, `node.${id}`, parsedEs.recommendations, parsedLang?.recommendations);
+    if (nodeRecs) nodeDef.recommendations = nodeRecs;
 
     return nodeDef;
   });
@@ -475,6 +692,9 @@ export function resolvePack(pack: ContentPack, language: string = 'es', options?
 
     if (cfg.place) missionDef.place = cfg.place;
 
+    const missionRecs = resolveRecommendations(cfg.recommendations, `mission.${id}`, parsedEs.recommendations, parsedLang?.recommendations);
+    if (missionRecs) missionDef.recommendations = missionRecs;
+
     return missionDef;
   });
 
@@ -484,5 +704,6 @@ export function resolvePack(pack: ContentPack, language: string = 'es', options?
     nodes,
     missions,
     catalog,
+    shop,
   };
 }

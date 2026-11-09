@@ -2,6 +2,9 @@ import { STAR_THRESHOLDS } from '../sim/payload';
 
 export type Stars = 1 | 2 | 3;
 
+/** Handling score below this threshold triggers a poor-score shop recommendation (ADR 0028). */
+export const POOR_SCORE_BELOW = 200;
+
 /**
  * Stars for a finished Node from its handling score (0-1000): 1 for completing it, 2 from 650 and 3
  * from 850. A Node without a score (a Minigame) earns 1. Only handling quality counts, never time or taps,

@@ -18,11 +18,30 @@ import { readDogSceneOf } from '../nodes/readDog';
 import type { CheckpointSeconds } from '../dogRecord';
 import { DIARY_OUTCOMES, type DiaryOutcome } from '../streak';
 import { Screen } from './Screen';
+import { ShopLinkCard } from './ShopLinkCard';
+import { getActiveContent } from '../content/runtime';
 
-export function PrimerScreen({ t, run, onNext, onExit }: { t: Translate; run: NodeRun; onNext: () => void; onExit: () => void }) {
+export function PrimerScreen({
+  t,
+  run,
+  onNext,
+  onExit,
+  onShop,
+}: {
+  t: Translate;
+  run: NodeRun;
+  onNext: () => void;
+  onExit: () => void;
+  onShop?: (target: { level: 'home' | 'category' | 'subcategory' | 'product'; id?: string }) => void;
+}) {
   const total = run.node.primerCards.length;
   const card = primerCardOf(run.node.primerCards[run.card]);
   const [guideOpen, setGuideOpen] = useState(false);
+  const activeShop = getActiveContent()?.resolved?.shop;
+  const viewRecs = (run.node.recommendations ?? [])
+    .filter((rec) => rec.when === 'view' && Boolean(activeShop?.idToKind && activeShop.idToKind[rec.target]))
+    .slice(0, 2);
+
   return (
     <Screen>
       <ProgressBar value={run.card + 1} max={total} className="mb-3" />
@@ -33,6 +52,14 @@ export function PrimerScreen({ t, run, onNext, onExit }: { t: Translate; run: No
         {card.media && <MediaPlaceholder key={`${run.node.id}:${run.card}`} t={t} media={card.media} />}
         {card.tutorialUrl && <Button label={t('primer.openGuide')} tone="quiet" onPress={() => setGuideOpen(true)} />}
       </Panel>
+      {viewRecs.map((rec) => (
+        <ShopLinkCard
+          key={rec.id}
+          t={t}
+          explanation={t(rec.explanation) || (rec.explanation as string)}
+          onOpen={() => onShop?.({ level: rec.targetKind, id: rec.target })}
+        />
+      ))}
       <Text className="text-center font-display text-label text-inkMuted">{`${run.card + 1} / ${total}`}</Text>
       <Button label={t('node.next')} onPress={onNext} />
       <Button label={t('node.back')} tone="quiet" onPress={onExit} />
@@ -203,6 +230,7 @@ export function DebriefScreen({
   onPlayAgain,
   best,
   celebrations,
+  onShop,
 }: {
   t: Translate;
   run: NodeRun;
@@ -216,10 +244,11 @@ export function DebriefScreen({
   best: Stars;
   /** Celebrations of this completion, computed once when the Debrief opened. */
   celebrations: readonly Celebration[];
+  onShop?: (target: { level: 'home' | 'category' | 'subcategory' | 'product'; id?: string }) => void;
 }) {
   const result = run.result;
   if (!result) return null;
-  return <DebriefBody t={t} run={run} result={result} showPosteLink={showPosteLink} mission={mission} onPosteLink={onPosteLink} onDone={onDone} onPlayAgain={onPlayAgain} best={best} celebrations={celebrations} />;
+  return <DebriefBody t={t} run={run} result={result} showPosteLink={showPosteLink} mission={mission} onPosteLink={onPosteLink} onDone={onDone} onPlayAgain={onPlayAgain} best={best} celebrations={celebrations} onShop={onShop} />;
 }
 
 function DebriefBody({
@@ -233,6 +262,7 @@ function DebriefBody({
   onPlayAgain,
   best,
   celebrations,
+  onShop,
 }: {
   t: Translate;
   run: NodeRun;
@@ -244,6 +274,7 @@ function DebriefBody({
   onPlayAgain: () => void;
   best: Stars;
   celebrations: readonly Celebration[];
+  onShop?: (target: { level: 'home' | 'category' | 'subcategory' | 'product'; id?: string }) => void;
 }) {
   const exercise = pickExercise(run.node, result);
   const score = result.kind === 'stage' || result.kind === 'close_exercise' ? result.payload.handlingScore : result.handlingScore;
@@ -252,6 +283,10 @@ function DebriefBody({
   const earned = starsFor(score);
   const reveal = useReveal({ score, stars: earned });
   const { phase, scoreShown, starsShown } = reveal.state;
+  const activeShop = getActiveContent()?.resolved?.shop;
+  const viewRecs = (run.node.recommendations ?? [])
+    .filter((rec) => rec.when === 'view' && Boolean(activeShop?.idToKind && activeShop.idToKind[rec.target]))
+    .slice(0, 2);
   const revealing = phase !== 'done';
   const showRows = phase === 'rows' || phase === 'done';
   return (
@@ -314,6 +349,14 @@ function DebriefBody({
               <Button label={t('results.posteLink')} onPress={onPosteLink} />
             </Panel>
           )}
+          {viewRecs.map((rec) => (
+            <ShopLinkCard
+              key={rec.id}
+              t={t}
+              explanation={t(rec.explanation) || (rec.explanation as string)}
+              onOpen={() => onShop?.({ level: rec.targetKind, id: rec.target })}
+            />
+          ))}
           <Button label={t('results.playAgain')} onPress={onPlayAgain} />
           <Button label={t('results.continue')} tone="secondary" onPress={onDone} />
         </>

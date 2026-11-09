@@ -1,6 +1,15 @@
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { basename, join } from 'node:path';
 import type { TextKey } from '../../i18n';
 import type { CompareSide, LessonBlock, LessonKind, VideoSource } from '../lessons/lesson';
-import type { LessonYaml } from './schema';
+import {
+  parseYaml,
+  type CategoryYaml,
+  type LessonYaml,
+  type ProductYaml,
+  type ShopYaml,
+  type SubcategoryYaml,
+} from './schema';
 
 /**
  * Error thrown when Markdown parsing fails or contains rejected markup.
@@ -85,6 +94,7 @@ export interface ParsedLessonContent {
     alt?: string;
     caption?: string;
   }>;
+  recommendations?: Record<string, string>;
 }
 
 export interface ParsedWorldContent {
@@ -110,6 +120,7 @@ export interface ParsedNodeContent {
     calm?: string;
     notCalm?: string;
   };
+  recommendations?: Record<string, string>;
 }
 
 export interface ParsedMissionFix {
@@ -134,6 +145,37 @@ export interface ParsedMissionContent {
   success: string;
   problems: ParsedMissionProblem[];
   general: ParsedMissionFix;
+  recommendations?: Record<string, string>;
+}
+
+export interface ParsedShopText {
+  title: string;
+  description: string;
+}
+
+export interface ParsedShopCategory {
+  config: CategoryYaml;
+  text: Record<string, ParsedShopText>;
+  files?: string[];
+}
+
+export interface ParsedShopSubcategory {
+  config: SubcategoryYaml;
+  text: Record<string, ParsedShopText>;
+  files?: string[];
+}
+
+export interface ParsedShopProduct {
+  config: ProductYaml;
+  text: Record<string, ParsedShopText>;
+  files?: string[];
+}
+
+export interface ParsedShopTree {
+  config?: ShopYaml;
+  categories: Record<string, ParsedShopCategory>;
+  subcategories: Record<string, ParsedShopSubcategory>;
+  products: Record<string, ParsedShopProduct>;
 }
 
 // -- Low-level Markdown AST representation -----------------------------------
@@ -387,6 +429,22 @@ export function parseLessonMarkdown(markdown: string, config?: LessonYaml): Pars
         break;
       }
 
+      case 'recommendations':
+      case 'recomendaciones': {
+        const recommendations: Record<string, string> = {};
+        if (sec.subsections.length === 0 && cleanBodyText(sec.body)) {
+          throw new MarkdownParseError('Each recommendation must have a subsection with its ID (### <id>)');
+        }
+        for (const sub of sec.subsections) {
+          if (!sub.heading.trim()) {
+            throw new MarkdownParseError('Recommendation subsection is missing an ID heading');
+          }
+          recommendations[sub.heading.trim()] = cleanBodyText(sub.body);
+        }
+        res.recommendations = recommendations;
+        break;
+      }
+
       default: {
         // Handle how-to-play controls (e.g. "Control 1", "c1", etc.)
         const cMatch = /^(?:control|c)\s*(\d+)$/i.exec(norm);
@@ -609,6 +667,7 @@ export function parseNodeMarkdown(markdown: string): ParsedNodeContent {
   const checkpoint: ParsedNodeCheckpointQuestion[] = [];
   const exercises: Record<string, string> = {};
   const debrief: { calm?: string; notCalm?: string } = {};
+  let returnRecommendations: Record<string, string> | undefined;
 
   for (const sec of sections) {
     const norm = normalizeSectionName(sec.heading);
@@ -654,10 +713,22 @@ export function parseNodeMarkdown(markdown: string): ParsedNodeContent {
       const kv = extractMetaKeyValues(sec.body);
       if (kv.calm) debrief.calm = kv.calm;
       if (kv.notcalm || kv['not_calm']) debrief.notCalm = kv.notcalm ?? kv['not_calm'];
+    } else if (norm === 'recommendations' || norm === 'recomendaciones') {
+      const recommendations: Record<string, string> = {};
+      if (sec.subsections.length === 0 && cleanBodyText(sec.body)) {
+        throw new MarkdownParseError('Each recommendation must have a subsection with its ID (### <id>)');
+      }
+      for (const sub of sec.subsections) {
+        if (!sub.heading.trim()) {
+          throw new MarkdownParseError('Recommendation subsection is missing an ID heading');
+        }
+        recommendations[sub.heading.trim()] = cleanBodyText(sub.body);
+      }
+      returnRecommendations = recommendations;
     }
   }
 
-  return { title, primer, checkpoint, exercises, debrief };
+  return { title, primer, checkpoint, exercises, debrief, recommendations: returnRecommendations };
 }
 
 // -- Mission Markdown Parser -------------------------------------------------
@@ -669,6 +740,7 @@ export function parseMissionMarkdown(markdown: string): ParsedMissionContent {
   let success = '';
   const problems: ParsedMissionProblem[] = [];
   let general: ParsedMissionFix = { reassure: '', cause: '', c1: '', easier: '', alt: '', caption: '' };
+  let recommendations: Record<string, string> | undefined;
 
   for (const sec of sections) {
     const norm = normalizeSectionName(sec.heading);
@@ -706,8 +778,166 @@ export function parseMissionMarkdown(markdown: string): ParsedMissionContent {
         alt: kv.alt ?? '',
         caption: kv.caption ?? '',
       };
+    } else if (norm === 'recommendations' || norm === 'recomendaciones') {
+      const recs: Record<string, string> = {};
+      if (sec.subsections.length === 0 && cleanBodyText(sec.body)) {
+        throw new MarkdownParseError('Each recommendation must have a subsection with its ID (### <id>)');
+      }
+      for (const sub of sec.subsections) {
+        if (!sub.heading.trim()) {
+          throw new MarkdownParseError('Recommendation subsection is missing an ID heading');
+        }
+        recs[sub.heading.trim()] = cleanBodyText(sub.body);
+      }
+      recommendations = recs;
     }
   }
 
-  return { title, target, success, problems, general };
+  return { title, target, success, problems, general, recommendations };
 }
+
+// -- Shop Item Markdown Parser & Shop Directory Reader -----------------------
+
+export function parseShopItemMarkdown(markdown: string, context?: string): ParsedShopText {
+  assertNoRejectedMarkup(markdown, context);
+  const { title: rawTitle, sections } = parseSections(markdown);
+  let title = rawTitle;
+  let description = '';
+
+  for (const sec of sections) {
+    const norm = normalizeSectionName(sec.heading);
+    if (norm === 'title' || norm === 'titulo' || norm === 'name' || norm === 'nombre') {
+      title = cleanBodyText(sec.body);
+    } else if (norm === 'description' || norm === 'descripcion') {
+      description = cleanBodyText(sec.body);
+    } else {
+      throw new MarkdownParseError(
+        `Unexpected section "${sec.heading}"${context ? ` in ${context}` : ''}`,
+        undefined,
+        sec.heading,
+      );
+    }
+  }
+
+  return { title, description };
+}
+
+export function readShopDirectory(shopDir: string): ParsedShopTree {
+  const result: ParsedShopTree = {
+    categories: {},
+    subcategories: {},
+    products: {},
+  };
+
+  if (!existsSync(shopDir)) {
+    return result;
+  }
+
+  const shopYamlPath = join(shopDir, 'shop.yaml');
+  if (existsSync(shopYamlPath)) {
+    result.config = parseYaml<ShopYaml>(readFileSync(shopYamlPath, 'utf8'));
+  }
+
+  // Categories
+  const catDir = join(shopDir, 'categories');
+  if (existsSync(catDir)) {
+    for (const entry of readdirSync(catDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const id = entry.name;
+      const itemDir = join(catDir, id);
+      const cfgPath = join(itemDir, 'category.yaml');
+      if (!existsSync(cfgPath)) {
+        throw new Error(`category.yaml not found at ${cfgPath}`);
+      }
+      const config = parseYaml<CategoryYaml>(readFileSync(cfgPath, 'utf8'));
+      const esPath = join(itemDir, 'es.md');
+      if (!existsSync(esPath)) {
+        throw new Error(`Missing Spanish text: categories/${id}/es.md`);
+      }
+      const text: Record<string, ParsedShopText> = {};
+      const files: string[] = [];
+      for (const f of readdirSync(itemDir, { withFileTypes: true })) {
+        if (f.isFile() && f.name.endsWith('.md')) {
+          const lang = basename(f.name, '.md');
+          text[lang] = parseShopItemMarkdown(readFileSync(join(itemDir, f.name), 'utf8'), `categories/${id}/${f.name}`);
+        } else if (f.isDirectory() && f.name === 'media') {
+          const mediaDir = join(itemDir, 'media');
+          for (const m of readdirSync(mediaDir)) {
+            files.push(`media/${m}`);
+          }
+        }
+      }
+      result.categories[id] = { config, text, files };
+    }
+  }
+
+  // Subcategories
+  const subcatDir = join(shopDir, 'subcategories');
+  if (existsSync(subcatDir)) {
+    for (const entry of readdirSync(subcatDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const id = entry.name;
+      const itemDir = join(subcatDir, id);
+      const cfgPath = join(itemDir, 'subcategory.yaml');
+      if (!existsSync(cfgPath)) {
+        throw new Error(`subcategory.yaml not found at ${cfgPath}`);
+      }
+      const config = parseYaml<SubcategoryYaml>(readFileSync(cfgPath, 'utf8'));
+      const esPath = join(itemDir, 'es.md');
+      if (!existsSync(esPath)) {
+        throw new Error(`Missing Spanish text: subcategories/${id}/es.md`);
+      }
+      const text: Record<string, ParsedShopText> = {};
+      const files: string[] = [];
+      for (const f of readdirSync(itemDir, { withFileTypes: true })) {
+        if (f.isFile() && f.name.endsWith('.md')) {
+          const lang = basename(f.name, '.md');
+          text[lang] = parseShopItemMarkdown(readFileSync(join(itemDir, f.name), 'utf8'), `subcategories/${id}/${f.name}`);
+        } else if (f.isDirectory() && f.name === 'media') {
+          const mediaDir = join(itemDir, 'media');
+          for (const m of readdirSync(mediaDir)) {
+            files.push(`media/${m}`);
+          }
+        }
+      }
+      result.subcategories[id] = { config, text, files };
+    }
+  }
+
+  // Products
+  const prodDir = join(shopDir, 'products');
+  if (existsSync(prodDir)) {
+    for (const entry of readdirSync(prodDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const id = entry.name;
+      const itemDir = join(prodDir, id);
+      const cfgPath = join(itemDir, 'product.yaml');
+      if (!existsSync(cfgPath)) {
+        throw new Error(`product.yaml not found at ${cfgPath}`);
+      }
+      const config = parseYaml<ProductYaml>(readFileSync(cfgPath, 'utf8'));
+      const esPath = join(itemDir, 'es.md');
+      if (!existsSync(esPath)) {
+        throw new Error(`Missing Spanish text: products/${id}/es.md`);
+      }
+      const text: Record<string, ParsedShopText> = {};
+      const files: string[] = [];
+      for (const f of readdirSync(itemDir, { withFileTypes: true })) {
+        if (f.isFile() && f.name.endsWith('.md')) {
+          const lang = basename(f.name, '.md');
+          text[lang] = parseShopItemMarkdown(readFileSync(join(itemDir, f.name), 'utf8'), `products/${id}/${f.name}`);
+        } else if (f.isDirectory() && f.name === 'media') {
+          const mediaDir = join(itemDir, 'media');
+          for (const m of readdirSync(mediaDir)) {
+            files.push(`media/${m}`);
+          }
+        }
+      }
+      result.products[id] = { config, text, files };
+    }
+  }
+
+  return result;
+}
+
+export const readShopFiles = readShopDirectory;

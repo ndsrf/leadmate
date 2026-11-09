@@ -1,3 +1,6 @@
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import {
   assertNoRejectedMarkup,
   buildLessonBlocks,
@@ -5,7 +8,9 @@ import {
   parseLessonMarkdown,
   parseMissionMarkdown,
   parseNodeMarkdown,
+  parseShopItemMarkdown,
   parseWorldMarkdown,
+  readShopDirectory,
 } from './parser';
 import type { LessonYaml } from './schema';
 
@@ -308,5 +313,162 @@ El perro espera relajado sin mordisquear.
     expect(mission.problems[0].id).toBe('excited');
     expect(mission.problems[0].fix.cause).toContain('salida inmediata');
     expect(mission.general.reassure).toBe('No te preocupes.');
+  });
+});
+
+describe('## recommendations parsing in item es.md', () => {
+  it('parses recommendations section from lesson markdown', () => {
+    const md = `
+# Lección con recomendación
+
+## heading
+Encabezado
+
+## hook
+Gancho
+
+## why
+Por qué
+
+## steps
+1. Paso 1
+
+## recommendations
+### rec-collar
+Con este collar practicar el Poste resulta más sencillo.
+
+### rec-harness
+Un arnés de enganche frontal evita tirones.
+`;
+    const parsed = parseLessonMarkdown(md);
+    expect(parsed.recommendations).toBeDefined();
+    expect(parsed.recommendations?.['rec-collar']).toBe('Con este collar practicar el Poste resulta más sencillo.');
+    expect(parsed.recommendations?.['rec-harness']).toBe('Un arnés de enganche frontal evita tirones.');
+  });
+
+  it('parses recommendations section from node and mission markdown', () => {
+    const nodeMd = `
+# Nodo Poste
+
+## recommendations
+### rec-collar
+Recomendado para este ejercicio.
+`;
+    const parsedNode = parseNodeMarkdown(nodeMd);
+    expect(parsedNode.recommendations?.['rec-collar']).toBe('Recomendado para este ejercicio.');
+
+    const missionMd = `
+# Misión
+
+## target
+Objetivo
+
+## recommendations
+### rec-bed
+Una cama cómoda ayuda al descanso.
+`;
+    const parsedMission = parseMissionMarkdown(missionMd);
+    expect(parsedMission.recommendations?.['rec-bed']).toBe('Una cama cómoda ayuda al descanso.');
+  });
+
+  it('throws MarkdownParseError on bad recommendations section without id subsections', () => {
+    const badMd = `
+# Lección
+
+## heading
+Heading
+
+## recommendations
+Texto suelto sin subsección con ID de recomendación.
+`;
+    expect(() => parseLessonMarkdown(badMd)).toThrow(MarkdownParseError);
+    expect(() => parseLessonMarkdown(badMd)).toThrow(/Each recommendation must have a subsection with its ID/);
+  });
+});
+
+describe('parseShopItemMarkdown', () => {
+  it('parses title and description', () => {
+    const md = `# Collares y arneses\n\n## description\nTodo tipo de collares y arneses de paseo.\n`;
+    const parsed = parseShopItemMarkdown(md);
+    expect(parsed.title).toBe('Collares y arneses');
+    expect(parsed.description).toBe('Todo tipo de collares y arneses de paseo.');
+  });
+
+  it('throws MarkdownParseError on bad section', () => {
+    const badMd = `# Collares\n\n## unknown_section\nContenido inválido\n`;
+    expect(() => parseShopItemMarkdown(badMd)).toThrow(MarkdownParseError);
+    expect(() => parseShopItemMarkdown(badMd)).toThrow(/Unexpected section "unknown_section"/);
+  });
+});
+
+describe('readShopDirectory', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'leadmate-shop-test-'));
+  });
+
+  afterEach(() => {
+    if (fs.existsSync(tmpDir)) {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('parses valid shop tree', () => {
+    // shop.yaml
+    fs.writeFileSync(path.join(tmpDir, 'shop.yaml'), 'categories:\n  - collares\n');
+
+    // categories/collares
+    const catDir = path.join(tmpDir, 'categories', 'collares');
+    fs.mkdirSync(catDir, { recursive: true });
+    fs.writeFileSync(path.join(catDir, 'category.yaml'), 'id: collares\nsubcategories:\n  - arneses\n');
+    fs.writeFileSync(path.join(catDir, 'es.md'), '# Collares\n\n## description\nCategoría de collares.\n');
+
+    // subcategories/arneses
+    const subcatDir = path.join(tmpDir, 'subcategories', 'arneses');
+    fs.mkdirSync(subcatDir, { recursive: true });
+    fs.writeFileSync(path.join(subcatDir, 'subcategory.yaml'), 'id: arneses\nproducts:\n  - arnes-front\n');
+    fs.writeFileSync(path.join(subcatDir, 'es.md'), '# Arneses\n\n## description\nSubcategoría de arneses.\n');
+
+    // products/arnes-front
+    const prodDir = path.join(tmpDir, 'products', 'arnes-front');
+    fs.mkdirSync(path.join(prodDir, 'media'), { recursive: true });
+    fs.writeFileSync(
+      path.join(prodDir, 'product.yaml'),
+      'id: arnes-front\nsource: manual\nurls:\n  es: https://example.com/harness\nprice: "29,99 €"\n',
+    );
+    fs.writeFileSync(path.join(prodDir, 'es.md'), '# Arnés Frontal\n\n## description\nArnés anti-tirones.\n');
+    fs.writeFileSync(path.join(prodDir, 'media', 'photo.png'), 'fake-image-bytes');
+
+    const tree = readShopDirectory(tmpDir);
+    expect(tree.config?.categories).toEqual(['collares']);
+    expect(tree.categories['collares']).toBeDefined();
+    expect(tree.categories['collares'].text['es'].title).toBe('Collares');
+    expect(tree.categories['collares'].text['es'].description).toBe('Categoría de collares.');
+    expect(tree.subcategories['arneses']).toBeDefined();
+    expect(tree.products['arnes-front']).toBeDefined();
+    expect(tree.products['arnes-front'].config.price).toBe('29,99 €');
+    expect(tree.products['arnes-front'].files).toEqual(['media/photo.png']);
+  });
+
+  it('fails with missing Spanish text', () => {
+    fs.writeFileSync(path.join(tmpDir, 'shop.yaml'), 'categories:\n  - collares\n');
+    const catDir = path.join(tmpDir, 'categories', 'collares');
+    fs.mkdirSync(catDir, { recursive: true });
+    fs.writeFileSync(path.join(catDir, 'category.yaml'), 'id: collares\nsubcategories: []\n');
+    // es.md missing!
+
+    expect(() => readShopDirectory(tmpDir)).toThrow(/Missing Spanish text.*categories\/collares\/es\.md/);
+  });
+
+  it('fails on bad section in shop item markdown', () => {
+    fs.writeFileSync(path.join(tmpDir, 'shop.yaml'), 'categories:\n  - collares\n');
+    const catDir = path.join(tmpDir, 'categories', 'collares');
+    fs.mkdirSync(catDir, { recursive: true });
+    fs.writeFileSync(path.join(catDir, 'category.yaml'), 'id: collares\nsubcategories: []\n');
+    fs.writeFileSync(path.join(catDir, 'es.md'), '# Collares\n\n## bad_section\nError aqui.\n');
+
+    expect(() => readShopDirectory(tmpDir)).toThrow(MarkdownParseError);
+    expect(() => readShopDirectory(tmpDir)).toThrow(/Unexpected section "bad_section"/);
   });
 });

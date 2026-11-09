@@ -10,7 +10,7 @@ Packs live in the repository under two channels:
 
 ## 1. Directory Layout
 
-Everything belonging to one Lesson, Node, or Mission lives together in a single folder:
+Everything belonging to one Lesson, Node, Mission, or Shop item lives together in a single folder:
 
 ```
 content/<channel>/                 channel = beta | stable
@@ -30,6 +30,20 @@ content/<channel>/                 channel = beta | stable
     mission.yaml                   technique, reps, trains, problems
     es.md                          Spanish text (title, target, success, problem fixes)
     media/*.png                    illustrations belonging to this mission
+  shop/
+    shop.yaml                      ordered list of categories
+    categories/<cat-id>/
+      category.yaml                ordered list of subcategories
+      es.md                        title and description
+      media/*.png                  illustrations belonging to this category
+    subcategories/<sub-id>/
+      subcategory.yaml             ordered list of products
+      es.md                        title and description
+      media/*.png                  illustrations belonging to this subcategory
+    products/<product-id>/
+      product.yaml                 source, urls, price, priceCheckedAt, image
+      es.md                        name and description
+      media/*.png                  illustrations / photos belonging to this product
 ```
 
 ---
@@ -37,7 +51,7 @@ content/<channel>/                 channel = beta | stable
 ## 2. Identifier Rules
 
 - Every item identifier (`id`) MUST be lowercase kebab-case (matching `^[a-z0-9]+(-[a-z0-9]+)*$`).
-- IDs MUST be unique across all content items (Worlds, Lessons, Nodes, Missions).
+- IDs MUST be unique across all content items (Worlds, Lessons, Nodes, Missions, Categories, Subcategories, Products).
 - Published IDs are permanent: once published, an ID must never be deleted without being added to `retired` in `pack.yaml`.
 
 ---
@@ -82,6 +96,7 @@ content/<channel>/                 channel = beta | stable
 | `steps` | `number` | No | - | Number of how-to steps (theory lessons, typically 3-6) |
 | `takeaways` | `number` | No | - | Number of takeaway bullet points (typically 2-4) |
 | `controls` | `number` | No | - | Number of control recap sections (for how-to-play lessons) |
+| `recommendations` | `object[]` | No | - | Optional list of shop recommendations ({ id, target, when }) |
 
 ### 3.4 `nodes/<node-id>/node.yaml`
 
@@ -96,6 +111,7 @@ content/<channel>/                 channel = beta | stable
 | `primerCards` | `object[]` | No | - | Structured recap cards ({ kind, media?, tutorialUrl? }) |
 | `checkpoint` | `object[]` | No | - | Quiz questions ({ question, options, explanation }) |
 | `debrief` | `object` | No | - | Hand drill debrief text keys ({ calm, notCalm }) |
+| `recommendations` | `object[]` | No | - | Optional list of shop recommendations ({ id, target, when }) |
 
 ### 3.5 `missions/<mission-id>/mission.yaml`
 
@@ -108,6 +124,46 @@ content/<channel>/                 channel = beta | stable
 | `trains` | `Stop[]` | **Yes** | - | Stops that train the target of this Mission |
 | `problems` | `object[]` | **Yes** | - | List of problem items ({ id, label?, practise? }) |
 | `sharedNote` | `string` | No | - | Shared safety note key substituted into problem fixes |
+| `recommendations` | `object[]` | No | - | Optional list of shop recommendations ({ id, target, when }) |
+
+### 3.6 `shop/shop.yaml`
+
+| Field | Type | Required | Allowed Values | Description |
+| --- | --- | --- | --- | --- |
+| `categories` | `string[]` | **Yes** | - | Ordered list of Category IDs in the shop |
+
+### 3.7 `shop/categories/<category-id>/category.yaml`
+
+| Field | Type | Required | Allowed Values | Description |
+| --- | --- | --- | --- | --- |
+| `id` | `string` | **Yes** | - | Unique kebab-case identifier for the Category |
+| `subcategories` | `string[]` | **Yes** | - | Ordered list of Subcategory IDs in this Category |
+
+### 3.8 `shop/subcategories/<subcategory-id>/subcategory.yaml`
+
+| Field | Type | Required | Allowed Values | Description |
+| --- | --- | --- | --- | --- |
+| `id` | `string` | **Yes** | - | Unique kebab-case identifier for the Subcategory |
+| `products` | `string[]` | **Yes** | - | Ordered list of Product IDs in this Subcategory |
+
+### 3.9 `shop/products/<product-id>/product.yaml`
+
+| Field | Type | Required | Allowed Values | Description |
+| --- | --- | --- | --- | --- |
+| `id` | `string` | **Yes** | - | Unique kebab-case identifier for the Product |
+| `source` | `string` | No | `amazon`, `manual` | Product origin ("amazon" or "manual") |
+| `urls` | `Record<string, string>` | **Yes** | - | Map of language code to HTTPS buy link (es required) |
+| `price` | `string` | No | - | Optional approximate display price (e.g. "24,99 €") |
+| `priceCheckedAt` | `string` | No | - | Month price was checked in YYYY-MM format |
+| `image` | `string` | No | - | Optional relative media path in media/ |
+
+### 3.10 `recommendations` (`lesson.yaml`, `node.yaml`, `mission.yaml`)
+
+| Field | Type | Required | Allowed Values | Description |
+| --- | --- | --- | --- | --- |
+| `id` | `string` | **Yes** | - | Unique kebab-case identifier for the Recommendation |
+| `target` | `string` | **Yes** | - | Target Product, Subcategory, or Category ID |
+| `when` | `string` | **Yes** | - | Trigger condition ("view", "poste-trouble", "poor-score", or "problem:<id>") |
 
 ---
 
@@ -135,11 +191,27 @@ Markdown files hold the human text of each item.
 12. `## takeaways`: Bulleted summary (2-4 bullets, 5-15 words each)
 13. `## images`: `### <filename>` with `- alt:` and `- caption:` for each image
 
+### Shop Item Sections
+- **Categories and Subcategories**:
+  1. `# Title`: Category or subcategory title
+  2. `## description`: Brief description (10-40 words)
+- **Products**:
+  1. `# Name`: Visible product name
+  2. `## description`: Product description (20-60 words)
+
+### Recommendations Section (Lessons, Nodes, Missions)
+Any Lesson, Node, or Mission can include an optional `## recommendations` section in its `<lang>.md`:
+```markdown
+## recommendations
+### <recommendation-id>
+Explanation text shown to the user on the recommendation card or popup.
+```
+
 ---
 
 ## 5. Media, Animations, and Videos
 
-- **Images**: Placed under the item's `media/` folder (e.g. `lessons/<id>/media/step-1.png`). References in YAML or Markdown must be relative file names inside the folder (no `../` or `/`).
+- **Images**: Placed under the item's `media/` folder (e.g. `lessons/<id>/media/step-1.png` or `shop/products/<id>/media/product.png`). References in YAML or Markdown must be relative file names inside the folder (no `../` or `/`).
 - **Animations**: Hosted clip key specified in `animation:` in `lesson.yaml`. Clip timelines live in `docs/content/animations/`.
 - **YouTube Videos**: 11-character video ID per language in `lesson.yaml` (e.g. `youtube: { es: "dQw4w9WgXcQ" }`).
 
@@ -153,23 +225,32 @@ Markdown files hold the human text of each item.
    - Create `content/beta/lessons/<id>/lesson.yaml` and `es.md`.
    - Place illustrations in `content/beta/lessons/<id>/media/`.
    - Add `{ kind: "lesson", id: "<id>" }` to a World's stretch in `content/beta/worlds/<world>.yaml`.
-3. Validate your edits:
+3. To add or edit Shop items:
+   - Create Categories in `content/beta/shop/categories/<cat-id>/` and list them in `shop/shop.yaml`.
+   - Create Subcategories in `content/beta/shop/subcategories/<sub-id>/` and list them in the parent Category's `category.yaml`.
+   - Create Products in `content/beta/shop/products/<product-id>/` and list them in the parent Subcategory's `subcategory.yaml`.
+   - Alternatively, import products from Amazon:
+     ```bash
+     npm run content:shop-import -- <amazon-url> [--lang <code>] [--sub <subcategory-id>] [--id <product-id>] [--overwrite]
+     ```
+     Affiliate tags are resolved from environment variables or `.env.local` using `AMAZON_AFFILIATE_TAG_<SUFFIX>` (e.g. `AMAZON_AFFILIATE_TAG_ES`, `AMAZON_AFFILIATE_TAG_COM`, `AMAZON_AFFILIATE_TAG_CO_UK`). These tags are author-time only and never bundled in the app.
+4. Validate your edits:
    ```bash
    npm run content:validate -- --channel beta
    ```
-4. Promote to stable when ready:
+5. Promote to stable when ready:
    ```bash
    npm run content:promote
    ```
-5. Publish:
+6. Publish:
    ```bash
    npm run content:publish -- --channel beta
    ```
 
 ### Retiring Content
 To remove an item without breaking user progress:
-1. Remove its Stop from the World's stretch.
-2. Delete its folder from `lessons/`, `nodes/`, or `missions/`.
+1. Remove its Stop from the World's stretch (or Category/Subcategory list).
+2. Delete its folder from `lessons/`, `nodes/`, `missions/`, or `shop/`.
 3. Add its ID to `retired:` in `content/beta/pack.yaml`.
 4. Validate and promote.
 
@@ -296,6 +377,57 @@ Completar tres tramos de 20 metros manteniendo la correa holgada.
 - caption: Calma y descanso
 ```
 
+### Worked Shop Example
+
+#### `shop/categories/sample-collares/category.yaml`
+```yaml
+id: sample-collares
+subcategories:
+  - sample-arneses
+```
+
+#### `shop/categories/sample-collares/es.md`
+```markdown
+# Collares y arneses
+
+## description
+Material ergonómico y cómodo para pasear sin tensiones innecesarias.
+```
+
+#### `shop/subcategories/sample-arneses/subcategory.yaml`
+```yaml
+id: sample-arneses
+products:
+  - sample-arnes-antitiro
+```
+
+#### `shop/subcategories/sample-arneses/es.md`
+```markdown
+# Arneses en Y
+
+## description
+Arneses diseñados para respetar el movimiento natural de los hombros y el cuello.
+```
+
+#### `shop/products/sample-arnes-antitiro/product.yaml`
+```yaml
+id: sample-arnes-antitiro
+source: manual
+urls:
+  es: https://example.com/arnes-antitiro
+price: 34,95 €
+priceCheckedAt: 2026-03
+image: arnes.png
+```
+
+#### `shop/products/sample-arnes-antitiro/es.md`
+```markdown
+# Arnés ergonómico en Y
+
+## description
+Arnés en forma de Y con anilla frontal y dorsal para un paseo equilibrado y sin presión en la tráquea.
+```
+
 ---
 
 ## 8. Agent Checklist
@@ -308,4 +440,6 @@ Before completing an edit or adding new content:
 - [ ] All image references are simple filenames inside `media/` or known art names.
 - [ ] YouTube IDs are exactly 11 characters.
 - [ ] Every Lesson and Node is listed in a World's `stretches` or explicitly marked as library/home.
+- [ ] Every Product has an HTTPS buy link under `urls.es`.
+- [ ] Subcategories belong to a Category and Products belong to a Subcategory.
 - [ ] Run `npm run content:validate -- --channel beta` and ensure zero errors.

@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, extname, join } from 'node:path';
+import { readShopDirectory } from './parser';
 import { parseYaml, type LessonYaml, type MissionYaml, type NodeYaml, type PackYaml, type WorldYaml } from './schema';
 import type { ContentPack } from './validator';
 
@@ -113,6 +114,11 @@ export function loadPackFromDisk(packDir: string): ContentPack {
   loadItems<LessonYaml>('lessons', 'lesson.yaml', result.lessons);
   loadItems<NodeYaml>('nodes', 'node.yaml', result.nodes);
   loadItems<MissionYaml>('missions', 'mission.yaml', result.missions);
+
+  const shopDir = join(packDir, 'shop');
+  if (existsSync(shopDir)) {
+    result.shop = readShopDirectory(shopDir);
+  }
 
   return result;
 }

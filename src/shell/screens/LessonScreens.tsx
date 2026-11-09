@@ -13,6 +13,8 @@ import { theme } from '../ui/theme';
 import { Screen } from './Screen';
 import { BetaContentBadge } from '../ui/BetaContentBadge';
 import type { TrialState, VideoGatingProps } from '../plus';
+import { ShopLinkCard } from './ShopLinkCard';
+import { getActiveContent } from '../content/runtime';
 
 /**
  * The Theory Library: every Lesson in order with its place (day or trail Stretch), kind, reading time and read
@@ -153,6 +155,7 @@ export function LessonScreen({
   trialState,
   onUnlockVideo,
   autoPlayVideo,
+  onShop,
 }: {
   t: Translate;
   lesson: LessonDef;
@@ -164,6 +167,7 @@ export function LessonScreen({
   trialState?: TrialState;
   onUnlockVideo?: () => void;
   autoPlayVideo?: boolean;
+  onShop?: (target: { level: 'home' | 'category' | 'subcategory' | 'product'; id?: string }) => void;
 }) {
   const [progress, setProgress] = useState(0);
   const gating: VideoGatingProps = videoGating ?? { isPlus, trialState, onUnlock: onUnlockVideo, autoPlay: autoPlayVideo };
@@ -183,6 +187,16 @@ export function LessonScreen({
       </View>
     </View>
   );
+
+  const activeShop = getActiveContent()?.resolved?.shop;
+  const viewRecs = (lesson.recommendations ?? [])
+    .filter((rec) => rec.when === 'view' && Boolean(activeShop?.idToKind && activeShop.idToKind[rec.target]))
+    .slice(0, 2);
+
+  const takeawayIdx = lesson.blocks.findIndex((b) => b.type === 'takeaways');
+  const bodyBlocks = takeawayIdx !== -1 ? lesson.blocks.slice(0, takeawayIdx) : lesson.blocks;
+  const trailingBlocks = takeawayIdx !== -1 ? lesson.blocks.slice(takeawayIdx) : [];
+
   return (
     <Screen header={header} onScroll={onScroll}>
       <View className="mb-2 flex-row flex-wrap items-center" style={{ gap: theme.space[2] }}>
@@ -190,15 +204,21 @@ export function LessonScreen({
         {place !== '' && <Badge label={place} tone="info" />}
       </View>
       <Text className="font-display text-displayM text-ink" accessibilityRole="header">{t(lesson.title)}</Text>
-      {lessonItems(lesson).map((item, i) => (
-        <Item
-          key={i}
+      {bodyBlocks.map((b, i) => (
+        <Item key={`body-${i}`} t={t} item={b} onDone={onDone} videoGating={gating} />
+      ))}
+      {viewRecs.map((rec) => (
+        <ShopLinkCard
+          key={rec.id}
           t={t}
-          item={item}
-          onDone={onDone}
-          videoGating={gating}
+          explanation={t(rec.explanation) || (rec.explanation as string)}
+          onOpen={() => onShop?.({ level: rec.targetKind, id: rec.target })}
         />
       ))}
+      {trailingBlocks.map((b, i) => (
+        <Item key={`trailing-${i}`} t={t} item={b} onDone={onDone} videoGating={gating} />
+      ))}
+      <Item t={t} item={{ type: 'done' }} onDone={onDone} videoGating={gating} />
     </Screen>
   );
 }

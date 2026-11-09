@@ -14,3 +14,7 @@ primerCards:
       type: image
       url: ""
       art: theory-poste-do
+recommendations:
+  - id: rec-poste-arnes
+    target: arneses
+    when: poste-trouble

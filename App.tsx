@@ -23,7 +23,7 @@ import { playDogSound, playResolvedCue, prepareAudio } from './src/shell/audio';
 import { createVocalizer } from './src/shell/vocalize';
 import { answerAlone, shouldAskAlone, applyDaySkip, applyMissionCheckIn, getBarkdokuBoardIndex, passMissionDirectly, recordDailyBarkdoku, recordPlusBarkdoku, setHomeConcern, toSnapshot, updateMission } from './src/shell/dogRecord';
 import { rebuildPlan } from './src/shell/onboarding/plan';
-import { starsFor } from './src/shell/stars';
+import { POOR_SCORE_BELOW, starsFor } from './src/shell/stars';
 import { lookOf } from './src/shell/onboarding/look';
 import { INTRO_NODE } from './src/shell/onboarding/introNode';
 import { celebrationsFor, starsShown, type Celebration } from './src/shell/celebrations';
@@ -89,6 +89,18 @@ import { AccountBanner, AuthScreen, ChooseDogScreen, RegisterPrompt } from './sr
 import { resolveCue, type Language } from './src/shell/voice';
 import { backAction, isReadyToLeaveSplash, trialModalOwnsBack, onStageViewFailure, routeFor, stageViewWanted, type BackActionParams, type Route } from './src/shell/navigation';
 import { resetProgress } from './src/shell/reset';
+import { ShopScreen, type ShopLevel } from './src/shell/screens/ShopScreen';
+import { ShopPopup } from './src/shell/screens/ShopPopup';
+import {
+  DEFAULT_SHOP_STATE,
+  loadShopState,
+  recordGeneralOfferIgnored,
+  recordShopPopupShown,
+  resetGeneralOfferIgnored,
+  shouldOfferShop,
+  shouldShowLink,
+  type ShopState,
+} from './src/shell/shop';
 
 // Hold native splash on cold start until ready
 ExpoSplashScreen.preventAutoHideAsync().catch(() => {});
@@ -108,7 +120,13 @@ type Flow =
   | { name: 'mission'; id: string; view: MissionView; fixId?: string; returnTo?: 'map' | 'library' }
   /** The paywall from the map, or from a Plus-only action (`then`) that "Empezar prueba" completes. */
   | { name: 'paywall'; then?: PendingPlusAction }
-  | { name: 'puzzle'; date: string; boardIndex?: number };
+  | { name: 'puzzle'; date: string; boardIndex?: number }
+  | {
+      name: 'shop';
+      target?: { level: ShopLevel; id?: string };
+      returnTo?: 'map' | 'lesson' | 'node' | 'mission' | 'library';
+      previousFlow?: Flow | null;
+    };
 type MissionView = 'check' | 'brief' | 'waiting' | 'checkin' | 'problem' | 'fix' | 'passed';
 
 function isCloseExerciseFlow(route: Route<Flow>): boolean {
@@ -195,6 +213,19 @@ export default function App() {
   // celebrations are diffed once when a result opens and then only displayed, so each shows once
   const [celebrations, setCelebrations] = useState<{ id: string; list: Celebration[] } | null>(null);
   const [attempt, setAttempt] = useState(0); // bumping it reloads the bundle
+  const [shopState, setShopState] = useState<ShopState>(DEFAULT_SHOP_STATE);
+  const [pendingTrouble, setPendingTrouble] = useState<{
+    recommendationId: string;
+    target: string;
+    targetKind: 'category' | 'subcategory' | 'product';
+    when: string;
+    explanation: string;
+  } | null>(null);
+
+  useEffect(() => {
+    loadShopState(dogStore).then(setShopState);
+  }, []);
+
   // every text that names the Dog (`{name}`) shows its name, or "tu perro" before it has one
   const dogName = record?.name ?? '';
   const t = useMemo(() => namedTranslator(createTranslator(CATALOG), dogName), [dogName]);
@@ -434,13 +465,51 @@ export default function App() {
       getAdService().preloadInterstitial().catch(() => {});
     }
     let diff: Celebration[] = [];
+    let afterRecord: any = null;
     update((r) => {
       const now = new Date();
       const after = onDebrief(r, f.run, now);
+      afterRecord = after;
       diff = celebrationsFor(progressAt(r, now), progressAt(after, now), { kind: 'node', nodeId: f.run.node.id });
       return after;
     });
     setCelebrations({ id: debriefId, list: diff });
+
+    const activeShop = getActiveContent()?.resolved?.shop;
+    const score =
+      f.run.result?.kind === 'stage' || f.run.result?.kind === 'close_exercise'
+        ? f.run.result.payload?.handlingScore
+        : f.run.result?.kind === 'minigame'
+          ? f.run.result.handlingScore
+          : undefined;
+
+    const posteFails = afterRecord?.posteFailures ?? recordRef.current?.posteFailures ?? 0;
+    let matchedRec: any;
+    let matchedWhen: string | undefined;
+
+    if (posteFails >= 2) {
+      matchedRec = f.run.node.recommendations?.find(
+        (cand) => cand.when === 'poste-trouble' && Boolean(activeShop?.idToKind && activeShop.idToKind[cand.target]),
+      );
+      if (matchedRec) matchedWhen = 'poste-trouble';
+    }
+
+    if (!matchedRec && score !== undefined && score < POOR_SCORE_BELOW) {
+      matchedRec = f.run.node.recommendations?.find(
+        (cand) => cand.when === 'poor-score' && Boolean(activeShop?.idToKind && activeShop.idToKind[cand.target]),
+      );
+      if (matchedRec) matchedWhen = 'poor-score';
+    }
+
+    if (matchedRec && matchedWhen) {
+      setPendingTrouble({
+        recommendationId: matchedRec.id,
+        target: matchedRec.target,
+        targetKind: matchedRec.targetKind ?? (activeShop!.idToKind[matchedRec.target] as 'category' | 'subcategory' | 'product'),
+        when: matchedWhen,
+        explanation: matchedRec.explanation,
+      });
+    }
   }, [debriefId, update]);
 
   const goHome = useCallback(() => {
@@ -662,6 +731,25 @@ export default function App() {
       diff = celebrationsFor(progressAt(r, now), progressAt(after, now), { kind: 'mission', missionId: id });
       return after;
     });
+
+    if (outcome === 'struggled' && problemId !== undefined) {
+      const activeShop = getActiveContent()?.resolved?.shop;
+      const rec = mission.recommendations?.find(
+        (cand) =>
+          (cand.when === 'problem' || cand.when === `problem:${problemId}`) &&
+          Boolean(activeShop?.idToKind && activeShop.idToKind[cand.target]),
+      );
+      if (rec) {
+        setPendingTrouble({
+          recommendationId: rec.id,
+          target: rec.target,
+          targetKind: rec.targetKind ?? (activeShop!.idToKind[rec.target] as 'category' | 'subcategory' | 'product'),
+          when: rec.when,
+          explanation: rec.explanation,
+        });
+      }
+    }
+
     if (outcome === 'completed') {
       setCelebrations({ id: `mission:${id}`, list: diff });
       setFlow({ name: 'mission', id, view: 'passed' });
@@ -769,12 +857,103 @@ export default function App() {
     return () => sub.remove();
   }, [send, resume]);
 
+  useEffect(() => {
+    if (!pendingTrouble) return;
+    if (route.name === 'map') {
+      const activeShop = getActiveContent()?.resolved?.shop;
+      const canShow = shouldShowLink({
+        recommendationId: pendingTrouble.recommendationId,
+        trigger: pendingTrouble.when,
+        state: shopState,
+        targetInShop: Boolean(activeShop?.idToKind && activeShop.idToKind[pendingTrouble.target]),
+        isTrainingActive: false,
+        currentFlow: 'map',
+      });
+      if (!canShow) {
+        setPendingTrouble(null);
+      }
+    }
+  }, [pendingTrouble, route.name, shopState]);
+
   // the map with an optional overlay over it; Settings, the Library and Lessons keep the map mounted underneath, so it is where it was on return
   const mapWith = (overlay: 'settings' | React.ReactNode) => {
     if (!record) return null;
     const closeTrialModal = () => setTrialModalOpen(false);
     // the map stays mounted under its overlays; registering unconditionally would replace the overlay's back
     if (trialModalOwnsBack({ trialModalOpen, hasOverlay: overlay !== null })) withBack(closeTrialModal);
+
+    let shopPopupNode: React.ReactNode = null;
+    const activeShop = getActiveContent()?.resolved?.shop;
+    if (overlay === null && !trialModalOpen && route.name === 'map') {
+      if (
+        pendingTrouble &&
+        shouldShowLink({
+          recommendationId: pendingTrouble.recommendationId,
+          trigger: pendingTrouble.when,
+          state: shopState,
+          targetInShop: Boolean(activeShop?.idToKind && activeShop.idToKind[pendingTrouble.target]),
+          isTrainingActive: false,
+          currentFlow: 'map',
+        })
+      ) {
+        shopPopupNode = (
+          <ShopPopup
+            text={t(pendingTrouble.explanation) || pendingTrouble.explanation}
+            onOpen={async () => {
+              const updated = await recordShopPopupShown(shopState, {
+                recommendationId: pendingTrouble.recommendationId,
+                storage: dogStore,
+              });
+              setShopState(updated);
+              const target = { level: pendingTrouble.targetKind, id: pendingTrouble.target };
+              setPendingTrouble(null);
+              setFlow({ name: 'shop', target, returnTo: 'map' });
+            }}
+            onClose={async () => {
+              const updated = await recordShopPopupShown(shopState, {
+                recommendationId: pendingTrouble.recommendationId,
+                storage: dogStore,
+              });
+              setShopState(updated);
+              setPendingTrouble(null);
+            }}
+          />
+        );
+      } else if (
+        !pendingTrouble &&
+        shouldOfferShop({
+          state: shopState,
+          hasShopItems: Boolean(activeShop?.categories && activeShop.categories.length > 0),
+          hasPendingTrouble: false,
+          isTrainingActive: false,
+          currentFlow: 'map',
+        })
+      ) {
+        shopPopupNode = (
+          <ShopPopup
+            text={t('shop.popup.offerText')}
+            onOpen={async () => {
+              let updated = await resetGeneralOfferIgnored(shopState, dogStore);
+              updated = await recordShopPopupShown(updated, {
+                isGeneralOffer: true,
+                storage: dogStore,
+              });
+              setShopState(updated);
+              setFlow({ name: 'shop', returnTo: 'map' });
+            }}
+            onClose={async () => {
+              let updated = await recordGeneralOfferIgnored(shopState, dogStore);
+              updated = await recordShopPopupShown(updated, {
+                isGeneralOffer: true,
+                storage: dogStore,
+              });
+              setShopState(updated);
+            }}
+          />
+        );
+      }
+    }
+
     return (
       <View className="absolute inset-0">
         <WorldMapScreen
@@ -798,6 +977,8 @@ export default function App() {
           onWarmup={() => setFlow({ name: 'warmup' })}
           onSkipWarmup={() => setWarmup('skipped')}
           onOpenStop={openStop}
+          onShop={(target) => setFlow({ name: 'shop', target, returnTo: 'map' })}
+          shopPopup={shopPopupNode}
           initialScrollY={mapScroll.current}
           onScroll={(y) => (mapScroll.current = y)}
           expandedCompleted={expandedCompleted}
@@ -1059,6 +1240,17 @@ export default function App() {
       );
     } else if (f.name === 'diary' && record) {
       screen = mapWith(<DiaryScreen t={t} record={record} today={todayString()} onBack={withBack(goHome)} />);
+    } else if (f.name === 'shop' && record) {
+      screen = mapWith(
+        <ShopScreen
+          t={t}
+          initialTarget={f.target}
+          onBack={withBack(() => {
+            if (f.previousFlow) setFlow(f.previousFlow);
+            else goHome();
+          })}
+        />,
+      );
     } else if (f.name === 'lesson' && record) {
       const lesson = findLesson(f.id);
       const now = new Date();
@@ -1083,6 +1275,7 @@ export default function App() {
               else back();
             }}
             onBack={back}
+            onShop={(target) => setFlow({ name: 'shop', target, previousFlow: f, returnTo: f.returnTo })}
           />
         ) : null,
       );
@@ -1132,7 +1325,15 @@ export default function App() {
             />
           );
       } else if (f.view === 'problem')
-        screen = <MissionProblemScreen t={t} mission={mission} onPick={(problemId) => answerMission(mission.id, 'struggled', problemId)} onBack={withBack(() => setFlow({ ...f, view: 'checkin' }))} />;
+        screen = (
+          <MissionProblemScreen
+            t={t}
+            mission={mission}
+            onPick={(problemId) => answerMission(mission.id, 'struggled', problemId)}
+            onBack={withBack(() => setFlow({ ...f, view: 'checkin' }))}
+            onShop={(target) => setFlow({ name: 'shop', target, previousFlow: f })}
+          />
+        );
       else if (f.view === 'fix' && f.fixId) {
         const found = findFix(f.fixId);
         screen = found ? (
@@ -1145,6 +1346,7 @@ export default function App() {
             onPractise={() => openStop(found.fix.practise)}
             onMoveOn={() => moveOnMission(mission.id)}
             onDone={withBack(close)}
+            onShop={(target) => setFlow({ name: 'shop', target, previousFlow: f })}
           />
         ) : null;
       } else if (f.view === 'passed')
@@ -1311,7 +1513,16 @@ export default function App() {
       screen = account.auth ? <AuthScreen t={t} auth={account.auth} initial={f.mode} onDone={onAuthDone} onBack={withBack(onAuthDone)} /> : null;
     } else if (f.name === 'node' && record) {
       const { run } = f;
-      if (run.step === 'primer') screen = <PrimerScreen t={t} run={run} onNext={() => act({ type: 'next' })} onExit={withBack(goHome)} />;
+      if (run.step === 'primer')
+        screen = (
+          <PrimerScreen
+            t={t}
+            run={run}
+            onNext={() => act({ type: 'next' })}
+            onExit={withBack(goHome)}
+            onShop={(target) => setFlow({ name: 'shop', target, previousFlow: f })}
+          />
+        );
       else if (run.step === 'checkpoint')
         screen = <CheckpointScreen t={t} run={run} setting={record.checkpointSeconds} onAnswer={(option) => act({ type: 'answer', option })} onTimeout={() => act({ type: 'timeout' })} />;
       else if (run.step === 'simulation' && run.node.mode === 'minigame') {
@@ -1354,6 +1565,7 @@ export default function App() {
             celebrations={celebrations?.id === `${run.node.id}:${f.attempt}` ? celebrations.list : []}
             onPosteLink={() => startNodeRun(POSTE_PRACTICE)}
             onPlayAgain={() => setFlow({ ...f, run: { ...run, step: 'simulation', result: null }, attempt: f.attempt + 1 })}
+            onShop={(target) => setFlow({ name: 'shop', target, previousFlow: f })}
             onDone={withBack(async () => {
               // the Debrief of a Stretch's last Node opens its Mission brief
               // a Home Node's Debrief opens its Home Mission's brief; a Stretch's last Node opens the Stretch's Mission

@@ -4,28 +4,42 @@ import {
   parseLessonMarkdown,
   parseMissionMarkdown,
   parseNodeMarkdown,
+  parseShopItemMarkdown,
   parseWorldMarkdown,
   type ParsedLessonContent,
   type ParsedMissionContent,
   type ParsedNodeContent,
+  type ParsedShopText,
   type ParsedWorldContent,
 } from './parser';
 import {
   isContentId,
+  isHttpsUrl,
+  isRecommendationTrigger,
   isRelativeMediaPath,
   isYouTubeId,
   SUPPORTED_METRICS,
   SUPPORTED_MINIGAMES,
+  validateCategoryYaml,
   validateLessonYaml,
   validateMissionYaml,
   validateNodeYaml,
   validatePackYaml,
+  validateProductYaml,
+  validateRecommendationYaml,
+  validateShopYaml,
+  validateSubcategoryYaml,
   validateWorldYaml,
+  type CategoryYaml,
   type LessonYaml,
   type MissionYaml,
   type NodeYaml,
   type PackYaml,
+  type ProductYaml,
+  type RecommendationYaml,
+  type ShopYaml,
   type StopYaml,
+  type SubcategoryYaml,
   type ValidationError,
   type WorldYaml,
 } from './schema';
@@ -63,6 +77,34 @@ export interface PackValidationReport {
   warnings: PackValidationWarning[];
 }
 
+export interface ContentPackShop {
+  config?: ShopYaml;
+  categories?: Record<
+    string,
+    {
+      config: CategoryYaml;
+      text?: Record<string, Partial<ParsedShopText> | string>;
+      files?: string[];
+    }
+  >;
+  subcategories?: Record<
+    string,
+    {
+      config: SubcategoryYaml;
+      text?: Record<string, Partial<ParsedShopText> | string>;
+      files?: string[];
+    }
+  >;
+  products?: Record<
+    string,
+    {
+      config: ProductYaml;
+      text?: Record<string, Partial<ParsedShopText> | string>;
+      files?: string[];
+    }
+  >;
+}
+
 export interface ContentPack {
   rootPath?: string;
   pack: PackYaml;
@@ -97,10 +139,12 @@ export interface ContentPack {
       files?: string[];
     }
   >;
+  shop?: ContentPackShop;
 }
 
 export interface ValidatePackOptions {
   previousManifest?: PreviousManifest;
+  now?: Date;
 }
 
 /**
@@ -122,6 +166,9 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
   const lessonIds = new Set<string>();
   const nodeIds = new Set<string>();
   const missionIds = new Set<string>();
+  const categoryIds = new Set<string>();
+  const subcategoryIds = new Set<string>();
+  const productIds = new Set<string>();
   const allItemIds = new Map<string, string>(); // id -> itemType
 
   const registerId = (id: string, type: string, file: string) => {
@@ -380,6 +427,291 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
         });
       }
     }
+  }
+
+  // 5.5 Validate Shop
+  if (pack.shop) {
+    if (pack.shop.config) {
+      const res = validateShopYaml(pack.shop.config, 'shop/shop.yaml');
+      errors.push(...res.errors);
+    }
+
+    // Categories
+    for (const [cId, catEntry] of Object.entries(pack.shop.categories ?? {})) {
+      const file = `shop/categories/${cId}/category.yaml`;
+      registerId(cId, 'category', file);
+      categoryIds.add(cId);
+
+      const res = validateCategoryYaml(catEntry.config, file);
+      errors.push(...res.errors);
+
+      const textRecord = catEntry.text ?? {};
+      if (!textRecord['es']) {
+        errors.push({
+          file: `shop/categories/${cId}/es.md`,
+          message: `Category "${cId}" is missing required Spanish text (es.md)`,
+          hint: 'Create shop/categories/<id>/es.md with title and description',
+        });
+      } else {
+        try {
+          const parsed = typeof textRecord['es'] === 'string' ? parseShopItemMarkdown(textRecord['es'], file) : textRecord['es'];
+          if (!parsed.title || parsed.title.trim() === '') {
+            errors.push({
+              file: `shop/categories/${cId}/es.md`,
+              field: 'title',
+              message: `Category "${cId}" missing title in Spanish`,
+              hint: 'Add # <title>',
+            });
+          }
+        } catch (err: unknown) {
+          errors.push({
+            file: `shop/categories/${cId}/es.md`,
+            message: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+
+      if (!catEntry.config?.subcategories || catEntry.config.subcategories.length === 0) {
+        warnings.push({
+          file,
+          field: 'subcategories',
+          message: `Category "${cId}" has no subcategories`,
+        });
+      }
+    }
+
+    // Subcategories
+    for (const [sId, subEntry] of Object.entries(pack.shop.subcategories ?? {})) {
+      const file = `shop/subcategories/${sId}/subcategory.yaml`;
+      registerId(sId, 'subcategory', file);
+      subcategoryIds.add(sId);
+
+      const res = validateSubcategoryYaml(subEntry.config, file);
+      errors.push(...res.errors);
+
+      const textRecord = subEntry.text ?? {};
+      if (!textRecord['es']) {
+        errors.push({
+          file: `shop/subcategories/${sId}/es.md`,
+          message: `Subcategory "${sId}" is missing required Spanish text (es.md)`,
+          hint: 'Create shop/subcategories/<id>/es.md with title and description',
+        });
+      } else {
+        try {
+          const parsed = typeof textRecord['es'] === 'string' ? parseShopItemMarkdown(textRecord['es'], file) : textRecord['es'];
+          if (!parsed.title || parsed.title.trim() === '') {
+            errors.push({
+              file: `shop/subcategories/${sId}/es.md`,
+              field: 'title',
+              message: `Subcategory "${sId}" missing title in Spanish`,
+              hint: 'Add # <title>',
+            });
+          }
+        } catch (err: unknown) {
+          errors.push({
+            file: `shop/subcategories/${sId}/es.md`,
+            message: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+    }
+
+    // Products
+    for (const [pId, prodEntry] of Object.entries(pack.shop.products ?? {})) {
+      const file = `shop/products/${pId}/product.yaml`;
+      registerId(pId, 'product', file);
+      productIds.add(pId);
+
+      const res = validateProductYaml(prodEntry.config, file);
+      errors.push(...res.errors);
+
+      const cfg = prodEntry.config;
+      if (!cfg?.image || cfg.image.trim() === '') {
+        warnings.push({
+          file,
+          field: 'image',
+          message: `Product "${pId}" has no picture`,
+        });
+      } else if (!isRelativeMediaPath(cfg.image)) {
+        errors.push({
+          file,
+          field: 'image',
+          message: `Picture path "${cfg.image}" leaves item folder or is an absolute address`,
+          hint: 'Use relative media path inside item media/ folder',
+        });
+      }
+
+      if (!cfg?.urls || !cfg.urls['es']) {
+        errors.push({
+          file,
+          field: 'urls.es',
+          message: `Product "${pId}" has no buy link in Spanish`,
+          hint: 'Provide urls.es with an https address',
+        });
+      }
+      if (cfg?.urls) {
+        for (const [lang, url] of Object.entries(cfg.urls)) {
+          if (!isHttpsUrl(url)) {
+            errors.push({
+              file,
+              field: `urls.${lang}`,
+              message: `Buy link for language "${lang}" is not an https address: "${url}"`,
+              hint: 'Provide an https:// buy link',
+            });
+          }
+          const amzMatch = /https:\/\/(?:www\.)?amazon\.([a-z.]+)/i.exec(url);
+          if (amzMatch) {
+            const domain = amzMatch[1].toLowerCase();
+            if (lang === 'es' && domain !== 'es') {
+              warnings.push({
+                file,
+                field: `urls.${lang}`,
+                message: `Amazon buy link for language "${lang}" is on "amazon.${domain}" instead of expected marketplace "amazon.es"`,
+              });
+            }
+          }
+        }
+      }
+
+      if (cfg?.priceCheckedAt) {
+        const parts = cfg.priceCheckedAt.split('-').map(Number);
+        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+          const checkDate = new Date(Date.UTC(parts[0], parts[1] - 1, 1));
+          const now = options.now ?? new Date();
+          const diffDays = (now.getTime() - checkDate.getTime()) / (1000 * 60 * 60 * 24);
+          if (diffDays > 90) {
+            warnings.push({
+              file,
+              field: 'priceCheckedAt',
+              message: `Price for product "${pId}" was checked more than 90 days ago (${cfg.priceCheckedAt})`,
+            });
+          }
+        }
+      }
+
+      const textRecord = prodEntry.text ?? {};
+      if (!textRecord['es']) {
+        errors.push({
+          file: `shop/products/${pId}/es.md`,
+          message: `Product "${pId}" is missing required Spanish text (es.md)`,
+          hint: 'Create shop/products/<id>/es.md with name and description',
+        });
+      } else {
+        try {
+          const parsed = typeof textRecord['es'] === 'string' ? parseShopItemMarkdown(textRecord['es'], file) : textRecord['es'];
+          if (!parsed.title || parsed.title.trim() === '') {
+            errors.push({
+              file: `shop/products/${pId}/es.md`,
+              field: 'title',
+              message: `Product "${pId}" missing name in Spanish`,
+              hint: 'Add # <name>',
+            });
+          }
+        } catch (err: unknown) {
+          errors.push({
+            file: `shop/products/${pId}/es.md`,
+            message: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+    }
+
+    // Hierarchy reference checks (missing folders)
+    for (const catId of pack.shop.config?.categories ?? []) {
+      if (!categoryIds.has(catId)) {
+        errors.push({
+          file: 'shop/shop.yaml',
+          field: 'categories',
+          message: `Category "${catId}" listed in shop.yaml has no folder in categories/`,
+          hint: `Create shop/categories/${catId}/category.yaml`,
+        });
+      }
+    }
+
+    const referencedSubcategories = new Set<string>();
+    for (const [cId, catEntry] of Object.entries(pack.shop.categories ?? {})) {
+      for (const subId of catEntry.config?.subcategories ?? []) {
+        referencedSubcategories.add(subId);
+        if (!subcategoryIds.has(subId)) {
+          errors.push({
+            file: `shop/categories/${cId}/category.yaml`,
+            field: 'subcategories',
+            message: `Subcategory "${subId}" listed in category "${cId}" has no folder in subcategories/`,
+            hint: `Create shop/subcategories/${subId}/subcategory.yaml`,
+          });
+        }
+      }
+    }
+
+    const referencedProducts = new Set<string>();
+    for (const [sId, subEntry] of Object.entries(pack.shop.subcategories ?? {})) {
+      for (const prodId of subEntry.config?.products ?? []) {
+        referencedProducts.add(prodId);
+        if (!productIds.has(prodId)) {
+          errors.push({
+            file: `shop/subcategories/${sId}/subcategory.yaml`,
+            field: 'products',
+            message: `Product "${prodId}" listed in subcategory "${sId}" has no folder in products/`,
+            hint: `Create shop/products/${prodId}/product.yaml`,
+          });
+        }
+      }
+    }
+
+    // Orphan subcategories & products
+    for (const sId of subcategoryIds) {
+      if (!referencedSubcategories.has(sId)) {
+        errors.push({
+          file: `shop/subcategories/${sId}/subcategory.yaml`,
+          message: `Orphan Subcategory: "${sId}" does not belong to any Category`,
+          hint: `Add "${sId}" to a Category in shop/categories/`,
+        });
+      }
+    }
+
+    for (const pId of productIds) {
+      if (!referencedProducts.has(pId)) {
+        errors.push({
+          file: `shop/products/${pId}/product.yaml`,
+          message: `Orphan Product: "${pId}" does not belong to any Subcategory`,
+          hint: `Add "${pId}" to a Subcategory in shop/subcategories/`,
+        });
+      }
+    }
+  }
+
+  // Recommendations reference checks
+  const checkRecommendations = (recs: RecommendationYaml[] | undefined, file: string, itemId: string) => {
+    if (!recs) return;
+    recs.forEach((rec, idx) => {
+      const isShopTarget = categoryIds.has(rec.target) || subcategoryIds.has(rec.target) || productIds.has(rec.target);
+      if (!isShopTarget) {
+        errors.push({
+          file,
+          field: `recommendations[${idx}].target`,
+          message: `Recommendation "${rec.id}" on "${itemId}" names unknown target "${rec.target}"`,
+          hint: `Target must be an existing Product, Subcategory, or Category in the shop`,
+        });
+      }
+      if (!isRecommendationTrigger(rec.when)) {
+        errors.push({
+          file,
+          field: `recommendations[${idx}].when`,
+          message: `Recommendation "${rec.id}" names an unknown trigger "${rec.when}"`,
+          hint: 'Allowed triggers: "view", "poste-trouble", "poor-score", or "problem:<problem-id>"',
+        });
+      }
+    });
+  };
+
+  for (const [id, lEntry] of Object.entries(pack.lessons ?? {})) {
+    checkRecommendations(lEntry.config.recommendations, `lessons/${id}/lesson.yaml`, id);
+  }
+  for (const [id, nEntry] of Object.entries(pack.nodes ?? {})) {
+    checkRecommendations(nEntry.config.recommendations, `nodes/${id}/node.yaml`, id);
+  }
+  for (const [id, mEntry] of Object.entries(pack.missions ?? {})) {
+    checkRecommendations(mEntry.config.recommendations, `missions/${id}/mission.yaml`, id);
   }
 
   // 6. Check Dangling References across the trail
