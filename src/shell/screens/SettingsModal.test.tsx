@@ -22,6 +22,9 @@ jest.mock('react-native', () => {
       return React.createElement('button', { 'aria-pressed': props.accessibilityState?.selected, role: props.accessibilityRole }, body);
     },
     Modal: () => null,
+    BackHandler: {
+      addEventListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+    },
     Platform: { OS: 'web' },
   };
 });

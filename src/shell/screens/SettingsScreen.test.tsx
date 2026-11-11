@@ -14,6 +14,9 @@ jest.mock('react-native', () => {
       return React.createElement('button', { 'aria-pressed': props.accessibilityState?.selected, role: props.accessibilityRole }, body);
     },
     Modal: () => null,
+    BackHandler: {
+      addEventListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+    },
     AccessibilityInfo: {
       isReduceMotionEnabled: jest.fn().mockResolvedValue(false),
       addEventListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
@@ -428,5 +431,26 @@ describe('Settings: Language selection in preferences', () => {
     expect(update).toHaveBeenCalled();
     expect(record.language).toBe('es');
     expect(onLanguageChange).toHaveBeenCalledWith('es');
+  });
+
+  it('renders a close button in the header bar that invokes onClose', () => {
+    const onClose = jest.fn();
+    renderToStaticMarkup(
+      <SettingsScreen
+        t={t}
+        language="es"
+        record={newDogRecord()}
+        update={() => {}}
+        onClose={onClose}
+        account={makeAccount()}
+        onLogIn={() => {}}
+        ui={{ settings: DEFAULT_UI_SETTINGS, change: () => {} }}
+        onReset={() => {}}
+      />,
+    );
+
+    expect(pressed[es['settings.close']]).toBeDefined();
+    pressed[es['settings.close']]();
+    expect(onClose).toHaveBeenCalled();
   });
 });

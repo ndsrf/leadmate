@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { BackHandler, Pressable, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import type { Translate } from '../../i18n';
 import type { DogRecord } from '../dogRecord';
@@ -41,6 +41,15 @@ export function DogLookScreen({
   onDone: (name: string, coat: DogCoat, breed: BreedId, ageBand: AgeBand | null) => void;
 }) {
   const [part, setPart] = useState<'look' | 'name'>('look');
+
+  useEffect(() => {
+    if (part !== 'name') return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      setPart('look');
+      return true;
+    });
+    return () => sub.remove();
+  }, [part]);
   const [name, setName] = useState(record.name);
   const [breed, setBreed] = useState<BreedId>(record.breed);
   const [coat, setCoat] = useState<DogCoat>(record.coat);

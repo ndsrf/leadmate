@@ -396,8 +396,9 @@ describe('backAction', () => {
     expect(backAction({ ...stage, paused: true })).toBe('resume');
   });
 
-  it('consumes the press while the Stage is loading', () => {
-    expect(backAction({ ...stage, bundle: 'loading' })).toBe('consume');
+  it('runs the back closure to abort a Stage while loading, or consumes the press without one', () => {
+    expect(backAction({ ...stage, bundle: 'loading', hasScreenBack: true })).toBe('screen');
+    expect(backAction({ ...stage, bundle: 'loading', hasScreenBack: false })).toBe('consume');
   });
 
   it('leaves the app on the splash, the bare map, a funnel step and the onboarding paywall', () => {

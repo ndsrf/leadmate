@@ -469,11 +469,23 @@ describe('App - Stage view lifecycle', () => {
     expect(mockSim.posts).toHaveLength(0);
   });
 
+  it('renders SimulatorBackButton immediately when a Stage starts, and pressing it while loading cancels without penalty', async () => {
+    await openMap();
+    openStop(WALK_DISTRACTION.id);
+    throughPrimerAndCheckpoint();
+    expect(latest('SimulatorBackButton')).toBeDefined();
+
+    // pressing while loading aborts to the map
+    act(() => latest('SimulatorBackButton').onPress());
+    expect(latest('WorldMapScreen')).toBeDefined();
+    expect(posted('pause')).toHaveLength(0);
+  });
+
   it('renders SimulatorBackButton when a Stage is ready, and pressing it pauses the simulation', async () => {
     await openMap();
     openStop(WALK_DISTRACTION.id);
     throughPrimerAndCheckpoint();
-    expect(latest('SimulatorBackButton')).toBeUndefined();
+    expect(latest('SimulatorBackButton')).toBeDefined();
     await sendFromView({ type: 'ready' });
     expect(latest('SimulatorBackButton')).toBeDefined();
 
@@ -483,6 +495,21 @@ describe('App - Stage view lifecycle', () => {
     await sendFromView({ type: 'paused' });
     expect(latest('ResumeOverlay')).toBeDefined();
     expect(latest('SimulatorBackButton')).toBeUndefined();
+  });
+
+  it('aborts a loading Stage cleanly when system back is pressed', async () => {
+    await openMap();
+    openStop(WALK_DISTRACTION.id);
+    throughPrimerAndCheckpoint();
+    expect(latest('SimulatorBackButton')).toBeDefined();
+
+    let handled = false;
+    act(() => {
+      handled = triggerBack();
+    });
+    expect(handled).toBe(true);
+    expect(latest('WorldMapScreen')).toBeDefined();
+    expect(posted('pause')).toHaveLength(0);
   });
 
   it('skips a Node Stage on Pause Menu Exit and advances to DebriefScreen with 1 star', async () => {

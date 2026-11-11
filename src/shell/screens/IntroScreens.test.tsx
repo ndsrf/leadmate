@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactTestRenderer, { act } from 'react-test-renderer';
 // @ts-ignore
 import { renderToStaticMarkup } from 'react-dom/server';
 import { DogLookScreen, LanguageScreen } from './IntroScreens';
@@ -80,6 +81,14 @@ jest.mock('react-native', () => {
       return React.createElement('button', rest, body);
     },
     Platform: { OS: 'web' },
+    AccessibilityInfo: {
+      isReduceMotionEnabled: jest.fn().mockResolvedValue(false),
+      addEventListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+      announceForAccessibility: jest.fn(),
+    },
+    BackHandler: {
+      addEventListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+    },
   };
 });
 
@@ -117,6 +126,29 @@ describe('DogLookScreen', () => {
     );
 
     expect(html).toContain(t('dog.breed.title'));
+  });
+
+  it('registers hardwareBackPress listener when advancing to part 2 (name)', () => {
+    const { BackHandler } = require('react-native');
+    BackHandler.addEventListener.mockClear();
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = ReactTestRenderer.create(
+        <DogLookScreen
+          t={t}
+          record={newDogRecord()}
+          onDone={() => {}}
+        />
+      );
+    });
+
+    expect(BackHandler.addEventListener).not.toHaveBeenCalled();
+
+    act(() => {
+      pressed[t('setup.next')]();
+    });
+    expect(BackHandler.addEventListener).toHaveBeenCalledWith('hardwareBackPress', expect.any(Function));
   });
 });
 

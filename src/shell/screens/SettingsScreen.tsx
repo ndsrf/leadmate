@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Modal, Platform, Pressable, Text, View, type ScrollViewInstance } from 'react-native';
+import { BackHandler, Modal, Platform, Pressable, Text, View, type ScrollViewInstance } from 'react-native';
 import Constants from 'expo-constants';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { RecordingPresets, requestRecordingPermissionsAsync, useAudioRecorder } from 'expo-audio';
@@ -28,6 +28,7 @@ import { isBetaUnlocked, loadContentChannel, setBetaUnlocked, type ContentChanne
 import { getActiveContent } from '../content/runtime';
 import { switchChannel } from '../content/channelSwitcher';
 import { saveStoredLanguage } from '../storage';
+import { theme } from '../ui/theme';
 
 export const CHECKPOINT_OPTIONS: { value: CheckpointSeconds; key: 'settings.checkpoint.20' | 'settings.checkpoint.15' | 'settings.checkpoint.10' | 'settings.checkpoint.off' }[] = [
   { value: 20, key: 'settings.checkpoint.20' },
@@ -243,6 +244,15 @@ export function SettingsScreen({
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [recording, setRecording] = useState<RecordState>('idle');
   const [showResetModal, setShowResetModal] = useState(false);
+
+  useEffect(() => {
+    if (!showResetModal) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      setShowResetModal(false);
+      return true;
+    });
+    return () => sub.remove();
+  }, [showResetModal]);
   const [restoring, setRestoring] = useState(false);
   const [restoreFeedback, setRestoreFeedback] = useState<string | null>(null);
   const hasCustom = Boolean(record.customCues[language]);
@@ -308,7 +318,10 @@ export function SettingsScreen({
 
   const header = (
     <View>
-      <Text className="font-display text-displayM text-ink">{t('settings.title')}</Text>
+      <View className="flex-row items-center justify-between" style={{ gap: theme.space[2] }}>
+        <Text className="shrink font-display text-displayM text-ink">{t('settings.title')}</Text>
+        <Button label={t('settings.close')} tone="secondary" onPress={onClose} testID="settings-header-close" />
+      </View>
       <LeadLine className="mb-2 mt-1" />
       <View className="flex-row flex-wrap" accessibilityRole="tablist">
         {SETTINGS_TABS.map((tab) => (

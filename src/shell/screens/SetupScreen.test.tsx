@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactTestRenderer, { act } from 'react-test-renderer';
 // @ts-ignore
 import { renderToStaticMarkup } from 'react-dom/server';
 import { SetupScreen } from './SetupScreen';
@@ -80,6 +81,14 @@ jest.mock('react-native', () => {
       return React.createElement('button', rest, body);
     },
     Platform: { OS: 'web' },
+    AccessibilityInfo: {
+      isReduceMotionEnabled: jest.fn().mockResolvedValue(false),
+      addEventListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+      announceForAccessibility: jest.fn(),
+    },
+    BackHandler: {
+      addEventListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+    },
   };
 });
 
@@ -108,5 +117,28 @@ describe('SetupScreen', () => {
     expect(html).toContain(t('setup.about.title').replace('{name}', 'Luna'));
     expect(html).toContain(t('setup.age.label'));
     expect(html).toContain(t('age.puppy'));
+  });
+
+  it('registers hardwareBackPress listener when advancing past equipment to weights', () => {
+    const { BackHandler } = require('react-native');
+    BackHandler.addEventListener.mockClear();
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = ReactTestRenderer.create(
+        <SetupScreen
+          t={t}
+          record={newDogRecord()}
+          update={() => {}}
+        />
+      );
+    });
+
+    expect(BackHandler.addEventListener).not.toHaveBeenCalled();
+
+    act(() => {
+      pressed[t('setup.next')]();
+    });
+    expect(BackHandler.addEventListener).toHaveBeenCalledWith('hardwareBackPress', expect.any(Function));
   });
 });

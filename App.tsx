@@ -1133,6 +1133,9 @@ export default function App() {
         screen = <MethodOverviewScreen t={t} dog={record} onContinue={() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: nextStep('method') } }))} onBack={withBack(() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: 'plan' } })))} />;
     }
   } else if (route.name === 'taste') {
+    if (tasteBriefed && record) {
+      withBack(() => setTasteBriefed(false));
+    }
     screen = tasteBriefed || !record ? null : <TasteBriefScreen t={t} name={record.name} onStart={() => setTasteBriefed(true)} />;
   } else if (route.name === 'first-stage') {
     if (introRun?.step === 'primer') {
@@ -1154,6 +1157,9 @@ export default function App() {
           onTimeout={() => setIntroRun((r) => (r ? advance(r, { type: 'timeout' }) : null))}
         />
       );
+    } else if (introRun?.step === 'simulation') {
+      withBack(() => setIntroRun((r) => (r ? { ...r, step: 'primer' } : null)));
+      screen = null;
     } else if (introRun?.step === 'debrief' && introRun.result?.kind === 'stage') {
       const payload = introRun.result.payload;
       screen = (
@@ -1674,8 +1680,17 @@ export default function App() {
           {viewWanted && <SimView key={attempt} ref={sim} onMessage={onMessage} onLoadError={() => viewFailedRef.current()} />}
           {screen}
           <ContentUpdateBanner t={t} />
-          {playingStage && bundle === 'ready' && !paused && !tastePayoff && (
-            <SimulatorBackButton onPress={() => send({ type: 'pause' })} label={t('hud.back')} />
+          {playingStage && !paused && !tastePayoff && (
+            <SimulatorBackButton
+              onPress={() => {
+                if (bundle === 'ready') {
+                  send({ type: 'pause' });
+                } else {
+                  screenBack.current?.();
+                }
+              }}
+              label={t('hud.back')}
+            />
           )}
           {playingStage && hint && !dogWarning && !paused && !isCloseExerciseFlow(route) && <HintOverlay text={t(HINT_TEXT[hint])} />}
           {playingStage && record && !tastePayoff && !paused && bundle === 'ready' && !isCloseExerciseFlow(route) && (

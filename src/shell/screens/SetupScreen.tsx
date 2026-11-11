@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { BackHandler, Text, View } from 'react-native';
 import type { Translate, TextKey } from '../../i18n';
 import type { DistractorKind } from '../../sim/learning';
 import type { DogRecord } from '../dogRecord';
@@ -87,6 +87,15 @@ export function SetupScreen({ t, record, update }: { t: Translate; record: DogRe
   };
 
   const back = part === 'equipment' ? undefined : () => setPart(SETUP_PARTS[SETUP_PARTS.indexOf(part) - 1]);
+
+  useEffect(() => {
+    if (part === 'equipment') return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      setPart(SETUP_PARTS[SETUP_PARTS.indexOf(part) - 1]);
+      return true;
+    });
+    return () => sub.remove();
+  }, [part]);
   const chips = chipsOf(record.triggerProfile);
   const hint = breedKg ? t('setup.weights.breedHint').split('{breed}').join(t(`breed.${record.breed}`)).split('{min}').join(kgText(breedKg[0])).split('{max}').join(kgText(breedKg[1])) : null;
 

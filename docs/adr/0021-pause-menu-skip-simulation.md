@@ -10,6 +10,7 @@ When a Stage, Close Exercise, or Daily walk is paused, selecting the secondary a
 - **Abandon to World Map without progress (before):** Selecting Exit threw the user back to the map with the Node uncompleted, forcing players to replay simulations in full even if they experienced device difficulty or wished to advance.
 - **Three-button Pause Menu (Resume, Skip, Abandon):** Added a third action to the Pause Menu. Rejected to keep the dialog uncluttered and directly address the user's need to advance past the simulation.
 - **Skip with baseline 1-star credit (chosen):** Synthesizes a valid neutral baseline debrief payload (`durationSeconds: 30`, `slackPercentage: 100`, `handlingScore: 500`) that unlocks trail progression without undeserved higher stars (≥650) and leaves the Dog's persistent Learning Attributes untouched.
+- **Pre-play loading cancellation (chosen):** If the player triggers the Stage Back Control or system back while the simulation bundle is still loading (`bundle === 'loading'`), loading is aborted and the app returns cleanly to the launching screen (Primer or Map) without penalty or progress side-effects, distinguishing pre-play cancellation from active-play skipping.
 
 ## Consequences
 

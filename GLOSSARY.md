@@ -200,6 +200,14 @@ _Avoid_: Quiz, test
 The menu shown over a paused Stage, offering Resume and Skip (which skips the Stage to its Debrief or results with completion credit).
 _Avoid_: Resume overlay, pause screen
 
+**Stage Back Control**:
+The fixed on-screen control in the top-left safe area of an active Stage that immediately aborts loading without penalty before play begins, and opens the Pause Menu once the simulation runs.
+_Avoid_: Simulator back button, pause button, exit HUD
+
+**System Back**:
+The platform back gesture or hardware button on supported operating systems, which identically follows the topmost screen's registered back closure, pauses an active Stage, or exits the application from root screens.
+_Avoid_: Hardware back, back button (alone), Android back
+
 **Arousal**:
 How worked up the Dog is during a Stage, from 0 to 100. It rises near Distractors and during Rigid Pull, and it starts at 0 each Stage.
 _Avoid_: Excitement, stress
