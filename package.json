@@ -19,7 +19,9 @@
     "content:promote": "node scripts/content-promote.mjs",
     "content:publish": "node scripts/content-publish.mjs",
     "content:shop-import": "node scripts/content-shop-import.mjs",
-    "eas-build-post-install": "npm run sim:embed"
+    "content:release-check": "node scripts/content-release-check.mjs",
+    "release:prepare": "npm run sim:embed && node scripts/gen-baseline.mjs && npm run content:release-check",
+    "eas-build-post-install": "npm run release:prepare"
   },
   "dependencies": {
     "@expo-google-fonts/fredoka": "^0.4.1",
