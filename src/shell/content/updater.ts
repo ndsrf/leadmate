@@ -1,9 +1,8 @@
-import { BASELINE_PACK } from './baseline.generated';
 import { type ContentManifest } from './build';
 import { channelFileUrl, channelLatestUrl, channelManifestUrl, hasRemoteContent } from './config';
 import { endContentProgress, reportContentProgress } from './progress';
 import { parseYaml } from './schema';
-import { ContentStore, loadPackFromStorage, type FileStorage, type KeyValueStorage } from './store';
+import { baselineFillFor, ContentStore, DEFAULT_BASELINE, loadPackFromStorage, type BaselineSource, type FileStorage, type KeyValueStorage } from './store';
 import { validatePack } from './validator';
 
 /** Lowercased file extension including the dot (RN-safe replacement for node:path extname). */
@@ -19,18 +18,33 @@ export interface HttpResponse {
   binary(): Promise<Uint8Array>;
 }
 
-export interface HttpFetcher {
+export interface HttpFetchOptions {
+  timeoutMs?: number;
   /** `fresh`: never answer from a cache (used for the version pointer, which must always be current). */
-  fetch(url: string, options?: { timeoutMs?: number; fresh?: boolean }): Promise<HttpResponse>;
+  fresh?: boolean;
+  /** Aborts the request when the signal fires (used to cancel in-flight downloads of a failed pack). */
+  signal?: AbortSignal;
 }
+
+export interface HttpFetcher {
+  fetch(url: string, options?: HttpFetchOptions): Promise<HttpResponse>;
+}
+
+/** How many files of one pack download at the same time. Tune from measurements. */
+export const MAX_CONCURRENT_DOWNLOADS = 6;
 
 /**
  * Standard fetch-based HttpFetcher using AbortSignal for timeouts.
  */
 export class DefaultHttpFetcher implements HttpFetcher {
-  async fetch(url: string, options?: { timeoutMs?: number; fresh?: boolean }): Promise<HttpResponse> {
+  async fetch(url: string, options?: HttpFetchOptions): Promise<HttpResponse> {
     const timeout = options?.timeoutMs ?? 5000;
     const controller = new AbortController();
+    const outer = options?.signal;
+    if (outer) {
+      if (outer.aborted) controller.abort();
+      else outer.addEventListener('abort', () => controller.abort(), { once: true });
+    }
     const id = setTimeout(() => controller.abort(), timeout);
 
     try {
@@ -100,7 +114,9 @@ export class ContentUpdater {
     private store: ContentStore,
     private fileStorage: FileStorage,
     private kvStorage: KeyValueStorage,
-    private http: HttpFetcher = new DefaultHttpFetcher()
+    private http: HttpFetcher = new DefaultHttpFetcher(),
+    /** The bundled stable baseline (pack + file hashes). Stable only; Beta never uses it. */
+    private baseline: BaselineSource = DEFAULT_BASELINE
   ) {}
 
   private getPendingKey(channel: 'beta' | 'stable'): string {
@@ -129,7 +145,7 @@ export class ContentUpdater {
     if (!pending) return false;
 
     try {
-      await this.store.activateStaging(channel, pending.version, pending.manifest);
+      await this.store.activateStaging(channel, pending.version, pending.manifest, this.baseline);
       await this.clearPendingUpdate(channel);
       return true;
     } catch {
@@ -209,7 +225,7 @@ export class ContentUpdater {
 
     // 3. Check against installed version
     const activePointer = await this.store.getActivePointer(channel);
-    const baselineVersion = channel === 'stable' ? BASELINE_PACK.pack.contentVersion : undefined;
+    const baselineVersion = channel === 'stable' ? this.baseline.pack.pack.contentVersion : undefined;
     const installedVersion = Math.max(activePointer?.contentVersion ?? 0, baselineVersion ?? 0);
     if (installedVersion >= contentVersion) {
       return { updated: false, reason: 'up_to_date', remoteVersion: contentVersion };
@@ -244,7 +260,10 @@ export class ContentUpdater {
       return { updated: false, reason: 'incompatible' };
     }
 
-    // 5. Diff by hash against active pack files
+    // 5. Diff by hash against the stored copy: the installed pack's files, plus (Stable only) the bundled baseline
+    // for any file the installed pack lacks. A first-install pack holds only downloaded files, so the baseline is
+    // what the rest is compared with.
+    const baselineHashes = channel === 'stable' ? this.baseline.hashes : undefined;
     const activeFiles = activePointer?.manifest?.files ?? {};
     const activeDir = this.store.getActiveDir(channel);
     const stagingDir = this.store.getStagingDir(channel, contentVersion);
@@ -285,11 +304,17 @@ export class ContentUpdater {
         continue;
       }
 
-      // Check if unchanged from currently active pack
-      if (activeFiles[relPath]?.sha256 === fileInfo.sha256 && (await this.fileStorage.exists(`${activeDir}/${relPath}`))) {
-        // Copy directly from active to staging!
+      const inActive = !!activePointer && (await this.fileStorage.exists(`${activeDir}/${relPath}`));
+      if (inActive && activeFiles[relPath]?.sha256 === fileInfo.sha256) {
+        // Unchanged from the installed pack: copy directly from active to staging
         const existingData = await this.fileStorage.readAsBinary(`${activeDir}/${relPath}`);
         await this.store.saveFileToStaging(channel, contentVersion, relPath, existingData, fileInfo.sha256);
+      } else if (
+        !inActive &&
+        !activePointer &&
+        baselineHashes?.[relPath]?.toLowerCase() === fileInfo.sha256.toLowerCase()
+      ) {
+        // First install: identical to the baseline, so not downloaded and not staged; the baseline supplies it.
       } else {
         toDownload.push({ path: relPath, sha256: fileInfo.sha256, size: fileInfo.size });
       }
@@ -318,41 +343,64 @@ export class ContentUpdater {
       return a.path.localeCompare(b.path);
     });
 
-    // 6. Download files into staging
+    // 6. Download files into staging, a few at a time. Requests start in priority order; on the first failure no new
+    // request starts, in-flight ones are cancelled where the platform allows, and nothing they return is staged.
     if (toDownload.length > 0) reportContentProgress(0, toDownload.length);
-    for (const item of toDownload) {
-      const ext = extname(item.path).toLowerCase();
-      const storageKey = `files/${item.sha256}${ext}`;
-      const fileUrl = channelFileUrl(channel, storageKey, contentBase);
-      if (!fileUrl) {
-        return { updated: false, reason: 'unreachable' };
+    const controller = new AbortController();
+    let failure: LaunchUpdateResult | null = null;
+    let next = 0;
+
+    const fail = (result: LaunchUpdateResult) => {
+      if (!failure) {
+        failure = result;
+        controller.abort();
       }
+    };
 
+    const downloadOne = async (item: { path: string; sha256: string }) => {
+      const ext = extname(item.path).toLowerCase();
+      const fileUrl = channelFileUrl(channel, `files/${item.sha256}${ext}`, contentBase);
+      if (!fileUrl) return fail({ updated: false, reason: 'unreachable' });
       try {
-        const res = await this.http.fetch(fileUrl, { timeoutMs });
-        if (res.status !== 200) {
-          return { updated: false, reason: 'unreachable' };
-        }
+        const res = await this.http.fetch(fileUrl, { timeoutMs, signal: controller.signal });
+        if (res.status !== 200) return fail({ updated: false, reason: 'unreachable' });
         const data = await res.binary();
-
-        // Save and verify hash
+        if (failure) return; // another file failed while this one was in flight: never stage it
         await this.store.saveFileToStaging(channel, contentVersion, item.path, data, item.sha256);
+        if (failure) return;
         filesDownloaded++;
         reportContentProgress(filesDownloaded, toDownload.length);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        if (msg.includes('Hash mismatch')) {
-          // Discard staging
-          await this.fileStorage.deleteDirectory(stagingDir);
-          return { updated: false, reason: 'hash_mismatch', error: msg };
-        }
-        return { updated: false, reason: 'unreachable', error: msg };
+        if (msg.includes('Hash mismatch')) fail({ updated: false, reason: 'hash_mismatch', error: msg });
+        else fail({ updated: false, reason: 'unreachable', error: msg });
       }
+    };
+
+    const worker = async () => {
+      while (!failure && next < toDownload.length) {
+        await downloadOne(toDownload[next++]);
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(MAX_CONCURRENT_DOWNLOADS, toDownload.length) }, worker));
+
+    if (failure) {
+      // The partial pack is discarded; the previous pack stays active
+      try {
+        await this.fileStorage.deleteDirectory(stagingDir);
+      } catch {
+        // Non-fatal
+      }
+      return failure;
     }
 
     // 7. In-app validatePack before activation
     try {
-      const stagingPack = await loadPackFromStorage(this.fileStorage, stagingDir);
+      const stagingPack = await loadPackFromStorage(
+        this.fileStorage,
+        stagingDir,
+        channel === 'stable' ? baselineFillFor(this.baseline, manifest) : undefined
+      );
       const report = validatePack(stagingPack);
       if (!report.valid) {
         // Discard staging
@@ -375,7 +423,7 @@ export class ContentUpdater {
     // 8. Activation or Staging for next launch
     if (options.immediateActivate) {
       try {
-        await this.store.activateStaging(channel, contentVersion, manifest);
+        await this.store.activateStaging(channel, contentVersion, manifest, this.baseline);
       } catch (err: unknown) {
         return { updated: false, reason: 'activation_failed', error: err instanceof Error ? err.message : String(err) };
       }

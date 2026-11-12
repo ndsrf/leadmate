@@ -307,7 +307,20 @@ describe('initContentRuntime launch-time update check', () => {
     await Promise.resolve();
   });
 
-  it('development: checks and activates at once, awaiting it', async () => {
+  it('development with no channel given follows stable', async () => {
+    const check = jest.fn().mockReturnValue(new Promise(() => {}));
+    const session = await initContentRuntime({ isDev: true, updater: fakeUpdater(check), contentBase: 'https://c.example.com' });
+    expect(session.channel).toBe('stable');
+  });
+
+  it('development on Stable: stages in the background for the next launch, not awaited', async () => {
+    const check = jest.fn().mockReturnValue(new Promise(() => {})); // never finishes
+    await initContentRuntime({ isDev: true, channel: 'stable', updater: fakeUpdater(check), contentBase: 'https://c.example.com' });
+    expect(check).toHaveBeenCalledTimes(1);
+    expect(check.mock.calls[0][0]).toMatchObject({ channel: 'stable', immediateActivate: false });
+  });
+
+  it('development on Beta: checks and activates at once, awaiting it', async () => {
     const check = jest.fn().mockResolvedValue({ updated: false, reason: 'up_to_date' });
     await initContentRuntime({ isDev: true, channel: 'beta', updater: fakeUpdater(check), contentBase: 'https://c.example.com' });
 

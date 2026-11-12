@@ -79,7 +79,7 @@ setContentCatalogProvider(() => getActiveContent().resolved.catalog);
 
 /**
  * Initializes the active content at app start-up BEFORE content screens render.
- * 1. In __DEV__, checks and immediately activates the locally built beta pack.
+ * 1. In __DEV__ on Beta, checks and immediately activates the locally built beta pack.
  * 2. In production, applies any pending update staged by a previous session's background updater, and after the
  *    session is set up starts a background check that stages anything newer for the next launch.
  * 3. Loads the active pack from the ContentStore.
@@ -90,7 +90,7 @@ setContentCatalogProvider(() => getActiveContent().resolved.catalog);
 export async function initContentRuntime(options: InitRuntimeOptions = {}): Promise<RuntimeContent> {
   const isDev =
     options.isDev ?? (typeof __DEV__ !== 'undefined' ? __DEV__ : process.env.NODE_ENV !== 'production');
-  const channel = options.channel ?? (isDev ? 'beta' : 'stable');
+  const channel = options.channel ?? 'stable';
   const language = options.language ?? 'es';
   const baseline = options.baselinePack ?? BASELINE_PACK;
 
@@ -103,8 +103,10 @@ export async function initContentRuntime(options: InitRuntimeOptions = {}): Prom
     }
   }
 
-  // In __DEV__, check and immediately activate locally built beta pack at start
-  if (isDev && options.updater) {
+  // In __DEV__ while following Beta, check and immediately activate the locally built beta pack at start.
+  // Stable in dev behaves like production: staged in the background, activated at the next launch.
+  const devImmediate = isDev && channel === 'beta';
+  if (devImmediate && options.updater) {
     console.log('[content] start-up check: starting for', channel);
     try {
       const result = await options.updater.checkAndDownloadUpdate({
@@ -160,12 +162,12 @@ export async function initContentRuntime(options: InitRuntimeOptions = {}): Prom
 
   // 6. Production: look for newer content in the background. Not awaited, so the first screen is never delayed, and
   // staged only (`immediateActivate` off): a complete pack is applied at the next launch, never mid-session.
-  if (!isDev && options.updater) {
+  if (!devImmediate && options.updater) {
     void options.updater
       .checkAndDownloadUpdate({
         channel,
         currentAppVersion: options.currentAppVersion ?? '1.0.0',
-        contentBase: options.contentBase ?? resolveContentBase({ isDev: false }),
+        contentBase: options.contentBase ?? resolveContentBase({ isDev }),
         userLanguage: language,
         immediateActivate: false,
       })

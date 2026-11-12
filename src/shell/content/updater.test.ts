@@ -1,5 +1,5 @@
-import { ContentUpdater, type HttpFetcher, type HttpResponse } from './updater';
-import { ContentStore, type FileStorage, type KeyValueStorage } from './store';
+import { ContentUpdater, MAX_CONCURRENT_DOWNLOADS, type HttpFetcher, type HttpFetchOptions, type HttpResponse } from './updater';
+import { ContentStore, type BaselineSource, type FileStorage, type KeyValueStorage } from './store';
 import { type ContentManifest } from './build';
 import { sha256Hex } from './hash';
 import { getContentProgress, subscribeContentProgress } from './progress';
@@ -559,5 +559,214 @@ stretches:
     expect(res.updated).toBe(false);
     expect(res.reason).toBe('validation_failed');
     expect(await updater.getPendingUpdate('beta')).toBeNull();
+  });
+});
+
+describe('ContentUpdater (baseline seeding, merged content, concurrent downloads)', () => {
+  const BASE = 'https://content.example.com';
+  const packYaml = (v: number) =>
+    `formatVersion: 1\ncontentVersion: ${v}\nminAppVersion: "1.0.0"\nlanguages:\n  - es\nretired: []`;
+  const worldYaml = 'id: world-1\nworldNumber: 1\ntier: free\nstretches: []';
+  const worldEs = '# World 1\n## topics\nTopics';
+
+  let server: FakeHttpServer;
+  let fileStorage: MemoryFileStorage;
+  let kv: MemoryKeyValueStorage;
+  let store: ContentStore;
+  let baseline: BaselineSource;
+  let updater: ContentUpdater;
+
+  beforeEach(async () => {
+    server = new FakeHttpServer();
+    fileStorage = new MemoryFileStorage();
+    kv = new MemoryKeyValueStorage();
+    store = new ContentStore(fileStorage, kv, '/app/content');
+    baseline = {
+      pack: {
+        pack: { formatVersion: 1, contentVersion: 1, minAppVersion: '1.0.0', languages: ['es'], retired: [] },
+        worlds: { 'world-1': { config: { id: 'world-1', worldNumber: 1, tier: 'free', stretches: [] } as any, text: { es: worldEs } } },
+        lessons: {},
+        nodes: {},
+        missions: {},
+      },
+      hashes: {
+        'pack.yaml': await sha256Hex(packYaml(1)),
+        'worlds/world-1.yaml': await sha256Hex(worldYaml),
+        'worlds/world-1/es.md': await sha256Hex(worldEs),
+      },
+    };
+    updater = new ContentUpdater(store, fileStorage, kv, server, baseline);
+  });
+
+  async function host(channel: 'beta' | 'stable', version: number, files: Record<string, string>) {
+    const manifestFiles: Record<string, { sha256: string; size: number }> = {};
+    for (const [relPath, content] of Object.entries(files)) {
+      const hash = await sha256Hex(content);
+      manifestFiles[relPath] = { sha256: hash, size: Buffer.byteLength(content) };
+      const ext = relPath.includes('.') ? `.${relPath.split('.').pop()}` : '';
+      server.setRoute(`${BASE}/${channel}/files/${hash}${ext}`, content);
+    }
+    const manifest: ContentManifest = {
+      channel,
+      contentVersion: version,
+      formatVersion: 1,
+      minAppVersion: '1.0.0',
+      createdAt: '2026-11-06T18:00:00Z',
+      files: manifestFiles,
+    };
+    server.setRoute(
+      `${BASE}/${channel}/latest.json`,
+      JSON.stringify({ channel, contentVersion: version, formatVersion: 1, minAppVersion: '1.0.0', manifestPath: `packs/${version}/manifest.json`, manifestHash: 'h', createdAt: 'x' })
+    );
+    server.setRoute(`${BASE}/${channel}/packs/${version}/manifest.json`, JSON.stringify(manifest));
+    return manifest;
+  }
+
+  const run = (channel: 'beta' | 'stable', u: ContentUpdater = updater, immediateActivate = false) =>
+    u.checkAndDownloadUpdate({ channel, currentAppVersion: '1.0.0', contentBase: BASE, immediateActivate });
+
+  const fileRequests = () => server.requestedUrls.filter((u) => u.includes('/files/'));
+
+  it('Scenario: first install seeded from the baseline downloads only what differs, and the merged content is complete', async () => {
+    await host('stable', 2, { 'pack.yaml': packYaml(2), 'worlds/world-1.yaml': worldYaml, 'worlds/world-1/es.md': worldEs });
+
+    const res = await run('stable', updater, true);
+
+    expect(res).toMatchObject({ updated: true, reason: 'activated', filesDownloaded: 1 });
+    expect(fileRequests()).toHaveLength(1);
+    // the installed pack holds only the downloaded file
+    expect(await fileStorage.exists('/app/content/stable/active/pack.yaml')).toBe(true);
+    expect(await fileStorage.exists('/app/content/stable/active/worlds/world-1.yaml')).toBe(false);
+    // the active content is the pack merged with the baseline
+    const merged = await store.loadActivePack('stable', baseline);
+    expect(merged?.pack.contentVersion).toBe(2);
+    expect(merged?.worlds['world-1'].text?.es).toBe(worldEs);
+  });
+
+  it('Scenario: Beta has no baseline, so every file is downloaded and the baseline is never used', async () => {
+    await host('beta', 2, { 'pack.yaml': packYaml(2), 'worlds/world-1.yaml': worldYaml, 'worlds/world-1/es.md': worldEs });
+
+    const res = await run('beta', updater, true);
+
+    expect(res.filesDownloaded).toBe(3);
+    expect(fileRequests()).toHaveLength(3);
+    // a beta pack missing a file is not completed from the baseline
+    await fileStorage.deleteFile('/app/content/beta/active/worlds/world-1.yaml');
+    const loaded = await store.loadActivePack('beta', baseline);
+    expect(Object.keys(loaded?.worlds ?? {})).toEqual([]);
+  });
+
+  it('Scenario: update after a partial first install stages a complete set', async () => {
+    await host('stable', 2, { 'pack.yaml': packYaml(2), 'worlds/world-1.yaml': worldYaml, 'worlds/world-1/es.md': worldEs });
+    await run('stable', updater, true);
+
+    const editedEs = '# World 1 edited\n## topics\nNew';
+    await host('stable', 3, { 'pack.yaml': packYaml(3), 'worlds/world-1.yaml': worldYaml, 'worlds/world-1/es.md': editedEs });
+    server.requestedUrls = [];
+    const res = await run('stable', updater, true);
+
+    expect(res.updated).toBe(true);
+    // every file of the new pack is on disk: partial packs never chain
+    for (const f of ['pack.yaml', 'worlds/world-1.yaml', 'worlds/world-1/es.md']) {
+      expect(await fileStorage.exists(`/app/content/stable/active/${f}`)).toBe(true);
+    }
+    const loaded = await store.loadActivePack('stable', baseline);
+    expect(loaded?.worlds['world-1'].text?.es).toBe(editedEs);
+  });
+
+  it('Scenario: merged pack fails validation, so it is not activated and the previous content stays', async () => {
+    // Valid on its own (the pack has no lessons), invalid once merged: the baseline's lesson is not on any trail.
+    const lessonYaml = 'id: theory-x\nkind: theory';
+    baseline.pack.lessons['theory-x'] = { config: { id: 'theory-x', kind: 'theory' } as any, text: {}, files: [] };
+    baseline.hashes['lessons/theory-x/lesson.yaml'] = await sha256Hex(lessonYaml);
+    await host('stable', 2, { 'pack.yaml': packYaml(2), 'worlds/world-1.yaml': worldYaml, 'worlds/world-1/es.md': worldEs, 'lessons/theory-x/lesson.yaml': lessonYaml });
+
+    const res = await run('stable', updater, true);
+
+    expect(res.updated).toBe(false);
+    expect(res.reason).toBe('validation_failed');
+    expect(await store.getActivePointer('stable')).toBeNull();
+    expect(await updater.getPendingUpdate('stable')).toBeNull();
+  });
+
+  describe('concurrency', () => {
+    /** Fetcher that tracks in-flight file requests and lets a test pick when each finishes. */
+    class GateFetcher implements HttpFetcher {
+      inFlight = 0;
+      maxInFlight = 0;
+      started: string[] = [];
+      signals: AbortSignal[] = [];
+      resolvers: Array<() => void> = [];
+      constructor(private inner: FakeHttpServer, private failOn?: (url: string) => boolean) {}
+      async fetch(url: string, options?: HttpFetchOptions): Promise<HttpResponse> {
+        if (!url.includes('/files/')) return this.inner.fetch(url, options);
+        this.started.push(url);
+        if (options?.signal) this.signals.push(options.signal);
+        this.inFlight++;
+        this.maxInFlight = Math.max(this.maxInFlight, this.inFlight);
+        await new Promise<void>((resolve) => this.resolvers.push(resolve));
+        this.inFlight--;
+        if (this.failOn?.(url)) return { status: 500, text: async () => '', binary: async () => new Uint8Array() };
+        return this.inner.fetch(url, options);
+      }
+    }
+    const flush = () => new Promise((r) => setTimeout(r, 0));
+    const media = (n: number) => Object.fromEntries(Array.from({ length: n }, (_, i) => [`media/img-${i}.png`, `img-${i}`]));
+
+    it('Scenario: up to the limit are in flight at once, structure and text before media', async () => {
+      await host('beta', 1, { 'pack.yaml': packYaml(1), 'worlds/world-1.yaml': worldYaml, 'worlds/world-1/es.md': worldEs, ...media(10) });
+      const gate = new GateFetcher(server);
+      const u = new ContentUpdater(store, fileStorage, kv, gate, baseline);
+      const done = run('beta', u);
+
+      await flush(); await flush();
+      expect(gate.inFlight).toBe(MAX_CONCURRENT_DOWNLOADS);
+      // the first requests are the structure/text files, never media
+      expect(gate.started.slice(0, 3).every((url) => !url.endsWith('.png'))).toBe(true);
+      while (gate.resolvers.length) { gate.resolvers.shift()!(); await flush(); await flush(); }
+      const res = await done;
+      expect(res.updated).toBe(true);
+      expect(res.filesDownloaded).toBe(13);
+      expect(gate.maxInFlight).toBe(MAX_CONCURRENT_DOWNLOADS);
+    });
+
+    it('Scenario: progress under concurrency counts finished files and never decreases when they finish out of order', async () => {
+      await host('beta', 1, { 'pack.yaml': packYaml(1), 'worlds/world-1.yaml': worldYaml, 'worlds/world-1/es.md': worldEs, ...media(5) });
+      const gate = new GateFetcher(server);
+      const u = new ContentUpdater(store, fileStorage, kv, gate, baseline);
+      const seen: number[] = [];
+      const unsub = subscribeContentProgress(() => { const p = getContentProgress(); if (p.active) seen.push(p.done); });
+      const done = run('beta', u);
+      await flush(); await flush();
+      // finish in reverse order of request
+      while (gate.resolvers.length) { gate.resolvers.pop()!(); await flush(); await flush(); }
+      await done;
+      unsub();
+      expect(seen[0]).toBe(0);
+      expect(seen[seen.length - 1]).toBe(8);
+      for (let i = 1; i < seen.length; i++) expect(seen[i]).toBeGreaterThanOrEqual(seen[i - 1]);
+    });
+
+    it('Scenario: one of several downloads fails, the rest are abandoned, cancelled and never staged', async () => {
+      await host('beta', 1, { 'pack.yaml': packYaml(1), 'worlds/world-1.yaml': worldYaml, 'worlds/world-1/es.md': worldEs, ...media(10) });
+      const gate: GateFetcher = new GateFetcher(server, (url: string) => url === gate.started[1]);
+      const u = new ContentUpdater(store, fileStorage, kv, gate, baseline);
+      const done = run('beta', u);
+      await flush(); await flush();
+      expect(gate.started).toHaveLength(MAX_CONCURRENT_DOWNLOADS);
+
+      gate.resolvers[1](); // the second request fails
+      await flush(); await flush();
+      expect(gate.signals.every((sg) => sg.aborted)).toBe(true);
+      gate.resolvers.forEach((r, i) => i !== 1 && r()); // the others still finish
+      const res = await done;
+
+      expect(res.updated).toBe(false);
+      expect(res.reason).toBe('unreachable');
+      expect(gate.started).toHaveLength(MAX_CONCURRENT_DOWNLOADS); // no new request after the failure
+      expect(await fileStorage.exists('/app/content/beta/staging/1')).toBe(false);
+      expect(await u.getPendingUpdate('beta')).toBeNull();
+      expect(await store.getActivePointer('beta')).toBeNull();
+    });
   });
 });

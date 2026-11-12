@@ -1,3 +1,5 @@
+import { BASELINE_PACK } from './baseline.generated';
+import { BASELINE_HASHES } from './baseline.hashes.generated';
 import { parseYaml, type LessonYaml, type MissionYaml, type NodeYaml, type PackYaml, type WorldYaml } from './schema';
 import { type ContentManifest } from './build';
 import { sha256Hex } from './hash';
@@ -34,14 +36,55 @@ export interface ActivePackPointer {
 }
 
 /**
- * Loads a ContentPack structure from an abstract FileStorage.
+ * The bundled baseline as a stored copy: the parsed stable pack plus the sha256 of each text and structure file it
+ * holds (relative path -> hash). Stable only; Beta never uses it.
  */
-export async function loadPackFromStorage(files: FileStorage, packDir: string): Promise<ContentPack> {
+export interface BaselineSource {
+  pack: ContentPack;
+  hashes: Record<string, string>;
+}
+
+/** The baseline bundled with this build, used by default for Stable. */
+export const DEFAULT_BASELINE: BaselineSource = { pack: BASELINE_PACK, hashes: BASELINE_HASHES };
+
+/** What a partial pack may borrow from the baseline: the pack to read from and which files it holds. */
+interface BaselineFill {
+  pack: ContentPack;
+  has(relPath: string): boolean;
+}
+
+/**
+ * A file counts as supplied by the baseline when the manifest lists it with exactly the hash the baseline holds.
+ * A file the manifest does not list (retired) is never supplied.
+ */
+export function baselineFillFor(baseline: BaselineSource | undefined, manifest: ContentManifest | undefined): BaselineFill | undefined {
+  if (!baseline || !manifest) return undefined;
+  return {
+    pack: baseline.pack,
+    has: (relPath) => {
+      const want = manifest.files[relPath]?.sha256;
+      const held = baseline.hashes[relPath];
+      return !!want && !!held && want.toLowerCase() === held.toLowerCase();
+    },
+  };
+}
+
+type TextMap = Record<string, any>;
+
+/**
+ * Loads a ContentPack structure from an abstract FileStorage. With `fill`, files the folder lacks but the baseline
+ * holds (same hash as the manifest) are taken from the baseline: the merged result is the pack's active content.
+ */
+export async function loadPackFromStorage(files: FileStorage, packDir: string, fill?: BaselineFill): Promise<ContentPack> {
   const packFilePath = `${packDir}/pack.yaml`;
-  if (!(await files.exists(packFilePath))) {
+  let packYaml: PackYaml;
+  if (await files.exists(packFilePath)) {
+    packYaml = parseYaml<PackYaml>(await files.readAsString(packFilePath));
+  } else if (fill?.has('pack.yaml')) {
+    packYaml = fill.pack.pack;
+  } else {
     throw new Error(`pack.yaml not found at ${packFilePath}`);
   }
-  const packYaml = parseYaml<PackYaml>(await files.readAsString(packFilePath));
 
   const result: ContentPack = {
     rootPath: packDir,
@@ -52,127 +95,74 @@ export async function loadPackFromStorage(files: FileStorage, packDir: string): 
     missions: {},
   };
 
+  const listIfExists = async (dir: string): Promise<string[]> => ((await files.exists(dir)) ? files.listDirectory(dir) : []);
+
+  /** Text files of `dir` by language, with the baseline's text for languages the folder lacks. */
+  const loadText = async (dir: string, relDir: string, baseText: TextMap | undefined): Promise<TextMap> => {
+    const text: TextMap = {};
+    if (await files.exists(dir)) {
+      for (const f of await files.listDirectory(dir)) {
+        if (f.endsWith('.md')) text[f.replace(/\.md$/, '')] = await files.readAsString(`${dir}/${f}`);
+      }
+    }
+    if (fill && baseText) {
+      for (const lang of Object.keys(baseText)) {
+        if (!(lang in text) && fill.has(`${relDir}/${lang}.md`)) text[lang] = baseText[lang];
+      }
+    }
+    return text;
+  };
+
   // 1. Worlds
   const worldsDir = `${packDir}/worlds`;
-  if (await files.exists(worldsDir)) {
-    const entries = await files.listDirectory(worldsDir);
-    for (const name of entries) {
-      if (name.endsWith('.yaml') || name.endsWith('.yml')) {
-        const id = name.replace(/\.ya?ml$/, '');
-        const config = parseYaml<WorldYaml>(await files.readAsString(`${worldsDir}/${name}`));
-        const text: Record<string, string> = {};
-
-        const subDir = `${worldsDir}/${id}`;
-        if (await files.exists(subDir)) {
-          const subFiles = await files.listDirectory(subDir);
-          for (const f of subFiles) {
-            if (f.endsWith('.md')) {
-              const lang = f.replace(/\.md$/, '');
-              text[lang] = await files.readAsString(`${subDir}/${f}`);
-            }
-          }
-        }
-        result.worlds[id] = { config, text };
-      }
+  const worldIds = new Set<string>();
+  for (const name of await listIfExists(worldsDir)) {
+    if (name.endsWith('.yaml') || name.endsWith('.yml')) worldIds.add(name.replace(/\.ya?ml$/, ''));
+  }
+  if (fill) for (const id of Object.keys(fill.pack.worlds)) worldIds.add(id);
+  for (const id of worldIds) {
+    const yamlName = (await files.exists(`${worldsDir}/${id}.yaml`)) ? `${id}.yaml` : `${id}.yml`;
+    let config: WorldYaml;
+    if (await files.exists(`${worldsDir}/${yamlName}`)) {
+      config = parseYaml<WorldYaml>(await files.readAsString(`${worldsDir}/${yamlName}`));
+    } else if (fill?.has(`worlds/${id}.yaml`) && fill.pack.worlds[id]) {
+      config = fill.pack.worlds[id].config;
+    } else {
+      continue;
     }
+    const text = await loadText(`${worldsDir}/${id}`, `worlds/${id}`, fill?.pack.worlds[id]?.text);
+    result.worlds[id] = { config, text };
   }
 
-  // 2. Lessons
-  const lessonsDir = `${packDir}/lessons`;
-  if (await files.exists(lessonsDir)) {
-    const lessonDirs = await files.listDirectory(lessonsDir);
-    for (const id of lessonDirs) {
-      const itemDir = `${lessonsDir}/${id}`;
-      const configFile = `${itemDir}/lesson.yaml`;
+  // 2. Lessons, 3. Nodes, 4. Missions: same shape, different folder and config file
+  const items: Array<{ key: 'lessons' | 'nodes' | 'missions'; cfg: string }> = [
+    { key: 'lessons', cfg: 'lesson.yaml' },
+    { key: 'nodes', cfg: 'node.yaml' },
+    { key: 'missions', cfg: 'mission.yaml' },
+  ];
+  for (const { key, cfg } of items) {
+    const dir = `${packDir}/${key}`;
+    const ids = new Set<string>(await listIfExists(dir));
+    if (fill) for (const id of Object.keys(fill.pack[key])) ids.add(id);
+    for (const id of ids) {
+      const itemDir = `${dir}/${id}`;
+      const configFile = `${itemDir}/${cfg}`;
+      const baseItem = fill?.pack[key][id];
+      let config: any;
       if (await files.exists(configFile)) {
-        const config = parseYaml<LessonYaml>(await files.readAsString(configFile));
-        const text: Record<string, string> = {};
-        const mediaFiles: string[] = [];
-
-        const entries = await files.listDirectory(itemDir);
-        for (const f of entries) {
-          if (f.endsWith('.md')) {
-            const lang = f.replace(/\.md$/, '');
-            text[lang] = await files.readAsString(`${itemDir}/${f}`);
-          }
-        }
-
-        const mediaDir = `${itemDir}/media`;
-        if (await files.exists(mediaDir)) {
-          const mediaEntries = await files.listDirectory(mediaDir);
-          for (const m of mediaEntries) {
-            mediaFiles.push(`media/${m}`);
-          }
-        }
-
-        result.lessons[id] = { config, text, files: mediaFiles };
+        config = parseYaml<any>(await files.readAsString(configFile));
+      } else if (baseItem && fill?.has(`${key}/${id}/${cfg}`)) {
+        config = baseItem.config;
+      } else {
+        continue;
       }
-    }
-  }
-
-  // 3. Nodes
-  const nodesDir = `${packDir}/nodes`;
-  if (await files.exists(nodesDir)) {
-    const nodeDirs = await files.listDirectory(nodesDir);
-    for (const id of nodeDirs) {
-      const itemDir = `${nodesDir}/${id}`;
-      const configFile = `${itemDir}/node.yaml`;
-      if (await files.exists(configFile)) {
-        const config = parseYaml<NodeYaml>(await files.readAsString(configFile));
-        const text: Record<string, string> = {};
-        const mediaFiles: string[] = [];
-
-        const entries = await files.listDirectory(itemDir);
-        for (const f of entries) {
-          if (f.endsWith('.md')) {
-            const lang = f.replace(/\.md$/, '');
-            text[lang] = await files.readAsString(`${itemDir}/${f}`);
-          }
-        }
-
-        const mediaDir = `${itemDir}/media`;
-        if (await files.exists(mediaDir)) {
-          const mediaEntries = await files.listDirectory(mediaDir);
-          for (const m of mediaEntries) {
-            mediaFiles.push(`media/${m}`);
-          }
-        }
-
-        result.nodes[id] = { config, text, files: mediaFiles };
+      const text = await loadText(itemDir, `${key}/${id}`, baseItem?.text);
+      const mediaFiles: string[] = [];
+      const mediaDir = `${itemDir}/media`;
+      if (await files.exists(mediaDir)) {
+        for (const m of await files.listDirectory(mediaDir)) mediaFiles.push(`media/${m}`);
       }
-    }
-  }
-
-  // 4. Missions
-  const missionsDir = `${packDir}/missions`;
-  if (await files.exists(missionsDir)) {
-    const missionDirs = await files.listDirectory(missionsDir);
-    for (const id of missionDirs) {
-      const itemDir = `${missionsDir}/${id}`;
-      const configFile = `${itemDir}/mission.yaml`;
-      if (await files.exists(configFile)) {
-        const config = parseYaml<MissionYaml>(await files.readAsString(configFile));
-        const text: Record<string, string> = {};
-        const mediaFiles: string[] = [];
-
-        const entries = await files.listDirectory(itemDir);
-        for (const f of entries) {
-          if (f.endsWith('.md')) {
-            const lang = f.replace(/\.md$/, '');
-            text[lang] = await files.readAsString(`${itemDir}/${f}`);
-          }
-        }
-
-        const mediaDir = `${itemDir}/media`;
-        if (await files.exists(mediaDir)) {
-          const mediaEntries = await files.listDirectory(mediaDir);
-          for (const m of mediaEntries) {
-            mediaFiles.push(`media/${m}`);
-          }
-        }
-
-        result.missions[id] = { config, text, files: mediaFiles };
-      }
+      result[key][id] = { config, text, files: mediaFiles };
     }
   }
 
@@ -260,8 +250,10 @@ export class ContentStore {
   async activateStaging(
     channel: 'beta' | 'stable',
     version: number,
-    manifest: ContentManifest
+    manifest: ContentManifest,
+    baseline: BaselineSource | undefined = DEFAULT_BASELINE
   ): Promise<ActivePackPointer> {
+    const fill = channel === 'stable' ? baselineFillFor(baseline, manifest) : undefined;
     const stagingDir = this.getStagingDir(channel, version);
     if (!(await this.files.exists(stagingDir))) {
       throw new Error(`Staging directory does not exist: ${stagingDir}`);
@@ -270,7 +262,7 @@ export class ContentStore {
     // 1. Check all manifest files exist in staging
     const missing: string[] = [];
     for (const filePath of Object.keys(manifest.files)) {
-      if (!(await this.files.exists(`${stagingDir}/${filePath}`))) {
+      if (!(await this.files.exists(`${stagingDir}/${filePath}`)) && !fill?.has(filePath)) {
         missing.push(filePath);
       }
     }
@@ -278,8 +270,9 @@ export class ContentStore {
       throw new Error(`Cannot activate incomplete pack: missing ${missing.length} file(s) (${missing.slice(0, 3).join(', ')})`);
     }
 
-    // 2. Load and validate pack in staging
-    const stagingPack = await loadPackFromStorage(this.files, stagingDir);
+    // 2. Load and validate pack in staging, merged with the baseline for the files it supplies. A failure throws
+    // before anything moves, so the previous content stays active.
+    const stagingPack = await loadPackFromStorage(this.files, stagingDir, fill);
     const report = validatePack(stagingPack);
     if (!report.valid) {
       const msgs = report.errors.map((e) => e.message).join('; ');
@@ -372,20 +365,22 @@ export class ContentStore {
    * Loads the active pack for a channel.
    * If cache is corrupt or missing, falls back to previous version or null (for baseline fallback).
    */
-  async loadActivePack(channel: 'beta' | 'stable'): Promise<ContentPack | null> {
+  async loadActivePack(channel: 'beta' | 'stable', baseline: BaselineSource | undefined = DEFAULT_BASELINE): Promise<ContentPack | null> {
     const pointer = await this.getActivePointer(channel);
     if (!pointer) {
       return null;
     }
+    // Stable only: the installed pack's files, with the baseline filling any file the pack lacks.
+    const fill = channel === 'stable' ? baselineFillFor(baseline, pointer.manifest) : undefined;
 
     const activeDir = this.getActiveDir(channel);
     const packFile = `${activeDir}/pack.yaml`;
 
-    if (!(await this.files.exists(packFile))) {
+    if (!(await this.files.exists(packFile)) && !fill?.has('pack.yaml')) {
       // Corrupt cache: pack.yaml missing from active directory
       const rolledBack = await this.rollbackToPrevious(channel);
       if (rolledBack) {
-        return this.loadActivePack(channel);
+        return this.loadActivePack(channel, baseline);
       }
       // Cannot rollback; remove corrupt pointer
       await this.kv.removeItem(this.getPointerKey(channel));
@@ -393,13 +388,13 @@ export class ContentStore {
     }
 
     try {
-      const pack = await loadPackFromStorage(this.files, activeDir);
+      const pack = await loadPackFromStorage(this.files, activeDir, fill);
       const report = validatePack(pack);
       if (!report.valid) {
         // Corrupt content; attempt rollback
         const rolledBack = await this.rollbackToPrevious(channel);
         if (rolledBack) {
-          return this.loadActivePack(channel);
+          return this.loadActivePack(channel, baseline);
         }
         await this.kv.removeItem(this.getPointerKey(channel));
         return null;
@@ -409,7 +404,7 @@ export class ContentStore {
       // Parse or load failure; attempt rollback to previous version
       const rolledBack = await this.rollbackToPrevious(channel);
       if (rolledBack) {
-        return this.loadActivePack(channel);
+        return this.loadActivePack(channel, baseline);
       }
       await this.kv.removeItem(this.getPointerKey(channel));
       return null;

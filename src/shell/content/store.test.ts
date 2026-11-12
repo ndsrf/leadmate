@@ -1,4 +1,4 @@
-import { ContentStore, type FileStorage, type KeyValueStorage } from './store';
+import { ContentStore, type BaselineSource, type FileStorage, type KeyValueStorage } from './store';
 import { type ContentManifest } from './build';
 import { sha256Hex } from './hash';
 
@@ -302,5 +302,89 @@ Topics text
     expect(deleted).toBe(1);
     expect(await fileStorage.exists('/app/content/beta/files/keep1.png')).toBe(true);
     expect(await fileStorage.exists('/app/content/beta/files/delete1.png')).toBe(false);
+  });
+});
+
+describe('ContentStore merged active content (installed pack + baseline)', () => {
+  const packYaml = (v: number) => `formatVersion: 1\ncontentVersion: ${v}\nminAppVersion: "1.0.0"\nlanguages:\n  - es\nretired: []`;
+  const worldYaml = 'id: world-1\nworldNumber: 1\ntier: free\nstretches: []';
+  const worldEs = '# World 1\n## topics\nTopics';
+  let files: MemoryFileStorage;
+  let kv: MemoryKeyValueStorage;
+  let store: ContentStore;
+  let baseline: BaselineSource;
+
+  beforeEach(async () => {
+    files = new MemoryFileStorage();
+    kv = new MemoryKeyValueStorage();
+    store = new ContentStore(files, kv, '/app/content');
+    baseline = {
+      pack: {
+        pack: { formatVersion: 1, contentVersion: 1, minAppVersion: '1.0.0', languages: ['es'], retired: [] },
+        worlds: { 'world-1': { config: { id: 'world-1', worldNumber: 1, tier: 'free', stretches: [] } as any, text: { es: worldEs } } },
+        lessons: {},
+        nodes: {},
+        missions: {},
+      },
+      hashes: {
+        'pack.yaml': await sha256Hex(packYaml(1)),
+        'worlds/world-1.yaml': await sha256Hex(worldYaml),
+        'worlds/world-1/es.md': await sha256Hex(worldEs),
+      },
+    };
+  });
+
+  /** Stages a pack holding only `own` files while the manifest lists all three. */
+  async function install(channel: 'beta' | 'stable', own: Record<string, string>) {
+    const all: Record<string, string> = { 'pack.yaml': packYaml(2), 'worlds/world-1.yaml': worldYaml, 'worlds/world-1/es.md': worldEs };
+    const manifest: ContentManifest = {
+      channel,
+      contentVersion: 2,
+      formatVersion: 1,
+      minAppVersion: '1.0.0',
+      createdAt: 'x',
+      files: Object.fromEntries(await Promise.all(Object.entries(all).map(async ([k, v]) => [k, { sha256: await sha256Hex(v), size: v.length }]))),
+    };
+    for (const [k, v] of Object.entries(own)) await store.saveFileToStaging(channel, 2, k, v, manifest.files[k].sha256);
+    return manifest;
+  }
+
+  it('Scenario: a partial stable pack is activated and loaded merged with the baseline', async () => {
+    const manifest = await install('stable', { 'pack.yaml': packYaml(2) });
+    await store.activateStaging('stable', 2, manifest, baseline);
+
+    const pack = await store.loadActivePack('stable', baseline);
+    expect(pack?.pack.contentVersion).toBe(2);
+    expect(pack?.worlds['world-1'].config.id).toBe('world-1');
+    expect(pack?.worlds['world-1'].text?.es).toBe(worldEs);
+  });
+
+  it('Scenario: Beta never uses the baseline, so a partial beta pack cannot be activated', async () => {
+    const manifest = await install('beta', { 'pack.yaml': packYaml(2) });
+    await expect(store.activateStaging('beta', 2, manifest, baseline)).rejects.toThrow(/incomplete pack/);
+  });
+
+  it('Scenario: a baseline file whose hash differs from the manifest is not used', async () => {
+    const manifest = await install('stable', { 'pack.yaml': packYaml(2) });
+    manifest.files['worlds/world-1/es.md'].sha256 = await sha256Hex('something else');
+    await expect(store.activateStaging('stable', 2, manifest, baseline)).rejects.toThrow(/incomplete pack/);
+  });
+
+  it('Scenario: merged pack fails validation, so the previous content stays active', async () => {
+    const manifest = await install('stable', { 'pack.yaml': packYaml(2) });
+    await store.activateStaging('stable', 2, manifest, baseline);
+
+    // v3: the baseline's lesson is held but no trail places it, so the merged pack is invalid
+    const bad = { ...baseline, pack: { ...baseline.pack, lessons: { 'theory-x': { config: { id: 'theory-x', kind: 'theory' } as any, text: {}, files: [] } } } };
+    const lessonYaml = 'id: theory-x\nkind: theory';
+    bad.hashes = { ...baseline.hashes, 'lessons/theory-x/lesson.yaml': await sha256Hex(lessonYaml) };
+    const m3 = await install('stable', {});
+    m3.contentVersion = 3;
+    m3.files['lessons/theory-x/lesson.yaml'] = { sha256: bad.hashes['lessons/theory-x/lesson.yaml'], size: 1 };
+    m3.files['pack.yaml'] = { sha256: baseline.hashes['pack.yaml'], size: 1 };
+    await files.makeDirectory(store.getStagingDir('stable', 3));
+    await files.writeAsString(`${store.getStagingDir('stable', 3)}/pack.yaml`, packYaml(1));
+    await expect(store.activateStaging('stable', 3, m3, bad)).rejects.toThrow(/invalid pack/);
+    expect((await store.getActivePointer('stable'))?.contentVersion).toBe(2);
   });
 });
