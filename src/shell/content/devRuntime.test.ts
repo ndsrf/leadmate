@@ -173,7 +173,7 @@ describe('Dev mode pack loading (Task 4.6)', () => {
     updater = new ContentUpdater(store, fileStorage, kvStorage, server);
   });
 
-  async function hostDevBetaPack(version: number, lessonTitle: string) {
+  async function hostDevBetaPack(version: number, lessonTitle: string, channel: 'beta' | 'stable' = 'beta') {
     const files: Record<string, string> = {
       'pack.yaml': `
 formatVersion: 1
@@ -229,11 +229,11 @@ Tip
       const hash = await sha256Hex(content);
       manifestFiles[relPath] = { sha256: hash, size: Buffer.byteLength(content) };
       const ext = relPath.includes('.') ? `.${relPath.split('.').pop()}` : '';
-      server.setRoute(`${DEV_SERVER_URL}/beta/files/${hash}${ext}`, content);
+      server.setRoute(`${DEV_SERVER_URL}/${channel}/files/${hash}${ext}`, content);
     }
 
     const manifest: ContentManifest = {
-      channel: 'beta',
+      channel,
       contentVersion: version,
       formatVersion: 1,
       minAppVersion: '1.0.0',
@@ -242,9 +242,9 @@ Tip
     };
 
     server.setRoute(
-      `${DEV_SERVER_URL}/beta/latest.json`,
+      `${DEV_SERVER_URL}/${channel}/latest.json`,
       JSON.stringify({
-        channel: 'beta',
+        channel,
         contentVersion: version,
         formatVersion: 1,
         minAppVersion: '1.0.0',
@@ -253,7 +253,7 @@ Tip
         createdAt: '2026-11-06T18:00:00Z',
       })
     );
-    server.setRoute(`${DEV_SERVER_URL}/beta/packs/${version}/manifest.json`, JSON.stringify(manifest));
+    server.setRoute(`${DEV_SERVER_URL}/${channel}/packs/${version}/manifest.json`, JSON.stringify(manifest));
   }
 
   it('in __DEV__, loads locally built beta pack at start, and reloading reflects edited lesson', async () => {
@@ -263,6 +263,7 @@ Tip
     // Start dev app
     const initialContent = await initContentRuntime({
       isDev: true,
+      channel: 'beta',
       contentBase: DEV_SERVER_URL,
       store,
       kvStorage,
@@ -279,6 +280,7 @@ Tip
     // 3. Author reloads the dev app
     const reloadedContent = await initContentRuntime({
       isDev: true,
+      channel: 'beta',
       contentBase: DEV_SERVER_URL,
       store,
       kvStorage,
@@ -294,5 +296,32 @@ Tip
     expect(getActiveContent().resolved.catalog['trail.test-lesson.title']).toBe(
       'Updated Lesson Title After Edit'
     );
+  });
+
+  it('Scenario: dev on Stable stages a newer pack and activates it at the next launch', async () => {
+    await hostDevBetaPack(5, 'Stable Lesson Title', 'stable');
+
+    const first = await initContentRuntime({
+      isDev: true,
+      channel: 'stable',
+      contentBase: DEV_SERVER_URL,
+      store,
+      kvStorage,
+      updater,
+    });
+    // Not applied in this session
+    expect(first.contentVersion).not.toBe(5);
+    await updater.checkAndDownloadUpdate({ channel: 'stable', currentAppVersion: '1.0.0', contentBase: DEV_SERVER_URL, immediateActivate: false });
+
+    const second = await initContentRuntime({
+      isDev: true,
+      channel: 'stable',
+      contentBase: DEV_SERVER_URL,
+      store,
+      kvStorage,
+      updater,
+    });
+    expect(second.contentVersion).toBe(5);
+    expect(second.resolved.catalog['trail.test-lesson.title']).toBe('Stable Lesson Title');
   });
 });

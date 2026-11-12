@@ -30,15 +30,21 @@ describe('Content channel setting (Task 5.1)', () => {
   });
 
   describe('defaultContentChannel', () => {
-    it('defaults to stable in production and beta in development builds', () => {
+    it('defaults to stable in every build, development included', () => {
       expect(defaultContentChannel(false)).toBe('stable');
-      expect(defaultContentChannel(true)).toBe('beta');
+      expect(defaultContentChannel(true)).toBe('stable');
     });
   });
 
   describe('loadContentChannel and saveContentChannel', () => {
     it('returns default when unset in storage', async () => {
       expect(await loadContentChannel(storage, false)).toBe('stable');
+      // Scenario: dev build with no stored choice follows stable
+      expect(await loadContentChannel(storage, true)).toBe('stable');
+    });
+
+    it('Scenario: dev build remembers Beta', async () => {
+      await saveContentChannel('beta', storage);
       expect(await loadContentChannel(storage, true)).toBe('beta');
     });
 

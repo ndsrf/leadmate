@@ -12,18 +12,16 @@ export interface ChannelSettingStorage {
 }
 
 /**
- * Returns the default content channel for this build:
- * 'beta' in dev builds (__DEV__ === true), 'stable' in production.
+ * Returns the default content channel: 'stable' in every build, development included, so a dev build behaves like
+ * production unless the developer selects Beta (which is then remembered).
  */
-export function defaultContentChannel(isDev?: boolean): ContentChannel {
-  const dev =
-    isDev ?? (typeof __DEV__ !== 'undefined' ? __DEV__ : process.env.NODE_ENV !== 'production');
-  return dev ? 'beta' : 'stable';
+export function defaultContentChannel(_isDev?: boolean): ContentChannel {
+  return 'stable';
 }
 
 /**
  * Loads the device-only content channel setting.
- * Defaults to 'stable' (or 'beta' in dev) if unset or invalid.
+ * Defaults to 'stable' (in every build) if unset or invalid.
  * Stored strictly on the device in AsyncStorage; never synced or in the Dog record.
  */
 export async function loadContentChannel(
