@@ -127,7 +127,7 @@ export function Flame({ lit, label }: { lit: boolean; label: string }) {
     transform: [{ rotate: '-45deg' as const }],
   });
   return (
-    <View accessibilityLabel={label} className="mr-2 h-8 w-6 items-center justify-end" style={{ opacity: lit ? 1 : 0.35 }}>
+    <View accessibilityLabel={label} className="mr-1.5 h-8 w-6 items-center justify-end" style={{ opacity: lit ? 1 : 0.35 }}>
       <View style={drop(20, color.flame)} />
       <View style={[drop(11, color.accent), { position: 'absolute', bottom: 4 }]} />
     </View>
@@ -1113,10 +1113,21 @@ worldPalette(entry.world.id);
 /** The streak, which also opens the Diary. */
 function StreakChip({ t, status, onPress }: { t: Translate; status: StreakStatus; onPress: () => void }) {
   const running = status.mode === 'running';
+  const dayText = t(status.days === 1 ? 'streak.day' : 'streak.days').replace('{count}', '').trim();
   return (
     <Chip
+      compact
       icon={<Flame lit={running} label={t('streak.flame')} />}
-      value={running ? `${status.days} ${t(status.days === 1 ? 'streak.day' : 'streak.days')}` : t('map.streakStart')}
+      value={
+        running ? (
+          <>
+            {status.days}{' '}
+            <Text className="text-caption font-normal">{dayText}</Text>
+          </>
+        ) : (
+          <Text className="text-caption font-normal">{t('map.streakStart')}</Text>
+        )
+      }
       onPress={onPress}
       accessibilityLabel={`${t('streak.flame')}. ${t('diary.chip')}`}
     />
@@ -1390,18 +1401,20 @@ export function WorldMapScreen({
   const header = (
     <View style={{ gap: theme.space[2] }}>
       <BetaContentBadge t={t} />
-      <View className="flex-row items-center justify-between" style={{ gap: theme.space[2] }}>
-        <View className="flex-row items-center flex-shrink" style={{ gap: theme.space[2] }}>
+      <View className="flex-row items-center justify-between" style={{ gap: theme.space[1] }}>
+        <View className="flex-row items-center flex-shrink" style={{ gap: theme.space[1] }}>
           <StreakChip t={t} status={streakStatus(streak, today)} onPress={onDiary} />
           <Chip
+            compact
             label={libraryToday ? t('library.chipToday') : undefined}
             value={t('library.chip')}
-            icon={libraryToday ? <View className="mr-2 h-3 w-3 rounded-game-pill bg-accent" style={{ borderWidth: 2, borderColor: color.outline }} /> : undefined}
+            icon={libraryToday ? <View className="mr-1.5 h-3 w-3 rounded-game-pill bg-accent" style={{ borderWidth: 2, borderColor: color.outline }} /> : undefined}
             onPress={onLibrary}
             accessibilityLabel={libraryToday ? `${t('library.chip')}. ${t('library.chipToday')}` : t('library.chip')}
           />
         </View>
-        <View className="flex-row items-center flex-shrink-0" style={{ gap: theme.space[2] }}>
+        <View className="flex-row items-center flex-shrink-0" style={{ gap: theme.space[1] }}>
+          <IconChip icon={<GearGlyph />} onPress={onSettings} accessibilityLabel={t('map.settings')} />
           {hasShop && (
             <IconChip
               icon={<BasketGlyph />}
@@ -1410,7 +1423,6 @@ export function WorldMapScreen({
               testID="map-shop-button"
             />
           )}
-          <IconChip icon={<GearGlyph />} onPress={onSettings} accessibilityLabel={t('map.settings')} />
         </View>
       </View>
       <View className="flex-row flex-wrap items-center" style={{ gap: theme.space[2] }}>

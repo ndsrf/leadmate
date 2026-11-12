@@ -258,7 +258,7 @@ describe('WorldMapScreen - Settings gear', () => {
 describe('WorldMapScreen - Map Header', () => {
   const t = createTranslator(es);
 
-  const renderHeader = () => {
+  const renderHeader = (streakProp = NO_STREAK) => {
     mockPressables.length = 0;
     const markup = renderToStaticMarkup(
       <WorldMapScreen
@@ -266,7 +266,7 @@ describe('WorldMapScreen - Map Header', () => {
         progress={progressOf([])}
         stars={{}}
         now={new Date('2026-10-28T09:00:00')}
-        streak={NO_STREAK}
+        streak={streakProp}
         today="2026-10-28"
         dailyBest={undefined}
         rustyPrompt={false}
@@ -288,15 +288,15 @@ describe('WorldMapScreen - Map Header', () => {
     };
   };
 
-  it('shows Streak, Library, basket, and gear in row 1, and Plus, Daily Paseo, and Guaudoku in row 2', () => {
+  it('shows Streak, Library, gear, and basket in row 1, and Plus, Daily Paseo, and Guaudoku in row 2', () => {
     const { labels, markup } = renderHeader();
     const start = labels.findIndex((l) => l.startsWith(es['streak.flame']));
     expect(start).toBeGreaterThanOrEqual(0);
-    // Row 1: Streak, Library, and Basket + Settings gear on the right
+    // Row 1: Streak, Library, and Settings gear + Basket on the right
     expect(labels[start]).toContain(es['diary.chip']);
     expect(labels[start + 1]).toBe(es['library.chip']);
-    expect(labels[start + 2]).toBe(es['map.shopButton']);
-    expect(labels[start + 3]).toBe(es['map.settings']);
+    expect(labels[start + 2]).toBe(es['map.settings']);
+    expect(labels[start + 3]).toBe(es['map.shopButton']);
     // Row 2: Plus, Daily Paseo, Guaudoku
     expect(labels[start + 4]).toBe('Plus. 7 días gratis');
     expect(labels[start + 5]).toBe(es['daily.title']);
@@ -314,6 +314,19 @@ describe('WorldMapScreen - Map Header', () => {
     const diary = labels.filter((l) => l.includes(es['diary.chip']));
     expect(diary).toHaveLength(1);
     expect(diary[0].startsWith(es['streak.flame'])).toBe(true);
+  });
+
+  it('renders running streak with count and reduced caption font for día seguido', () => {
+    const runningStreak = { current: 1, best: 1, lastActiveDate: '2026-10-28' };
+    const { markup } = renderHeader(runningStreak);
+    expect(markup).toContain('text-caption');
+    expect(markup).toContain(es['streak.day']);
+  });
+
+  it('renders unstarted streak with reduced caption font for Empieza tu racha', () => {
+    const { markup } = renderHeader(NO_STREAK);
+    expect(markup).toContain('text-caption');
+    expect(markup).toContain(es['map.streakStart']);
   });
 });
 
@@ -1242,6 +1255,26 @@ describe('MoreComingCard at the end of the map (Task 4.2)', () => {
       );
       expect(markup).toContain(es['map.shopButton']);
       expect(markup).toContain(es['map.settings']);
+      const basketPressable = mockPressables.find(
+        (p) => p.accessibilityLabel === es['map.shopButton'],
+      );
+      const gearPressable = mockPressables.find(
+        (p) => p.accessibilityLabel === es['map.settings'],
+      );
+      expect(basketPressable).toBeDefined();
+      expect(gearPressable).toBeDefined();
+    });
+
+    it('renders both basket and gear chips along with library on narrow screen with libraryToday', () => {
+      mockPressables.length = 0;
+      const markup = renderToStaticMarkup(
+        <div style={{ width: 320 }}>
+          <WorldMapScreen {...baseMapProps} shop={sampleShop} libraryToday onShop={() => {}} />
+        </div>,
+      );
+      expect(markup).toContain(es['map.shopButton']);
+      expect(markup).toContain(es['map.settings']);
+      expect(markup).toContain(es['library.chip']);
       const basketPressable = mockPressables.find(
         (p) => p.accessibilityLabel === es['map.shopButton'],
       );

@@ -233,20 +233,23 @@ export function Chip({
   value,
   icon,
   highlight = false,
+  compact = false,
   onPress,
   accessibilityLabel,
 }: {
   label?: string;
-  value?: string;
+  value?: React.ReactNode;
   icon?: React.ReactNode;
   highlight?: boolean;
+  compact?: boolean;
   onPress?: () => void;
   accessibilityLabel?: string;
 }) {
   const color = usePalette();
   const focus = useFocus();
+  const px = compact ? theme.space[2] : theme.space[3];
   const face = (shift: number) => (
-    <Raised fill={highlight ? color.accent : color.surface} radius={theme.radius.pill} offset={theme.depth.sm.x} shift={shift} focused={focus.focused} pressable={onPress !== undefined} faceStyle={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: theme.space[3], minHeight: theme.size.touchMin - 8 }}>
+    <Raised fill={highlight ? color.accent : color.surface} radius={theme.radius.pill} offset={theme.depth.sm.x} shift={shift} focused={focus.focused} pressable={onPress !== undefined} faceStyle={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: px, minHeight: theme.size.touchMin - 8 }}>
       {icon}
       <View className="shrink">
         {label !== undefined && <Text className={`text-caption ${highlight ? 'text-onAccent' : 'text-inkMuted'}`}>{label}</Text>}

@@ -3,11 +3,11 @@
 ## ADDED Requirements
 
 ### Requirement: Basket button opens the Shop
-The World Map header SHALL show a basket button next to the Settings gear whenever the active pack has at least one listed shop Category, and tapping it SHALL open the Shop. The button SHALL have an accessible label and SHALL be hidden when the shop is empty.
+The World Map header SHALL show a basket button to the right of the Settings gear whenever the active pack has at least one listed shop Category, and tapping it SHALL open the Shop. The button SHALL have an accessible label and SHALL be hidden when the shop is empty.
 
 #### Scenario: Shop available
 - **WHEN** the World Map is shown with a non-empty shop
-- **THEN** a basket button appears beside the gear and opens the Shop when tapped
+- **THEN** a basket button appears to the right of the gear and opens the Shop when tapped
 
 #### Scenario: Shop empty
 - **WHEN** the active pack has no shop content
