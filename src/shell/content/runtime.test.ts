@@ -1,4 +1,5 @@
 import { getActiveContent, initContentRuntime, setActiveContent, switchContentLanguage } from './runtime';
+import { BASELINE_PACK } from './baseline.generated';
 import { ContentUpdater, type HttpFetcher, type HttpResponse } from './updater';
 import { ContentStore, type FileStorage, type KeyValueStorage } from './store';
 import { type ContentManifest } from './build';
@@ -186,6 +187,9 @@ describe('Runtime content loading & session stability', () => {
   });
 
   it('session stability: a pack finished mid-session is not used until restart', async () => {
+    const baseVersion = BASELINE_PACK.pack.contentVersion;
+    const nextVersion = baseVersion + 1;
+
     // 1. Initial startup on baseline
     const session1 = await initContentRuntime({
       channel: 'beta',
@@ -194,13 +198,13 @@ describe('Runtime content loading & session stability', () => {
       updater,
     });
     expect(session1.isBaseline).toBe(true);
-    expect(session1.contentVersion).toBe(1);
+    expect(session1.contentVersion).toBe(baseVersion);
 
-    // 2. Server publishes version 2
+    // 2. Server publishes next version
     const v2Files = {
       'pack.yaml': `
 formatVersion: 1
-contentVersion: 2
+contentVersion: ${nextVersion}
 minAppVersion: "1.0.0"
 languages:
   - es
@@ -228,7 +232,7 @@ New topics
     }
     const manifest: ContentManifest = {
       channel: 'beta',
-      contentVersion: 2,
+      contentVersion: nextVersion,
       formatVersion: 1,
       minAppVersion: '1.0.0',
       createdAt: '2026-11-06T18:00:00Z',
@@ -236,14 +240,14 @@ New topics
     };
     server.setRoute(`${CONTENT_BASE}/beta/latest.json`, JSON.stringify({
       channel: 'beta',
-      contentVersion: 2,
+      contentVersion: nextVersion,
       formatVersion: 1,
       minAppVersion: '1.0.0',
-      manifestPath: 'packs/2/manifest.json',
+      manifestPath: `packs/${nextVersion}/manifest.json`,
       manifestHash: 'hash',
       createdAt: '2026-11-06T18:00:00Z',
     }));
-    server.setRoute(`${CONTENT_BASE}/beta/packs/2/manifest.json`, JSON.stringify(manifest));
+    server.setRoute(`${CONTENT_BASE}/beta/packs/${nextVersion}/manifest.json`, JSON.stringify(manifest));
 
     // 3. Background launch updater completes mid-session
     const updateResult = await updater.checkAndDownloadUpdate({
@@ -258,7 +262,7 @@ New topics
 
     // CRITICAL: getActiveContent() MUST still return the exact same session1 content!
     const midSessionContent = getActiveContent();
-    expect(midSessionContent.contentVersion).toBe(1);
+    expect(midSessionContent.contentVersion).toBe(baseVersion);
     expect(midSessionContent.isBaseline).toBe(true);
     // Custom world from V2 is NOT present in memory
     expect(midSessionContent.resolved.worlds.some((w) => w.id === 'world-custom')).toBe(false);
@@ -271,11 +275,11 @@ New topics
       updater,
     });
 
-    // Now version 2 is active!
-    expect(session2.contentVersion).toBe(2);
+    // Now next version is active!
+    expect(session2.contentVersion).toBe(nextVersion);
     expect(session2.isBaseline).toBe(false);
     expect(session2.resolved.worlds.some((w) => w.id === 'world-custom')).toBe(true);
-    expect(getActiveContent().contentVersion).toBe(2);
+    expect(getActiveContent().contentVersion).toBe(nextVersion);
   });
   it('switches content language at runtime', () => {
     setActiveContent(null);

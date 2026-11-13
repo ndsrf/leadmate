@@ -542,6 +542,10 @@ _Avoid_: Asset bundle, CMS export, lesson pack
 A release stream for content packs (`stable` or `beta`). Each channel builds, validates, and publishes independently with its own monotonic content version counter and manifest.
 _Avoid_: Environment, branch, release track
 
+**Baseline**:
+The Stable Content Pack as it was when a release was built, shipped inside the app as its starting copy and its fallback. Only the Stable channel has one; Beta does not.
+_Avoid_: Bundled pack, embedded pack, default pack
+
 **Content Version**:
 A positive integer recorded in `pack.yaml` tracking curriculum and editorial releases for a channel, advancing monotonically with each published update.
 _Avoid_: Revision, build number, pack version
