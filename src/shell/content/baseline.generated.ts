@@ -4,7 +4,7 @@ import type { ContentPack } from './validator';
 export const BASELINE_PACK: ContentPack = {
   "pack": {
     "formatVersion": 1,
-    "contentVersion": 1,
+    "contentVersion": 2,
     "minAppVersion": "1.0.0",
     "languages": [
       "es",

@@ -225,7 +225,7 @@ export const BASELINE_HASHES: Record<string, string> = {
   "nodes/walk-distraction/en.md": "1bbd469a926e8e049ff56a6f6a72a128e5b8b469987da952823c331c5df66504",
   "nodes/walk-distraction/es.md": "b75852d3f71718b99541572f89cb5341d303daede9e44a921de85f29db0d36ed",
   "nodes/walk-distraction/node.yaml": "542ea54ca2c7bc13c70edc7230571b4abb31c21886bc2249a1ab6d7f35652850",
-  "pack.yaml": "515e32ce34086c6eb013493cfccb82d905096c67cb345ca6cc3112692fd1cc26",
+  "pack.yaml": "22c5024d2eead98c6506be7e90dadcbfb1bf1937f2b0288cab91351afffb4d57",
   "shop/categories/camas/category.yaml": "e635395723b204c50479ba0a854fb8bb8ef7cff6204c71babbdf48c25066d8fc",
   "shop/categories/camas/en.md": "5b1dcd2d784e52310764b03ff584c476850638b0c2acd255786a72a9b7761257",
   "shop/categories/camas/es.md": "056e3d7804c45068c05d34b792ee56d3f90df3e9636aea443e0dbb5f124371f2",
