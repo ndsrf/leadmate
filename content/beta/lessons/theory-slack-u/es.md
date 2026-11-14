@@ -7,7 +7,7 @@ La correa se tensa sin avisar
 Salís con la correa colgando y todo va bien. Unos metros después notas el tirón en el brazo y no sabes en qué momento empezó. Haces poste, se afloja, seguís, y al rato otra vez. Parece que la tensión llega de golpe, pero casi nunca es así: la correa te avisa antes, si sabes mirarla.
 
 ## why
-Tu perro camina más deprisa que tú y la calle está llena de olores. Cuando algo le interesa, acelera poco a poco, y la correa cambia de forma. Primero cuelga en U, honda: vais juntos. Luego la curva se acorta y queda una J, todavía floja pero cerca de tu mano: se está adelantando. Al final, recta. En la J aún te escucha, porque su atención no está del todo en el olor. Con la correa tensa ya está enganchado y le cuesta mucho más volver. Por eso conviene actuar en la J. Y no con el brazo: si lo estiras para que no se tense, la U sigue ahí, pero él aprende que puede ir delante.
+Tu perro camina más deprisa que tú y la calle está llena de olores. Cuando algo le interesa, acelera poco a poco, y la correa cambia de forma. Primero cuelga en U, honda: vais juntos. Luego la curva se acorta y queda una J, todavía floja pero cerca de tu mano: se está adelantando. Al final, recta. En la J aún te escucha, porque su atención no está del todo en el olor. Con la correa tensa ya está enganchado y le cuesta mucho más volver. Por eso conviene actuar en la J. Y no con el brazo: si lo estiras para que no se tense, la U sigue ahí, pero él aprende que puede ir delante. Más adelante, en el Mundo 6 (El Parque y la Llamada), verás cómo hacer los paseos impredecibles para que tu perro elija seguir tu ritmo de forma voluntaria.
 
 ## steps
 1. Lleva la mano de la correa quieta junto a tu cintura y mira la correa de vez en cuando, no solo a tu perro.
