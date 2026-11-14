@@ -1,4 +1,5 @@
 import { BASELINE_PACK } from './baseline.generated';
+import { compareAppVersions, isSemver } from './schema';
 import { resolveContentBase } from './config';
 import { resolvePack, type ResolvedPack } from './resolver';
 import { ContentStore, type KeyValueStorage } from './store';
@@ -25,6 +26,16 @@ export interface InitRuntimeOptions {
   isDev?: boolean;
   contentBase?: string;
   currentAppVersion?: string;
+}
+
+/**
+ * Whether an app of `appVersion` may load `pack`: its version is at least the pack's `minAppVersion`. Unknown versions
+ * (no app version given, or a malformed one) do not block, matching the download check in the updater.
+ */
+export function appCanLoadPack(pack: ContentPack, appVersion: string | undefined): boolean {
+  const min = pack.pack?.minAppVersion;
+  if (!appVersion || !isSemver(appVersion) || !isSemver(min)) return true;
+  return compareAppVersions(appVersion, min) >= 0;
 }
 
 let activeContentSession: RuntimeContent | null = null;
@@ -134,6 +145,11 @@ export async function initContentRuntime(options: InitRuntimeOptions = {}): Prom
 
   if (options.store) {
     pack = await options.store.loadActivePack(channel);
+    if (pack && !appCanLoadPack(pack, options.currentAppVersion)) {
+      // Installed by a newer app build (or before a downgrade): this app may not render it, so keep the baseline
+      console.warn('[content] installed pack needs app', pack.pack.minAppVersion, 'but this is', options.currentAppVersion, '- using the bundled baseline');
+      pack = null;
+    }
     if (pack) {
       const pointer = await options.store.getActivePointer(channel);
       contentVersion = pointer?.contentVersion ?? (pack.pack.contentVersion ?? 1);

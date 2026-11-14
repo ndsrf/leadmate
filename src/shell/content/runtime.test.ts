@@ -1,4 +1,6 @@
-import { getActiveContent, initContentRuntime, setActiveContent, switchContentLanguage } from './runtime';
+import { appCanLoadPack, getActiveContent, initContentRuntime, setActiveContent, switchContentLanguage } from './runtime';
+import { IMAGE_DUEL_MIN_APP_VERSION } from './schema';
+import type { ContentPack } from './validator';
 import { BASELINE_PACK } from './baseline.generated';
 import { ContentUpdater, type HttpFetcher, type HttpResponse } from './updater';
 import { ContentStore, type FileStorage, type KeyValueStorage } from './store';
@@ -330,5 +332,79 @@ describe('initContentRuntime launch-time update check', () => {
 
     expect(check).toHaveBeenCalledTimes(1);
     expect(check.mock.calls[0][0]).toMatchObject({ channel: 'beta', immediateActivate: true });
+  });
+});
+
+describe('minAppVersion gate: an older app keeps its bundled baseline', () => {
+  const CONTENT_BASE = 'https://content.example.com';
+  const OLD_APP = '1.0.1';
+  const nextVersion = BASELINE_PACK.pack.contentVersion + 1;
+  const newerPack: ContentPack = {
+    ...BASELINE_PACK,
+    pack: { ...BASELINE_PACK.pack, contentVersion: nextVersion, minAppVersion: IMAGE_DUEL_MIN_APP_VERSION },
+  };
+  const storeHolding = (pack: ContentPack) =>
+    ({
+      loadActivePack: jest.fn().mockResolvedValue(pack),
+      getActivePointer: jest.fn().mockResolvedValue({ contentVersion: pack.pack.contentVersion }),
+    }) as unknown as ContentStore;
+
+  beforeEach(() => setActiveContent(null));
+
+  it('appCanLoadPack compares the app version with the pack minAppVersion', () => {
+    expect(appCanLoadPack(newerPack, OLD_APP)).toBe(false);
+    expect(appCanLoadPack(newerPack, IMAGE_DUEL_MIN_APP_VERSION)).toBe(true);
+    expect(appCanLoadPack(newerPack, '2.0.0')).toBe(true);
+    expect(appCanLoadPack(newerPack, undefined)).toBe(true);
+  });
+
+  it('an installed pack needing a newer app is ignored and the baseline loads', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const session = await initContentRuntime({ channel: 'stable', store: storeHolding(newerPack), currentAppVersion: OLD_APP });
+    warn.mockRestore();
+    expect(session.isBaseline).toBe(true);
+    expect(session.contentVersion).toBe(BASELINE_PACK.pack.contentVersion);
+  });
+
+  it('the same installed pack loads on an app at its minAppVersion', async () => {
+    const session = await initContentRuntime({ channel: 'stable', store: storeHolding(newerPack), currentAppVersion: IMAGE_DUEL_MIN_APP_VERSION });
+    expect(session.isBaseline).toBe(false);
+    expect(session.contentVersion).toBe(nextVersion);
+  });
+
+  it('a published pack needing a newer app is never downloaded, and the next launch is still the baseline', async () => {
+    const server = new FakeHttpServer();
+    const kvStorage = new MemoryKeyValueStorage();
+    const fileStorage = new MemoryFileStorage();
+    const store = new ContentStore(fileStorage, kvStorage, '/app/content');
+    const updater = new ContentUpdater(store, fileStorage, kvStorage, server);
+    const packYaml = `formatVersion: 1\ncontentVersion: ${nextVersion}\nminAppVersion: "${IMAGE_DUEL_MIN_APP_VERSION}"\nlanguages:\n  - es\nretired: []`;
+    const hash = await sha256Hex(packYaml);
+    server.setRoute(`${CONTENT_BASE}/stable/files/${hash}.yaml`, packYaml);
+    const manifest: ContentManifest = {
+      channel: 'stable',
+      contentVersion: nextVersion,
+      formatVersion: 1,
+      minAppVersion: IMAGE_DUEL_MIN_APP_VERSION,
+      createdAt: '2026-11-14T00:00:00Z',
+      files: { 'pack.yaml': { sha256: hash, size: Buffer.byteLength(packYaml) } },
+    };
+    server.setRoute(`${CONTENT_BASE}/stable/packs/${nextVersion}/manifest.json`, JSON.stringify(manifest));
+    server.setRoute(`${CONTENT_BASE}/stable/latest.json`, JSON.stringify({
+      channel: 'stable',
+      contentVersion: nextVersion,
+      formatVersion: 1,
+      minAppVersion: IMAGE_DUEL_MIN_APP_VERSION,
+      manifestPath: `packs/${nextVersion}/manifest.json`,
+      manifestHash: 'hash',
+      createdAt: '2026-11-14T00:00:00Z',
+    }));
+
+    const result = await updater.checkAndDownloadUpdate({ channel: 'stable', currentAppVersion: OLD_APP, contentBase: CONTENT_BASE });
+    expect(result).toMatchObject({ updated: false, reason: 'incompatible' });
+
+    const session = await initContentRuntime({ channel: 'stable', store, kvStorage, currentAppVersion: OLD_APP });
+    expect(session.isBaseline).toBe(true);
+    expect(session.contentVersion).toBe(BASELINE_PACK.pack.contentVersion);
   });
 });

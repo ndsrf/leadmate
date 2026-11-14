@@ -104,6 +104,16 @@ export const NODE_SCHEMA_FIELDS: readonly FieldDoc[] = [
   { name: 'recommendations', type: 'object[]', required: false, description: 'Optional list of shop recommendations ({ id, target, when })' },
 ];
 
+/**
+ * Fields of an Image Duel entry in a Node's `checkpoint` list (for the FORMAT.md tables; the Node table's `checkpoint`
+ * row still describes the text question).
+ */
+export const DUEL_QUESTION_SCHEMA_FIELDS: readonly FieldDoc[] = [
+  { name: 'kind', type: 'string', required: true, description: 'Question kind; "duel" for an Image Duel (omit for a text question)', allowedValues: ['text', 'duel'] },
+  { name: 'images', type: 'string[]', required: true, description: 'Exactly two distinct image files in the Node media/ folder, wordless and without right/wrong badges' },
+  { name: 'correct', type: 'number', required: true, description: 'Index (0 or 1) of the better image; the app shuffles top/bottom order when shown' },
+];
+
 export const MISSION_SCHEMA_FIELDS: readonly FieldDoc[] = [
   { name: 'id', type: 'string', required: true, description: 'Unique kebab-case identifier for the Mission' },
   { name: 'technique', type: 'string', required: true, description: 'Technique trained by this Mission' },
@@ -221,16 +231,63 @@ export interface NodeYaml {
     };
     tutorialUrl?: string;
   }>;
-  checkpoint?: Array<{
-    question?: string;
-    options?: Array<{ text: string; correct: boolean }>;
-    explanation?: string;
-  }>;
+  /**
+   * Optional order and kind of each Checkpoint question, aligned one-to-one with the `### N` subsections of the
+   * Checkpoint section in `<lang>.md`. Absent: every question is a text question (existing packs).
+   */
+  checkpoint?: CheckpointQuestionYaml[];
   debrief?: {
     calm?: string;
     notCalm?: string;
   };
   recommendations?: RecommendationYaml[];
+}
+
+export const CHECKPOINT_QUESTION_KINDS = ['text', 'duel'] as const;
+export type CheckpointQuestionKind = (typeof CHECKPOINT_QUESTION_KINDS)[number];
+
+/**
+ * A text Checkpoint question: the default kind, needing no `kind` field. Its text, options and correct mark live in
+ * `<lang>.md`; the optional fields are legacy and unused by the resolver.
+ */
+export interface TextCheckpointQuestionYaml {
+  kind?: 'text';
+  question?: string;
+  options?: Array<{ text: string; correct: boolean }>;
+  explanation?: string;
+}
+
+/**
+ * An Image Duel Checkpoint question: the user picks the better of two images. The images (files in the Node's
+ * `media/`) and the correct index are language-neutral and live here; the prompt, one alt text per image (in image
+ * order) and the explanation live in the aligned `### N` subsection of `<lang>.md`:
+ *
+ *     ### 2
+ *     <prompt>
+ *     - [ ] <alt text of images[0]>
+ *     - [ ] <alt text of images[1]>
+ *     - why: <explanation>
+ */
+export interface DuelCheckpointQuestionYaml {
+  kind: 'duel';
+  /** Exactly two file names in the Node's `media/` (with or without the `media/` prefix). */
+  images: [string, string];
+  /** Index (0 or 1) of the better image in `images`. */
+  correct: 0 | 1;
+}
+
+export type CheckpointQuestionYaml = TextCheckpointQuestionYaml | DuelCheckpointQuestionYaml;
+
+export function isDuelQuestionYaml(q: unknown): q is DuelCheckpointQuestionYaml {
+  return !!q && typeof q === 'object' && (q as { kind?: unknown }).kind === 'duel';
+}
+
+/** The first app version that renders Image Duel questions; a pack using one must declare at least this `minAppVersion`. */
+export const IMAGE_DUEL_MIN_APP_VERSION = '1.1.0';
+
+/** Strips a leading `media/` so a duel image is named as a file of the Node's `media/` folder. */
+export function duelImageFile(image: string): string {
+  return image.startsWith('media/') ? image.slice('media/'.length) : image;
 }
 
 export interface MissionYaml {
@@ -289,6 +346,18 @@ export interface ValidationResult {
 
 const ID_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const SEMVER_REGEX = /^\d+\.\d+\.\d+(-[a-zA-Z0-9.-]+)?$/;
+
+/** Compares the numeric `major.minor.patch` of two versions: negative, zero or positive like a sort comparator. */
+export function compareAppVersions(a: string, b: string): number {
+  const parts = (v: string) => v.split('-')[0].split('.').map((n) => parseInt(n, 10) || 0);
+  const pa = parts(a);
+  const pb = parts(b);
+  for (let i = 0; i < 3; i++) {
+    const diff = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
 const YOUTUBE_REGEX = /^[a-zA-Z0-9_-]{11}$/;
 const LANG_REGEX = /^[a-z]{2,3}(-[a-zA-Z0-9]+)?$/;
 
@@ -572,6 +641,10 @@ export function validateNodeYaml(raw: unknown, file: string = 'node.yaml'): Vali
     }
   }
 
+  if (obj.checkpoint !== undefined) {
+    errors.push(...validateCheckpointYaml(obj.checkpoint, String(obj.id), file));
+  }
+
   if (obj.recommendations !== undefined) {
     if (!Array.isArray(obj.recommendations)) {
       errors.push({ file, field: 'recommendations', message: 'recommendations must be an array of Recommendation objects', hint: 'recommendations: [{ id: "...", target: "...", when: "..." }]' });
@@ -583,6 +656,53 @@ export function validateNodeYaml(raw: unknown, file: string = 'node.yaml'): Vali
   }
 
   return { valid: errors.length === 0, errors };
+}
+
+/**
+ * Structural checks of a Node's `checkpoint` list: each entry a text question (no `kind`) or an Image Duel with
+ * exactly two distinct media file names and exactly one correct index. Whether the files exist is checked by
+ * `validatePack`, which knows the Node's media folder.
+ */
+function validateCheckpointYaml(raw: unknown, nodeId: string, file: string): ValidationError[] {
+  const errors: ValidationError[] = [];
+  if (!Array.isArray(raw)) {
+    return [{ file, field: 'checkpoint', message: `Node "${nodeId}": checkpoint must be an array of questions`, hint: 'checkpoint: [{}, { kind: duel, images: [a.png, b.png], correct: 0 }]' }];
+  }
+  raw.forEach((q, idx) => {
+    const field = `checkpoint[${idx}]`;
+    const n = idx + 1;
+    if (q === null || q === undefined) return; // an empty entry is a text question
+    if (typeof q !== 'object' || Array.isArray(q)) {
+      errors.push({ file, field, message: `Node "${nodeId}" question ${n}: must be an object`, hint: 'Use {} for a text question or { kind: duel, ... }' });
+      return;
+    }
+    const obj = q as Record<string, unknown>;
+    if (obj.kind !== undefined && !CHECKPOINT_QUESTION_KINDS.includes(obj.kind as CheckpointQuestionKind)) {
+      errors.push({ file, field: `${field}.kind`, message: `Node "${nodeId}" question ${n}: unknown kind "${String(obj.kind)}"`, hint: `Expected one of: ${CHECKPOINT_QUESTION_KINDS.join(', ')}` });
+      return;
+    }
+    if (obj.kind !== 'duel') return;
+
+    const images = obj.images;
+    if (!Array.isArray(images) || images.length !== 2) {
+      const count = Array.isArray(images) ? images.length : 0;
+      errors.push({ file, field: `${field}.images`, message: `Node "${nodeId}" question ${n}: an Image Duel needs exactly two images, found ${count}`, hint: 'images: [autopilot.png, turn-and-look.png]' });
+    } else {
+      images.forEach((img, i) => {
+        if (typeof img !== 'string' || !isRelativeMediaPath(img)) {
+          errors.push({ file, field: `${field}.images[${i}]`, message: `Node "${nodeId}" question ${n}: image "${String(img)}" is not a file in the Node media/ folder`, hint: 'Use a plain file name such as autopilot.png' });
+        }
+      });
+      if (typeof images[0] === 'string' && typeof images[1] === 'string' && duelImageFile(images[0]) === duelImageFile(images[1])) {
+        errors.push({ file, field: `${field}.images`, message: `Node "${nodeId}" question ${n}: the two duel images must be different files`, hint: 'Use one image per side' });
+      }
+    }
+
+    if (obj.correct !== 0 && obj.correct !== 1) {
+      errors.push({ file, field: `${field}.correct`, message: `Node "${nodeId}" question ${n}: an Image Duel needs exactly one correct image (correct: 0 or 1), got "${String(obj.correct)}"`, hint: 'correct: 0 marks images[0] as the better one' });
+    }
+  });
+  return errors;
 }
 
 export function validateMissionYaml(raw: unknown, file: string = 'mission.yaml'): ValidationResult {

@@ -388,3 +388,73 @@ describe('ContentStore merged active content (installed pack + baseline)', () =>
     expect((await store.getActivePointer('stable'))?.contentVersion).toBe(2);
   });
 });
+
+describe('ContentStore partial pack reusing baseline media', () => {
+  const NODE = 'duel-walk';
+  const packYaml = (v: number) => `formatVersion: 1\ncontentVersion: ${v}\nminAppVersion: "1.1.0"\nlanguages:\n  - es\nretired: []`;
+  const worldYaml = `id: world-1\nworldNumber: 1\ntier: free\nstretches:\n  - - kind: node\n      id: ${NODE}`;
+  const worldEs = '# World 1\n## topics\nTopics';
+  const nodeYaml = `id: ${NODE}\nmode: stage\nprerequisites: []\ncheckpoint:\n  - kind: duel\n    images: [autopilot.png, turn-and-look.png]\n    correct: 1`;
+  const nodeEs = (prompt: string) =>
+    `# Paseo\n\n## primer\n### card 1\nGira.\n\n## checkpoint\n### tq1\n${prompt}\n- [ ] La guía mira el móvil\n- [ ] La guía gira y mira\n- why: Girar invita a mirarte.`;
+  const images = { 'media/autopilot.png': 'png-bytes-1', 'media/turn-and-look.png': 'png-bytes-2' };
+
+  async function setup() {
+    const files = new MemoryFileStorage();
+    const store = new ContentStore(files, new MemoryKeyValueStorage(), '/app/content');
+    const baselineFiles: Record<string, string> = {
+      'pack.yaml': packYaml(1),
+      'worlds/world-1.yaml': worldYaml,
+      'worlds/world-1/es.md': worldEs,
+      [`nodes/${NODE}/node.yaml`]: nodeYaml,
+      [`nodes/${NODE}/es.md`]: nodeEs('¿Cuál?'),
+      ...Object.fromEntries(Object.entries(images).map(([f, v]) => [`nodes/${NODE}/${f}`, v])),
+    };
+    const hashes: Record<string, string> = {};
+    for (const [k, v] of Object.entries(baselineFiles)) hashes[k] = await sha256Hex(v);
+    const baseline: BaselineSource = {
+      pack: {
+        pack: { formatVersion: 1, contentVersion: 1, minAppVersion: '1.1.0', languages: ['es'], retired: [] },
+        worlds: { 'world-1': { config: { id: 'world-1', worldNumber: 1, tier: 'free', stretches: [[{ kind: 'node', id: NODE }]] }, text: { es: worldEs } } },
+        lessons: {},
+        nodes: {
+          [NODE]: {
+            config: { id: NODE, mode: 'stage', prerequisites: [], checkpoint: [{ kind: 'duel', images: ['autopilot.png', 'turn-and-look.png'], correct: 1 }] },
+            text: { es: nodeEs('¿Cuál?') },
+            files: Object.keys(images),
+          },
+        },
+        missions: {},
+      },
+      hashes,
+    };
+    // v2 changes only pack.yaml and the duel prompt; everything else, the images included, matches the baseline
+    const v2: Record<string, string> = { ...baselineFiles, 'pack.yaml': packYaml(2), [`nodes/${NODE}/es.md`]: nodeEs('¿Qué guía lo hace mejor?') };
+    const manifest: ContentManifest = {
+      channel: 'stable',
+      contentVersion: 2,
+      formatVersion: 1,
+      minAppVersion: '1.1.0',
+      createdAt: 'x',
+      files: Object.fromEntries(await Promise.all(Object.entries(v2).map(async ([k, v]) => [k, { sha256: await sha256Hex(v), size: v.length }]))),
+    };
+    for (const k of ['pack.yaml', `nodes/${NODE}/es.md`]) await store.saveFileToStaging('stable', 2, k, v2[k], manifest.files[k].sha256);
+    return { store, baseline, manifest };
+  }
+
+  it('Scenario: a partial pack whose duel images come from the baseline activates and lists both images', async () => {
+    const { store, baseline, manifest } = await setup();
+    await store.activateStaging('stable', 2, manifest, baseline);
+
+    const pack = await store.loadActivePack('stable', baseline);
+    expect(pack?.pack.contentVersion).toBe(2);
+    expect(pack?.nodes[NODE].files?.sort()).toEqual(['media/autopilot.png', 'media/turn-and-look.png']);
+    expect(pack?.nodes[NODE].text?.es).toContain('¿Qué guía lo hace mejor?');
+  });
+
+  it('Scenario: a baseline image whose hash differs from the manifest is not borrowed', async () => {
+    const { store, baseline, manifest } = await setup();
+    manifest.files[`nodes/${NODE}/media/autopilot.png`].sha256 = await sha256Hex('redrawn');
+    await expect(store.activateStaging('stable', 2, manifest, baseline)).rejects.toThrow(/incomplete pack/);
+  });
+});

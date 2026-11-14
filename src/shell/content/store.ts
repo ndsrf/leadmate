@@ -162,6 +162,13 @@ export async function loadPackFromStorage(files: FileStorage, packDir: string, f
       if (await files.exists(mediaDir)) {
         for (const m of await files.listDirectory(mediaDir)) mediaFiles.push(`media/${m}`);
       }
+      // Media the folder lacks but the baseline supplies (same hash as the manifest), so checks such as an Image
+      // Duel's "both images exist" see the merged pack's media, not only the files downloaded for this update
+      if (fill && baseItem?.files) {
+        for (const f of baseItem.files) {
+          if (!mediaFiles.includes(f) && fill.has(`${key}/${id}/${f}`)) mediaFiles.push(f);
+        }
+      }
       result[key][id] = { config, text, files: mediaFiles };
     }
   }
