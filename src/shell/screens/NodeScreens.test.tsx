@@ -1,13 +1,19 @@
 import React from 'react';
+import * as path from 'node:path';
 // @ts-ignore
 import { renderToStaticMarkup } from 'react-dom/server';
+import ReactTestRenderer, { act } from 'react-test-renderer';
 import { createTranslator, es } from '../../i18n';
-import { PrimerScreen, DebriefScreen } from './NodeScreens';
+import { PrimerScreen, DebriefScreen, CheckpointScreen, ImageDuelQuestionView, DuelVerdictBadge } from './NodeScreens';
 import { MissionProblemScreen, FixScreen } from './MissionScreens';
 import { getActiveContent, setActiveContent } from '../content/runtime';
+import { loadPackFromDisk } from '../content/loader';
+import { resolvePack } from '../content/resolver';
 import type { ResolvedShop } from '../content/resolver';
-import type { NodeDef } from '../nodes/node';
-import { startNode } from '../nodes/node';
+import type { NodeDef, NodeRun } from '../nodes/node';
+import { advance, startNode } from '../nodes/node';
+import type { ImageDuelQuestion } from '../nodes/content';
+import { newDogRecord } from '../dogRecord';
 import type { MissionDef, Fix } from '../missions/mission';
 
 const mockPressables: any[] = [];
@@ -29,6 +35,10 @@ jest.mock('react-native', () => {
     Platform: { OS: 'web' },
     AppState: {
       currentState: 'active',
+      addEventListener: () => ({ remove: () => {} }),
+    },
+    AccessibilityInfo: {
+      isReduceMotionEnabled: () => Promise.resolve(false),
       addEventListener: () => ({ remove: () => {} }),
     },
   };
@@ -64,8 +74,13 @@ jest.mock('react-native-svg', () => {
     Path: (props: any) => React.createElement('path', props, props.children),
     Rect: (props: any) => React.createElement('rect', props, props.children),
     Circle: (props: any) => React.createElement('circle', props, props.children),
+    Ellipse: (props: any) => React.createElement('ellipse', props, props.children),
+    G: (props: any) => React.createElement('g', props, props.children),
+    Line: (props: any) => React.createElement('line', props, props.children),
   };
 });
+
+(globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
 jest.mock('react-native-reanimated', () => {
   const React = require('react');
@@ -78,9 +93,26 @@ jest.mock('react-native-reanimated', () => {
     useAnimatedStyle: () => ({}),
     withTiming: (v: any) => v,
     cancelAnimation: () => {},
+    Easing: {
+      linear: () => {},
+      bezier: () => () => {},
+    },
     FadeIn: { duration: () => ({}) },
     FadeInDown: { duration: () => ({}) },
   };
+});
+
+const realConsoleError = console.error;
+beforeAll(() => {
+  jest.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
+    const msg = String(args[0]);
+    if (msg.includes('react-test-renderer is deprecated') || msg.includes('not wrapped in act')) return;
+    realConsoleError(...args);
+  });
+});
+
+afterAll(() => {
+  (console.error as any).mockRestore?.();
 });
 
 describe('Node and Mission screens - ShopLinkCard recommendations (Task 7.1)', () => {
@@ -305,5 +337,364 @@ describe('Node and Mission screens - ShopLinkCard recommendations (Task 7.1)', (
     } finally {
       setActiveContent(baseContent);
     }
+  });
+
+  describe('CheckpointScreen - Image Duel (Tasks 1.4, 1.4a)', () => {
+    const FIXTURE = path.join(__dirname, '..', 'content', '__fixtures__', 'duel-pack');
+    const resolved = resolvePack(loadPackFromDisk(FIXTURE), 'es');
+    const t = createTranslator({ ...es, ...resolved.catalog });
+    const duelNode = resolved.nodes.find((n) => n.id === 'duel-walk')!;
+    const duelQuestion = duelNode.checkpoint[1] as ImageDuelQuestion;
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+      mockPressables.length = 0;
+    });
+
+    afterEach(() => {
+      jest.clearAllTimers();
+      jest.useRealTimers();
+    });
+
+    it('renders duel question with prompt and stacked images without verdict hints before answering', () => {
+      const run = { ...startNode(duelNode), step: 'checkpoint' as const, question: 1 };
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      act(() => {
+        renderer = ReactTestRenderer.create(
+          <CheckpointScreen
+            t={t}
+            run={run}
+            setting={15}
+            onAnswer={() => {}}
+            onTimeout={() => {}}
+            random={() => 0.99}
+          />,
+        );
+      });
+
+      // Prompt is visible
+      expect(renderer!.root.findByProps({ children: t(duelQuestion.question) })).toBeDefined();
+
+      // Both images are visible and tappable
+      const option0 = renderer!.root.findByProps({ testID: 'duel-option-0' });
+      const option1 = renderer!.root.findByProps({ testID: 'duel-option-1' });
+      expect(option0).toBeDefined();
+      expect(option1).toBeDefined();
+      expect(option0.props.accessibilityRole).toBe('button');
+      expect(option1.props.accessibilityRole).toBe('button');
+
+      // NO check, cross, or explanation before answering
+      expect(renderer!.root.findAllByType(DuelVerdictBadge)).toHaveLength(0);
+      expect(renderer!.root.findAll((el) => el.props?.testID === 'duel-explanation')).toHaveLength(0);
+      expect(renderer!.root.findAll((el) => el.props?.testID === 'duel-next-button')).toHaveLength(0);
+    });
+
+    it('shuffles top/bottom order per presentation with controlled RNG', () => {
+      const run = { ...startNode(duelNode), step: 'checkpoint' as const, question: 1 };
+
+      // With RNG returning 0.99 -> order is [0, 1] (autopilot top, turn-and-look bottom)
+      let renderer1: ReactTestRenderer.ReactTestRenderer;
+      act(() => {
+        renderer1 = ReactTestRenderer.create(
+          <CheckpointScreen
+            t={t}
+            run={run}
+            setting={15}
+            onAnswer={() => {}}
+            onTimeout={() => {}}
+            random={() => 0.99}
+          />,
+        );
+      });
+      const buttons1 = renderer1!.root.findAll((el) => el.type === 'button' && typeof el.props?.testID === 'string' && el.props.testID.startsWith('duel-option-'));
+      expect(buttons1).toHaveLength(2);
+      expect(buttons1[0].props.testID).toBe('duel-option-0');
+      expect(buttons1[1].props.testID).toBe('duel-option-1');
+
+      // With RNG returning 0 -> order is [1, 0] (turn-and-look top, autopilot bottom)
+      let renderer2: ReactTestRenderer.ReactTestRenderer;
+      act(() => {
+        renderer2 = ReactTestRenderer.create(
+          <CheckpointScreen
+            t={t}
+            run={run}
+            setting={15}
+            onAnswer={() => {}}
+            onTimeout={() => {}}
+            random={() => 0}
+          />,
+        );
+      });
+      const buttons2 = renderer2!.root.findAll((el) => el.type === 'button' && typeof el.props?.testID === 'string' && el.props.testID.startsWith('duel-option-'));
+      expect(buttons2).toHaveLength(2);
+      expect(buttons2[0].props.testID).toBe('duel-option-1');
+      expect(buttons2[1].props.testID).toBe('duel-option-0');
+    });
+
+    it('handles correct choice: marks chosen correct image with check badge and shows explanation', () => {
+      const run = { ...startNode(duelNode), step: 'checkpoint' as const, question: 1 };
+      const onAnswer = jest.fn();
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      act(() => {
+        renderer = ReactTestRenderer.create(
+          <CheckpointScreen
+            t={t}
+            run={run}
+            setting={15}
+            onAnswer={onAnswer}
+            onTimeout={() => {}}
+            random={() => 0.99}
+          />,
+        );
+      });
+
+      // Tap the correct image (authored index 1)
+      const option1 = renderer!.root.findByProps({ testID: 'duel-option-1' });
+      act(() => {
+        option1.props.onPress();
+      });
+
+      // Correct image has check badge; no cross badge
+      const checkBadges = renderer!.root.findAllByType(DuelVerdictBadge).filter((b) => b.props.verdict === 'check');
+      const crossBadges = renderer!.root.findAllByType(DuelVerdictBadge).filter((b) => b.props.verdict === 'cross');
+      expect(checkBadges).toHaveLength(1);
+      expect(crossBadges).toHaveLength(0);
+
+      // Explanation is displayed
+      const explanation = renderer!.root.findByProps({ testID: 'duel-explanation' });
+      expect(explanation).toBeDefined();
+      expect(explanation.props.children).toBe(t(duelQuestion.explanation));
+
+      // Next button advances and calls onAnswer with authored index 1
+      const nextBtn = renderer!.root.findByProps({ testID: 'duel-next-button' });
+      expect(nextBtn).toBeDefined();
+      act(() => {
+        nextBtn.props.onPress();
+      });
+      expect(onAnswer).toHaveBeenCalledWith(1);
+    });
+
+    it('handles wrong choice: marks chosen with cross, correct with check, and shows explanation', () => {
+      const run = { ...startNode(duelNode), step: 'checkpoint' as const, question: 1 };
+      const onAnswer = jest.fn();
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      act(() => {
+        renderer = ReactTestRenderer.create(
+          <CheckpointScreen
+            t={t}
+            run={run}
+            setting={15}
+            onAnswer={onAnswer}
+            onTimeout={() => {}}
+            random={() => 0.99}
+          />,
+        );
+      });
+
+      // Tap the poorer image (authored index 0)
+      const option0 = renderer!.root.findByProps({ testID: 'duel-option-0' });
+      act(() => {
+        option0.props.onPress();
+      });
+
+      // Chosen option 0 has cross badge, correct option 1 has check badge
+      const checkBadges = renderer!.root.findAllByType(DuelVerdictBadge).filter((b) => b.props.verdict === 'check');
+      const crossBadges = renderer!.root.findAllByType(DuelVerdictBadge).filter((b) => b.props.verdict === 'cross');
+      expect(checkBadges).toHaveLength(1);
+      expect(crossBadges).toHaveLength(1);
+
+      // Explanation is displayed
+      const explanation = renderer!.root.findByProps({ testID: 'duel-explanation' });
+      expect(explanation.props.children).toBe(t(duelQuestion.explanation));
+
+      // Next button advances with authored index 0
+      const nextBtn = renderer!.root.findByProps({ testID: 'duel-next-button' });
+      act(() => {
+        nextBtn.props.onPress();
+      });
+      expect(onAnswer).toHaveBeenCalledWith(0);
+    });
+
+    it('handles timeout: marks question unanswered, reveals check on correct image and explanation', () => {
+      const run = { ...startNode(duelNode), step: 'checkpoint' as const, question: 1 };
+      const onTimeout = jest.fn();
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      act(() => {
+        renderer = ReactTestRenderer.create(
+          <CheckpointScreen
+            t={t}
+            run={run}
+            setting={15}
+            onAnswer={() => {}}
+            onTimeout={onTimeout}
+            random={() => 0.99}
+          />,
+        );
+      });
+
+      // Advance timers by 15.1 seconds to trigger timeout
+      act(() => {
+        jest.advanceTimersByTime(15100);
+      });
+
+      // Correct image has check badge; no cross badge
+      const checkBadges = renderer!.root.findAllByType(DuelVerdictBadge).filter((b) => b.props.verdict === 'check');
+      const crossBadges = renderer!.root.findAllByType(DuelVerdictBadge).filter((b) => b.props.verdict === 'cross');
+      expect(checkBadges).toHaveLength(1);
+      expect(crossBadges).toHaveLength(0);
+
+      // Explanation is displayed
+      const explanation = renderer!.root.findByProps({ testID: 'duel-explanation' });
+      expect(explanation.props.children).toBe(t(duelQuestion.explanation));
+
+      // Next button advances and calls onTimeout
+      const nextBtn = renderer!.root.findByProps({ testID: 'duel-next-button' });
+      act(() => {
+        nextBtn.props.onPress();
+      });
+      expect(onTimeout).toHaveBeenCalledTimes(1);
+    });
+
+    it('exposes localized alt text as accessibilityLabel on accessible buttons', () => {
+      const run = { ...startNode(duelNode), step: 'checkpoint' as const, question: 1 };
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      act(() => {
+        renderer = ReactTestRenderer.create(
+          <CheckpointScreen
+            t={t}
+            run={run}
+            setting={15}
+            onAnswer={() => {}}
+            onTimeout={() => {}}
+            random={() => 0.99}
+          />,
+        );
+      });
+
+      const option0 = renderer!.root.findByProps({ testID: 'duel-option-0' });
+      const option1 = renderer!.root.findByProps({ testID: 'duel-option-1' });
+
+      expect(option0.props.accessibilityRole).toBe('button');
+      expect(option1.props.accessibilityRole).toBe('button');
+      expect(option0.props.accessibilityLabel).toBe(t(duelQuestion.images[0].alt));
+      expect(option1.props.accessibilityLabel).toBe(t(duelQuestion.images[1].alt));
+      expect(option0.props.accessibilityLabel).toBe('La guía camina mirando el móvil');
+      expect(option1.props.accessibilityLabel).toBe('La guía gira y mira a {name}');
+    });
+
+    it('renders text and duel questions in authored order in a mixed Checkpoint', () => {
+      const mixedNode: NodeDef = {
+        ...duelNode,
+        checkpoint: [
+          duelNode.checkpoint[0], // text
+          duelNode.checkpoint[1], // duel
+          {
+            question: 'node.intro.question' as any,
+            options: [
+              { text: 'node.intro.optionAnchor' as any, correct: true },
+              { text: 'node.intro.optionPull' as any, correct: false },
+            ],
+            explanation: 'node.intro.why' as any,
+          },
+        ],
+      };
+
+      let run: NodeRun = { ...startNode(mixedNode), step: 'checkpoint' as const, question: 0 };
+
+      // 1. First question is text
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      act(() => {
+        renderer = ReactTestRenderer.create(
+          <CheckpointScreen t={t} run={run} setting={15} onAnswer={() => {}} onTimeout={() => {}} />,
+        );
+      });
+      expect(renderer!.root.findByProps({ children: t(mixedNode.checkpoint[0].question) })).toBeDefined();
+      expect(renderer!.root.findAll((el) => typeof el.props?.testID === 'string' && el.props.testID.startsWith('duel-option-'))).toHaveLength(0);
+
+      // Answer question 0
+      run = advance(run, { type: 'answer', option: 0 });
+      expect(run.question).toBe(1);
+
+      // 2. Second question is duel
+      act(() => {
+        renderer = ReactTestRenderer.create(
+          <CheckpointScreen t={t} run={run} setting={15} onAnswer={() => {}} onTimeout={() => {}} />,
+        );
+      });
+      expect(renderer!.root.findByProps({ children: t(duelQuestion.question) })).toBeDefined();
+      expect(renderer!.root.findAll((el) => el.type === 'button' && typeof el.props?.testID === 'string' && el.props.testID.startsWith('duel-option-'))).toHaveLength(2);
+
+      // Answer duel question
+      run = advance(run, { type: 'answer', option: 1 });
+      expect(run.question).toBe(2);
+
+      // 3. Third question is text
+      act(() => {
+        renderer = ReactTestRenderer.create(
+          <CheckpointScreen t={t} run={run} setting={15} onAnswer={() => {}} onTimeout={() => {}} />,
+        );
+      });
+      expect(renderer!.root.findByProps({ children: t(mixedNode.checkpoint[2].question) })).toBeDefined();
+      expect(renderer!.root.findAll((el) => el.type === 'button' && typeof el.props?.testID === 'string' && el.props.testID.startsWith('duel-option-'))).toHaveLength(0);
+
+      // Answer question 2
+      run = advance(run, { type: 'answer', option: 0 });
+      expect(run.step).toBe('simulation');
+    });
+
+    it('confirms the answer never blocks the simulation or changes the Dog for duel questions (Task 1.4a)', () => {
+      const singleDuelNode: NodeDef = {
+        ...duelNode,
+        checkpoint: [duelQuestion],
+      };
+
+      const initialDog = newDogRecord();
+      const dogSnapshot = JSON.stringify(initialDog);
+
+      // Case 1: Correct choice advances to simulation
+      const runCorrect = startNode(singleDuelNode);
+      const atCheckpoint1 = advance(advance(advance(advance(runCorrect, { type: 'next' }), { type: 'next' }), { type: 'next' }), { type: 'next' });
+      expect(atCheckpoint1.step).toBe('checkpoint');
+      const afterCorrect = advance(atCheckpoint1, { type: 'answer', option: 1 });
+      expect(afterCorrect.step).toBe('simulation');
+      expect(afterCorrect.checkpoint).toEqual(['correct']);
+      expect(JSON.stringify(initialDog)).toBe(dogSnapshot);
+
+      // Case 2: Wrong choice advances to simulation
+      const afterWrong = advance(atCheckpoint1, { type: 'answer', option: 0 });
+      expect(afterWrong.step).toBe('simulation');
+      expect(afterWrong.checkpoint).toEqual(['wrong']);
+      expect(JSON.stringify(initialDog)).toBe(dogSnapshot);
+
+      // Case 3: Timeout advances to simulation
+      const afterTimeout = advance(atCheckpoint1, { type: 'timeout' });
+      expect(afterTimeout.step).toBe('simulation');
+      expect(afterTimeout.checkpoint).toEqual(['missed']);
+      expect(JSON.stringify(initialDog)).toBe(dogSnapshot);
+    });
+
+    it('scales images to width without horizontal overflow at a narrow 320pt width', () => {
+      const run = { ...startNode(duelNode), step: 'checkpoint' as const, question: 1 };
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      act(() => {
+        renderer = ReactTestRenderer.create(
+          <CheckpointScreen
+            t={t}
+            run={run}
+            setting={15}
+            onAnswer={() => {}}
+            onTimeout={() => {}}
+            random={() => 0.99}
+          />,
+        );
+      });
+
+      const buttons = renderer!.root.findAll((el) => el.type === 'button' && typeof el.props?.testID === 'string' && el.props.testID.startsWith('duel-option-'));
+      expect(buttons).toHaveLength(2);
+      for (const btn of buttons) {
+        expect(btn.props.style?.width).toBe('100%');
+        expect(btn.props.style?.overflowX).toBeUndefined();
+      }
+    });
   });
 });

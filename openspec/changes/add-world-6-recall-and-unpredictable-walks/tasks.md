@@ -5,8 +5,8 @@
 - [x] 1.1 Extend the node schema (`src/shell/content/schema.ts`) with an image duel question kind (two images, correct index, explanation); verify with a schema unit test that text questions still parse unchanged.
 - [x] 1.2 Extend `validator.ts` to reject a duel without exactly two existing images or exactly one correct; verify with failing-case tests that name the Node.
 - [x] 1.3 Carry duel images and per-language text through `nodes/content.ts` and the content build; verify the built content exposes both images and localized alt text.
-- [ ] 1.4 Render the duel in the Checkpoint (`NodeScreens.tsx`): stacked images, random top/bottom order, no markers before answering, check/cross badges plus explanation after, screen-reader labels, existing timer and timeout behavior; verify with `NodeScreens.test.tsx` cases for shuffle, hidden verdict, wrong choice and timeout.
-- [ ] 1.4a Confirm the Checkpoint answer still never blocks the simulation or changes the Dog for duel questions; verify with a test.
+- [x] 1.4 Render the duel in the Checkpoint (`NodeScreens.tsx`): stacked images, random top/bottom order, no markers before answering, check/cross badges plus explanation after, screen-reader labels, existing timer and timeout behavior; verify with `NodeScreens.test.tsx` cases for shuffle, hidden verdict, wrong choice and timeout.
+- [x] 1.4a Confirm the Checkpoint answer still never blocks the simulation or changes the Dog for duel questions; verify with a test.
 - [ ] 1.5 Regenerate the schema tables in `content/FORMAT.md` and `docs/content/lesson-guide.md` for the new kind and its art rule (no badges, no words); verify `content:validate` still passes on the current pack.
 - [x] 1.6 Bump the app version that ships the renderer and set the `minAppVersion` rule for packs using duels; verify an older-version load test keeps the bundled baseline.
 
