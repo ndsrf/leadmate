@@ -1,5 +1,10 @@
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   CATEGORY_SCHEMA_FIELDS,
+  compareAppVersions,
+  IMAGE_DUEL_MIN_APP_VERSION,
+  isDuelQuestionYaml,
   isContentId,
   isHttpsUrl,
   isRecommendationTrigger,
@@ -329,5 +334,62 @@ describe('recommendation validation', () => {
       recommendations: [{ id: 'rec-1', target: 'collares', when: 'bad-when' }],
     };
     expect(validateLessonYaml(badLesson).valid).toBe(false);
+  });
+});
+
+describe('node.yaml checkpoint question kinds', () => {
+  const base = { id: 'walk', mode: 'stage', prerequisites: [] };
+  const duel = { kind: 'duel', images: ['autopilot.png', 'turn-and-look.png'], correct: 1 };
+
+  it('parses existing text questions unchanged: no checkpoint, empty entries and legacy text entries need no kind', () => {
+    expect(validateNodeYaml(base).valid).toBe(true);
+    expect(validateNodeYaml({ ...base, checkpoint: [{}, null, { kind: 'text' }] }).valid).toBe(true);
+    const legacy = { question: 'q', options: [{ text: 'a', correct: true }], explanation: 'why' };
+    expect(validateNodeYaml({ ...base, checkpoint: [legacy] }).valid).toBe(true);
+    expect(isDuelQuestionYaml(legacy)).toBe(false);
+    expect(isDuelQuestionYaml({})).toBe(false);
+  });
+
+  it('every shipped node.yaml still validates and holds no duel', () => {
+    for (const channel of ['stable', 'beta']) {
+      const dir = join(__dirname, '../../../content', channel, 'nodes');
+      for (const id of readdirSync(dir)) {
+        const cfg = parseYaml<Record<string, unknown>>(readFileSync(join(dir, id, 'node.yaml'), 'utf8'));
+        expect(validateNodeYaml(cfg).errors).toEqual([]);
+      }
+    }
+  });
+
+  it('accepts an Image Duel with two images and one correct index', () => {
+    expect(validateNodeYaml({ ...base, checkpoint: [{}, duel] }).valid).toBe(true);
+    expect(isDuelQuestionYaml(duel)).toBe(true);
+    expect(validateNodeYaml({ ...base, checkpoint: [{ ...duel, images: ['media/a.png', 'b.png'], correct: 0 }] }).valid).toBe(true);
+  });
+
+  it('rejects a malformed duel and names the Node', () => {
+    const bad = (q: unknown) => validateNodeYaml({ ...base, checkpoint: [q] });
+    for (const q of [
+      { ...duel, images: ['a.png'] },
+      { ...duel, images: ['a.png', 'b.png', 'c.png'] },
+      { ...duel, images: ['a.png', 'media/a.png'] },
+      { ...duel, images: ['../a.png', 'b.png'] },
+      { kind: 'duel', images: ['a.png', 'b.png'] },
+      { ...duel, correct: 2 },
+      { ...duel, correct: '1' },
+      { kind: 'video' },
+      'not-an-object',
+    ]) {
+      const res = bad(q);
+      expect(res.valid).toBe(false);
+      expect(res.errors[0].message).toContain('Node "walk"');
+    }
+    expect(validateNodeYaml({ ...base, checkpoint: 'nope' }).valid).toBe(false);
+  });
+
+  it('compares app versions numerically', () => {
+    expect(compareAppVersions('1.0.1', IMAGE_DUEL_MIN_APP_VERSION)).toBeLessThan(0);
+    expect(compareAppVersions('1.1.0', IMAGE_DUEL_MIN_APP_VERSION)).toBe(0);
+    expect(compareAppVersions('1.10.0', '1.9.0')).toBeGreaterThan(0);
+    expect(compareAppVersions('2.0.0-beta.1', '2.0.0')).toBe(0);
   });
 });
