@@ -1,5 +1,8 @@
+import { loadDogRecord, migrateRecord, newDogRecord, saveDogRecord, withCompletedWorlds } from './dogRecord';
+import { resolve } from './sync/merge';
+import { withBasicsDone } from './testProgress';
 import { mapModel } from './mapModel';
-import { hasMoreComing, isWorldComplete, isWorldUnlocked, progressOf, stopStatus, type Progress, type Stop, type WorldDef } from './world';
+import { hasMoreComing, isWorldComplete, isWorldUnlocked, progressOf, stopStatus, stopsOf, WORLDS, type Progress, type Stop, type WorldDef } from './world';
 
 const passed = { target: 'full' as const, skipRun: 0, attempts: [], startedAt: '2026-05-01T09:00:00.000Z', passedOn: '2026-05-02' };
 const lesson = (id: string): Stop => ({ kind: 'lesson', id });
@@ -90,5 +93,48 @@ describe('a World that grows after it was completed', () => {
 
   it('shows no note once the World holds every planned Stretch', () => {
     expect(map(stored, [w5, everything, w7]).worlds[1].moreComing).toBeUndefined();
+  });
+});
+
+describe('completedWorlds persistence', () => {
+  const worlds = [w5, oneStretch, w7];
+  const memory = () => {
+    const data: Record<string, string> = {};
+    return { getItem: async (k: string) => data[k] ?? null, setItem: async (k: string, v: string) => void (data[k] = v) };
+  };
+
+  it('round-trips through save and load with the real content, and keeps the World recorded', async () => {
+    const store = memory();
+    const record = withBasicsDone(newDogRecord());
+    expect(record.completedWorlds).toBeUndefined();
+    await saveDogRecord(store, record);
+    const loaded = await loadDogRecord(store);
+    expect(loaded.completedWorlds).toEqual(['basics']);
+    // a later save and load never drops it, even when the World is no longer complete
+    await saveDogRecord(store, { ...loaded, completedNodes: [], readLessons: [], missions: {}, legacyNodes: [] });
+    expect((await loadDogRecord(store)).completedWorlds).toEqual(['basics']);
+  });
+
+  it('keeps the next World open and reopens the grown World after a record round-trip (fixture content)', () => {
+    const record = withCompletedWorlds({ ...newDogRecord(), ...world6Done } as never, worlds);
+    expect(record.completedWorlds).toEqual(['w5', 'w6']);
+    const reloaded = migrateRecord(JSON.parse(JSON.stringify(record)));
+    expect(reloaded.completedWorlds).toEqual(expect.arrayContaining(['w5', 'w6']));
+    const m = map({ ...world6Done, completedWorlds: reloaded.completedWorlds }, [w5, twoStretches, w7]);
+    expect(m.worlds[1]).toMatchObject({ unlocked: true, complete: false });
+    expect(m.worlds[1].stops.map((x) => [x.stop.id, x.state])).toEqual([['l6', 'done'], ['m6', 'done'], ['l6b', 'next'], ['m6b', 'locked']]);
+    expect(m.worlds[2].unlocked).toBe(true);
+  });
+
+  it('backfills a record from before the field when the next World already has progress', () => {
+    const second = stopsOf(WORLDS[2])[0];
+    const raw = { ...JSON.parse(JSON.stringify(newDogRecord())), readLessons: second.kind === 'lesson' ? [second.id] : [], completedNodes: second.kind === 'node' ? [second.id] : [] };
+    expect(migrateRecord(raw).completedWorlds).toEqual(expect.arrayContaining([WORLDS[1].id]));
+  });
+
+  it('merges completedWorlds by union', () => {
+    const a = { ...newDogRecord(), completedWorlds: ['w5'] };
+    const b = { ...newDogRecord(), completedWorlds: ['w6'], updatedAt: new Date(Date.now() + 1000).toISOString() };
+    expect(resolve(a, b).completedWorlds?.sort()).toEqual(['w5', 'w6']);
   });
 });
