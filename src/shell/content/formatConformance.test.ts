@@ -1,12 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { getGeneratedTables } from './formatGuide';
-import { parseLessonMarkdown, parseMissionMarkdown, parseShopItemMarkdown } from './parser';
+import { parseLessonMarkdown, parseMissionMarkdown, parseNodeMarkdown, parseShopItemMarkdown } from './parser';
 import {
   parseYaml,
   type CategoryYaml,
   type LessonYaml,
   type MissionYaml,
+  type NodeYaml,
   type ProductYaml,
   type SubcategoryYaml,
 } from './schema';
@@ -15,6 +16,8 @@ import { validatePack, type ContentPack } from './validator';
 describe('FORMAT.md Conformance', () => {
   const formatPath = join(__dirname, '../../../content/FORMAT.md');
   const formatDoc = readFileSync(formatPath, 'utf8');
+  const lessonGuidePath = join(__dirname, '../../../docs/content/lesson-guide.md');
+  const lessonGuideDoc = readFileSync(lessonGuidePath, 'utf8');
   const tables = getGeneratedTables();
 
   it('contains the generated pack.yaml schema table without drift', () => {
@@ -57,12 +60,26 @@ describe('FORMAT.md Conformance', () => {
     expect(formatDoc).toContain(tables.recommendationTable);
   });
 
+  it('contains the generated duel question schema table without drift', () => {
+    expect(formatDoc).toContain(tables.duelQuestionTable);
+  });
+
+  it('contains the generated duel question schema table in lesson-guide.md without drift', () => {
+    expect(lessonGuideDoc).toContain(tables.duelQuestionTable);
+  });
+
   it('fails when a field is removed from the guide (drift detection)', () => {
     const tableWithoutPrice = tables.productTable
       .split('\n')
       .filter((line) => !line.includes('`price`'))
       .join('\n');
     expect(formatDoc).not.toContain(tableWithoutPrice);
+
+    const tableWithoutImages = tables.duelQuestionTable
+      .split('\n')
+      .filter((line) => !line.includes('`images`'))
+      .join('\n');
+    expect(formatDoc).not.toContain(tableWithoutImages);
   });
 
   it('agent-style test: creates a Lesson from the guide example and it validates in a pack', () => {
@@ -255,5 +272,65 @@ describe('FORMAT.md Conformance', () => {
     const report = validatePack(pack);
     expect(report.valid).toBe(true);
     expect(report.errors).toEqual([]);
+  });
+
+  it('agent-style test: creates a Node with an Image Duel from the guide example and validates in a pack', () => {
+    const yamlMatch = /```yaml\nid: sample-duel-walk([\s\S]*?)```/.exec(formatDoc);
+    expect(yamlMatch).not.toBeNull();
+    const nodeYaml = parseYaml<NodeYaml>(`id: sample-duel-walk${yamlMatch![1]}`);
+
+    const mdMatch = /```markdown\n(# Paseo con atención[\s\S]*?)```/.exec(formatDoc);
+    expect(mdMatch).not.toBeNull();
+    const parsedNode = parseNodeMarkdown(mdMatch![1]);
+    expect(parsedNode.title).toBe('Paseo con atención');
+    expect(parsedNode.checkpoint).toHaveLength(2);
+
+    const pack: ContentPack = {
+      pack: {
+        formatVersion: 1,
+        contentVersion: 1,
+        minAppVersion: '1.1.0',
+        languages: ['es'],
+      },
+      worlds: {
+        'sample-world': {
+          config: {
+            id: 'sample-world',
+            worldNumber: 1,
+            stretches: [[{ kind: 'node', id: 'sample-duel-walk' }]],
+          },
+          text: {
+            es: { title: 'Mundo Ejemplo', topics: 'temas de prueba' },
+          },
+        },
+      },
+      lessons: {},
+      nodes: {
+        'sample-duel-walk': {
+          config: nodeYaml,
+          text: {
+            es: parsedNode,
+          },
+          files: ['media/sample-autopilot.png', 'media/sample-turn.png'],
+        },
+      },
+      missions: {},
+    };
+
+    const report = validatePack(pack);
+    expect(report.valid).toBe(true);
+    expect(report.errors).toEqual([]);
+
+    // Drift / compatibility check: older minAppVersion must fail for duel questions
+    const olderPack: ContentPack = {
+      ...pack,
+      pack: {
+        ...pack.pack,
+        minAppVersion: '1.0.0',
+      },
+    };
+    const olderReport = validatePack(olderPack);
+    expect(olderReport.valid).toBe(false);
+    expect(olderReport.errors.some((e) => e.field === 'minAppVersion')).toBe(true);
   });
 });
