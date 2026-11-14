@@ -91,6 +91,10 @@ _Avoid_: Mark, click, treat button
 A signal the Handler gives the Dog before it reacts, such as "Let's go" or "Aquí", to steer its attention. Unlike the Marker, a Cue is proactive. "Let's Go" reorients a Dog on something that moves; "Leave It" (from World 3) lets a Dog go of food on the ground. Only the matching Cue works.
 _Avoid_: Command, call, order
 
+**Check-in**:
+The Dog glancing at the Handler of its own accord, which the Handler marks and rewards. Its frequency is one of the Dog's Learning Attributes. It is not a Mission check-in, where the user reports how a real walk went.
+_Avoid_: Glance, look-back
+
 **Handler Shielding**:
 Positioning the Handler between the Dog and an oncoming Distractor to occlude line of sight and buffer Arousal, without physical contact.
 _Avoid_: Body block, blocking, physical shield
@@ -196,6 +200,10 @@ _Avoid_: Best Solve Time, best time, record
 The timed quiz between the Theory Primer and the Interactive Simulation, timed at 15 seconds by default (configurable in Settings).
 _Avoid_: Quiz, test
 
+**Image Duel**:
+A Checkpoint question that shows two pictures stacked top and bottom, where the user taps the better handling. The order is shuffled, and the right and wrong marks appear only after the answer.
+_Avoid_: Picture quiz, A/B question
+
 **Pause Menu**:
 The menu shown over a paused Stage, offering Resume and Skip (which skips the Stage to its Debrief or results with completion credit).
 _Avoid_: Resume overlay, pause screen
@@ -283,8 +291,12 @@ A state of handling flow achieved by keeping the leash in Slack through continuo
 _Avoid_: Sync combo, flow mode
 
 **Go Sniff**:
-A decompression Cue offered after resolving a high-Arousal encounter, directing the Dog to sniff and rapidly dissipate Arousal.
+The release Cue that ends structured walking and lets the Dog sniff freely, rapidly dissipating Arousal. A Handler may give it at any time on a real walk; in a Stage it is only offered after resolving a high-Arousal encounter.
 _Avoid_: Sniff button, treat break
+
+**Unpredictable Walk**:
+Walking in which the Handler varies direction, pace and stops, so the Dog keeps choosing the Handler instead of following a routine on autopilot. "Let's Go" marks the structured part and Go Sniff releases it. It is taught in World 6, and the Handler never yanks or repeats a Cue to make it work.
+_Avoid_: Random walk, zig-zag walk
 
 **World**:
 A themed trail of Stops, grouped into Stretches, with distinct environment rules and mechanics.
