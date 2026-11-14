@@ -1023,23 +1023,23 @@ describe('WorldMapScreen - Satellite Stops for Puppies (Task 4.2 & 4.3)', () => 
 
 describe('Coming-soon World card (Task 4.1)', () => {
   const t = createTranslator(es);
-  const recallWorld = findWorld('recall')!;
-  const recallEntry: MapWorld = {
-    world: recallWorld,
+  const cafeWorld = findWorld('cafe')!;
+  const cafeEntry: MapWorld = {
+    world: cafeWorld,
     unlocked: false,
     complete: false,
     done: 0,
     total: 4,
     stops: [],
     owed: [],
-    topics: recallWorld.topics,
+    topics: cafeWorld.topics,
     tier: 'plus',
     preview: true,
   };
 
   const defaultProps = {
     t,
-    entry: recallEntry,
+    entry: cafeEntry,
     width: 390,
     rusty: false,
     pulse: false,
@@ -1061,14 +1061,14 @@ describe('Coming-soon World card (Task 4.1)', () => {
     expect(markup).toContain(es['map.plusTeaserTitle']);
     expect(markup).toContain(es['map.plusTeaserBody']);
     expect(markup).toContain(es['paywall.badge']);
-    expect(markup).not.toContain(es['world.recall.preview']);
+    expect(markup).not.toContain(es['world.cafe.preview']);
   });
 
   it('renders ComingSoonCard for trial user with blurb, walk count, auto-unlock note, and no paywall button', () => {
     mockPressables.length = 0;
     const markup = renderToStaticMarkup(<WorldBlock {...defaultProps} plus={true} />);
     expect(markup).toContain(es['world.previewBadge']);
-    expect(markup).toContain(es['world.recall.preview']);
+    expect(markup).toContain(es['world.cafe.preview']);
     expect(markup).toContain(es['world.previewWalkCount'].replace('{count}', '4'));
     expect(markup).toContain(es['world.comingSoonAutoUnlock']);
     expect(markup).not.toContain(es['map.plusTeaserTitle']);
@@ -1079,7 +1079,7 @@ describe('Coming-soon World card (Task 4.1)', () => {
   it('renders ComingSoonCard identically for subscribed user with no paywall wording', () => {
     mockPressables.length = 0;
     const markup = renderToStaticMarkup(<WorldBlock {...defaultProps} plus={true} />);
-    expect(markup).toContain(es['world.recall.preview']);
+    expect(markup).toContain(es['world.cafe.preview']);
     expect(markup).not.toContain(es['map.plusTeaserTitle']);
     expect(markup).not.toContain(es['paywall.badge']);
   });
@@ -1096,17 +1096,17 @@ describe('Coming-soon World card (Task 4.1)', () => {
     // Before trial: free teaser
     const free = renderToStaticMarkup(<WorldBlock {...defaultProps} plus={false} />);
     expect(free).toContain(es['map.plusTeaserTitle']);
-    expect(free).not.toContain(es['world.recall.preview']);
+    expect(free).not.toContain(es['world.cafe.preview']);
 
     // Trial starts: flips to Próximamente card
     const activeTrial = renderToStaticMarkup(<WorldBlock {...defaultProps} plus={true} />);
-    expect(activeTrial).toContain(es['world.recall.preview']);
+    expect(activeTrial).toContain(es['world.cafe.preview']);
     expect(activeTrial).not.toContain(es['map.plusTeaserTitle']);
 
     // Trial ends: flips back to free teaser
     const expired = renderToStaticMarkup(<WorldBlock {...defaultProps} plus={false} />);
     expect(expired).toContain(es['map.plusTeaserTitle']);
-    expect(expired).not.toContain(es['world.recall.preview']);
+    expect(expired).not.toContain(es['world.cafe.preview']);
   });
 });
 
@@ -1441,5 +1441,21 @@ describe('WorldMapScreen - Expand and Collapse World Headers (Task 2.1)', () => 
     expandedHeader.onPress();
     expect(onToggleCompleted).toHaveBeenCalledWith('basics');
     expect(onToggleExpand).not.toHaveBeenCalled();
+  });
+});
+
+describe('More-Stretches-coming note on a playable World', () => {
+  const t = createTranslator(es);
+  const props = {
+    t, width: 390, rusty: false, pulse: false, live: false, isFirstLocked: false, isExpanded: true, onToggleExpand: () => {},
+    completedOpen: false, onToggleCompleted: () => {}, onPressNode: () => {}, onPressPaywall: () => {}, onLayout: () => {}, onPathLayout: () => {}, plus: true,
+  };
+  const entry = (moreComing: boolean): MapWorld => ({
+    world: findWorld('park')!, unlocked: true, complete: false, done: 0, total: 0, stops: [], owed: [], topics: findWorld('park')!.topics, tier: 'plus', preview: false, ...(moreComing ? { moreComing } : {}),
+  });
+
+  it('shows the note after the last Stretch only when more are planned', () => {
+    expect(renderToStaticMarkup(<WorldBlock {...props} entry={entry(true)} />)).toContain(es['world.moreStretchesComing']);
+    expect(renderToStaticMarkup(<WorldBlock {...props} entry={entry(false)} />)).not.toContain(es['world.moreStretchesComing']);
   });
 });

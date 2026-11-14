@@ -104,8 +104,10 @@ describe('mapModel over Stops', () => {
   });
 
   it('keeps preview Worlds with their planned count and no Stops', () => {
-    const recall = mapModel(progressOf([]), {}, at(9)).worlds.find((w) => w.world.id === 'recall')!;
-    expect(recall).toMatchObject({ tier: 'plus', preview: true, total: 4, stops: [] });
+    const cafe = mapModel(progressOf([]), {}, at(9)).worlds.find((w) => w.world.id === 'cafe')!;
+    expect(cafe).toMatchObject({ tier: 'plus', preview: true, stops: [] });
+    expect(cafe.total).toBeGreaterThan(0);
+    expect(cafe.moreComing).toBeUndefined();
   });
 
   it('reports all-complete with nothing next-up or waiting', () => {
