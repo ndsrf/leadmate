@@ -203,6 +203,7 @@ export const EN_INTERFACE = {
   'world.progress': 'Lessons completed',
   'world.walkCount': '{done} of {total} walks',
   'world.previewWalkCount': '{count} planned walks',
+  'world.moreStretchesComing': 'This World will get more walks in future updates.',
   'world.comingSoonAutoUnlock': 'Will unlock automatically for you as soon as it becomes available.',
   'world.unlockRequirement': 'Finish "{node}" in {world} to unlock this World',
   'world.unlockGeneric': 'Complete the previous world to unlock this one.',

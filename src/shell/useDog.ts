@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { loadDogRecord, saveDogRecord, touch, type DogRecord, type KeyValueStore } from './dogRecord';
+import { loadDogRecord, saveDogRecord, touch, withCompletedWorlds, type DogRecord, type KeyValueStore } from './dogRecord';
 
 /** Loads the Dog record once and saves it after every change. `null` while loading. */
 export function useDog(store: KeyValueStore): { record: DogRecord | null; update: (fn: (r: DogRecord) => DogRecord) => void; replace: (record: DogRecord) => void } {
@@ -19,7 +19,8 @@ export function useDog(store: KeyValueStore): { record: DogRecord | null; update
   }, [store]);
 
   const commit = useCallback(
-    (next: DogRecord) => {
+    (record: DogRecord) => {
+      const next = withCompletedWorlds(record);
       latest.current = next;
       setRecord(next);
       saveDogRecord(store, next).catch(() => {

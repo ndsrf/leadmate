@@ -202,6 +202,7 @@ export const ES_INTERFACE = {
   'world.progress': 'Lecciones completadas',
   'world.walkCount': '{done} de {total} paseos',
   'world.previewWalkCount': '{count} paseos planificados',
+  'world.moreStretchesComing': 'Este mundo tendrá más paseos en próximas actualizaciones.',
   'world.comingSoonAutoUnlock': 'Se abrirá automáticamente para ti en cuanto esté disponible.',
   'world.unlockRequirement': 'Termina «{node}» en el {world} para abrir este mundo',
   'world.unlockGeneric': 'Completa el mundo anterior para abrir este.',

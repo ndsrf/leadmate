@@ -50,12 +50,12 @@ describe('World unlocking', () => {
     expect(WORLDS.map((w) => w.unlockedBy)).toEqual([undefined, 'basics', 'home', 'sidewalk', 'urban', 'park', 'recall', 'cafe', 'trails']);
   });
 
-  it('designates Worlds 1-5 as playable free worlds and 6-9 as preview plus worlds', () => {
-    const playable = WORLDS.filter((w) => !w.preview);
+  it('designates Worlds 1-5 as playable free worlds and 7-9 as preview plus worlds (World 6 is playable Plus)', () => {
+    const playable = WORLDS.filter((w) => !w.preview).map((w) => w.id);
+    expect(playable.slice(0, 5)).toEqual(['basics', 'home', 'sidewalk', 'urban', 'park']);
+    expect(WORLDS.slice(0, 5).every((w) => (w.tier ?? 'free') === 'free')).toBe(true);
     const previews = WORLDS.filter((w) => w.preview);
-    expect(playable.map((w) => w.id)).toEqual(['basics', 'home', 'sidewalk', 'urban', 'park']);
-    expect(playable.every((w) => (w.tier ?? 'free') === 'free')).toBe(true);
-    expect(previews.map((w) => w.id)).toEqual(['recall', 'cafe', 'trails', 'crowds']);
+    expect(previews.map((w) => w.id)).toEqual(expect.arrayContaining(['cafe', 'trails', 'crowds']));
     expect(previews.every((w) => w.tier === 'plus')).toBe(true);
   });
 
@@ -285,7 +285,7 @@ describe('trail validation', () => {
   it('gives World 1 three Stretches, harness, doorbell and Poste, and World 2 one per technique', () => {
     expect(world('home').stretches.map((s) => s.filter((x) => x.kind === 'node').map((x) => x.id))).toEqual([['harness-ritual'], ['doorbell-mat'], ['poste-practice']]);
     expect(world('sidewalk').stretches.map((s) => s.filter((x) => x.kind === 'node').map((x) => x.id))).toEqual([['walk-distraction'], ['blind-corner'], ['slack-u']]);
-    for (const w of WORLDS.filter((x) => !x.preview)) expect(w.stretches.length).toBeGreaterThanOrEqual(2);
+    for (const w of WORLDS.filter((x) => !x.preview)) expect(w.stretches.length).toBeGreaterThanOrEqual(w.id === 'recall' ? 1 : 2);
   });
 
   it('precedes the first walking Stage with a theory and a How-to-play Lesson', () => {

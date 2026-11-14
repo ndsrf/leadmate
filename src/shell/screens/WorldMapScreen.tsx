@@ -1102,6 +1102,13 @@ worldPalette(entry.world.id);
               );
             })}
           </View>
+          {entry.moreComing && (
+            <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+              <Text accessibilityRole="text" className="text-caption text-inkMuted">
+                {t('world.moreStretchesComing')}
+              </Text>
+            </View>
+          )}
           </>
         )}
       </View>

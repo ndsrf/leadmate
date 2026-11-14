@@ -145,6 +145,7 @@ export function resolve(local: DogRecord, remote: DogRecord): DogRecord {
     language: local.language ?? base.language,
     readLessons: union(base.readLessons, other.readLessons, (id) => id),
     legacyNodes: mergeLegacyNodes(base, other),
+    ...(base.completedWorlds || other.completedWorlds ? { completedWorlds: union(base.completedWorlds ?? [], other.completedWorlds ?? [], (id) => id) } : {}),
     missions: mergeMissions(base.missions, other.missions),
     seenFixes: mergeSeenFixes(base.seenFixes, other.seenFixes),
     onboarding: { ...base.onboarding, firstStageCompletedAt: earliest(base.onboarding.firstStageCompletedAt, other.onboarding.firstStageCompletedAt) },

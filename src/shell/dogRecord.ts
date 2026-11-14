@@ -18,7 +18,7 @@ import { DEFAULT_BREED, isBreed, type BreedId } from './onboarding/breeds';
 import { cleanDogName } from './onboarding/name';
 import { nextPosture, updateLearning, updateTriggerProfile } from './learning';
 import { isOnboardingStep, type OnboardingStep } from './onboarding/flow';
-import { findWorld, isWorldComplete, isWorldUnlocked, stopsOf, stretchIdContaining, findStretch, worldsFor } from './world';
+import { WORLDS, type WorldDef, findWorld, isWorldComplete, isWorldUnlocked, stopsOf, stretchIdContaining, findStretch, worldsFor } from './world';
 import { hasDedicatedLesson, isHomeStretchId } from './homeBehaviours';
 import { HOME_CONCERNS, isAgeBand, isConcern, isHomeConcern, isPlanBecause, isSex, readConcernList, readHomeConcerns, type AgeBand, type Concern, type HomeConcern, type HomeConcerns, type ConcernLevel, type PlanItem, type Sex } from './concerns';
 import { activityAt, addActivity, readActivityLog, type ActivityEvent } from './activity';
@@ -111,6 +111,11 @@ export interface DogRecord {
    * used to grandfather each World's last Mission; empty for a Dog that started with Missions.
    */
   legacyNodes: string[];
+  /**
+   * Ids of the Worlds the Dog has completed; only ever grows. A World that later gets new Stretches reopens, but the
+   * World it unlocked stays unlocked because the World is listed here. Kept up to date on every save and on load.
+   */
+  completedWorlds?: string[];
   /** Dated log of what the user did, oldest first, for the Diary; nothing reads progress from it. */
   activityLog: ActivityEvent[];
   /** Verified subscription entitlements from store billing, cached for offline continuity. */
@@ -378,7 +383,7 @@ export function migrateRecord(raw: unknown): DogRecord {
   const beforeMissions = typeof r.version !== 'number' || r.version < 7;
   const billing = readBilling(r.billing);
   const language: Language = r.language === 'en' ? 'en' : 'es';
-  return moveHomeStretchesToWorldTwo(skipBasicsWorld({
+  const migrated = moveHomeStretchesToWorldTwo(skipBasicsWorld({
     version: RECORD_VERSION,
     language,
     attributes,
@@ -415,9 +420,11 @@ export function migrateRecord(raw: unknown): DogRecord {
     missions: readMissions(r.missions),
     seenFixes: readSeenFixes(r.seenFixes),
     legacyNodes: beforeMissions ? [...completedNodes] : strings(r.legacyNodes),
+    ...(Array.isArray(r.completedWorlds) ? { completedWorlds: strings(r.completedWorlds) } : {}),
     activityLog: readActivityLog(r.activityLog),
     ...(billing ? { billing } : {}),
   }, r.version, localDateString(new Date())), r.version);
+  return Array.isArray(r.completedWorlds) ? withCompletedWorlds(migrated) : backfillCompletedWorlds(migrated);
 }
 
 /**
@@ -447,7 +454,29 @@ export async function loadDogRecord(store: KeyValueStore): Promise<DogRecord> {
 }
 
 export async function saveDogRecord(store: KeyValueStore, record: DogRecord): Promise<void> {
-  await store.setItem(RECORD_KEY, JSON.stringify(record));
+  await store.setItem(RECORD_KEY, JSON.stringify(withCompletedWorlds(record)));
+}
+
+/**
+ * The record with every World it has completed right now added to `completedWorlds` (never removed), so a World that
+ * grows later keeps the World it unlocked unlocked. Returns the same object when nothing is new.
+ */
+export function withCompletedWorlds(record: DogRecord, worlds: readonly WorldDef[] = WORLDS): DogRecord {
+  const have = record.completedWorlds ?? [];
+  const added = worlds.filter((w) => !have.includes(w.id) && isWorldComplete(w, record)).map((w) => w.id);
+  return added.length === 0 ? record : { ...record, completedWorlds: [...have, ...added] };
+}
+
+/**
+ * Backfills `completedWorlds` for a record from before the field: a World also counts as completed when the World
+ * after it holds a Stop the Dog already did (it can only have opened by completing the one before).
+ */
+function backfillCompletedWorlds(record: DogRecord, worlds: readonly WorldDef[] = WORLDS): DogRecord {
+  const withNow = withCompletedWorlds(record, worlds);
+  const have = new Set(withNow.completedWorlds ?? []);
+  const touchedStop = (w: WorldDef) => stopsOf(w).some((s) => (s.kind === 'lesson' ? record.readLessons.includes(s.id) : s.kind === 'node' ? record.completedNodes.includes(s.id) : !!record.missions[s.id]?.startedAt));
+  for (const w of worlds) if (w.unlockedBy && touchedStop(w)) have.add(w.unlockedBy);
+  return have.size === (withNow.completedWorlds ?? []).length ? withNow : { ...withNow, completedWorlds: [...have] };
 }
 
 /** The record stamped as changed at `now`; always strictly later than the previous stamp. */
