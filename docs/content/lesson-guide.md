@@ -171,8 +171,10 @@ canvas export is **not** used as the shipped file: the trial (`theory-unpredicta
 holds HTML artboards, not kit-built SVG, so palette and no-words checks cannot run on its export. The repo SVG is the
 source: draw in `scripts/art/lessons/`, render with `render-lesson-art.mjs`, then put the same SVG (kit symbols inlined
 by `inline()` in `_kit/svg.mjs`) on the artboard. New kit symbols go in `_kit/kit.mjs` (run it to rewrite `kit.svg`).
-Node media (an Image Duel pair) is rendered the same way with `--out` and `--registry` pointing outside
-`assets/lessons`, so it stays out of the bundled-Lesson budget, and the PNGs are copied into the Node's `media/`.
+Node media (an Image Duel pair) is drawn with the same kit but kept apart, in `scripts/art/nodes/<node-id>/` (so a
+default render never sweeps it into `assets/lessons`), and rendered straight into the Node's `media/` with
+`node scripts/render-lesson-art.mjs --src scripts/art/nodes/<node-id> --out content/beta/nodes/<node-id>/media
+--registry <a scratch file>`: the SVG name is the media file name, and no Lesson registry entry is written.
 
 The How-to-play Lessons show captures of the real controls instead of drawings. `scripts/capture-controls.mjs` stages
 each one (fixed seed, scripted input, fixed date), rings the control and writes `assets/lessons/howto-<lesson>-<n>.png`
