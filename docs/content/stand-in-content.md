@@ -114,9 +114,9 @@ build with a media base shows the retry placeholder for it after the tap.
 
 ## World 6 Recall and Unpredictable Walks Lessons
 
-Added by `add-world-6-recall-and-unpredictable-walks` (Stretch 1). Text authored with placeholder art flags (`placeholder: true`); dedicated drawings following [lesson-guide.md](lesson-guide.md) will be produced in Claude Design before leaving this list.
+Added by `add-world-6-recall-and-unpredictable-walks` (Stretch 1). Illustrations are not drawn yet: each Lesson names unbundled art keys that fall back to the themed placeholder. Dedicated drawings following [lesson-guide.md](lesson-guide.md) will be produced in Claude Design before leaving this list.
 
 | Item | Kind | Pictures |
 | --- | --- | --- |
-| `theory-unpredictable-walks` | Theory Lesson "Paseos impredecibles" / "Unpredictable Walks" | placeholders `unpredictable-walks-1`, `-2`, `-do`, `-dont` |
-| `howto-yield-pressure` | How-to Lesson "Ceder a la presión" / "Yield to Leash Pressure" | placeholders `yield-pressure-1`, `-2`, `-do`, `-dont` |
+| `theory-unpredictable-walks` | Theory Lesson "El paseo impredecible" ("Unpredictable Walks") | `theory-unpredictable-walks-1`, `-2`, `-do`, `-dont` |
+| `howto-yield-pressure` | Theory Lesson "Ceder a la presión de la correa" ("Giving Way to Leash Pressure") | `howto-yield-pressure-1`, `-2`, `-do`, `-dont` |

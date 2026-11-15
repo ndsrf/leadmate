@@ -10,7 +10,7 @@ Before you even step outside your front door, light leash tension often triggers
 When a dog feels leash tension, their physical instinct is to pull against it to keep balance. Meeting tension with force only triggers more resistance. Steady stillness guides cooperation instead. This 5-minute pre-walk drill builds a completely different habit: light leash pressure is not an invitation to pull, but a tactile communication cue. The moment {name} takes half a step toward the source of pressure, the leash goes completely Slack. That instant release is the primary relief, and marking it with your Marker word locks in the lesson. As taught in the Marking and Rewarding lesson, precise timing within one second makes all the difference.
 
 ## steps
-1. Inside your living room or hallway, hold the leash loosely at a comfortable distance and apply very light, steady pressure using just two fingers.
+1. Inside your living room or hallway, hold the leash at a comfortable distance and apply very light, steady pressure using just two fingers.
 2. Keep your hand completely steady without pulling them toward you. Wait quietly until {name} leans or takes a single step in that direction.
 3. The instant {name} yields and moves toward you, release all leash tension immediately, mark that step with "good", and deliver a treat.
 4. Practice three gentle repetitions to the left and three to the right; if distractions or arousal cause frustration at any point, turn around and end the session calmly.

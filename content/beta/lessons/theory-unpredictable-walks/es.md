@@ -10,14 +10,14 @@ Sales por la misma puerta, cruzas el mismo paso de cebra y caminas en línea rec
 Los perros aprenden por patrones y anticipación. Si cada esquina y cada recta son predecibles, {name} no necesita prestarte atención para saber hacia dónde vais: la rutina guía el camino y su foco se va por completo a los estímulos del entorno. Un paseo impredecible cambia las reglas. Al variar de pronto el rumbo, el ritmo o detenerte sin previo aviso, animas a tu perro a comprobar dónde estás. Cada mirada espontánea hacia ti es un check-in: la señal de que vuelve a elegir tu compañía. La señal estructurada «Vamos» guía el avance conjunto, mientras que «Olfatea» abre el momento de explorar con libertad.
 
 ## steps
-1. Camina diez pasos en línea recta mientras la correa cuelga en comba. Frena un poco el paso y gira con suavidad ciento ochenta grados, asegurando que la correa siga floja sin tensarse de golpe.
+1. Camina diez pasos en línea recta mientras la correa cuelga en comba. Frena un poco el paso y gira con suavidad ciento ochenta grados, asegurando que la correa siga floja sin tensarse de golpe; si tu perro llega a fijarse en una distracción, aumenta la distancia, da media vuelta o termina la sesión.
 2. En cuanto {name} gire la cabeza para seguir tus pasos y te mire en un check-in espontáneo, marca ese instante con un «bien» suave y premia junto a tu pierna.
 3. Alterna cambios de ritmo: pasa de caminar despacio a unos pasos rápidos, o haz una pausa completa de tres segundos sin decir nada.
 4. Usa «Vamos» para reiniciar la marcha estructurada a tu lado, y di «Olfatea» cuando lleguéis a una zona segura donde pueda investigar la hierba a su aire.
 
 ## example
 ### {name} en la plaza de los tilos
-Cruzando la plaza con la correa en comba, {name} mira unas palomas a lo lejos. Antes de que fije la atención, frenas el paso y giras con suavidad hacia la izquierda, manteniendo la correa holgada. Si tu perro llega a fijarse en una distracción, aumenta la distancia, da media vuelta o termina la sesión. Al notar el cambio de rumbo, {name} se gira para seguirte y busca tu mirada. Marcas ese check-in con un «bien» suave y entregas una golosina junto a tu rodilla. Dices «Vamos» para retomar el paso, hacéis dos giros tranquilos y dices «Olfatea» al llegar al césped.
+Cruzando la plaza con la correa en comba, {name} mira unas palomas a lo lejos. Antes de que fije la atención, frenas el paso y giras con suavidad hacia la izquierda, manteniendo la correa holgada. Al notar el cambio de rumbo, {name} se gira para seguirte y busca tu mirada. Marcas ese check-in con un «bien» suave y entregas una golosina junto a tu rodilla. Dices «Vamos» para retomar el paso, hacéis dos giros tranquilos y dices «Olfatea» al llegar al césped.
 
 ## compare
 ### do
