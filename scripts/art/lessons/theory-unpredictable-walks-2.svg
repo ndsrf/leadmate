@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-unpredictable-walks.image.2.caption" data-alt="trail.theory-unpredictable-walks.image.2.alt">
+  <!-- scene in the park: the Person turns back on a slack leash without a word; Migas pivots to follow and looks up at the Person -->
+  <use href="#sky"/>
+  <use href="#tree" transform="translate(560 284) scale(0.9)"/>
+  <use href="#ground-park"/>
+  <use href="#bench" transform="translate(84 290) scale(0.7)"/>
+  <use href="#tuft" transform="translate(420 284)"/>
+  <use href="#pigeon" transform="translate(600 330) scale(0.9)"/>
+  <g transform="translate(220 330) scale(1.12)">
+    <use href="#person-turn" transform="scale(-1 1)"/>
+    <use href="#dog-glance" transform="translate(170 0) scale(-1 1)"/>
+    <path d="M22 -84C40 -8 136 -6 156 -66" fill="none" stroke="#1E2A3A" stroke-width="8.5" stroke-linecap="round"/><path d="M22 -84C40 -8 136 -6 156 -66" fill="none" stroke="#6FAF73" stroke-width="4.5" stroke-linecap="round"/><circle cx="156" cy="-66" r="3.5" fill="#1E2A3A"/>
+  </g>
+  <use href="#arrow-turn" transform="translate(200 108) scale(1.1)"/>
+  <use href="#heart" transform="translate(410 168) scale(1.2)"/>
+</svg>

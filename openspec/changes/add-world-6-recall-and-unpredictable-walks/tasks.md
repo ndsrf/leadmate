@@ -12,9 +12,9 @@
 
 ## 2. Art pipeline in Claude Design
 
-- [ ] 2.1 Produce one trial image (a 640x360 park scene with the mascot dog and person) in the LeadMate Design System canvas, export it, and confirm the export path into an item's `media/`; verify it renders in a Lesson and update the design note if SVG export is not possible.
-- [ ] 2.2 Add any kit symbols Stretch 1 needs (park props) to the canvas; verify the mascot dog and person match the existing kit.
-- [ ] 2.3 Produce the Stretch 1 art as PNG (SVG if the trial export allows it): Lesson diagrams and scenes, a do/don't pair, and one duel pair for the Node (autopilot vs turn-and-look; further pairs optional); verify palette by eye, legibility at 320 pt, and that duel images have no badges or words.
+- [x] 2.1 Produce one trial image (a 640x360 park scene with the mascot dog and person) in the LeadMate Design System canvas, export it, and confirm the export path into an item's `media/`; verify it renders in a Lesson and update the design note if SVG export is not possible.
+- [x] 2.2 Add any kit symbols Stretch 1 needs (park props) to the canvas; verify the mascot dog and person match the existing kit.
+- [x] 2.3 Produce the Stretch 1 art as PNG (SVG if the trial export allows it): Lesson diagrams and scenes, a do/don't pair, and one duel pair for the Node (autopilot vs turn-and-look; further pairs optional); verify palette by eye, legibility at 320 pt, and that duel images have no badges or words.
 
 ## 3. World 6 content, Stretch 1 (unpredictable walks)
 
