@@ -15,7 +15,7 @@ The virtual dog on the other end of the leash, with its own behavior.
 _Avoid_: Pet, puppy
 
 **Distractor**:
-Anything in the scene that draws the dog's attention, such as a skateboarder or a hand offered to the Dog.
+Something in the scene that raises the Dog's Arousal and can cause a Fixation, such as a skateboarder, another dog or a hand offered to the Dog. Food is a Distractor that also smells.
 _Avoid_: Stimulus, trigger
 
 **Stage**:
@@ -33,6 +33,10 @@ _Avoid_: WebView, sim, player
 **Drive**:
 What the Dog wants at a given moment, such as reaching a Goal, following a scent, chasing, or wandering. A scenario can blend several Drives.
 _Avoid_: Motivation, interest, AI
+
+**Scent Spot**:
+A place in the scene that pulls the Dog's nose without raising its Arousal, such as the base of a lamp post or a bush. It stops pulling once the Dog has sniffed it.
+_Avoid_: Smell, sniff point, Distractor
 
 **Pathway**:
 The ordered sequence of waypoints that defines the walkable route corridor of a Stage.
@@ -85,7 +89,19 @@ The 1.0 to 1.2 seconds after Disengagement in which pressing the Marker earns cr
 
 **Marker**:
 The button, and the act of pressing it, that signals the Dog did the right thing at that instant.
-_Avoid_: Mark, click, treat button
+_Avoid_: Click, treat button
+
+**Mark**:
+One unit of a Stage's Marker budget: each Marker press spends one Mark, whatever it hits.
+_Avoid_: Treat, click
+
+**Marker timing grade**:
+How quickly a Marker press that hits followed the start of its window: Perfect or Good.
+_Avoid_: Accuracy rating, timing score
+
+**Late Marker press**:
+A Marker press that comes just after a Reward Window or Check-in window closed. It spends a Mark and rewards nothing.
+_Avoid_: Late mark, miss
 
 **Cue**:
 A signal the Handler gives the Dog before it reacts, such as "Let's go" or "Aquí", to steer its attention. Unlike the Marker, a Cue is proactive. "Let's Go" reorients a Dog on something that moves; "Leave It" (from World 3) lets a Dog go of food on the ground. Only the matching Cue works.
@@ -158,8 +174,12 @@ A Theory Primer structured into foundational real-world canine training theory f
 _Avoid_: Theory split, dual tutorial
 
 **Canine Posture**:
-The observable physical stance and ear/tail orientation of the virtual Dog (e.g. standing alert, straining against leash, settling, resting on mat) that acts as the primary behavioral cue in Minigames and Stages.
-_Avoid_: Dog sprite, animation frame
+The observable body language of the virtual Dog (where it looks, its head, ears and tail, and what it is doing, such as sniffing, planting or straining) that acts as the primary behavioral cue in Minigames and Stages. In a walking Stage it is drawn on the Dog and on the Dog portrait.
+_Avoid_: Dog sprite, animation frame, body state
+
+**Dog portrait**:
+The close-up of the Dog shown in the corner of a walking Stage, drawing its Canine Posture in detail.
+_Avoid_: Dog cam, avatar, inset
 
 **Tutorial Link**:
 An optional external URL declared on a Theory Primer card pointing to web-hosted instructional articles, illustrations, or video tutorials, viewable in an in-app browser with graceful offline placeholders.
@@ -247,8 +267,12 @@ _Avoid_: Mini-playtest, test
 The ordered list of Stretches suggested to a new user after the Diagnostic, built from their Concerns, the Dog's age and the Diagnostic result, with the reason for each item. It is shown with the diagnostic card before the guided first Stage and decides where the World Map says to start. Biting always comes first.
 _Avoid_: Walk Plan, curriculum, schedule
 
+**Feedback Message**:
+A short, non-blocking message with an icon, effect and sound that tells the user, right after an action in a Stage, what they did right or wrong and what to try instead.
+_Avoid_: Toast, popup, notification
+
 **Hint**:
-A one-shot, non-blocking message shown over a Stage the first time a simulation event happens (the leash first Taut, the Dog first Fixated, the leash first at its limit). A seen Hint is not shown again.
+The first-time, fuller form of a Feedback Message, shown the first time that kind of action or event happens for the Dog (for example the leash first Taut). A seen Hint is not shown again; later the short form is shown.
 _Avoid_: Tutorial, tooltip
 
 **Coach mark**:
@@ -291,12 +315,36 @@ A state of handling flow achieved by keeping the leash in Slack through continuo
 _Avoid_: Sync combo, flow mode
 
 **Go Sniff**:
-The release Cue that ends structured walking and lets the Dog sniff freely, rapidly dissipating Arousal. A Handler may give it at any time on a real walk; in a Stage it is only offered after resolving a high-Arousal encounter.
+The release Cue that ends structured walking and lets the Dog sniff freely, rapidly dissipating Arousal. A Handler may give it at any time on a real walk. In a Stage with Scent Spots it is available at any time with a Slack leash; in other Stages it is only offered after resolving a high-Arousal encounter.
 _Avoid_: Sniff button, treat break
 
 **Unpredictable Walk**:
 Walking in which the Handler varies direction, pace and stops, so the Dog keeps choosing the Handler instead of following a routine on autopilot. "Let's Go" marks the structured part and Go Sniff releases it. It is taught in World 6, and the Handler never yanks or repeats a Cue to make it work.
 _Avoid_: Random walk, zig-zag walk
+
+**Autopilot**:
+How far the Dog has stopped paying attention to the Handler because the walk has become routine: it grows while the Handler keeps the same heading and pace, and drops when the Handler changes direction, pace or stops.
+_Avoid_: Boredom, distraction level
+
+**Novelty**:
+How fresh one kind of change (a left or right turn, a U-turn, speeding up, slowing down, a stop) still is to the Dog. It drops each time the Handler repeats that change and recovers with time.
+_Avoid_: Surprise, randomness
+
+**Plant**:
+The Dog stopping firmly at a strong Scent Spot to sniff, refusing to move on until it has finished. Not a Poste, which is the Handler's stop.
+_Avoid_: Freeze, stall, refusal
+
+**Combo**:
+Right actions of the same kind made in quick succession inside a Stage, counted together in one Feedback Message (for example "Nice turn x3"). Not the daily Streak.
+_Avoid_: Streak, multiplier
+
+**Chain**:
+In an Unpredictable Walk, the full sequence of a change the Dog follows, a Marker press on its look, and the Handler then walking on with a Slack leash or giving Go Sniff.
+_Avoid_: Combo, sequence bonus
+
+**Jackpot**:
+A high-value reward the Handler gives with its own small budget instead of a Mark, meant for hard moments.
+_Avoid_: Super treat, bonus mark
 
 **World**:
 A themed trail of Stops, grouped into Stretches, with distinct environment rules and mechanics.
@@ -467,6 +515,14 @@ _Avoid_: Tab, menu item, pill
 **Star**:
 A 1 to 3 rating of how well a Node or a Daily Barkdoku solve was handled. A Node's Stars are kept at their best; a Daily Barkdoku's are a rating of that one solve and are not kept as progress. It reflects handling quality, plus the Target Time for a Barkdoku, and never unlocks anything.
 _Avoid_: Medal, rank, points
+
+**Stage Meter**:
+A bar shown during a Stage that fills as the Handler does one kind of thing well, such as Nose (letting the Dog sniff) or Connection (winning its attention). Only some Stages have Stage Meters, and then they set the Stars.
+_Avoid_: Gauge, progress bar, score
+
+**Meter Points**:
+The units that fill a Stage Meter, shown flying into it after a right action. They are never Stars.
+_Avoid_: Score, XP, coins
 
 **Daily Stage**:
 A procedurally generated Stage that changes every 24 hours and is shared by all users on a given date, protecting the Streak and warming up a Rusty Dog without mutating Learning Attributes.

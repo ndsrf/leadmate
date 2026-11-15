@@ -1,0 +1,61 @@
+# Design
+
+## Context
+
+- The simulation (`src/sim/sim.ts`) already emits a `SimEvent` for most handled actions: `marker-hit` (with `accuracyMs`), `marker-miss`, `marker-reactive`, `marker-wasted`, `check-in-hit`, `missed-opportunity`, `dog-follow`, `disengagement`, `poste-stop` (`abrupt`), `cue-mismatch`, `tension-change`, `sintonia-start`, `go-sniff-start`, `go-sniff-end` (`reason`).
+- The Stage bundle (Phaser, `bundle/src/StageScene.ts`) consumes those events and today only draws a 0.5 s coloured ring (`this.flash`). It sends the shell a few messages (`stage-signal`, `playCue`, `reaction-tier-change`) through `src/sim/messages.ts`.
+- All Stage sound plays in the shell (power-efficiency: no audio engine in the bundle). UI sounds go through `src/shell/ui/feedback.ts` and `feedbackBackends.ts`, which create one `expo-audio` player per sound and skip UI sounds while `cueAudioActive()`.
+- One-time hints are recorded in `DogRecord.seenHints` via the shell's hint helpers; Coach marks already use this from Stage signals.
+- The handling score is `handlingScore()` in `src/sim/payload.ts` (ADR 0005), and stars come from `src/shell/stars.ts`.
+- Scenario configs embedded in content are checked by `validateScenario` (`src/sim/scenery.ts`) from the content validator.
+
+## Goals / Non-Goals
+
+**Goals:**
+- One table that maps simulation events to feedback kinds, so every Stage gets messages without per-Stage work.
+- Meters as a generic, opt-in scenario feature that `rethink-unpredictable-walk-stage` can use for Nose and Connection.
+- Keep the simulation pure and the Daily Stage score unchanged.
+
+**Non-Goals:**
+- Feedback in close leash exercises and Minigames.
+- A Debrief replay timeline (planned with `rethink-unpredictable-walk-stage`).
+- Changing star thresholds.
+
+## Decisions
+
+1. **Feedback is decided in the bundle and voiced in the shell.** A pure module `src/hud/feedback.ts` turns each tick's events (plus the Dog record's seen kinds, passed in at `start`) into at most one `FeedbackMessage {kind, tier, polarity, text key, combo, meterPoints?, meter?}`. It applies priority, Combos and rate limits. `StageScene` draws the effect, and a new bundle message `{ type: 'feedback', kind, tier, polarity, combo }` tells the shell to play the sound and haptic and to record a newly seen kind. *Why:* drawing must stay frame-synced in Phaser; sound must stay in the shell; a pure module is unit-testable against seeded event streams. *Alternative:* the shell decides everything from forwarded events. Rejected: the round trip adds latency to the visual, and the shell would duplicate the bundle's event handling.
+
+2. **Event → kind table.** Right: `marker-hit` → mark (grade from the event), `check-in-hit` → check-in (grade), `dog-follow` → followed turn, `disengagement` → let go, `poste-stop` that ends in `posteSuccesses` → poste, `sintonia-start` → flow, `go-sniff-start` → sniff release. Wrong: `marker-miss` → missed window, new `marker-late` → late, `marker-reactive` → reactive mark, `marker-wasted` → nothing to mark, `missed-opportunity` → missed chance, `cue-mismatch` → wrong cue, `poste-stop` with `abrupt` → harsh stop, `tension-change` to rigid → pull, `go-sniff-end` with `tension` → sniff cut short. Tiers: Perfect grades, poste and let-go are medium; Combos of 3+ and full meters are big; the rest of the right actions are small.
+
+3. **New simulation facts are added as events, not computed in the bundle.** The simulation records when the current look started (`lookStartedAt`), grades hits (`grade: 'perfect' | 'good'` on `marker-hit` and `check-in-hit`), and emits `marker-late` for a press within 1.0 s after a window closed. It keeps `markGrades` in telemetry. *Why:* grades and Late feed telemetry and meters, so they must be seeded and deterministic.
+
+4. **Meters in the simulation config.** `ScenarioConfig.meters?: { id, labelKey, icon, target, meterPoints: Partial<Record<FeedbackActionKind, number>> }[]` (max 2). The simulation adds Meter Points when it pushes the matching event and caps at the target; `buildPayload` adds `meters` and, when meters exist, uses `round(1000 × mean(value/target))` for `handlingScore`. `validateScenario` rejects bad meters. *Why:* the score must come from the same seeded state as the rest of the payload. *Alternative:* compute meters in the shell from events. Rejected: replays, the Daily Stage and remote level configs all trust the payload.
+
+5. **Message text.** Catalog keys `feedback.<kind>.full`, `feedback.<kind>.short`, `feedback.combo` ("{label} x{n}"), in `es` and `en`, with `{name}` and cue-word interpolation. The Hint (`.full`) is used when the kind is not in `seenHints` (key `feedback:<kind>`); the bundle sends `feedback` with `firstTime: true` and the shell records it only for recorded Stages, as with Coach marks.
+
+6. **Effects drawn with pooled objects.** One reusable message container (text + icon), a fixed pool of 40 particle images, and one banner. Particles use simple tween curves; nothing is allocated per effect. The effect layer stops updating when nothing is active, consistent with "HUD redraws only on visible change". Reduced motion swaps tweens for alpha fades. Icons and burst shapes come from the LeadMate Design System canvas, packed into the HUD atlas.
+
+7. **Sound in the shell.** Add the feedback SFX to `SOUNDS` (`tick`, `chime`, `fanfare`, `bonk`), preload one player per sound at Stage start instead of creating one per play, and play Combo ticks with a rate (pitch) that rises 1 semitone per step up to +7. While `cueAudioActive()` is true, play feedback at 35% volume instead of skipping it (the ui-feedback delta). SFX source: a CC0 pack (for example Kenney's interface sounds), licence recorded next to the files, or sounds made for the app.
+
+8. **Event Hints use the same slot.** The bundle's existing event Hints (leash colours, Marker, Poste, leash Taut or Rigid Pull) are routed through `src/hud/feedback.ts` as the highest-priority kind, so they win over any Feedback Message on the same tick and suppress the Feedback Message for the same event. When they show and how `seenHints` records them is unchanged. The approaching-dog warning keeps its own pointer and placement.
+
+9. **Taste Stage.** The `start` message tells the bundle when the Stage is the Taste Stage. The feedback module then drops every wrong kind and records no Hint as seen, which matches the existing rule that the Taste Stage records no `seenHints`.
+
+10. **The flash ring is replaced** by the new effects, so a mark never shows two signals.
+
+## Risks / Trade-offs
+
+- [Message overload in busy Stages] → One message at a time, wrong-over-right priority, drop instead of queue, Combo merging, an 8 s rate limit for Rigid Pull; tune in playtests.
+- [Feedback hides the Dog or controls] → Messages are placed above the Dog, kept clear of the HUD control zones from `layout.ts`, and the banner sits under the top safe area.
+- [expo-audio latency or rate support differs by platform] → Preloaded players; if changing the rate is not supported on a platform, fall back to a fixed tick (the Combo count still shows).
+- [Score change surprises players of existing Stages] → Only Stages that declare meters change their score; no existing scenario declares meters in this change.
+- [Late Marker press changes `markerWasted` counts] → Telemetry consumers that only read hits are unaffected; `wasted` drops by the number of Late presses, which is intended.
+
+## Migration Plan
+
+Ship the app code first. Content needs no change, because no scenario declares meters yet. Rollback: revert the app release; payload fields are additive and older records ignore them.
+
+## Open Questions
+
+- Exact message wordings and SFX choices: settled during writing and playtests without changing specs.
+- Particle counts and durations per tier within the spec limits: tuned on device.
