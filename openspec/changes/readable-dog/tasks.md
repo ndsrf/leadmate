@@ -8,8 +8,8 @@
 
 ## 2. Derived Canine Posture
 
-- [ ] 2.1 Extend `DogPose` in `src/hud/pose.ts` with `gaze`, `head`, `ears`, `tail` and `action`, keeping the existing flags; verify with new `pose.test.ts` cases for each situation in the "Canine Posture follows the Dog's situation" requirement (calm, Check-in, Alert, Reactive, Rigid Pull, sniffing, looking away).
-- [ ] 2.2 Add a test that runs a seeded Stage with and without deriving poses and asserts identical debrief payloads; verify it passes with `npm test`.
+- [x] 2.1 Extend `DogPose` in `src/hud/pose.ts` with `gaze`, `head`, `ears`, `tail` and `action`, keeping the existing flags; verify with new `pose.test.ts` cases for each situation in the "Canine Posture follows the Dog's situation" requirement (calm, Check-in, Alert, Reactive, Rigid Pull, sniffing, looking away).
+- [x] 2.2 Add a test that runs a seeded Stage with and without deriving poses and asserts identical debrief payloads; verify it passes with `npm test`.
 
 ## 3. Walking Dog sprite
 
