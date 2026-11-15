@@ -120,3 +120,12 @@ Added by `add-world-6-recall-and-unpredictable-walks` (Stretch 1). Text authored
 | --- | --- | --- |
 | `theory-unpredictable-walks` | Theory Lesson "Paseos impredecibles" / "Unpredictable Walks" | placeholders `unpredictable-walks-1`, `-2`, `-do`, `-dont` |
 | `howto-yield-pressure` | How-to Lesson "Ceder a la presión" / "Yield to Leash Pressure" | placeholders `yield-pressure-1`, `-2`, `-do`, `-dont` |
+
+## World 6 Stage Node and Mission (Stretch 1)
+
+| Item | Kind | Stand-in |
+| --- | --- | --- |
+| `park-unpredictable` | Stage Node "El paseo impredecible" / "The Unpredictable Walk" (text, Checkpoint, exercises) | Interim Stage: scored with Rigid Pull and Check-in counts only and exempt from Sintonía (`sintonia.enabled: false`); `rethink-unpredictable-walk-stage` will replace the scoring |
+| `park-unpredictable` Image Duel | `duel-autopilot.png`, `duel-turn-look.png` in `content/beta/nodes/park-unpredictable/media/` | 1x1 placeholder PNGs until the art worker's drawings land |
+| `park-unpredictable` primer card | art key `theory-unpredictable-walks-1` | not bundled (lesson art stand-in) |
+| `mission-park-unpredictable` | Mission "El paseo impredecible" | text drafted, not yet reviewed |

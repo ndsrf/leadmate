@@ -1,0 +1,31 @@
+# Mundo 6 · El paseo impredecible
+
+## primer
+### card 1
+Recuerda: cambia de rumbo sin avisar, mantén la correa floja y premia cada mirada de {name}. Usa «Vamos» para salir juntos y «Olfatea» para soltar el olfato.
+- caption: Los giros en zigzag invitan a un check-in
+
+## checkpoint
+### tq1
+{name} camina delante en piloto automático y hace rato que no te mira. ¿Qué ayuda más?
+- [x] Giras sin avisar y dejas que {name} te busque
+- [ ] Sigues recto y llamas a {name} muchas veces
+- [ ] Tensas la correa para que {name} no se aleje
+- why: Un giro inesperado hace que {name} te busque, y esa mirada es un check-in que puedes premiar. Llamar sin parar mantiene a {name} en piloto automático.
+
+### tq2
+¿Qué paseo mantiene a {name} atento?
+- [ ] La guía camina recto mirando el móvil
+- [ ] La guía gira y mira a {name}
+- why: Girar y mirar invita a {name} a buscarte, y así comprobar dónde estás pasa a ser decisión de {name}.
+
+### tq3
+¿Qué señal usas para soltar a {name} a explorar un trozo de césped seguro?
+- [x] «Olfatea»
+- [ ] «Vamos»
+- [ ] Un tirón de correa
+- why: «Olfatea» abre el tiempo de olfato libre, mientras que «Vamos» inicia la marcha estructurada a tu lado.
+
+## exercises
+- tension: Fuera: cambia de dirección cada pocos pasos y mantén la correa floja en cada giro.
+- attention: Fuera: gira sin avisar, y marca y premia cada vez que tu perro te mire.

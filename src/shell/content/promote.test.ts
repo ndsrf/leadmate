@@ -86,7 +86,7 @@ describe('promotePack / content:promote', () => {
     const betaPackYamlPath = path.join(betaMock, 'pack.yaml');
     fs.writeFileSync(
       betaPackYamlPath,
-      'formatVersion: 1\ncontentVersion: 4\nminAppVersion: 1.0.0\nlanguages:\n  - es\nretired: []\n'
+      'formatVersion: 1\ncontentVersion: 4\nminAppVersion: 1.1.0\nlanguages:\n  - es\nretired: []\n'
     );
 
     const res = promotePack({ fromDir: betaMock, toDir: stableMock });
