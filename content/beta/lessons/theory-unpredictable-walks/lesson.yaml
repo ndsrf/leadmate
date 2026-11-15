@@ -1,0 +1,10 @@
+id: theory-unpredictable-walks
+kind: theory
+images:
+  - theory-unpredictable-walks-1
+  - theory-unpredictable-walks-2
+compare:
+  do: theory-unpredictable-walks-do
+  dont: theory-unpredictable-walks-dont
+steps: 4
+takeaways: 4

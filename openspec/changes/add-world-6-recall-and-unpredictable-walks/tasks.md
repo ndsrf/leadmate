@@ -18,8 +18,8 @@
 
 ## 3. World 6 content, Stretch 1 (unpredictable walks)
 
-- [ ] 3.1 Create `theory-unpredictable-walks` in `content/beta/lessons/` with `lesson.yaml`, `es.md`, `en.md` following the lesson pattern and word bounds; verify with `npm run content:validate -- --channel beta` and the lesson conformance test.
-- [ ] 3.2 Create `howto-yield-pressure` (5-minute light-pressure drill, marking and rewarding check-ins) in ES and EN; verify method-rule wording by review (light pressure, released at once, no pulling, no repeated cues).
+- [x] 3.1 Create `theory-unpredictable-walks` in `content/beta/lessons/` with `lesson.yaml`, `es.md`, `en.md` following the lesson pattern and word bounds; verify with `npm run content:validate -- --channel beta` and the lesson conformance test.
+- [x] 3.2 Create `howto-yield-pressure` (5-minute light-pressure drill, marking and rewarding check-ins) in ES and EN; verify method-rule wording by review (light pressure, released at once, no pulling, no repeated cues).
 - [ ] 3.3 Create the Stage Node (park theme, zig-zag waypoints, check-in scoring, the language's structured and Go Sniff cues, no Sintonía) with a 3-question Checkpoint (one Image Duel and two text questions), primer cards and exercises, in ES and EN; verify it loads and plays in the simulator preview.
 - [ ] 3.4 Create the Mission for Stretch 1 with target, success text and problems in ES and EN; verify validation and the Mission brief shows "Tu foco" from the Debrief.
 - [ ] 3.5 Wire Stretch 1 into `recall.yaml` and `recall/{es,en}.md` with `preview` cleared; verify the world-progression and map tests.
@@ -31,7 +31,7 @@
 
 ## 5. World 3 teaser and map copy
 
-- [ ] 5.1 Add the one-line pointer to World 6 in `theory-loose-leash` and `theory-slack-u` (`es.md` and `en.md`), keeping word bounds; verify content validation and that no paywall opens from the Lesson.
+- [x] 5.1 Add the one-line pointer to World 6 in `theory-loose-leash` and `theory-slack-u` (`es.md` and `en.md`), keeping word bounds; verify content validation and that no paywall opens from the Lesson.
 - [x] 5.2 Update the Coming-soon map copy and i18n keys (World 6 playable, World 7 first Coming-soon, "Más próximamente" for Worlds 7-9); verify `WorldMapScreen.test.tsx` and fix any test that names World 6 as coming soon.
 - [ ] 5.3 The glossary terms (Check-in, Go Sniff, Unpredictable Walk, Image Duel) are already written; verify the new content uses them consistently.
 
