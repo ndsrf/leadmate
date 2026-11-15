@@ -30,7 +30,7 @@ En un paseo por un espacio abierto, cambia de dirección sin avisar al menos cin
 ### tight
 - label: La correa se tensa en los giros
 - reassure: Los giros cambian la forma de la correa, y eso se entrena entre los dos.
-- cause: Giraste muy cerrado mientras {name} aún iba por delante.
+- cause: Hiciste el giro muy cerrado mientras {name} aún iba por delante.
 - c1: Reduce el paso antes del giro para que la correa siga floja.
 - c2: Usa «Vamos» para retomar la marcha cuando la correa vuelva a colgar en U.
 - easier: Giros amplios y suaves en un espacio abierto.
@@ -38,7 +38,7 @@ En un paseo por un espacio abierto, cambia de dirección sin avisar al menos cin
 - caption: Giros amplios, correa floja
 
 ## general
-- reassure: Pasear de forma impredecible es una habilidad que crece con muchos paseos.
+- reassure: El paseo impredecible es una habilidad que crece con muchos paseos.
 - cause: Las rutinas nuevas tardan en asentarse, para ti y para {name}.
 - c1: Repite un paseo corto en zigzag en tres días distintos.
 - c2: Repasa la lección del paseo impredecible.

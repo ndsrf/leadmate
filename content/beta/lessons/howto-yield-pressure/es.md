@@ -11,7 +11,7 @@ Cuando un perro nota tensión en la correa, su primer instinto es tirar hacia el
 
 ## steps
 1. En el salón o en el pasillo de casa, sostén la correa a una distancia cómoda y ejerce una presión muy suave y constante usando solo dos dedos.
-2. Mantén la mano firme sin tirar hacia ti. Espera en silencio a que {name} mueva el peso del cuerpo o dé un solo paso hacia tu posición.
+2. Mantén la mano quieta en su sitio. Espera en silencio a que {name} mueva el peso del cuerpo o dé un solo paso hacia tu posición.
 3. En el instante en que {name} cede y se desplaza hacia ti, afloja la correa por completo, marca ese paso con un «bien» y entrega una golosina.
 4. Repite tres veces a la izquierda y tres a la derecha; si en algún momento surge frustración o inquietud, date la vuelta y termina la sesión con calma.
 
@@ -29,10 +29,10 @@ Mantener la tensión de la correa después de que {name} se mueva o dar un paso 
 Prueba hoy: dedica cinco minutos en casa antes del paseo a practicar tres repeticiones a la izquierda y tres a la derecha hasta que la respuesta sea automática.
 
 ## takeaways
-- La presión suave de la correa es una pista táctil, nunca una fuerza para tirar.
+- La presión suave de la correa es una pista táctil que se suelta en cuanto tu perro cede.
 - La liberación instantánea de la tensión es el verdadero premio que enseña a ceder.
 - Marca con «bien» y entrega la golosina en cuanto {name} dé el primer paso.
-- Si notas bloqueo o frustración ante un estímulo, date la vuelta y busca más distancia.
+- Si una distracción supera a tu perro, date la vuelta, gana distancia y termina el ejercicio.
 
 ## images
 ### howto-yield-pressure-1

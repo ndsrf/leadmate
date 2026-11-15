@@ -2,16 +2,16 @@
 
 ## primer
 ### card 1
-Recuerda: cambia de rumbo sin avisar, mantén la correa floja y premia cada mirada de {name}. Usa «Vamos» para salir juntos y «Olfatea» para soltar el olfato.
+Recuerda: cambia de rumbo sin avisar, mantén la correa floja y premia cada mirada de {name}. Usa «Vamos» para salir juntos y «Olfatea» para darle tiempo de oler.
 - caption: Los giros en zigzag invitan a un check-in
 
 ## checkpoint
 ### tq1
 {name} camina delante en piloto automático y hace rato que no te mira. ¿Qué ayuda más?
 - [x] Giras sin avisar y dejas que {name} te busque
-- [ ] Sigues recto y llamas a {name} muchas veces
-- [ ] Tensas la correa para que {name} no se aleje
-- why: Un giro inesperado hace que {name} te busque, y esa mirada es un check-in que puedes premiar. Llamar sin parar mantiene a {name} en piloto automático.
+- [ ] Sigues recto y le hablas a {name} sin parar
+- [ ] Sigues la ruta de siempre, un poco más deprisa
+- why: Un giro inesperado hace que {name} te busque, y esa mirada es un check-in que puedes premiar. Hablar sin parar mantiene a {name} en piloto automático.
 
 ### tq2
 ¿Qué paseo mantiene la atención de {name}?
@@ -23,7 +23,7 @@ Recuerda: cambia de rumbo sin avisar, mantén la correa floja y premia cada mira
 ¿Qué señal usas para soltar a {name} a explorar un trozo de césped seguro?
 - [x] «Olfatea»
 - [ ] «Vamos»
-- [ ] Un tirón de correa
+- [ ] «Bien»
 - why: «Olfatea» abre el tiempo de olfato libre, mientras que «Vamos» inicia la marcha estructurada a tu lado.
 
 ## exercises

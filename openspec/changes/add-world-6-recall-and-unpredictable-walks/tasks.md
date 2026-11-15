@@ -27,13 +27,13 @@
 ## 4. Review and decisions
 
 - [x] 4.1 Implement the one-Stretch World 6 behavior: completion after its Mission, the "more Stretches coming" map note, and reopening of a completed World that grows without relocking the next one; verify with progression and map tests, including a record that completed World 6 before a second Stretch exists.
-- [ ] 4.2 Check every Stretch 1 text against the method rules, the cue-word rule and the ES/EN voice rules (`{name}`, no gendered adjectives, no exclamation marks in body); verify `i18n.test.ts` and the lesson conformance tests.
+- [x] 4.2 Check every Stretch 1 text against the method rules, the cue-word rule and the ES/EN voice rules (`{name}`, no gendered adjectives, no exclamation marks in body); verify `i18n.test.ts` and the lesson conformance tests.
 
 ## 5. World 3 teaser and map copy
 
 - [x] 5.1 Add the one-line pointer to World 6 in `theory-loose-leash` and `theory-slack-u` (`es.md` and `en.md`), keeping word bounds; verify content validation and that no paywall opens from the Lesson.
 - [x] 5.2 Update the Coming-soon map copy and i18n keys (World 6 playable, World 7 first Coming-soon, "Más próximamente" for Worlds 7-9); verify `WorldMapScreen.test.tsx` and fix any test that names World 6 as coming soon.
-- [ ] 5.3 The glossary terms (Check-in, Go Sniff, Unpredictable Walk, Image Duel) are already written; verify the new content uses them consistently.
+- [x] 5.3 The glossary terms (Check-in, Go Sniff, Unpredictable Walk, Image Duel) are already written; verify the new content uses them consistently.
 
 ## 6. Release
 
