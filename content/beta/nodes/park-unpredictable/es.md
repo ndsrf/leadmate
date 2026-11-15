@@ -14,7 +14,7 @@ Recuerda: cambia de rumbo sin avisar, mantén la correa floja y premia cada mira
 - why: Un giro inesperado hace que {name} te busque, y esa mirada es un check-in que puedes premiar. Llamar sin parar mantiene a {name} en piloto automático.
 
 ### tq2
-¿Qué paseo mantiene a {name} atento?
+¿Qué paseo mantiene la atención de {name}?
 - [ ] La guía camina recto mirando el móvil
 - [ ] La guía gira y mira a {name}
 - why: Girar y mirar invita a {name} a buscarte, y así comprobar dónde estás pasa a ser decisión de {name}.

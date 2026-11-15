@@ -43,5 +43,5 @@ En un paseo por un espacio abierto, cambia de dirección sin avisar al menos cin
 - c1: Repite un paseo corto en zigzag en tres días distintos.
 - c2: Repasa la lección del paseo impredecible.
 - easier: Cinco minutos de giros fáciles en un parque tranquilo.
-- alt: Un camino del parque por la mañana con una persona y su perro tranquilos
+- alt: Un camino del parque por la mañana con una persona y su perro en calma
 - caption: Práctica corta y tranquila
