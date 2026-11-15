@@ -7,6 +7,7 @@ import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Fredoka_600SemiBold } from '@expo-google-fonts/fredoka';
 import { createTranslator, detectDeviceLanguage, getCatalog } from './src/i18n';
+import { feedback } from './src/shell/ui/feedback';
 import { installFeedback } from './src/shell/ui/feedbackBackends';
 import { useUiSettings } from './src/shell/ui/useUiSettings';
 import { DevPerfOverlay } from './src/shell/ui/DevPerfOverlay';
@@ -77,7 +78,7 @@ import { dogStore, loadStoredLanguage, saveStoredLanguage } from './src/shell/st
 import { completeFirstStage } from './src/shell/onboarding/firstStage';
 import { nextStep } from './src/shell/onboarding/flow';
 import { recordDiagnostic } from './src/shell/onboarding/diagnostic';
-import { closeMarksOn, COACH_ID, HINT_TEXT, hintFor, markHintSeen, type HintId } from './src/shell/onboarding/hints';
+import { closeMarksOn, COACH_ID, feedbackKindSeen, HINT_TEXT, hintFor, markFeedbackKindSeen, markHintSeen, type HintId } from './src/shell/onboarding/hints';
 import { completeTaste, leaveWelcome, namedTranslator, saveMainConcerns, saveNameAndLook, withDogName } from './src/shell/onboarding/intro';
 import { passPaywall } from './src/shell/onboarding/paywall';
 import { TASTE_LINGER_MS, tasteKind, tasteScenarioFor, tasteSnapshot } from './src/shell/onboarding/taste';
@@ -367,6 +368,7 @@ export default function App() {
       setDogWarning(null);
       setControlsUsed({});
       setStageRun((n) => n + 1);
+      feedback.preloadStage();
       if (bundleReady.current) send(message);
       else pendingStart.current = message;
     },
@@ -584,6 +586,14 @@ export default function App() {
             setHint(shown);
             update((r) => markHintSeen(r, shown));
           }
+        }
+      } else if (message.type === 'feedback') {
+        const inTaste = routeRef.current.name === 'taste';
+        feedback.stage(message);
+        // the Hint was shown: record it in recorded Stages only (the taste records no Hints), like the Coach marks
+        if (message.firstTime && !inTaste && recordRef.current && !feedbackKindSeen(recordRef.current.seenHints, message.kind)) {
+          const kind = message.kind;
+          update((r) => markFeedbackKindSeen(r, kind));
         }
       } else if (message.type === 'reaction-tier-change') {
         vocalizer.current.onTier(message.tier);

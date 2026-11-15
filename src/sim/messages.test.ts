@@ -73,3 +73,26 @@ describe('close exercise message encoding and decoding (Task 3.4)', () => {
     }
   });
 });
+
+describe('feedback bundle message', () => {
+  const ok = { type: 'feedback', kind: 'marker-hit', tier: 'medium', polarity: 'right', combo: 3, firstTime: true };
+
+  it('is a bundle message type and round-trips', () => {
+    expect(BUNDLE_MESSAGE_TYPES).toContain('feedback');
+    expect(decode<BundleMessage>(encode(ok as BundleMessage), BUNDLE_MESSAGE_TYPES)).toEqual(ok);
+  });
+
+  it('rejects an unknown kind, tier or polarity, or a polarity that does not match the kind', () => {
+    for (const bad of [
+      { ...ok, kind: 'nope' },
+      { ...ok, tier: 'huge' },
+      { ...ok, polarity: 'neutral' },
+      { ...ok, polarity: 'wrong' },
+      { ...ok, combo: -1 },
+      { ...ok, combo: 1.5 },
+      { ...ok, firstTime: 'yes' },
+    ]) {
+      expect(decode<BundleMessage>(bad, BUNDLE_MESSAGE_TYPES)).toBeNull();
+    }
+  });
+});

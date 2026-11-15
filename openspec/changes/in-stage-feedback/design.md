@@ -73,3 +73,11 @@ Ship the app code first. Content needs no change, because no scenario declares m
 - HUD atlas `bundle/assets/hud/sprites.{png,json}` (Phaser JSON hash, untrimmed, pivot 0.5/0.5), made by `npm run art:hud` from `scripts/art/hud/gen.mjs`. Frames: `icon_paw`, `icon_eye`, `icon_heart`, `icon_nose`, `icon_hourglass`, `icon_sparkle`, `icon_star`, `icon_puff`, `icon_mark` (64×64, checked at 24–32 px), `burst_spark` (32×32 pooled particle), `burst_star` (128×128), `banner_frame` (512×96; keep 56 px at each end when stretching), `glow_edge` (128×128 frame, clear centre; slice 40 px per side, stretch to the screen), `meter_nose`, `meter_connection` (64×64 badges for the Stage Meter catalog).
 - Wrong kinds use `icon_puff` (grey, never red). Colours come only from `tokens.json`; the render script fails on any other colour or any `<text>`.
 - The Design System canvas boards "FeedbackIcons" and "DogPortrait" were not added by the worker (no canvas tool): contact sheets are under `art/` for the coordinator.
+
+## Shell as built (tasks 4.1-4.4)
+
+- The `feedback` bundle message is `{ type, kind, tier: 'small'|'medium'|'big', polarity, combo, firstTime }`; `decode` rejects an unknown kind or tier, a polarity that does not match the kind's, a non-integer `combo` and a non-boolean `firstTime`.
+- Sounds were made for the app (`scripts/gen-ui-sounds.mjs`, licence note `assets/ui/LICENSE.md`): right small -> `tick`, right medium -> `chime`, right big -> `fanfare`, any wrong -> `bonk`. Only the tick is pitched: rate `2^(n/12)`, `n = min(7, combo - 1)`; the other three always play at rate 1. If `setPlaybackRate` throws on a platform the tick plays at its own pitch.
+- One player per sound is created by `feedback.preloadStage()` when a Stage starts (only if sounds are on) and reused with `seekTo(0)`. While `cueAudioActive()` the volume is 0.35 instead of 1.
+- Haptics: a right action plays the `tick` haptic (Light impact), a wrong one the `thud` haptic (Soft impact; Android falls back to its closest effect). Both follow the haptics setting.
+- `App.tsx` records `feedback:<kind>` in `seenHints` when `firstTime` and the route is not the Taste Stage (the same rule as the other Hints); Reset progress already clears all of `seenHints`.

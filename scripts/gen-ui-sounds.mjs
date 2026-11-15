@@ -1,4 +1,4 @@
-// Generates the UI sounds (press, success, star, unlock) as short mono 16-bit WAV files.
+// Generates the UI sounds (press, success, star, unlock) and the in-Stage Feedback Message sounds (tick, chime, fanfare, bonk) as short mono 16-bit WAV files.
 // They are synthesized by this script, so they are original to the project and need no credit.
 // Usage: node scripts/gen-ui-sounds.mjs [outDir]
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -43,11 +43,27 @@ function mix(...parts) {
 }
 const at = (s, samples) => ({ offset: Math.floor(s * RATE), samples });
 
+/** A short falling thump: a sine whose pitch glides down under a fast decay (no noise, so no harshness). */
+function thud(from, to, seconds, gain = 0.5) {
+  const n = Math.floor(seconds * RATE);
+  let phase = 0;
+  return Array.from({ length: n }, (_, i) => {
+    const k = i / n;
+    phase += (2 * Math.PI * (from + (to - from) * k)) / RATE;
+    return Math.min(1, i / (0.003 * RATE)) * Math.exp(-6 * k) * gain * Math.sin(phase);
+  });
+}
+
 mkdirSync(out, { recursive: true });
 const sounds = {
   press: note(520, 0.07, 0.3),
   success: mix(at(0, note(523, 0.18)), at(0.09, note(784, 0.28))),
   star: mix(at(0, note(880, 0.2)), at(0.05, note(1320, 0.3, 0.25))),
+  // Feedback Messages: a tick (its pitch rises with the Combo at play time), a chime, a fanfare and a soft bonk
+  tick: note(1000, 0.05, 0.3),
+  chime: mix(at(0, note(784, 0.3, 0.35)), at(0.08, note(1175, 0.4, 0.3))),
+  fanfare: mix(at(0, note(523, 0.16)), at(0.12, note(659, 0.16)), at(0.24, note(784, 0.16)), at(0.36, note(1047, 0.6, 0.45))),
+  bonk: thud(220, 110, 0.18),
   unlock: mix(at(0, note(523, 0.2)), at(0.1, note(659, 0.2)), at(0.2, note(784, 0.2)), at(0.3, note(1047, 0.45))),
 };
 for (const [name, samples] of Object.entries(sounds)) writeFileSync(`${out}/${name}.wav`, wav(samples));

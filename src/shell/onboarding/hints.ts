@@ -1,4 +1,5 @@
 import type { TextKey } from '../../i18n';
+import type { FeedbackActionKind } from '../../sim/feedbackKinds';
 import type { StageControl, StageSignal } from '../../sim/messages';
 import type { DogRecord } from '../dogRecord';
 
@@ -55,5 +56,19 @@ export function hintsRemain(seenHints: readonly string[]): boolean {
 }
 
 export function markHintSeen(record: DogRecord, id: HintId): DogRecord {
+  return record.seenHints.includes(id) ? record : { ...record, seenHints: [...record.seenHints, id] };
+}
+
+/** The `seenHints` entry for a Feedback Message kind whose Hint (full text) was shown. */
+export function feedbackHintId(kind: FeedbackActionKind): string {
+  return `feedback:${kind}`;
+}
+
+export function feedbackKindSeen(seenHints: readonly string[], kind: FeedbackActionKind): boolean {
+  return seenHints.includes(feedbackHintId(kind));
+}
+
+export function markFeedbackKindSeen(record: DogRecord, kind: FeedbackActionKind): DogRecord {
+  const id = feedbackHintId(kind);
   return record.seenHints.includes(id) ? record : { ...record, seenHints: [...record.seenHints, id] };
 }
