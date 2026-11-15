@@ -28,6 +28,21 @@
 
 3. **New rigged model, posed by bones in the render script.** The Cube Pet has no head or tail bones to pose. The spike looks for a CC0 (or similarly permissive) rigged quadruped dog in GLB with walk, trot and idle clips and separate head, ear and tail bones. `render-sprites.mjs` gets a per-job `overrides` step that rotates named bones after the clip time is applied (head yaw ±60°, head pitch down for sniffing, tail high/neutral/tucked, hind leg raised). *Why:* body poses × 8 directions from one model stay consistent and cheap to regenerate. *Alternatives:* hand-drawn 8-direction sprites (too much art for every pose and direction); keep the Cube Pet with overlay icons (it does not fix readability, which is the point).
 
+   **Spike result (task 1.1, 1.2).** The model is the **Husky by Quaternius**, from his *Ultimate Animated Animal Pack*, **CC0 1.0**. The author's page states CC0 (<https://quaternius.com/packs/ultimateanimatedanimals.html>), and so does the Poly Pizza listing it was downloaded from (<https://poly.pizza/m/wcWiuEqwzq>). It is stored unmodified at `scripts/kenney/models/quaternius-husky/husky.glb`, with `LICENSE.txt` next to it (source URLs, sha256, CC0 legal code). The Shiba Inu from the same pack has the same rig and would also do. The Husky won because its tail is straight with 6 bones, so it reads up/neutral/tucked; the Shiba's tail is curled.
+   - Mesh: one skinned mesh, about 1,900 triangles, 5 flat-colour materials, no textures. The coat is recoloured light at render time (job `materials`), and the eyes and nose stay dark.
+   - Bones (GLB names; three.js drops the `.`, so `Ear1.L` becomes `Ear1L`, and the script handles that):
+     - spine: `Body`, `Back`, `Torso`, `Torso2`, `Torso3`
+     - neck and head: `Neck1`, `Neck2`, `Neck3`, `Head`
+     - ears: `Ear1.L`-`Ear4.L`, `Ear1.R`-`Ear4.R`
+     - tail: `Tail1`-`Tail6`
+     - front legs: `FrontShoulder`, `FrontUpperLeg`, `FrontLowerLeg` (`.L`/`.R`)
+     - hind legs: `BackShoulder`, `BackLeg`, `BackUpperLeg`, `BackLowerLeg` (`.L`/`.R`)
+     - leftover IK helpers: `IK*`, `FF*`, `PoleTarget*`. The clips are baked, so posing the leg bones directly works.
+   - Clips: `Walk` (1.04 s loop), `Gallop` (0.54 s), `Idle`, `Idle_2`, `Idle_2_HeadLow` (a nose-down sniff), `Eating`, `Attack`, `Idle_HitReact_Left/Right`, `Jump_ToIdle`, `Gallop_Jump`, `Death`. **There is no trot clip.** `trot` has to come from `Gallop` sampled for a shorter stride, or from `Walk` with a longer one, to be settled in task 3.1.
+   - Overrides: `render-sprites.mjs` takes per-job and per-clip `overrides: [{ bone, rotate: [x, y, z] }]`, in degrees, Euler XYZ, local to the bone. Each is multiplied onto the bone's animated rotation after `mixer.setTime`, and undone after the frame (`scripts/kenney/pose-overrides.mjs`, tested by `node --test scripts/kenney/*.test.mjs`). A posed clip is `{ clip: '<GLB clip>', times, overrides }` under a lowercase output name. On this rig a neck or head bone's local +z turns the head to the Dog's left.
+   - Test pose: `walklook` (the `Walk` clip; `Neck1`-`Neck3` and `Head` each turned 30° about z, about 120° over the left shoulder toward the Handler behind). See the contact sheet `spike/rdog-walklook-contact-sheet.png`, cut from the packed atlas `spike/rdog-atlas/`, in a light, golden and black coat and at about phone size. The look-back reads clearly in facings 0, 135, 180, 270 and 315. It is weaker in 45 and 225, where the head turns toward or away from the camera, which is the ambiguity named under Risks. At phone size (about 30 px tall) it is a small change of outline, so the device check decides whether the yaw needs exaggerating there. The fine detail is the Dog portrait's job (Decision 5).
+   - No-override renders are unchanged. The old and new scripts rendered the same stand-in job (42 frames, plain and `still` clips), and every new frame is byte-identical to one of the old script's own outputs. The old script is not byte-stable from run to run on its own: SwiftShader flips at most 2 pixels in some frames between two variants.
+
 4. **Bake the tail into each clip by mood instead of combining tail × clip.** Clips: `idle`, `walk`, `walk_wag` (Check-in), `trot`, `sniffwalk`, `sniff` (in place), `planted`, `mark`, `lunge`, `look_l`/`look_r` (head turned while standing or walking slowly). Each clip sets its own tail. *Why:* every tail × clip combination would multiply the atlas; the walking sprite only needs the tail as a silhouette, and the Dog portrait carries the fine tail detail. Rough budget: about 30 frames per direction, 240 frames in all, against 74 frames for today's Dog.
 
 5. **The Dog portrait is a layered 2D illustration composited in the bundle.** Layers: body base, head (level, up, down, turned left/right/to the viewer), ears (forward, neutral, back), eyes (to Handler, left, right, down), tail (high, wag A/B, neutral, tucked). These are drawn in the LeadMate Design System canvas in the close-view style, exported as PNG and packed into a `portrait` atlas. Combining layers gives every state from about 20 pieces. Coat by tint, as for the walking Dog. *Why:* a few pieces cover every combination and stay sharp at portrait size. *Alternative:* a fourth camera rendering the 3D model live. Rejected: per-frame GPU cost and a second renderer in the bundle.
@@ -40,6 +55,30 @@
 
 - [No rigged dog with a usable licence] → The spike is a go/no-go gate before any other art work. Fallback, in order: (1) build a simple rig on the current Cube Pet mesh (separate head and tail parts posed by transforms), which gives head turns and tail positions but no leg lift, so marking uses a lowered-hindquarters pose; (2) only if playtests show that rig still cannot be read, consider buying or commissioning a model.
 - [Atlas grows about 3x for the Dog] → Keep palette quantisation; measure memory and load time on the low-end Android test device; the `power-efficiency` scenario regression check must pass with no increase above its tolerance.
+
+  **Spike measurement (task 1.3), desktop stand-in.**
+  - **Setup.** A stand-in full clip set was rendered from the Husky: 11 clips, 30 frames per direction, 240 frames, rough poses (`rdogest` in `render-sprites.mjs`). It was packed like the shipped atlas, then merged with the 157 non-Dog frames of today's `sprites.png` in place of the 72 Cube Pet frames (`scripts/kenney/spike/atlas-estimate.py`; result in `spike/estimate-atlas/`).
+  - **New Dog frames alone:** 240 frames, 1024×552, 103 KB PNG, about 0.43 KB per frame.
+
+  | | Shipped today | With the new Dog (estimate) |
+  | --- | --- | --- |
+  | Frames | 229 | 397 |
+  | Atlas | 1024×944, 1 page | 1024×1316, 1 page (under 2048×2048) |
+  | PNG | 180 KB | 240 KB (+60 KB) |
+  | Base64 in the single-file bundle | 239 KB | 319 KB (+80 KB on a 1,923 KB `dist/index.html`) |
+  | Decoded RGBA / texture | 3.69 MiB | 5.14 MiB (+1.45 MiB) |
+  | Load ×1 CPU, median (worst) | 35 ms (83) | 40 ms (52) |
+  | Load ×4 CPU, median (worst) | 106 ms (182) | 135 ms (184) |
+  | Load ×6 CPU, median (worst) | 153 ms (218) | 195 ms (294) |
+
+  Load time is Phaser `load.atlas` from a data URL, as the bundle does, to the texture being ready: PNG decode plus WebGL upload. It was measured in headless Chromium with SwiftShader and CDP CPU throttling, 30 loads each (`scripts/kenney/spike/atlas-load-time.mjs`). These numbers compare the two atlases; they are not phone timings. The cost grows about in line with the bytes (+25-30%), and it is paid once per Stage load, not per frame.
+
+  **Go** (provisional), and the fallback rig is not needed:
+  - the atlas stays on one page under 2048×2048;
+  - it adds about 60 KB of PNG, about 1.5 MiB of texture memory, and about 40 ms at ×6 throttling;
+  - the drawn Dog stays one sprite per frame, so the per-frame draw cost does not change.
+
+  This turns into a no-go only if the low-end Android device shows a Stage load or memory problem with `spike/estimate-atlas/`. That device check is still open in tasks 1.2 and 1.3.
 - [Portrait takes screen space on small phones] → Size from the short side with a minimum; layout tests at 320 points; it never covers controls.
 - [Two drawings of one Dog disagree] → Both read the same derived state; a unit test maps each situation to one state.
 - [Look-left/right reads ambiguously in some isometric directions] → Validate on device in all 8 directions during the spike; if needed, exaggerate head yaw for the side-facing directions.
