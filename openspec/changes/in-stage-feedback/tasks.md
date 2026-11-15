@@ -14,7 +14,7 @@
 
 ## 3. Drawing the effects
 
-- [ ] 3.1 Draw the icons and burst shapes in the LeadMate Design System canvas, export them and add them to the HUD atlas; verify every icon in the spec is present.
+- [x] 3.1 Draw the icons and burst shapes in the LeadMate Design System canvas, export them and add them to the HUD atlas; verify every icon in the spec is present. _(Drawn as SVG by `scripts/art/hud/gen.mjs`, packed by `npm run art:hud` into `bundle/assets/hud/`; presence checked by `bundle/src/artAtlases.test.ts`; contact sheet in `art/`. The canvas artboard "FeedbackIcons" is left to the coordinator.)_
 - [ ] 3.2 In `StageScene`, replace the flash ring with pooled message, particle (max 40) and banner objects for the four tiers, plus reduced-motion fades; verify on device that each tier plays, that no shake or red flash appears for wrong actions, and that controls are never covered.
 - [ ] 3.3 Draw Stage Meters (only when declared) with Meter Points flying from the Dog into them and a full state; verify with a test scenario that declares two meters, on web and Android.
 - [ ] 3.4 Stop effect updates when nothing is active; verify with the HUD dirty tests and the energy readout that a quiet walk does no effect work.

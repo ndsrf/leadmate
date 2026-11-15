@@ -60,3 +60,9 @@ Replace the Dog frames in the atlas and switch clip names in `StageScene` in one
 - Away gaze compares `dogFacing` with `dogDesired` (angle over 0.45 rad). Without a Dog moving, gaze is `ahead`.
 - `planted` and `marking` are mapped from `dogMode` by string comparison; `rethink-unpredictable-walk-stage` only needs to add those modes. Their tests set the mode by cast.
 - `tail: 'tucked'` is never derived yet (no situation in the spec calls for it); `sniff` action is `dogMode === 'sniffing'` with no desired movement, `sniff-walk` while it meanders.
+
+## Portrait art as built (task 4.1)
+- `bundle/assets/portrait/sprites.{png,json}`, made by `npm run art:hud` from `scripts/art/portrait/gen.mjs`. 19 layers, each drawn on one 256×256 canvas and stored trimmed (`spriteSourceSize` keeps the registration); every frame has the same `sourceSize` and pivot (0.5, 0.6172) = the neck anchor (128, 158). Stack at one origin in the order tail, body, head, ears, eyes.
+- Frames: `portrait_body`; `portrait_head_{level,up,down,left,right,viewer}`; `portrait_ears_{forward,neutral,back}`; `portrait_eyes_{handler,left,right,down}`; `portrait_tail_{high,wag_a,wag_b,neutral,tucked}`.
+- Decision: the skull is the same circle in every head layer and only the muzzle moves, so ears and eyes fit any head (a cartoon three-quarter turn); eyes therefore do not shift with a turned head. The Dog faces the viewer's right (`head_left` is its mirror).
+- Coat is light (`coat.blanco`) with a `surfaceSunken` shade so a tint works; the green collar and ink outline are tinted too (accepted).

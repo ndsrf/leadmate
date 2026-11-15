@@ -59,3 +59,8 @@ Ship the app code first. Content needs no change, because no scenario declares m
 
 - Exact message wordings and SFX choices: settled during writing and playtests without changing specs.
 - Particle counts and durations per tier within the spec limits: tuned on device.
+
+## Art as built (task 3.1)
+- HUD atlas `bundle/assets/hud/sprites.{png,json}` (Phaser JSON hash, untrimmed, pivot 0.5/0.5), made by `npm run art:hud` from `scripts/art/hud/gen.mjs`. Frames: `icon_paw`, `icon_eye`, `icon_heart`, `icon_nose`, `icon_hourglass`, `icon_sparkle`, `icon_star`, `icon_puff`, `icon_mark` (64×64, checked at 24–32 px), `burst_spark` (32×32 pooled particle), `burst_star` (128×128), `banner_frame` (512×96; keep 56 px at each end when stretching), `glow_edge` (128×128 frame, clear centre; slice 40 px per side, stretch to the screen), `meter_nose`, `meter_connection` (64×64 badges for the Stage Meter catalog).
+- Wrong kinds use `icon_puff` (grey, never red). Colours come only from `tokens.json`; the render script fails on any other colour or any `<text>`.
+- The Design System canvas boards "FeedbackIcons" and "DogPortrait" were not added by the worker (no canvas tool): contact sheets are under `art/` for the coordinator.
