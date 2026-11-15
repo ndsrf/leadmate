@@ -52,3 +52,11 @@ Replace the Dog frames in the atlas and switch clip names in `StageScene` in one
 
 - Exact portrait corner and size per screen class: settled by the layout tests and a device check, without changing the spec.
 - Final clip frame counts: tuned for looks within the atlas budget measured in the spike.
+
+## Implementation notes (rd-pose)
+
+- `src/hud/pose.ts` exports the unions `Gaze`, `Head`, `Ears`, `Tail`, `DogAction`, `WalkClip` and the pure `walkClipFor(pose)` that maps a pose to a walking-sprite clip, so the sprite and the Dog portrait read one state.
+- `Gaze` has a sixth value, `ahead` (nothing in particular attended to), beyond the five in the spec; calm walking needs it. "Away left" is counter-clockwise from the Dog's facing in simulation coordinates; the bundle mirrors for the isometric view.
+- Away gaze compares `dogFacing` with `dogDesired` (angle over 0.45 rad). Without a Dog moving, gaze is `ahead`.
+- `planted` and `marking` are mapped from `dogMode` by string comparison; `rethink-unpredictable-walk-stage` only needs to add those modes. Their tests set the mode by cast.
+- `tail: 'tucked'` is never derived yet (no situation in the spec calls for it); `sniff` action is `dogMode === 'sniffing'` with no desired movement, `sniff-walk` while it meanders.
