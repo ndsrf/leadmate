@@ -64,6 +64,12 @@
 
 11. **Inserting "Let them sniff" ahead of an existing Stretch.** Availability stays "every Stop before it done and every earlier Mission passed", with one exception: a Stop the user could reach under the previous trail stays available. This is computed from the user's existing progress (any done Stop or passed Mission in a later Stretch makes that Stretch's reachable Stops stay open) and needs no stored migration.
 
+    Implemented in `stopLock`/`doneness` of `src/shell/world.ts` (tests: `src/shell/worldInsertion.test.ts`):
+    - A Stretch counts as reached when the user read a Lesson, completed a Node or started a Mission in it, or in a Stretch after it. An earlier Stretch the user never touched is then treated as inserted, and its Mission does not lock the reached Stretch. Gates inside the reached Stretch still apply, and a brand-new user follows trail order strictly.
+    - A Mission the user already started is not locked by Stops added before it in its Stretch.
+    - Grandfathering (a Mission treated as passed for a Dog from before Missions) applies only when the Mission's own Stretch was touched, or a later completed Node is a legacy Node. Without that rule, a user who completed `park-unpredictable` would find the inserted "Let them sniff" Mission already passed.
+    - In a World the user completed (`completedWorlds`), a Stop added before a passed Mission counts as satisfied. It shows as open and optional, and the World stays complete.
+
 12. **Timeline.** The simulation appends `{t, kind, polarity}` for each Feedback-worthy event to a capped list (60 entries; when full, the oldest right moments are dropped first), exported as `timeline`. The Node Debrief in `src/shell/screens/NodeScreens.tsx` draws it and picks "done well / try next" from `scentWalk` with a fixed priority table.
 
 ## Risks / Trade-offs

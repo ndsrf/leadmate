@@ -176,7 +176,10 @@ function isGrandfathered(world: WorldDef, stretch: number, progress: Progress): 
   if (progress.missions[id]?.startedAt) return false;
   // a Home Node played from Other Home Behaviours before it joined World 2 says nothing about the Stops before it
   const after = world.stretches.slice(stretch + 1).flat().filter((s) => s.kind === 'node' && !homeConcernOfStop(s));
-  if (after.length > 0) return after.some((s) => progress.completedNodes.includes(s.id));
+  if (after.length > 0) {
+    // a Stretch inserted ahead of one the user had started is not passed: only a user from before Missions went past it
+    return after.some((s) => progress.completedNodes.includes(s.id)) && (touched(own, progress) || after.some((s) => progress.legacyNodes.includes(s.id)));
+  }
   const nodes = own.filter((s) => s.kind === 'node');
   return nodes.length > 0 && nodes.every((s) => progress.legacyNodes.includes(s.id));
 }
@@ -195,7 +198,9 @@ function doneness(world: WorldDef, stretch: number, index: number, progress: Pro
   }
   if (stop.kind === 'node' ? progress.completedNodes.includes(stop.id) : progress.readLessons.includes(stop.id)) return { done: true };
   const later = [...world.stretches[stretch].slice(index + 1), ...world.stretches.slice(stretch + 1).flat()];
-  const satisfied = later.some((s) => s.kind === 'node' && !homeConcernOfStop(s) && progress.completedNodes.includes(s.id));
+  // in a World the user completed, a Mission passed after it also satisfies it: the Stop was added to a finished Stretch
+  const grown = progress.completedWorlds?.includes(world.id) ?? false;
+  const satisfied = later.some((s) => (s.kind === 'node' && !homeConcernOfStop(s) && progress.completedNodes.includes(s.id)) || (grown && s.kind === 'mission' && !!progress.missions[s.id]?.passedOn));
   return satisfied ? { done: true, satisfied: true } : { done: false };
 }
 
@@ -263,9 +268,13 @@ export function stopLock(stop: Stop, progress: Progress, worlds: readonly WorldD
   // a Home Stretch the Dog already started stays open when it moved into a World that is still closed
   const startedHome = !!homeStretchOfStop(stop) && touched(world.stretches[stretch], progress);
   if (!isWorldUnlocked(world, progress, worlds) && !startedHome) return { kind: 'world' };
+  // a Stretch the user already reached keeps its Stops open past a Stretch inserted ahead of it (design Decision 11 of
+  // rethink-unpredictable-walk-stage): an untouched Stretch before a touched one can only be such an insertion
+  const reached = world.stretches.slice(stretch).some((stops) => touched(stops, progress));
   for (let s = 0; s < stretch; s++) {
     const last = world.stretches[s].length - 1;
     const lastStop = world.stretches[s][last];
+    if (reached && !touched(world.stretches[s], progress)) continue;
     if (!doneness(world, s, last, progress).done) {
       return lastStop.kind === 'mission' ? { kind: 'mission', id: lastStop.id } : { kind: 'stops', stops: [lastStop] };
     }
@@ -273,7 +282,9 @@ export function stopLock(stop: Stop, progress: Progress, worlds: readonly WorldD
   // the Lessons of a Stretch are all open at once; a Node or Mission needs every Stop before it done
   // a Node that opens after one Lesson (the close-view drill) does not wait for the Stretch's other Lessons
   const opensAfterLesson = stop.kind === 'node' ? nodes.find((n) => n.id === stop.id)?.opensAfterLesson : undefined;
-  if (stop.kind !== 'lesson') {
+  // a Mission the user already started stays reachable when Stops are added before it
+  const startedMission = stop.kind === 'mission' && !!progress.missions[stop.id]?.startedAt;
+  if (stop.kind !== 'lesson' && !startedMission) {
     const missing = world.stretches[stretch].slice(0, index).filter((s, i) => !(opensAfterLesson && s.kind === 'lesson') && !doneness(world, stretch, i, progress).done);
     if (missing.length > 0) return { kind: 'stops', stops: missing };
   }

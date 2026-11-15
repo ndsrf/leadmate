@@ -255,7 +255,8 @@ describe('mapModel following the Personal Plan', () => {
   });
 
   it('moves on to the next plan item once a Stretch is done', () => {
-    const progress = progressOf(['home-rest'], { readLessons: ['theory-home-rest'], missions: { 'mission-home-rest': passedOn() } });
+    // the Basics Stretches open in trail order, so the one before is done too
+    const progress = progressOf(['dog-as-dog', 'home-rest'], { readLessons: ['theory-named-behaviours', 'theory-dog-as-dog', 'howto-choose-action', 'theory-home-rest'], missions: { 'mission-dog-as-dog': passedOn(), 'mission-home-rest': passedOn() } });
     const m = planned(progress, [{ stretchId: 'theory-home-rest' }, { stretchId: 'theory-calm-first' }]);
     expect(m.nextUp?.stop.id).toBe('theory-calm-first');
   });
