@@ -11,7 +11,7 @@ On a walk in an open space, change direction without warning at least five times
 - label: {name} stays on autopilot
 - reassure: Many dogs follow the route they know. Changing it takes a few walks to pay off.
 - cause: The turns were too predictable, or you named each one before making it.
-- c1: Turn without speaking and let {name} notice the change by themself.
+- c1: Turn without speaking and let {name} notice the change on their own.
 - c2: Mix the rhythm: a turn, a pause, then a few steps straight.
 - easier: Three turns on a quiet path, rewarding each look.
 - alt: A handler turns left on a park path while the Dog notices and looks back
@@ -23,7 +23,7 @@ On a walk in an open space, change direction without warning at least five times
 - cause: The surroundings are too interesting, or the reward comes too late.
 - c1: Walk in a calmer place and reward the first glance right away.
 - c2: Use "Go Sniff" after a few good turns so sniffing is part of the deal.
-- easier: A short zig-zag in a quiet corner of the park, 2 minutes.
+- easier: A few unexpected turns in a quiet corner of the park, 2 minutes.
 - alt: A Dog glances up at the handler on a quiet grass path
 - caption: Reward every glance
 
@@ -38,9 +38,9 @@ On a walk in an open space, change direction without warning at least five times
 - caption: Wide turns keep the leash Slack
 
 ## general
-- reassure: Unpredictable walking is a skill that grows over many walks.
+- reassure: The Unpredictable Walk is a skill that grows over many walks.
 - cause: New routines take a while to settle in for you and {name}.
-- c1: Repeat a short zig-zag walk on three different days.
+- c1: Repeat a short Unpredictable Walk on three different days.
 - c2: Review the Unpredictable Walks lesson.
 - easier: Five minutes of easy turns in a quiet park.
 - alt: A calm morning park path with a handler and a Dog

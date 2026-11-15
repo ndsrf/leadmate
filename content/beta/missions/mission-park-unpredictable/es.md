@@ -23,14 +23,14 @@ En un paseo por un espacio abierto, cambia de dirección sin avisar al menos cin
 - cause: El entorno es demasiado interesante, o el premio llega tarde.
 - c1: Pasea en un sitio más tranquilo y premia la primera mirada al instante.
 - c2: Usa «Olfatea» tras unos buenos giros para que olfatear forme parte del trato.
-- easier: Un zigzag corto en un rincón tranquilo del parque, 2 minutos.
+- easier: Unos giros imprevistos en un rincón tranquilo del parque, 2 minutos.
 - alt: Un perro levanta la vista hacia su guía en un camino de hierba tranquilo
 - caption: Premia cada mirada
 
 ### tight
 - label: La correa se tensa en los giros
 - reassure: Los giros cambian la forma de la correa, y eso se entrena entre los dos.
-- cause: Giraste muy cerrado mientras {name} aún iba por delante.
+- cause: Hiciste el giro muy cerrado mientras {name} aún iba por delante.
 - c1: Reduce el paso antes del giro para que la correa siga floja.
 - c2: Usa «Vamos» para retomar la marcha cuando la correa vuelva a colgar en U.
 - easier: Giros amplios y suaves en un espacio abierto.
@@ -38,9 +38,9 @@ En un paseo por un espacio abierto, cambia de dirección sin avisar al menos cin
 - caption: Giros amplios, correa floja
 
 ## general
-- reassure: Pasear de forma impredecible es una habilidad que crece con muchos paseos.
+- reassure: El paseo impredecible es una habilidad que crece con muchos paseos.
 - cause: Las rutinas nuevas tardan en asentarse, para ti y para {name}.
-- c1: Repite un paseo corto en zigzag en tres días distintos.
+- c1: Repite un paseo impredecible corto en tres días distintos.
 - c2: Repasa la lección del paseo impredecible.
 - easier: Cinco minutos de giros fáciles en un parque tranquilo.
 - alt: Un camino del parque por la mañana con una persona y su perro en calma

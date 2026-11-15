@@ -7,7 +7,7 @@ Cuando el paseo siempre es igual, tu perro desconecta
 Sales por la misma puerta, cruzas el mismo paso de cebra y caminas en línea recta hacia el parque al mismo ritmo de todos los días. {name} camina a tu lado con la correa floja, con la mente en cualquier rastro lejano. No hay conflicto ni lucha con la correa, pero tampoco hay conexión: camina en piloto automático y tú solo eres el ancla que va detrás.
 
 ## why
-Los perros aprenden por patrones y anticipación. Si cada esquina y cada recta son predecibles, {name} no necesita prestarte atención para saber hacia dónde vais: la rutina guía el camino y su foco se va por completo a los estímulos del entorno. Un paseo impredecible cambia las reglas. Al variar de pronto el rumbo, el ritmo o detenerte sin previo aviso, animas a tu perro a comprobar dónde estás. Cada mirada espontánea hacia ti es un check-in: la señal de que vuelve a elegir tu compañía. La señal estructurada «Vamos» guía el avance conjunto, mientras que «Olfatea» abre el momento de explorar con libertad.
+Los perros aprenden por patrones y anticipación. Si cada esquina y cada recta son predecibles, {name} no necesita prestarte atención para saber hacia dónde vais: la rutina guía el camino y su foco se va por completo a las distracciones del entorno. Un paseo impredecible cambia las reglas. Al cambiar de pronto el rumbo o el ritmo, o al detenerte sin previo aviso, animas a tu perro a comprobar dónde estás. Cada mirada espontánea hacia ti es un check-in: la señal de que vuelve a elegir tu compañía. La señal estructurada «Vamos» guía el avance conjunto, mientras que «Olfatea» abre el momento de explorar con libertad.
 
 ## steps
 1. Camina diez pasos en línea recta mientras la correa cuelga en comba. Frena un poco el paso y gira con suavidad ciento ochenta grados, asegurando que la correa siga floja sin tensarse de golpe; si tu perro llega a fijarse en una distracción, aumenta la distancia, da media vuelta o termina la sesión.
@@ -23,7 +23,7 @@ Cruzando la plaza con la correa en comba, {name} mira unas palomas a lo lejos. A
 ### do
 Variar la dirección o el ritmo de forma silenciosa y premiar cada check-in espontáneo en cuanto tu perro decide orientarse hacia ti.
 ### dont
-Hablar sin parar o repetir «Vamos» en cada curva; si avisas con la voz en todo momento, tu perro sigue en piloto automático y no aprende a buscarte con la mirada.
+Hablar sin parar o anunciar cada curva con la voz; si la voz te adelanta cada cambio, tu perro sigue en piloto automático y no aprende a buscarte con la mirada.
 
 ## tip
 Prueba hoy: en los próximos diez minutos de paseo, haz cinco giros inesperados de noventa o ciento ochenta grados sin avisar con la voz. Premia cada mirada voluntaria.
