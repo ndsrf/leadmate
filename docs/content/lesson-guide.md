@@ -175,7 +175,12 @@ by `inline()` in `_kit/svg.mjs`) on the artboard. New kit symbols go in `_kit/ki
 Node media (an Image Duel pair) is drawn with the same kit but kept apart, in `scripts/art/nodes/<node-id>/` (so a
 default render never sweeps it into `assets/lessons`), and rendered straight into the Node's `media/` with
 `node scripts/render-lesson-art.mjs --src scripts/art/nodes/<node-id> --out content/beta/nodes/<node-id>/media
---registry <a scratch file>`: the SVG name is the media file name, and no Lesson registry entry is written.
+--registry <a scratch file>`: the SVG name is the media file name, and no Lesson registry entry is written. A
+default run of `render-lesson-art.mjs` (no `--src`) also renders every `scripts/art/nodes/<node-id>/` to
+`assets/nodes/<node-id>/` and writes `src/shell/content/nodeMediaRegistry.ts`, keyed by the pack path
+(`nodes/<node-id>/media/<file>.png`), so the bundled baseline shows the Node's pictures with no content host. Re-run it
+after adding or changing Node art: `bundledNodeMedia.test.ts` fails when a duel image of the stable baseline is not
+bundled, or when the bundled bytes differ from the stable pack's.
 
 The How-to-play Lessons show captures of the real controls instead of drawings. `scripts/capture-controls.mjs` stages
 each one (fixed seed, scripted input, fixed date), rings the control and writes `assets/lessons/howto-<lesson>-<n>.png`
