@@ -14,6 +14,7 @@ import type { NodeDef, NodeRun } from '../nodes/node';
 import { advance, onDebrief, startNode } from '../nodes/node';
 import type { ImageDuelQuestion } from '../nodes/content';
 import { newDogRecord } from '../dogRecord';
+import { payloadWith } from '../testPayload';
 import type { MissionDef, Fix } from '../missions/mission';
 
 const mockPressables: any[] = [];
@@ -657,39 +658,57 @@ describe('Node and Mission screens - ShopLinkCard recommendations (Task 7.1)', (
       const singleDuelNode: NodeDef = {
         ...duelNode,
         checkpoint: [duelQuestion],
+        exercises: [{ metric: 'tension', key: 'node.intro.title' as any }],
       };
 
       const initialDog = newDogRecord();
       const now = new Date('2026-06-01T10:00:00Z');
+      const standardSimResult = { kind: 'stage' as const, payload: payloadWith({ handlingScore: 400 }) };
 
       const run = startNode(singleDuelNode);
-      const atCheckpoint = advance(advance(advance(advance(run, { type: 'next' }), { type: 'next' }), { type: 'next' }), { type: 'next' });
+      const atCheckpoint = advance(run, { type: 'next' });
       expect(atCheckpoint.step).toBe('checkpoint');
 
-      // Dog record evaluated before answering the checkpoint
-      const dogBefore = onDebrief(initialDog, atCheckpoint, now);
-      expect(dogBefore).toEqual(initialDog);
+      // Case 1: Correct choice advances to simulation and debrief
+      const atSimCorrect = advance(atCheckpoint, { type: 'answer', option: 1 });
+      expect(atSimCorrect.step).toBe('simulation');
+      expect(atSimCorrect.checkpoint).toEqual(['correct']);
+      const atDebriefCorrect = advance(atSimCorrect, { type: 'finish', result: standardSimResult });
+      expect(atDebriefCorrect.step).toBe('debrief');
+      const dogCorrect = onDebrief(initialDog, atDebriefCorrect, now);
 
-      // Case 1: Correct choice advances to simulation without touching Dog
-      const afterCorrect = advance(atCheckpoint, { type: 'answer', option: 1 });
-      expect(afterCorrect.step).toBe('simulation');
-      expect(afterCorrect.checkpoint).toEqual(['correct']);
-      const dogAfterCorrect = onDebrief(initialDog, afterCorrect, now);
-      expect(dogAfterCorrect).toEqual(dogBefore);
+      // Case 2: Wrong choice advances to simulation and debrief
+      const atSimWrong = advance(atCheckpoint, { type: 'answer', option: 0 });
+      expect(atSimWrong.step).toBe('simulation');
+      expect(atSimWrong.checkpoint).toEqual(['wrong']);
+      const atDebriefWrong = advance(atSimWrong, { type: 'finish', result: standardSimResult });
+      expect(atDebriefWrong.step).toBe('debrief');
+      const dogWrong = onDebrief(initialDog, atDebriefWrong, now);
 
-      // Case 2: Wrong choice advances to simulation without touching Dog
-      const afterWrong = advance(atCheckpoint, { type: 'answer', option: 0 });
-      expect(afterWrong.step).toBe('simulation');
-      expect(afterWrong.checkpoint).toEqual(['wrong']);
-      const dogAfterWrong = onDebrief(initialDog, afterWrong, now);
-      expect(dogAfterWrong).toEqual(dogBefore);
+      // Case 3: Timeout advances to simulation and debrief
+      const atSimTimeout = advance(atCheckpoint, { type: 'timeout' });
+      expect(atSimTimeout.step).toBe('simulation');
+      expect(atSimTimeout.checkpoint).toEqual(['missed']);
+      const atDebriefTimeout = advance(atSimTimeout, { type: 'finish', result: standardSimResult });
+      expect(atDebriefTimeout.step).toBe('debrief');
+      const dogTimeout = onDebrief(initialDog, atDebriefTimeout, now);
 
-      // Case 3: Timeout advances to simulation without touching Dog
-      const afterTimeout = advance(atCheckpoint, { type: 'timeout' });
-      expect(afterTimeout.step).toBe('simulation');
-      expect(afterTimeout.checkpoint).toEqual(['missed']);
-      const dogAfterTimeout = onDebrief(initialDog, afterTimeout, now);
-      expect(dogAfterTimeout).toEqual(dogBefore);
+      // The duel answer (correct vs wrong vs missed) does not change the Dog record
+      expect(dogCorrect).toEqual(dogWrong);
+      expect(dogCorrect).toEqual(dogTimeout);
+
+      // Sanity checks:
+      // 1. onDebrief on a debriefed run actually updates the Dog record compared to initialDog
+      expect(dogCorrect).not.toEqual(initialDog);
+      expect(dogCorrect.completedNodes).toContain(singleDuelNode.id);
+
+      // 2. A different simulation outcome does change the resulting Dog record
+      const differentSimResult = { kind: 'stage' as const, payload: payloadWith({ handlingScore: 900 }) };
+      const atDebriefDifferent = advance(atSimCorrect, { type: 'finish', result: differentSimResult });
+      expect(atDebriefDifferent.step).toBe('debrief');
+      const dogDifferent = onDebrief(initialDog, atDebriefDifferent, now);
+      expect(dogDifferent).not.toEqual(dogCorrect);
+      expect(dogDifferent.stars[singleDuelNode.id]).not.toEqual(dogCorrect.stars[singleDuelNode.id]);
     });
   });
 });
