@@ -33,7 +33,7 @@ describe('SimulationDebriefPayload', () => {
         'durationSeconds', 'slackPercentage', 'tautPercentage', 'pullPercentage', 'markerAccuracyMs',
         'markerHits', 'markerMisses', 'reactiveMarkers', 'missedOpportunities', 'checkInHits',
         'followMarks', 'posteSuccesses', 'harshStops', 'peakArousalScore', 'calmEncounters',
-        'marksUsed', 'markBudget', 'seed', 'sintoniaTimeSeconds', 'goSniffs', 'handlingScore', 'configVersion',
+        'marksUsed', 'markBudget', 'seed', 'sintoniaTimeSeconds', 'goSniffs', 'markGrades', 'handlingScore', 'configVersion',
       ].sort(),
     );
     expect(payload.slackPercentage + payload.tautPercentage + payload.pullPercentage).toBeGreaterThanOrEqual(99);
@@ -214,5 +214,67 @@ describe('skippedSimulationPayload', () => {
     expect(payload.peakTensionRatio).toBe(0.5);
     expect(payload.shieldCoverageScore).toBe(100);
     expect(payload.leashHandlingAccuracy).toBe(100);
+  });
+});
+
+describe('Marker timing grades in the payload', () => {
+  it('counts Perfect, Good and Late from telemetry', () => {
+    const s = createState(1, scenario({}));
+    s.telemetry.markGrades = { perfect: 2, good: 1, late: 1 };
+    expect(buildPayload(s).markGrades).toEqual({ perfect: 2, good: 1, late: 1 });
+    expect(buildPayload(createState(1, scenario({}))).markGrades).toEqual({ perfect: 0, good: 0, late: 0 });
+  });
+
+  it('copies the counts, so the payload does not change with the state', () => {
+    const s = createState(1, scenario({}));
+    const payload = buildPayload(s);
+    s.telemetry.markGrades.perfect = 5;
+    expect(payload.markGrades?.perfect).toBe(0);
+  });
+});
+
+describe('handling score from Stage Meters', () => {
+  const meter = (id: string, target: number) => ({ id, labelKey: `meter.${id}`, icon: id, target, meterPoints: { 'check-in-hit': 10 } });
+  const twoMeters = scenario({ meters: [meter('nose', 40), meter('connection', 20)] });
+  const ended = (nose: number, connection: number) => {
+    const s = createState(1, twoMeters);
+    s.meters[0].value = nose;
+    s.meters[1].value = connection;
+    // a poor walk by the ADR 0005 rule, so only the meters can give a high score
+    s.telemetry.peakArousal = 100;
+    s.telemetry.rigidTime = 10;
+    return buildPayload(s);
+  };
+
+  it('is 1000 with both meters full', () => {
+    const p = ended(40, 20);
+    expect(p.handlingScore).toBe(1000);
+    expect(p.meters).toEqual([{ id: 'nose', value: 40, target: 40 }, { id: 'connection', value: 20, target: 20 }]);
+  });
+
+  it('is 750 with one meter full and the other at half', () => expect(ended(40, 10).handlingScore).toBe(750));
+  it('is 0 with both meters empty', () => expect(ended(0, 0).handlingScore).toBe(0));
+  it('rounds the mean fill', () => expect(ended(13, 0).handlingScore).toBe(163));
+
+  it('copies the meter values, so the payload does not change with the state', () => {
+    const s = createState(1, twoMeters);
+    const p = buildPayload(s);
+    s.meters[0].value = 40;
+    expect(p.meters?.[0].value).toBe(0);
+  });
+
+  it('leaves the score and the payload unchanged without meters', () => {
+    const { payload } = runScripted(11, player(scenario({})), scenario({}));
+    expect(payload).not.toHaveProperty('meters');
+    const { markGrades, handlingScore: score, configVersion, ...rest } = payload;
+    expect(markGrades).toBeDefined();
+    expect(configVersion).toBe('bundled');
+    expect(score).toBe(handlingScore(rest));
+    expect(buildPayload(createState(1, scenario({ meters: [] })))).not.toHaveProperty('meters');
+  });
+
+  it('uses the meter rule in handlingScore when meters are given', () => {
+    const base = buildPayload(createState(1, scenario({})));
+    expect(handlingScore({ ...base, meters: [{ id: 'nose', value: 5, target: 10 }] })).toBe(500);
   });
 });

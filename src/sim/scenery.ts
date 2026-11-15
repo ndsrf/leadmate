@@ -1,5 +1,6 @@
 import type { ScenarioConfig } from './config';
 import { closestOnSegment, routeLength, segmentsCross, type SceneryItem, type SceneryTheme, type Wall } from './geometry';
+import { meterProblems } from './meters';
 import { createRng, type Rng } from './rng';
 import { distance, type Vec2 } from './vec';
 
@@ -225,6 +226,7 @@ export function validateScenario(config: ScenarioConfig): string[] {
   if (types < MIN_PROP_TYPES) errors.push(`scenery uses ${types} prop types, at least ${MIN_PROP_TYPES} are needed`);
 
   if (config.scenery.every((p) => finite(p.pos))) errors.push(...solidProblems(config, route));
+  errors.push(...meterProblems(config));
   return errors;
 }
 
