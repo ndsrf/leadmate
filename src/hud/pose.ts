@@ -36,8 +36,9 @@ export interface DogPose {
 
 /** Away left is counter-clockwise from the Dog's facing in simulation coordinates (y up the page of the sim). */
 function gazeOf(state: SimState): Gaze {
-  const mode: string = state.dogMode;
-  if (mode === 'sniffing') return 'ground';
+  const mode = state.dogMode;
+  // a Plant is sniffing in place
+  if (mode === 'sniffing' || mode === 'planted') return 'ground';
   if (mode === 'fixated') return 'distractor';
   if (isDogLooking(state)) return 'handler';
   const want = state.dogDesired;
@@ -52,8 +53,7 @@ function gazeOf(state: SimState): Gaze {
 }
 
 function actionOf(state: SimState): DogAction {
-  const mode: string = state.dogMode;
-  // planted and marking arrive with rethink-unpredictable-walk-stage; compared as strings until then
+  const mode = state.dogMode;
   if (mode === 'planted') return 'planted';
   if (mode === 'marking') return 'marking';
   const moving = length(state.dogDesired) > 0;
@@ -84,7 +84,7 @@ export function walkClipFor(pose: Pick<DogPose, 'action' | 'gaze' | 'tail'>): Wa
 }
 
 export function dogPose(state: SimState): DogPose {
-  const sniffing = state.dogMode === 'sniffing';
+  const sniffing = state.dogMode === 'sniffing' || state.dogMode === 'planted';
   const reactive = state.tier === 'reactive';
   const gaze = gazeOf(state);
   const fixated = state.dogMode === 'fixated';
