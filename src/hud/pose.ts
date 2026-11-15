@@ -9,7 +9,7 @@ export type DogAction = 'idle' | 'walk' | 'trot' | 'sniff-walk' | 'sniff' | 'pla
 /** Walking-sprite clip names (the baked tail mood lives in the clip). */
 export type WalkClip = 'idle' | 'walk' | 'walk_wag' | 'trot' | 'sniffwalk' | 'sniff' | 'planted' | 'mark' | 'lunge' | 'look_l' | 'look_r';
 
-/** Degrees between the Dog's facing and what it attends to before the gaze reads as away. */
+/** Radians between the Dog's facing and what it attends to before the gaze reads as away. */
 const AWAY_ANGLE = 0.45;
 
 /** What the Dog and Handler look like right now; derived from the simulation, drawn by the bundle. */
