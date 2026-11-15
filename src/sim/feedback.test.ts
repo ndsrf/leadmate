@@ -219,6 +219,19 @@ describe('Sintonía', () => {
     (s: SimState): SimInput => ({ direction: { x: Math.cos(omega * s.time), y: Math.sin(omega * s.time) }, strength, marker: false });
   const types = (events: SimEvent[]) => events.map((e) => e.type);
 
+  it('never starts for a Node that opts out, and a sharp turn on Slack is not a Rigid Pull', () => {
+    const exempt = scenario({ leashLength: 100, dogGoalSpeed: 0, distractor: noDistractor, sintonia: { ...free.sintonia, enabled: false } });
+    const s = createState(1, exempt);
+    const events = run(s, 6, arc(1));
+    expect(s.sintonia.active).toBe(false);
+    expect(s.telemetry.sintoniaTime).toBe(0);
+    expect(types(events)).not.toContain('sintonia-start');
+    // a hard reversal, then back again
+    run(s, 1, (st) => ({ direction: { x: st.time < 7 ? 1 : -1, y: 0 }, strength: 0.6, marker: false }));
+    expect(s.telemetry.rigidTime).toBe(0);
+    expect(s.sintonia.active).toBe(false);
+  });
+
   it('starts after 2.0 s of smooth curved walking on a Slack leash', () => {
     const s = createState(1, free);
     const events = run(s, 1.9, arc(1));

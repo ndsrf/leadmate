@@ -1,0 +1,22 @@
+id: mission-park-unpredictable
+technique: unpredictable-walks
+reps: 1
+trains:
+  - kind: node
+    id: park-unpredictable
+problems:
+  - id: autopilot
+    label: autopilot
+    practise:
+      kind: node
+      id: park-unpredictable
+  - id: nolook
+    label: nolook
+    practise:
+      kind: node
+      id: park-unpredictable
+  - id: tight
+    label: tight
+    practise:
+      kind: node
+      id: park-unpredictable

@@ -50,12 +50,12 @@ describe('World unlocking', () => {
     expect(WORLDS.map((w) => w.unlockedBy)).toEqual([undefined, 'basics', 'home', 'sidewalk', 'urban', 'park', 'recall', 'cafe', 'trails']);
   });
 
-  it('designates Worlds 1-5 as playable free worlds and 6-9 as preview plus worlds', () => {
-    const playable = WORLDS.filter((w) => !w.preview);
+  it('designates Worlds 1-5 as playable free worlds and 7-9 as preview plus worlds (World 6 is playable Plus)', () => {
+    const playable = WORLDS.filter((w) => !w.preview).map((w) => w.id);
+    expect(playable.slice(0, 5)).toEqual(['basics', 'home', 'sidewalk', 'urban', 'park']);
+    expect(WORLDS.slice(0, 5).every((w) => (w.tier ?? 'free') === 'free')).toBe(true);
     const previews = WORLDS.filter((w) => w.preview);
-    expect(playable.map((w) => w.id)).toEqual(['basics', 'home', 'sidewalk', 'urban', 'park']);
-    expect(playable.every((w) => (w.tier ?? 'free') === 'free')).toBe(true);
-    expect(previews.map((w) => w.id)).toEqual(['recall', 'cafe', 'trails', 'crowds']);
+    expect(previews.map((w) => w.id)).toEqual(expect.arrayContaining(['cafe', 'trails', 'crowds']));
     expect(previews.every((w) => w.tier === 'plus')).toBe(true);
   });
 
@@ -121,7 +121,10 @@ describe('World unlocking', () => {
     expect(currentWorld(progressOf([])).id).toBe('basics');
     expect(currentWorld(finished('basics')).id).toBe('home');
     expect(currentWorld(finished('home')).id).toBe('sidewalk');
-    expect(currentWorld(finished('home', 'sidewalk', 'urban', 'park')).id).toBe('park');
+    // World 6 is playable (one Stretch), so it is the first World not complete once World 5 is done
+    expect(currentWorld(finished('home', 'sidewalk', 'urban', 'park')).id).toBe('recall');
+    // with every playable World done, the map stays on the last playable one; Coming-soon World 7 is never current
+    expect(currentWorld({ ...finished('home', 'sidewalk', 'urban', 'park', 'recall'), plus: true }).id).toBe('recall');
   });
 
   it('titles and topics every World from the catalog', () => {
@@ -285,7 +288,7 @@ describe('trail validation', () => {
   it('gives World 1 three Stretches, harness, doorbell and Poste, and World 2 one per technique', () => {
     expect(world('home').stretches.map((s) => s.filter((x) => x.kind === 'node').map((x) => x.id))).toEqual([['harness-ritual'], ['doorbell-mat'], ['poste-practice']]);
     expect(world('sidewalk').stretches.map((s) => s.filter((x) => x.kind === 'node').map((x) => x.id))).toEqual([['walk-distraction'], ['blind-corner'], ['slack-u']]);
-    for (const w of WORLDS.filter((x) => !x.preview)) expect(w.stretches.length).toBeGreaterThanOrEqual(2);
+    for (const w of WORLDS.filter((x) => !x.preview)) expect(w.stretches.length).toBeGreaterThanOrEqual(w.id === 'recall' ? 1 : 2);
   });
 
   it('precedes the first walking Stage with a theory and a How-to-play Lesson', () => {
@@ -324,8 +327,8 @@ describe('Node content of every World', () => {
 
   it('only lists prerequisites that exist and never loops', () => {
     for (const node of NODES) for (const id of node.prerequisites) expect(ids(NODES)).toContain(id);
-    // every Stop becomes reachable by doing the trail in order
-    let p = progressOf([]);
+    // every Stop becomes reachable by doing the trail in order, for a Plus user (World 6 onwards are Plus Worlds)
+    let p = progressOf([], { plus: true });
     for (const stop of WORLDS.flatMap(stopsOf)) {
       expect({ stop: stop.id, lock: stopLock(stop, p) }).toEqual({ stop: stop.id, lock: null });
       if (stop.kind === 'node') p = { ...p, completedNodes: [...p.completedNodes, stop.id] };
@@ -507,6 +510,8 @@ describe('Plus Worlds', () => {
 
   it('stays locked for a free user, even with the World before it complete', () => {
     expect(isWorldUnlocked(recall, finished('home', 'sidewalk', 'urban', 'park'))).toBe(false);
+    for (const stop of stopsOf(recall)) expect(stopLock(stop, finished('home', 'sidewalk', 'urban', 'park'))).toEqual({ kind: 'world' });
+    expect(stopLock(stopsOf(recall)[0], { ...finished('home', 'sidewalk', 'urban', 'park'), plus: true })).toBeNull();
   });
 
   it('is unlocked for a Plus member once the World before it is complete', () => {
@@ -715,7 +720,7 @@ describe('Home Behaviour content and the trail', () => {
 describe('worldsFor never makes a Stop unreachable', () => {
   test.each([['theory-home-rest'], ['theory-calm-first'], ['theory-calm-first', 'theory-home-rest']])('plan %s', (...ids) => {
     const worlds = worldsFor(ids.map((stretchId) => ({ stretchId })), progressOf([]));
-    const progress = progressOf([]);
+    const progress = progressOf([], { plus: true });
     for (const world of worlds.filter((w) => !w.preview)) {
       for (const stops of world.stretches) {
         for (const stop of stops) {

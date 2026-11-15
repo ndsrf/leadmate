@@ -1,0 +1,6 @@
+id: duel-world
+worldNumber: 1
+tier: free
+stretches:
+  - - kind: node
+      id: duel-walk

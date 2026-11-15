@@ -1,5 +1,10 @@
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   CATEGORY_SCHEMA_FIELDS,
+  compareAppVersions,
+  IMAGE_DUEL_MIN_APP_VERSION,
+  isDuelQuestionYaml,
   isContentId,
   isHttpsUrl,
   isRecommendationTrigger,
@@ -38,8 +43,14 @@ describe('schema primitives', () => {
   it('validates semver strings', () => {
     expect(isSemver('1.0.0')).toBe(true);
     expect(isSemver('0.2.1-beta')).toBe(true);
+    expect(isSemver('1.1.0-rc.1')).toBe(true);
     expect(isSemver('1.0')).toBe(false);
+    expect(isSemver('1.0.0.0')).toBe(false);
     expect(isSemver('v1.0.0')).toBe(false);
+    expect(isSemver('not-a-version')).toBe(false);
+    expect(isSemver('')).toBe(false);
+    expect(isSemver(123)).toBe(false);
+    expect(isSemver(undefined)).toBe(false);
     expect(isSemver(null)).toBe(false);
   });
 
@@ -329,5 +340,71 @@ describe('recommendation validation', () => {
       recommendations: [{ id: 'rec-1', target: 'collares', when: 'bad-when' }],
     };
     expect(validateLessonYaml(badLesson).valid).toBe(false);
+  });
+});
+
+describe('node.yaml checkpoint question kinds', () => {
+  const base = { id: 'walk', mode: 'stage', prerequisites: [] };
+  const duel = { kind: 'duel', images: ['autopilot.png', 'turn-and-look.png'], correct: 1 };
+
+  it('parses existing text questions unchanged: no checkpoint, empty entries and legacy text entries need no kind', () => {
+    expect(validateNodeYaml(base).valid).toBe(true);
+    expect(validateNodeYaml({ ...base, checkpoint: [{}, null, { kind: 'text' }] }).valid).toBe(true);
+    const legacy = { question: 'q', options: [{ text: 'a', correct: true }], explanation: 'why' };
+    expect(validateNodeYaml({ ...base, checkpoint: [legacy] }).valid).toBe(true);
+    expect(isDuelQuestionYaml(legacy)).toBe(false);
+    expect(isDuelQuestionYaml({})).toBe(false);
+  });
+
+  it('every shipped node.yaml still validates, and holds a duel only in park-unpredictable', () => {
+    for (const channel of ['stable', 'beta']) {
+      const dir = join(__dirname, '../../../content', channel, 'nodes');
+      const withDuel: string[] = [];
+      for (const id of readdirSync(dir)) {
+        const cfg = parseYaml<Record<string, unknown>>(readFileSync(join(dir, id, 'node.yaml'), 'utf8'));
+        expect(validateNodeYaml(cfg).errors).toEqual([]);
+        const checkpoint = Array.isArray(cfg.checkpoint) ? cfg.checkpoint : [];
+        if (checkpoint.some(isDuelQuestionYaml)) withDuel.push(id);
+      }
+      expect({ channel, withDuel }).toEqual({ channel, withDuel: ['park-unpredictable'] });
+    }
+  });
+
+  it('accepts an Image Duel with two images and one correct index', () => {
+    expect(validateNodeYaml({ ...base, checkpoint: [{}, duel] }).valid).toBe(true);
+    expect(isDuelQuestionYaml(duel)).toBe(true);
+    expect(validateNodeYaml({ ...base, checkpoint: [{ ...duel, images: ['media/a.png', 'b.png'], correct: 0 }] }).valid).toBe(true);
+  });
+
+  it('rejects a malformed duel and names the Node', () => {
+    const bad = (q: unknown) => validateNodeYaml({ ...base, checkpoint: [q] });
+    for (const q of [
+      { ...duel, images: ['a.png'] },
+      { ...duel, images: ['a.png', 'b.png', 'c.png'] },
+      { ...duel, images: ['a.png', 'media/a.png'] },
+      { ...duel, images: ['../a.png', 'b.png'] },
+      { kind: 'duel', images: ['a.png', 'b.png'] },
+      { ...duel, correct: 2 },
+      { ...duel, correct: '1' },
+      { kind: 'video' },
+      'not-an-object',
+    ]) {
+      const res = bad(q);
+      expect(res.valid).toBe(false);
+      expect(res.errors[0].message).toContain('Node "walk"');
+    }
+    expect(validateNodeYaml({ ...base, checkpoint: 'nope' }).valid).toBe(false);
+  });
+
+  it('compares app versions numerically', () => {
+    expect(compareAppVersions('1.0.1', IMAGE_DUEL_MIN_APP_VERSION)).toBeLessThan(0);
+    expect(compareAppVersions('1.1.0', IMAGE_DUEL_MIN_APP_VERSION)).toBe(0);
+    expect(compareAppVersions('1.10.0', '1.9.0')).toBeGreaterThan(0);
+    expect(compareAppVersions('2.0.0-beta.1', '2.0.0')).toBe(0);
+    expect(compareAppVersions('1.2.3-alpha', '1.2.4')).toBe(-1);
+    expect(compareAppVersions('1.2.4', '1.2.3-alpha')).toBe(1);
+    expect(compareAppVersions('invalid', '1.0.0')).toBe(-1);
+    expect(compareAppVersions('invalid', 'invalid')).toBe(0);
+    expect(compareAppVersions('', '')).toBe(0);
   });
 });

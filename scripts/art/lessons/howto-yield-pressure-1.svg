@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.howto-yield-pressure.image.1.caption" data-alt="trail.howto-yield-pressure.image.1.alt">
+  <!-- concept, two steps in the hallway: 1 the hand holds a light, steady pressure (soft arrow towards the Person); 2 Migas steps towards the Person and the leash drops into a U at once -->
+  <use href="#backdrop-indoor"/>
+  <use href="#door" transform="translate(58 292) scale(0.72)"/>
+  <path d="M320 26V280" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="12 10" stroke-linecap="round"/>
+  <g transform="translate(286 318) scale(-0.62 0.62)">
+    <use href="#person-still"/>
+    <use href="#dog-look" transform="translate(200 0)"/>
+    <path d="M16 -100C90 -84 160 -72 214 -66" fill="none" stroke="#1E2A3A" stroke-width="8.5" stroke-linecap="round"/><path d="M16 -100C90 -84 160 -72 214 -66" fill="none" stroke="#6FAF73" stroke-width="4.5" stroke-linecap="round"/><circle cx="214" cy="-66" r="3.5" fill="#1E2A3A"/>
+  </g>
+  <use href="#arrow" transform="translate(166 226) scale(0.75)"/>
+  <use href="#step-1" transform="translate(158 40) scale(1.3)"/>
+  <g transform="translate(606 318) scale(-0.62 0.62)">
+    <use href="#person-still"/>
+    <use href="#dog-walk-calm" transform="translate(170 0) scale(-1 1)"/>
+    <path d="M16 -100C40 -16 130 -10 156 -66" fill="none" stroke="#1E2A3A" stroke-width="8.5" stroke-linecap="round"/><path d="M16 -100C40 -16 130 -10 156 -66" fill="none" stroke="#6FAF73" stroke-width="4.5" stroke-linecap="round"/><circle cx="156" cy="-66" r="3.5" fill="#1E2A3A"/>
+  </g>
+  <use href="#step-2" transform="translate(470 40) scale(1.3)"/>
+  <use href="#heart" transform="translate(472 178)"/>
+</svg>

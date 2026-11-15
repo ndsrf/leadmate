@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-unpredictable-walks.image.1.caption" data-alt="trail.theory-unpredictable-walks.image.1.alt">
+  <!-- concept, seen from above in the park: a straight route (Migas looks ahead) vs a route of right-angle turns (Migas turns his head to the Person) -->
+  <use href="#top-grass"/>
+  <use href="#top-tree" transform="translate(56 58) scale(1.1)"/>
+  <use href="#top-tree" transform="translate(262 312)"/>
+  <use href="#top-tree" transform="translate(372 64) scale(0.9)"/>
+  <use href="#top-tree" transform="translate(600 300) scale(1.2)"/>
+  <path d="M320 20V340" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="12 10" stroke-linecap="round"/>
+  <!-- left: the straight route -->
+  <path d="M28 196H292" fill="none" stroke="#EDE3CC" stroke-width="34" stroke-linecap="round"/>
+  <path d="M28 196H270" fill="none" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="10 9" stroke-linecap="round"/>
+  <path d="M268 184L292 196L268 208z" fill="#1E2A3A"/>
+  <path d="M88 216C120 238 166 224 175 194" fill="none" stroke="#1E2A3A" stroke-width="6.5" stroke-linecap="round"/>
+  <path d="M88 216C120 238 166 224 175 194" fill="none" stroke="#6FAF73" stroke-width="3" stroke-linecap="round"/>
+  <use href="#top-person" transform="translate(76 216) scale(1.2)"/>
+  <use href="#top-dog" transform="translate(170 194) scale(1.2)"/>
+  <use href="#sight" transform="translate(226 194) scale(0.5)"/>
+  <!-- right: the route with right-angle turns -->
+  <path d="M348 300H430V196H524V108H612" fill="none" stroke="#EDE3CC" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M348 300H430V196H524V108H592" fill="none" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="10 9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M590 96L614 108L590 120z" fill="#1E2A3A"/>
+  <path d="M444 238C462 250 476 240 469 216" fill="none" stroke="#1E2A3A" stroke-width="6.5" stroke-linecap="round"/>
+  <path d="M444 238C462 250 476 240 469 216" fill="none" stroke="#6FAF73" stroke-width="3" stroke-linecap="round"/>
+  <use href="#top-person" transform="translate(430 232) rotate(-90) scale(1.2)"/>
+  <use href="#top-dog-look" transform="translate(476 222) rotate(-90) scale(1.2)"/>
+  <use href="#heart" transform="translate(512 168) scale(1.1)"/>
+</svg>

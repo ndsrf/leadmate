@@ -111,3 +111,11 @@ build with a media base shows the retry placeholder for it after the tap.
 | `smile-leash` | La correa en sonrisa | not generated |
 | `marking-rewarding` | Marcar y recompensar | not generated |
 | `sniffing-decompression` | Olfatear y descomprimir | not generated |
+
+## World 6 Stage Node (Stretch 1)
+
+Added by `add-world-6-recall-and-unpredictable-walks`. The Stretch 1 Lesson art and the Image Duel pair are drawn (Claude Design canvas plus the repo kit), so only the Stage scoring is a stand-in.
+
+| Item | Kind | Stand-in |
+| --- | --- | --- |
+| `park-unpredictable` | Stage Node "El paseo impredecible" / "The Unpredictable Walk" | Interim Stage: scored with Rigid Pull and Check-in counts only and exempt from Sintonía (`sintonia.enabled: false`); `rethink-unpredictable-walk-stage` will replace the scoring |

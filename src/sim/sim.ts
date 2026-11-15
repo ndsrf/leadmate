@@ -842,6 +842,7 @@ function advanceRoute(state: SimState): void {
  */
 function updateSintonia(state: SimState, dt: number, events: SimEvent[]): void {
   const cfg = state.config.sintonia;
+  if (cfg.enabled === false) return;
   const speed = distance(state.prevHandler, state.handler) / dt;
   let turning = false;
   if (speed > cfg.minSpeed) {

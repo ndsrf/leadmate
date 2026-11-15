@@ -2,6 +2,13 @@ id: recall
 worldNumber: 6
 tier: plus
 unlockedBy: park
-preview: true
-nodeCount: 4
-stretches: []
+nodeCount: 16
+stretches:
+  - - kind: lesson
+      id: theory-unpredictable-walks
+    - kind: lesson
+      id: howto-yield-pressure
+    - kind: node
+      id: park-unpredictable
+    - kind: mission
+      id: mission-park-unpredictable

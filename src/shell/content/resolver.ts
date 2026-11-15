@@ -6,6 +6,7 @@ import { defaultCloseExerciseConfig } from '../../sim/closeExercise';
 import type { LessonBlock, LessonDef, LessonKind, VideoSource } from '../lessons/lesson';
 import { MEDIA_BASE } from '../ui/media';
 import type { CheckpointQuestion, Metric, NodeDef, NodeExercise, PrimerCardDef } from '../nodes/node';
+import type { ImageDuelQuestion } from '../nodes/content';
 import type { Fix, MissionDef, MissionProblem } from '../missions/mission';
 import type { Stop, WorldDef } from '../world';
 import {
@@ -18,10 +19,12 @@ import {
   type ParsedLessonContent,
   type ParsedMissionContent,
   type ParsedMissionFix,
+  type ParsedNodeCheckpointQuestion,
   type ParsedNodeContent,
   type ParsedShopText,
   type ParsedWorldContent,
 } from './parser';
+import { duelImageFile, isDuelQuestionYaml, type DuelCheckpointQuestionYaml } from './schema';
 import type {
   LessonYaml,
   MissionYaml,
@@ -511,6 +514,12 @@ export function resolvePack(pack: ContentPack, language: string = 'es', options?
       const qKey = `${keyPrefix}.tq${n}.question` as TextKey;
       catalog[qKey] = (qLang?.question && qLang.question.trim()) ? qLang.question : qEs?.question || '';
 
+      const qCfg = cfg.checkpoint?.[q];
+      if (isDuelQuestionYaml(qCfg)) {
+        checkpoint.push(resolveDuelQuestion(qCfg, { nodeId: id, keyPrefix: `${keyPrefix}.tq${n}`, question: qKey, es: qEs, lang: qLang, catalog }));
+        continue;
+      }
+
       const options = (qEs?.options ?? []).map((opt, oIdx) => {
         const optSuffix = opt.correct ? 'right' : oIdx === 1 ? 'wrong1' : 'wrong2';
         const optKey = `${keyPrefix}.tq${n}.${optSuffix}` as TextKey;
@@ -705,5 +714,45 @@ export function resolvePack(pack: ContentPack, language: string = 'es', options?
     missions,
     catalog,
     shop,
+  };
+}
+
+/**
+ * Resolves an Image Duel Checkpoint question: language-neutral images and correct index from node.yaml, the prompt,
+ * one alt text per image and the explanation from the target language's `### N` subsection, falling back to Spanish
+ * line by line. The alt texts double as the two options, so the Node reducer and the Debrief treat it like any
+ * two-option question (`options[i]` is `images[i]`).
+ */
+function resolveDuelQuestion(
+  cfg: DuelCheckpointQuestionYaml,
+  ctx: {
+    nodeId: string;
+    keyPrefix: string;
+    question: TextKey;
+    es: ParsedNodeCheckpointQuestion | undefined;
+    lang: Partial<ParsedNodeCheckpointQuestion> | undefined;
+    catalog: Record<string, string>;
+  },
+): ImageDuelQuestion {
+  const { keyPrefix, es, lang, catalog } = ctx;
+  const pick = (l: string | undefined, e: string | undefined) => (l && l.trim() ? l : e || '');
+  const explanation = `${keyPrefix}.why` as TextKey;
+  catalog[explanation] = pick(lang?.explanation, es?.explanation);
+
+  const itemPath = `nodes/${ctx.nodeId}`;
+  const sides = [0, 1].map((i) => {
+    const alt = `${keyPrefix}.alt${i + 1}` as TextKey;
+    catalog[alt] = pick(lang?.options?.[i]?.text, es?.options?.[i]?.text);
+    const art = duelImageFile(String(cfg.images?.[i] ?? ''));
+    return { image: { art, itemPath, path: `${itemPath}/media/${art}`, alt }, option: { text: alt, correct: cfg.correct === i } };
+  });
+
+  return {
+    kind: 'duel',
+    question: ctx.question,
+    options: [sides[0].option, sides[1].option],
+    explanation,
+    images: [sides[0].image, sides[1].image],
+    correct: cfg.correct,
   };
 }

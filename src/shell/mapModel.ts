@@ -9,7 +9,7 @@ import { checkInOpensAt, opensAtMidnight, type MissionDef, type MissionState } f
 import { ALL_NODES as NODES } from './nodes/content';
 import type { NodeDef } from './nodes/node';
 import type { Stars } from './stars';
-import { findStretch, isWorldComplete, isWorldUnlocked, stopStatus, type Progress, type Stop, type StopLock, type WorldDef, WORLDS } from './world';
+import { findStretch, hasMoreComing, isWorldComplete, isWorldUnlocked, stopStatus, type Progress, type Stop, type StopLock, type WorldDef, WORLDS } from './world';
 
 export type NodeState = 'locked' | 'open' | 'next' | 'waiting' | 'owed' | 'done';
 
@@ -61,6 +61,8 @@ export interface MapWorld {
   topics: TextKey;
   tier: 'free' | 'plus';
   preview: boolean;
+  /** A playable World whose pack plans more Stops than it holds: the map notes that more Stretches are coming. */
+  moreComing?: boolean;
   unlockRequirement?: {
     worldTitle: TextKey;
     worldNumber: number;
@@ -203,6 +205,7 @@ export function mapModel(progress: Progress, stars: Readonly<Record<string, Star
       topics: world.topics,
       tier: world.tier ?? 'free',
       preview,
+      ...(hasMoreComing(world) ? { moreComing: true } : {}),
       unlockRequirement,
     };
   });

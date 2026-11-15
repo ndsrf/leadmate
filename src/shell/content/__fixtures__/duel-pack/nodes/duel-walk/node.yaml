@@ -1,0 +1,8 @@
+id: duel-walk
+mode: stage
+prerequisites: []
+checkpoint:
+  - {}
+  - kind: duel
+    images: [autopilot.png, turn-and-look.png]
+    correct: 1

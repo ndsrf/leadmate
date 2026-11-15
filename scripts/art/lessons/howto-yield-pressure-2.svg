@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.howto-yield-pressure.image.2.caption" data-alt="trail.howto-yield-pressure.image.2.alt">
+  <!-- scene at home: the Person stands with the hand relaxed at the waist and pays a treat beside the leg; Migas looks up at the face on a slack leash -->
+  <use href="#backdrop-indoor"/>
+  <use href="#door" transform="translate(58 292) scale(0.72)"/>
+  <g transform="translate(250 318) scale(1.15)">
+    <use href="#person-stand"/>
+    <use href="#treat" transform="translate(24 -74)"/>
+    <use href="#dog-glance" transform="translate(158 0) scale(-1 1)"/>
+    <path d="M18 -82C30 -6 124 -4 144 -66" fill="none" stroke="#1E2A3A" stroke-width="8.5" stroke-linecap="round"/><path d="M18 -82C30 -6 124 -4 144 -66" fill="none" stroke="#6FAF73" stroke-width="4.5" stroke-linecap="round"/><circle cx="144" cy="-66" r="3.5" fill="#1E2A3A"/>
+  </g>
+  <use href="#heart" transform="translate(400 150) scale(1.2)"/>
+</svg>

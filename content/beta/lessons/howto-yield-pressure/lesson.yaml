@@ -1,0 +1,10 @@
+id: howto-yield-pressure
+kind: theory
+images:
+  - howto-yield-pressure-1
+  - howto-yield-pressure-2
+compare:
+  do: howto-yield-pressure-do
+  dont: howto-yield-pressure-dont
+steps: 4
+takeaways: 4

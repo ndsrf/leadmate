@@ -1,9 +1,13 @@
 import { useMemo, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
+import Svg, { Circle, Path } from 'react-native-svg';
 import type { TextKey, Translate } from '../../i18n';
 import type { SimulationDebriefPayload } from '../../sim/payload';
 import { Button, Row } from '../Overlays';
-import { Badge, Choice, OptionCard, Panel, ProgressBar, StarRow } from '../ui/components';
+import { Badge, Choice, OptionCard, Panel, ProgressBar, Raised, StarRow, useFocus } from '../ui/components';
+import { handlePress } from '../ui/press';
+import { ContentPicture } from '../ui/ContentPicture';
+import { theme, usePalette } from '../ui/theme';
 import { InAppBrowserModal } from '../ui/InAppBrowserModal';
 import { MediaPlaceholder } from '../ui/MediaPlaceholder';
 import { CelebrationList } from '../ui/CelebrationList';
@@ -14,6 +18,7 @@ import { createCountdown } from '../ui/countdown';
 import type { Celebration } from '../celebrations';
 import { starsFor, type Stars } from '../stars';
 import { checkpointLimit, pickExercise, primerCardOf, shuffledOrder, type CheckpointQuestion, type NodeRun } from '../nodes/node';
+import { isImageDuelQuestion, type ImageDuelQuestion } from '../nodes/content';
 import { readDogSceneOf } from '../nodes/readDog';
 import type { CheckpointSeconds } from '../dogRecord';
 import { DIARY_OUTCOMES, type DiaryOutcome } from '../streak';
@@ -73,17 +78,268 @@ export function CheckpointScreen({
   setting,
   onAnswer,
   onTimeout,
+  random = Math.random,
 }: {
   t: Translate;
   run: NodeRun;
   setting: CheckpointSeconds;
   onAnswer: (option: number) => void;
   onTimeout: () => void;
+  random?: () => number;
 }) {
   const question = run.node.checkpoint[run.question];
   if (!question) return null;
   const progress = run.node.checkpoint.length > 1 ? t('node.checkpoint.progress').replace('{n}', String(run.question + 1)).replace('{total}', String(run.node.checkpoint.length)) : null;
-  return <CheckpointQuestionView key={`${run.node.id}:${run.question}`} t={t} question={question} progress={progress} setting={setting} onAnswer={onAnswer} onTimeout={onTimeout} />;
+
+  if (isImageDuelQuestion(question)) {
+    return (
+      <ImageDuelQuestionView
+        key={`${run.node.id}:${run.question}`}
+        t={t}
+        question={question}
+        progress={progress}
+        setting={setting}
+        onAnswer={onAnswer}
+        onTimeout={onTimeout}
+        random={random}
+      />
+    );
+  }
+
+  return (
+    <CheckpointQuestionView
+      key={`${run.node.id}:${run.question}`}
+      t={t}
+      question={question}
+      progress={progress}
+      setting={setting}
+      onAnswer={onAnswer}
+      onTimeout={onTimeout}
+      random={random}
+    />
+  );
+}
+
+/** A check badge in brand green or a cross badge in danger red, matching the Lesson art kit. */
+export function DuelVerdictBadge({ verdict }: { verdict: 'check' | 'cross' }) {
+  const color = usePalette();
+  const isCheck = verdict === 'check';
+  return (
+    <View
+      testID={`duel-badge-${verdict}`}
+      aria-hidden
+      style={{
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        zIndex: 10,
+      }}
+    >
+      <Svg width={36} height={36} viewBox="0 0 36 36" aria-hidden>
+        <Circle
+          cx={18}
+          cy={18}
+          r={15}
+          fill={isCheck ? color.brand : color.danger}
+          stroke={color.ink}
+          strokeWidth={3}
+        />
+        <Path
+          d={isCheck ? 'M10 18l6 6l11 -12' : 'M12 12l12 12M24 12l-12 12'}
+          fill="none"
+          stroke={color.ink}
+          strokeWidth={3.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </Svg>
+    </View>
+  );
+}
+
+function DuelImageOption({
+  t,
+  image,
+  authoredIndex,
+  isAnswered,
+  isChosen,
+  isCorrect,
+  badge,
+  onPress,
+}: {
+  t: Translate;
+  image: ImageDuelQuestion['images'][number];
+  authoredIndex: number;
+  isAnswered: boolean;
+  isChosen: boolean;
+  isCorrect: boolean;
+  badge: 'check' | 'cross' | null;
+  onPress: () => void;
+}) {
+  const color = usePalette();
+  const focus = useFocus();
+
+  const baseLabel = t(image.alt);
+  const accessibilityLabel = isAnswered
+    ? `${baseLabel}. ${isCorrect ? t('node.duel.correct') : t('node.duel.incorrect')}`
+    : baseLabel;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{
+        disabled: isAnswered,
+        ...(isChosen ? { selected: true } : {}),
+      }}
+      disabled={isAnswered}
+      onPress={() => handlePress(onPress, isAnswered)}
+      onFocus={focus.onFocus}
+      onBlur={focus.onBlur}
+      testID={`duel-option-${authoredIndex}`}
+      className="mb-3 w-full"
+      style={{ width: '100%', minHeight: theme.size.touchMin }}
+    >
+      {({ pressed }) => (
+        <Raised
+          fill={pressed && !isAnswered ? color.surfaceSunken : color.surface}
+          radius={theme.radius.lg}
+          offset={theme.depth.sm.x}
+          shift={pressed && !isAnswered ? theme.depth.pressed.translate - 1 : 0}
+          focused={focus.focused}
+          pressable={!isAnswered}
+          faceStyle={{ overflow: 'hidden', width: '100%' }}
+        >
+          <View style={{ width: '100%', position: 'relative' }}>
+            <ContentPicture t={t} art={image.art} itemPath={image.itemPath} />
+            {badge !== null && <DuelVerdictBadge verdict={badge} />}
+          </View>
+        </Raised>
+      )}
+    </Pressable>
+  );
+}
+
+/**
+ * Renders an Image Duel Checkpoint question: prompt plus two images stacked top/bottom, each tappable.
+ * Shuffled top/bottom order per presentation. Before answering, no check, cross or colour hint is shown.
+ * After answering (or on timeout), the chosen image and correct image are marked with check/cross badges,
+ * the explanation is displayed, and the Next button advances the question.
+ */
+export function ImageDuelQuestionView({
+  t,
+  question,
+  progress,
+  setting,
+  onAnswer,
+  onTimeout,
+  random,
+}: {
+  t: Translate;
+  question: ImageDuelQuestion;
+  progress: string | null;
+  setting: CheckpointSeconds;
+  onAnswer: (option: number) => void;
+  onTimeout: () => void;
+  random?: () => number;
+}) {
+  const color = usePalette();
+  const limit = checkpointLimit(setting);
+  const [left, setLeft] = useState<number | null>(limit === null ? null : Math.ceil(limit));
+  const [chosen, setChosen] = useState<number | null>(null);
+  const [timedOut, setTimedOut] = useState(false);
+
+  const isAnswered = chosen !== null || timedOut;
+
+  const countdown = useMemo(
+    () =>
+      limit === null
+        ? null
+        : createCountdown(limit, setLeft, () => {
+            setLeft(0);
+            setTimedOut(true);
+          }),
+    [limit],
+  );
+
+  const order = useMemo(() => shuffledOrder(question.images.length, random), [question, random]);
+  const live = useLive();
+
+  // counts only while the app is in the foreground, and only while unanswered
+  useTicker(countdown !== null && !countdown.timedOut && !isAnswered, 100, (dt) => countdown?.tick(dt), 'countdown');
+
+  const handleNext = () => {
+    if (chosen !== null) {
+      onAnswer(chosen);
+    } else if (timedOut) {
+      onTimeout();
+    }
+  };
+
+  return (
+    <Screen>
+      <View className="flex-row items-center justify-between">
+        <Badge label={t('node.checkpoint.title')} tone="warn" />
+        {progress !== null && <Text className="font-display text-label text-inkMuted">{progress}</Text>}
+        {left !== null && <Text className="font-display text-label text-ink">{`${left} ${t('node.checkpoint.seconds')}`}</Text>}
+      </View>
+      {left !== null && limit !== null && (
+        <ProgressBar
+          className="my-2"
+          tone="accent"
+          value={left}
+          max={limit}
+          runDown={{ live: live && !isAnswered }}
+        />
+      )}
+      <Text className="my-4 font-display text-displayM text-ink">{t(question.question)}</Text>
+
+      <View className="w-full flex-col">
+        {order.map((authoredIndex) => {
+          const image = question.images[authoredIndex];
+          let badge: 'check' | 'cross' | null = null;
+          if (isAnswered) {
+            if (authoredIndex === question.correct) {
+              badge = 'check';
+            } else if (authoredIndex === chosen) {
+              badge = 'cross';
+            }
+          }
+          return (
+            <DuelImageOption
+              key={authoredIndex}
+              t={t}
+              image={image}
+              authoredIndex={authoredIndex}
+              isAnswered={isAnswered}
+              isChosen={authoredIndex === chosen}
+              isCorrect={authoredIndex === question.correct}
+              badge={badge}
+              onPress={() => {
+                if (!isAnswered) {
+                  setChosen(authoredIndex);
+                }
+              }}
+            />
+          );
+        })}
+      </View>
+
+      {isAnswered && (
+        <Panel className="my-3" tone="surface">
+          <Text testID="duel-explanation" className="text-bodyL text-ink">{t(question.explanation)}</Text>
+        </Panel>
+      )}
+
+      {isAnswered && (
+        <Button
+          label={t('node.next')}
+          onPress={handleNext}
+          testID="duel-next-button"
+        />
+      )}
+    </Screen>
+  );
 }
 
 /**
@@ -98,6 +354,7 @@ function CheckpointQuestionView({
   setting,
   onAnswer,
   onTimeout,
+  random,
 }: {
   t: Translate;
   question: CheckpointQuestion;
@@ -105,13 +362,14 @@ function CheckpointQuestionView({
   setting: CheckpointSeconds;
   onAnswer: (option: number) => void;
   onTimeout: () => void;
+  random?: () => number;
 }) {
   const limit = checkpointLimit(setting);
   const [left, setLeft] = useState<number | null>(limit === null ? null : Math.ceil(limit));
   const timeout = useRef(onTimeout);
   timeout.current = onTimeout;
   const countdown = useMemo(() => (limit === null ? null : createCountdown(limit, setLeft, () => timeout.current())), [limit]);
-  const order = useMemo(() => shuffledOrder(question.options.length), [question]);
+  const order = useMemo(() => shuffledOrder(question.options.length, random), [question, random]);
   const live = useLive();
 
   // counts only while the app is in the foreground, so backgrounding does not eat the time

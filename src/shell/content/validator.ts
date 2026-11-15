@@ -13,10 +13,15 @@ import {
   type ParsedWorldContent,
 } from './parser';
 import {
+  compareAppVersions,
+  duelImageFile,
+  IMAGE_DUEL_MIN_APP_VERSION,
   isContentId,
+  isDuelQuestionYaml,
   isHttpsUrl,
   isRecommendationTrigger,
   isRelativeMediaPath,
+  isSemver,
   isYouTubeId,
   SUPPORTED_METRICS,
   SUPPORTED_MINIGAMES,
@@ -175,6 +180,7 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
   const worldIds = new Set<string>();
   const lessonIds = new Set<string>();
   const nodeIds = new Set<string>();
+  const duelNodes: string[] = []; // Nodes holding an Image Duel question
   const missionIds = new Set<string>();
   const categoryIds = new Set<string>();
   const subcategoryIds = new Set<string>();
@@ -404,6 +410,23 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
           message: err instanceof Error ? err.message : String(err),
         });
       }
+    }
+
+    // Image Duel questions: images on disk, text per language, and an app that can render them
+    if (Array.isArray(cfg?.checkpoint) && cfg.checkpoint.some(isDuelQuestionYaml)) {
+      duelNodes.push(id);
+      validateDuelQuestions(id, nodeEntry, packLanguages, errors, warnings);
+    }
+  }
+
+  if (duelNodes.length > 0 && isSemver(pack.pack?.minAppVersion) && compareAppVersions(pack.pack.minAppVersion, IMAGE_DUEL_MIN_APP_VERSION) < 0) {
+    for (const nodeId of duelNodes) {
+      errors.push({
+        file: 'pack.yaml',
+        field: 'minAppVersion',
+        message: `Node "${nodeId}" uses an Image Duel question, which needs minAppVersion ${IMAGE_DUEL_MIN_APP_VERSION} or later (pack declares ${pack.pack.minAppVersion})`,
+        hint: `Set minAppVersion: ${IMAGE_DUEL_MIN_APP_VERSION} in pack.yaml so older apps keep their bundled content`,
+      });
     }
   }
 
@@ -900,4 +923,94 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
     errors,
     warnings,
   };
+}
+
+/**
+ * Checks a Node's Image Duel questions against its media folder and its text: each duel's two images exist in the
+ * Node's `media/`, and the aligned `### N` subsection of `es.md` (and of any other language present) has the prompt,
+ * one alt text per image and the explanation. A `[x]` mark in a duel subsection, when given, must agree with
+ * `correct`. Every message names the Node.
+ */
+function validateDuelQuestions(
+  id: string,
+  nodeEntry: ContentPack['nodes'][string],
+  packLanguages: readonly string[],
+  errors: ValidationError[],
+  warnings: PackValidationWarning[],
+): void {
+  const cfg = nodeEntry.config;
+  const questions = cfg.checkpoint ?? [];
+  const yamlFile = `nodes/${id}/node.yaml`;
+  const media = new Set((nodeEntry.files ?? []).map((f) => duelImageFile(f)));
+
+  questions.forEach((q, idx) => {
+    if (!isDuelQuestionYaml(q) || !Array.isArray(q.images)) return;
+    q.images.forEach((img, i) => {
+      if (typeof img !== 'string') return;
+      if (!media.has(duelImageFile(img))) {
+        errors.push({
+          file: yamlFile,
+          field: `checkpoint[${idx}].images[${i}]`,
+          message: `Node "${id}" question ${idx + 1}: duel image "${img}" does not exist in nodes/${id}/media/`,
+          hint: 'Export the image into the Node media/ folder or fix the file name',
+        });
+      }
+    });
+  });
+
+  const textRecord = nodeEntry.text ?? {};
+  for (const lang of packLanguages) {
+    const raw = textRecord[lang];
+    if (!raw) continue; // a missing es.md is reported above; another missing language falls back to Spanish
+    const mdFile = `nodes/${id}/${lang}.md`;
+    let parsed: Partial<ParsedNodeContent>;
+    try {
+      parsed = typeof raw === 'string' ? parseNodeMarkdown(raw) : raw;
+    } catch {
+      continue; // reported with the Node text checks
+    }
+    const mdQuestions = parsed.checkpoint ?? [];
+    if (mdQuestions.length !== questions.length) {
+      errors.push({
+        file: mdFile,
+        field: 'checkpoint',
+        message: `Node "${id}": node.yaml lists ${questions.length} Checkpoint questions but ${lang}.md has ${mdQuestions.length}`,
+        hint: 'Keep one ### subsection per checkpoint entry, in the same order',
+      });
+    }
+    questions.forEach((q, idx) => {
+      if (!isDuelQuestionYaml(q)) return;
+      const n = idx + 1;
+      const md = mdQuestions[idx];
+      if (!md) return; // count mismatch already reported
+      const where = `Node "${id}" question ${n} (${lang})`;
+      if (!md.question || !md.question.trim()) {
+        errors.push({ file: mdFile, field: `checkpoint[${idx}].question`, message: `${where}: the Image Duel is missing its prompt`, hint: 'Write the prompt as the first line of the ### subsection' });
+      }
+      const alts = md.options ?? [];
+      if (alts.length !== 2 || alts.some((a) => !a.text || !a.text.trim())) {
+        errors.push({
+          file: mdFile,
+          field: `checkpoint[${idx}].options`,
+          message: `${where}: an Image Duel needs exactly two alt texts, one per image, found ${alts.length}`,
+          hint: 'Add "- [ ] <description>" for each image, in the order of images in node.yaml',
+        });
+      } else {
+        const marked = alts.map((a, i) => (a.correct ? i : -1)).filter((i) => i >= 0);
+        if (marked.length > 0 && (marked.length !== 1 || marked[0] !== q.correct)) {
+          errors.push({
+            file: mdFile,
+            field: `checkpoint[${idx}].options`,
+            message: `${where}: the [x] mark disagrees with correct: ${String(q.correct)} in node.yaml`,
+            hint: 'Leave both alt lines as "- [ ]" or mark only the image at the correct index',
+          });
+        }
+      }
+      if (!md.explanation || !md.explanation.trim()) {
+        const issue = { file: mdFile, field: `checkpoint[${idx}].explanation`, message: `${where}: the Image Duel is missing its explanation` };
+        if (lang === 'es') errors.push({ ...issue, hint: 'Add "- why: <explanation>"' });
+        else warnings.push({ ...issue, message: `${issue.message} - will fall back to Spanish` });
+      }
+    });
+  }
 }

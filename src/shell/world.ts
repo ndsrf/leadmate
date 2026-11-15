@@ -60,6 +60,11 @@ export type Progress = Pick<DogRecord, 'completedNodes' | 'readLessons' | 'missi
   /** The Dog's Home Concerns and the Home Stretches that belong to World 2; read by `worldsFor` only. */
   homeConcerns?: HomeConcerns;
   worldHome?: DogRecord['worldHome'];
+  /**
+   * Ids of Worlds the user completed. A World that completed once keeps opening the World after it, even when a content
+   * update later adds Stretches to it and it is open again (it never relocks what it unlocked).
+   */
+  completedWorlds?: readonly string[];
 };
 
 /** Progress with only these Nodes completed (and nothing read, started or grandfathered). */
@@ -208,7 +213,21 @@ export function isWorldUnlocked(world: WorldDef, progress: Progress, worlds: rea
   if (world.tier === 'plus' && !progress.plus) return false;
   if (!world.unlockedBy) return true;
   const before = findWorld(world.unlockedBy, worlds);
-  return before !== undefined && isWorldComplete(before, progress) && isWorldUnlocked(before, progress, worlds);
+  if (before === undefined) return false;
+  const finished = isWorldComplete(before, progress) || (progress.completedWorlds?.includes(before.id) ?? false);
+  return finished && isWorldUnlocked(before, progress, worlds);
+}
+
+/** True when a playable World's pack plans more Stops than it holds yet: the map says more Stretches are coming. */
+export function hasMoreComing(world: Pick<WorldDef, 'preview' | 'nodeCount' | 'stretches'>): boolean {
+  return !world.preview && world.stretches.length > 0 && (world.nodeCount ?? 0) > world.stretches.flat().length;
+}
+
+/** The Worlds this progress has completed, kept ahead of `stored` so a World never drops off the list by growing. */
+export function completedWorldIds(progress: Progress, worlds: readonly WorldDef[] = WORLDS): string[] {
+  const ids = new Set(progress.completedWorlds ?? []);
+  for (const w of worlds) if (isWorldComplete(w, progress)) ids.add(w.id);
+  return [...ids];
 }
 
 /** The World a Node belongs to. */

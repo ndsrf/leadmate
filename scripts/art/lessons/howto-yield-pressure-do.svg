@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.howto-yield-pressure.do" data-alt="trail.howto-yield-pressure.do">
+  <!-- do: Migas chose to step towards the Person and the leash is released into a U at once; mark and pay -->
+  <use href="#backdrop-indoor"/>
+  <use href="#door" transform="translate(58 292) scale(0.72)"/>
+  <g transform="translate(470 318) scale(-1.1 1.1)">
+    <use href="#person-still"/>
+    <use href="#dog-walk-calm" transform="translate(180 0) scale(-1 1)"/>
+    <path d="M16 -100C40 -16 140 -10 166 -66" fill="none" stroke="#1E2A3A" stroke-width="8.5" stroke-linecap="round"/><path d="M16 -100C40 -16 140 -10 166 -66" fill="none" stroke="#6FAF73" stroke-width="4.5" stroke-linecap="round"/><circle cx="166" cy="-66" r="3.5" fill="#1E2A3A"/>
+  </g>
+  <use href="#heart" transform="translate(300 150) scale(1.2)"/>
+  <use href="#badge-check" transform="translate(570 70) scale(1.5)"/>
+</svg>

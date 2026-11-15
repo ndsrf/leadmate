@@ -3,7 +3,7 @@ import { DEFAULT_ATTRIBUTES } from '../../sim/learning';
 import { newDogRecord } from '../dogRecord';
 import { DIARY_OUTCOMES } from '../streak';
 import { payloadWith } from '../testPayload';
-import { BARKDOKU_INTRO_NODE, CALM_FIRST_NODE, DOG_AS_DOG_NODE, DOORBELL_MAT_NODE, HOME_REST_NODE, HARNESS_RITUAL_NODE, HOME_NODES, findNode, LEAVE_IT_NODE, NODES, POSTE_PRACTICE, SCOOTER_NODE, URBAN_MIX_NODE, WALK_DISTRACTION } from './content';
+import { BARKDOKU_INTRO_NODE, CALM_FIRST_NODE, DOG_AS_DOG_NODE, DOORBELL_MAT_NODE, HOME_REST_NODE, HARNESS_RITUAL_NODE, HOME_NODES, findNode, isImageDuelQuestion, LEAVE_IT_NODE, NODES, POSTE_PRACTICE, SCOOTER_NODE, URBAN_MIX_NODE, WALK_DISTRACTION } from './content';
 import { placeOf, worldOfNode } from '../world';
 import { findLesson } from '../lessons/content';
 import { INTRO_NODE } from '../onboarding/introNode';
@@ -481,11 +481,11 @@ describe('structured Primer cards', () => {
     for (const node of NODES) for (const q of node.checkpoint) expect(q.question).toMatch(/\.tq[123]\.question$/);
   });
 
-  it('asks three questions of three options, exactly one right, on every trail Node', () => {
+  it('asks three questions, exactly one right, on every trail Node: three options for a text question, one per image for an Image Duel', () => {
     for (const node of NODES) {
       expect({ node: node.id, questions: node.checkpoint.length }).toEqual({ node: node.id, questions: 3 });
       for (const q of node.checkpoint) {
-        expect(q.options).toHaveLength(3);
+        expect({ node: node.id, question: q.question, options: q.options.length }).toEqual({ node: node.id, question: q.question, options: isImageDuelQuestion(q) ? 2 : 3 });
         expect(q.options.filter((o) => o.correct)).toHaveLength(1);
         for (const key of [q.question, q.explanation, ...q.options.map((o) => o.text)]) expect({ key, text: es[key] }).toEqual({ key, text: expect.any(String) });
       }

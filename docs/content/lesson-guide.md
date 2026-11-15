@@ -106,6 +106,7 @@ one scene or do / don't pair. Every picture shows **one** idea from the text and
 - Legible at **320 pt** wide (half size): key shapes at least ~24 px in the 640 canvas, outlines at least 2.5 px, no
   fine detail that carries meaning.
 - Right versus wrong is told by the check / cross badges (`#badge-check`, `#badge-cross`), never by colour alone.
+- **Image Duel art rule**: Duel images in Node Checkpoints follow a distinct rule from Lesson illustrations: duel images are wordless, 640x360, and carry **NO badges, words, or right/wrong hints** (the app adds check/cross badges dynamically after answering). One image set in `media/` serves both languages; alt text is localized per language in the Node's `<lang>.md`.
 - Frame the cast large: scale the Person and Dog group 1.1-1.3 in a single scene (a Lesson picture shows at about
   280 pt wide on a phone). Two-panel diagrams split at x = 320 with a dashed ink line and scale each side 0.8-0.9.
 - Use `#sky` (no sun) when the corners carry badges or arrows, `#backdrop` (with sun) for plain scenes,
@@ -165,6 +166,22 @@ node scripts/lesson-art-sheet.mjs             # contact sheet: every picture, ca
 
 Look at the PNGs (not the SVG source) at 320 pt before calling a picture done.
 
+**Claude Design canvas.** The LeadMate Design System canvas in Claude Design is the review surface: each picture is
+added there as a 640x360 artboard named by its key (World 6 Stretch 1 sits in the row "World 6 · Stretch 1 art"). The
+canvas export is **not** used as the shipped file: the trial (`theory-unpredictable-walks-1`) showed that the canvas
+holds HTML artboards, not kit-built SVG, so palette and no-words checks cannot run on its export. The repo SVG is the
+source: draw in `scripts/art/lessons/`, render with `render-lesson-art.mjs`, then put the same SVG (kit symbols inlined
+by `inline()` in `_kit/svg.mjs`) on the artboard. New kit symbols go in `_kit/kit.mjs` (run it to rewrite `kit.svg`).
+Node media (an Image Duel pair) is drawn with the same kit but kept apart, in `scripts/art/nodes/<node-id>/` (so a
+default render never sweeps it into `assets/lessons`), and rendered straight into the Node's `media/` with
+`node scripts/render-lesson-art.mjs --src scripts/art/nodes/<node-id> --out content/beta/nodes/<node-id>/media
+--registry <a scratch file>`: the SVG name is the media file name, and no Lesson registry entry is written. A
+default run of `render-lesson-art.mjs` (no `--src`) also renders every `scripts/art/nodes/<node-id>/` to
+`assets/nodes/<node-id>/` and writes `src/shell/content/nodeMediaRegistry.ts`, keyed by the pack path
+(`nodes/<node-id>/media/<file>.png`), so the bundled baseline shows the Node's pictures with no content host. Re-run it
+after adding or changing Node art: `bundledNodeMedia.test.ts` fails when a duel image of the stable baseline is not
+bundled, or when the bundled bytes differ from the stable pack's.
+
 The How-to-play Lessons show captures of the real controls instead of drawings. `scripts/capture-controls.mjs` stages
 each one (fixed seed, scripted input, fixed date), rings the control and writes `assets/lessons/howto-<lesson>-<n>.png`
 into the same registry; their caption and alt are the Lesson's `c<n>` keys. It needs both dev servers
@@ -186,6 +203,53 @@ Each trail Node asks three questions on the theory Lesson just before it, keys
 - Questions are short (at most ~60 characters); options at most ~50 characters, so three fit a phone screen.
 - `why` is one sentence: why the right answer is right, in the Lesson's words. The Debrief shows it after a miss.
 - Author the right answer first (`right`); the screen shuffles the order every time.
+
+### Image Duel questions
+
+In addition to text questions, a Checkpoint can include an **Image Duel**: two stacked wordless pictures where the user taps the better handling. The screen shuffles top/bottom order on presentation and displays check/cross badges and explanation only after answering.
+
+#### Schema
+
+| Field | Type | Required | Allowed Values | Description |
+| --- | --- | --- | --- | --- |
+| `kind` | `string` | **Yes** | `text`, `duel` | Question kind; "duel" for an Image Duel (omit for a text question) |
+| `images` | `string[]` | **Yes** | - | Exactly two distinct image files in the Node media/ folder, wordless and without right/wrong badges |
+| `correct` | `number` | **Yes** | - | Index (0 or 1) of the better image; the app shuffles top/bottom order when shown |
+
+#### Authoring syntax
+
+In `nodes/<node-id>/node.yaml`:
+```yaml
+checkpoint:
+  - {} # standard text question
+  - kind: duel
+    images:
+      - autopilot.png
+      - turn-and-look.png
+    correct: 1
+```
+
+In `nodes/<node-id>/<lang>.md` (e.g. `es.md` and `en.md`), one `### N` subsection per checkpoint entry:
+```markdown
+### tq2
+¿Qué guía mantiene la atención de {name}?
+- [ ] La guía camina mirando el móvil
+- [ ] La guía gira y mira a {name}
+- why: Girar y mirar invita a {name} a buscarte.
+```
+- First line: the question prompt.
+- Next two lines: two alt-text description lines in image order (matching `images` in `node.yaml`), usually written as `- [ ]`. An optional `- [x]` mark on the correct image's line is accepted by the validator; it must agree with `correct` in `node.yaml`.
+- `- why:` the one-sentence explanation shown after answering.
+
+#### Compatibility (`minAppVersion`)
+Any pack that includes Image Duel questions must declare `minAppVersion: 1.1.0` (or higher) in `pack.yaml`. Older apps will reject the pack and keep their bundled baseline.
+
+#### Art rules for duels
+- **Dimensions**: 640x360.
+- **Wordless**: no text inside the images.
+- **No right/wrong badges or hints**: duel images carry **NO badges (`#badge-check`, `#badge-cross`)**, words, or right/wrong hints. Badges are added by the app dynamically after answering.
+- **Single image set**: one pair of images in `nodes/<node-id>/media/` serves both Spanish and English.
+- **Alt text per language**: localized descriptions are authored in `<lang>.md`.
 
 ## Per-Lesson brief (for an author or a subagent)
 
@@ -224,9 +288,10 @@ starting. One Lesson per author; Lessons can be written in parallel because each
 5. For a trail theory Lesson: rewrite `node.<slug>.tq1..3.*` so each question tests a different point of the new text
    and each `why` uses the Lesson's words; update `node.<slug>.recap1` if the Lesson's core idea changed; point the
    Node's recap card at the Lesson's clearest picture (`recapPrimer(slug, { art: '<name>' })` in
-   `src/shell/nodes/content.ts`).
-   The game's controls belong to the How-to-play Lessons and the recap's second card (`recap2`): describe what the
-   handler does on a real walk, not which button to press, and leave those keys alone.
+   `src/shell/nodes/content.ts`). The game's controls belong to the How-to-play Lessons and the recap's second card
+   (`recap2`): describe what the handler does on a real walk, not which button to press, and leave those keys alone.
+   If the Checkpoint uses an Image Duel, ensure duel images are 640x360, wordless, and free of badges or hints; provide
+   localized alt texts in image order in `<lang>.md`; and ensure `pack.yaml` sets `minAppVersion: 1.1.0`.
 6. Check: `npx jest src/shell/lessons src/shell/nodes src/i18n` passes, the conformance test included.
 
 **Outputs** (all in the change, nothing else touched): the shot list (in the hand-off message), the catalog keys,

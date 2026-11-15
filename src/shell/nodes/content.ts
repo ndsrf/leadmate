@@ -1,9 +1,42 @@
 import type { TextKey } from '../../i18n';
-import type { NodeDef, PrimerCardDef } from './node';
+import type { CheckpointQuestion, NodeDef, PrimerCardDef } from './node';
 import { es } from '../../i18n/es';
 import type { AgeBand } from '../concerns';
 import { handDrillScenario } from './scenarios';
 import { getActiveContent } from '../content/runtime';
+
+/**
+ * One image of an Image Duel question, as the pack ships it: a file in the Node's `media/` folder. Resolve it for
+ * display with `MediaResolver.resolveImage(art, { itemPath })`.
+ */
+export interface DuelImage {
+  /** File name inside the Node's `media/` folder, e.g. `autopilot.png`. */
+  art: string;
+  /** The Node's folder inside the pack, e.g. `nodes/unpredictable-walk`. */
+  itemPath: string;
+  /** Pack-relative path of the file, e.g. `nodes/unpredictable-walk/media/autopilot.png`. */
+  path: string;
+  /** Localized description of the image for screen readers. */
+  alt: TextKey;
+}
+
+/**
+ * A resolved Image Duel Checkpoint question: the user picks the better of two images (design decision 3). It is a
+ * `CheckpointQuestion` whose two `options` are the two images in authored order (`options[i]` is `images[i]`, its
+ * text the image's alt text), so the Node reducer, timer and Debrief work unchanged: answer with the authored index.
+ * The screen shows the images stacked in a random top/bottom order and the verdict badges only after answering.
+ */
+export interface ImageDuelQuestion extends CheckpointQuestion {
+  kind: 'duel';
+  images: [DuelImage, DuelImage];
+  /** Authored index of the better image (the same as the option marked `correct`). */
+  correct: 0 | 1;
+}
+
+/** Whether a Checkpoint question is an Image Duel; a plain text question has no `kind`. */
+export function isImageDuelQuestion(q: CheckpointQuestion): q is ImageDuelQuestion {
+  return (q as Partial<ImageDuelQuestion>).kind === 'duel';
+}
 
 export function findNode(id: string): NodeDef | undefined {
   return getActiveContent().resolved.nodes.find((n) => n.id === id);

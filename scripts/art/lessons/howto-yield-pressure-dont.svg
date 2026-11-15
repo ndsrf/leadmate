@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.howto-yield-pressure.dont" data-alt="trail.howto-yield-pressure.dont">
+  <!-- dont: Migas has already stepped towards the Person but the hand keeps the light tension on; the release comes late (clock). No pulling: the arm stays still at the waist -->
+  <use href="#backdrop-indoor"/>
+  <use href="#door" transform="translate(58 292) scale(0.72)"/>
+  <g transform="translate(470 318) scale(-1.1 1.1)">
+    <use href="#person-still"/>
+    <use href="#dog-look" transform="translate(180 0) scale(-1 1)"/>
+    <path d="M16 -100L166 -66" fill="none" stroke="#1E2A3A" stroke-width="8.5" stroke-linecap="round"/><path d="M16 -100L166 -66" fill="none" stroke="#6FAF73" stroke-width="4.5" stroke-linecap="round"/><circle cx="166" cy="-66" r="3.5" fill="#1E2A3A"/>
+  </g>
+  <use href="#clock" transform="translate(330 150) scale(1.3)"/>
+  <use href="#badge-cross" transform="translate(570 70) scale(1.5)"/>
+</svg>

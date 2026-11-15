@@ -166,6 +166,26 @@ content/<channel>/                 channel = beta | stable
 | `target` | `string` | **Yes** | - | Target Product, Subcategory, or Category ID |
 | `when` | `string` | **Yes** | - | Trigger condition ("view", "poste-trouble", "poor-score", or "problem:<id>") |
 
+### 3.11 Image Duel Questions (`checkpoint` in `node.yaml`)
+
+| Field | Type | Required | Allowed Values | Description |
+| --- | --- | --- | --- | --- |
+| `kind` | `string` | **Yes** | `text`, `duel` | Question kind; "duel" for an Image Duel (omit for a text question) |
+| `images` | `string[]` | **Yes** | - | Exactly two distinct image files in the Node media/ folder, wordless and without right/wrong badges |
+| `correct` | `number` | **Yes** | - | Index (0 or 1) of the better image; the app shuffles top/bottom order when shown |
+
+A Node's `checkpoint` array defaults to standard text questions. An author can declare an **Image Duel** entry `{ kind: duel, images: [a.png, b.png], correct: 0|1 }`, where the user chooses between two stacked images.
+
+#### Compatibility Rule (`minAppVersion`)
+Any pack that includes one or more Image Duel questions MUST specify `minAppVersion: 1.1.0` or higher in `pack.yaml`. Older apps will reject the pack and keep their bundled baseline.
+
+#### Art Rules for Image Duels
+- **Dimensions**: 640x360.
+- **Wordless**: No text or words inside the images.
+- **No right/wrong badges or hints**: Duel images must carry **NO badges (`#badge-check`, `#badge-cross`)**, words, or right/wrong hints. The app dynamically overlays check and cross badges after the user answers.
+- **Single image set**: One pair of images in `nodes/<node-id>/media/` serves both Spanish and English.
+- **Localized alt text**: Text descriptions are authored per language in `<lang>.md` so screen readers announce both options.
+
 ---
 
 ## 4. Markdown Format (`<lang>.md`)
@@ -208,11 +228,47 @@ Any Lesson, Node, or Mission can include an optional `## recommendations` sectio
 Explanation text shown to the user on the recommendation card or popup.
 ```
 
+### Node Checkpoint Section (Text Questions and Image Duels)
+Nodes define Checkpoint questions under `## checkpoint` in `nodes/<node-id>/<lang>.md`, matching the `checkpoint` array in `node.yaml` 1:1 in the same order:
+
+- **Text Questions** (default):
+  ```markdown
+  ### tq1
+  Question prompt text
+  - [x] Correct option
+  - [ ] Distractor option 1
+  - [ ] Distractor option 2
+  - why: Explanation shown after answering.
+  ```
+
+- **Image Duel Questions** (`kind: duel`):
+  In `node.yaml`:
+  ```yaml
+  checkpoint:
+    - kind: duel
+      images: [autopilot.png, turn-and-look.png]
+      correct: 1
+  ```
+  In `es.md` (and `en.md`):
+  ```markdown
+  ### tq2
+  ¿Qué guía mantiene la atención de {name}?
+  - [ ] La guía camina mirando el móvil
+  - [ ] La guía gira y mira a {name}
+  - why: Girar y mirar invita a {name} a buscarte.
+  ```
+  For Image Duels:
+  - First line: The question prompt.
+  - Exactly two alt-text description lines in the exact order declared in `node.yaml`'s `images` list. Each line is typically written as `- [ ]`, but an optional `- [x]` mark on the correct image's line is accepted by the validator (it must agree with `correct` in `node.yaml`).
+  - `- why:` The explanation displayed after answering.
+  - The correct answer index (`0` or `1`) is configured in `node.yaml` (the app shuffles presentation order at runtime).
+
 ---
 
 ## 5. Media, Animations, and Videos
 
 - **Images**: Placed under the item's `media/` folder (e.g. `lessons/<id>/media/step-1.png` or `shop/products/<id>/media/product.png`). References in YAML or Markdown must be relative file names inside the folder (no `../` or `/`).
+- **Image Duel Art**: Placed under `nodes/<node-id>/media/` (640x360). Duel images are wordless, carry NO badges, words, or right/wrong hints (the app adds check and cross badges after answering), one image set for both languages, and alt text per language in `<lang>.md`.
 - **Animations**: Hosted clip key specified in `animation:` in `lesson.yaml`. Clip timelines live in `docs/content/animations/`.
 - **YouTube Videos**: 11-character video ID per language in `lesson.yaml` (e.g. `youtube: { es: "dQw4w9WgXcQ" }`).
 
@@ -429,6 +485,45 @@ image: arnes.png
 Arnés en forma de Y con anilla frontal y dorsal para un paseo equilibrado y sin presión en la tráquea.
 ```
 
+### Worked Node Example (with Image Duel)
+
+#### `nodes/sample-duel-walk/node.yaml`
+```yaml
+id: sample-duel-walk
+mode: stage
+prerequisites: []
+checkpoint:
+  - {}
+  - kind: duel
+    images:
+      - sample-autopilot.png
+      - sample-turn.png
+    correct: 1
+```
+
+#### `nodes/sample-duel-walk/es.md`
+```markdown
+# Paseo con atención
+
+## primer
+### card 1
+Cambia de dirección sin avisar y premia cuando {name} te mire.
+
+## checkpoint
+### tq1
+{name} tira hacia un olor. ¿Qué haces?
+- [x] Giras y caminas hacia el otro lado
+- [ ] Tiras de la correa
+- [ ] Repites su nombre
+- why: Un giro tranquilo hace que el paseo vuelva a ser cosa de dos.
+
+### tq2
+¿Qué guía mantiene la atención de {name}?
+- [ ] La guía camina mirando el móvil
+- [ ] La guía gira y mira a {name}
+- why: Girar y mirar invita a {name} a buscarte.
+```
+
 ---
 
 ## 8. Agent Checklist
@@ -443,4 +538,8 @@ Before completing an edit or adding new content:
 - [ ] Every Lesson and Node is listed in a World's `stretches` or explicitly marked as library/home.
 - [ ] Every Product has an HTTPS buy link under `urls.es`.
 - [ ] Subcategories belong to a Category and Products belong to a Subcategory.
+- [ ] Packs using Image Duels declare `minAppVersion: 1.1.0` or higher in `pack.yaml`.
+- [ ] Image Duel entries in `node.yaml` define `kind: duel`, exactly two existing `media/` images, and `correct: 0` or `1`.
+- [ ] Each Image Duel in `<lang>.md` has a prompt, exactly two alt-text lines in image order (`- [ ]`, or optional `[x]` on the correct image agreeing with `node.yaml`), and `- why:`.
+- [ ] Duel images are 640x360, wordless, and free of badges or right/wrong hints.
 - [ ] Run `npm run content:validate -- --channel beta` and ensure zero errors.
