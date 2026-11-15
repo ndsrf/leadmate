@@ -9,6 +9,7 @@
     "ios": "npm run sim:embed && expo start --ios",
     "web": "expo start --web",
     "sim:dev": "vite --config bundle/vite.config.mts",
+    "art:hud": "node scripts/render-hud-art.mjs",
     "sim:build": "node scripts/gen-hud-tokens.mjs && vite build --config bundle/vite.config.mts",
     "test": "jest",
     "typecheck": "tsc --noEmit && tsc --noEmit -p bundle",

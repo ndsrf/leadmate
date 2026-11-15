@@ -19,7 +19,7 @@
 
 ## 4. Dog portrait
 
-- [ ] 4.1 Draw the Dog portrait layers (body, heads, ears, eyes, tails) in the LeadMate Design System canvas, export them as PNG and pack a `portrait` atlas; verify every layer named in design.md Decision 5 is present.
+- [x] 4.1 Draw the Dog portrait layers (body, heads, ears, eyes, tails) in the LeadMate Design System canvas, export them as PNG and pack a `portrait` atlas; verify every layer named in design.md Decision 5 is present. _(SVG by `scripts/art/portrait/gen.mjs`, packed by `npm run art:hud` into `bundle/assets/portrait/`; test `bundle/src/artAtlases.test.ts`; sheets in `art/`. The canvas artboard "DogPortrait" is left to the coordinator.)_
 - [ ] 4.2 Add the Dog portrait's position to `src/hud/layout.ts` and draw it in the Stage HUD from the derived state, tinted by coat; verify with layout tests at 320, 375 and 768 points wide that it overlaps no control or Coach mark and respects safe-area insets.
 - [ ] 4.3 Redraw the Dog portrait only when the state changes or on a wag step, and never in close exercises; verify with the HUD dirty-tracking tests (`src/hud/dirty.test.ts`) and by checking no Dog portrait appears in a close exercise.
 - [ ] 4.4 Make the Dog portrait ignore touches; verify that a drag starting on it moves nobody and a tap does nothing.
