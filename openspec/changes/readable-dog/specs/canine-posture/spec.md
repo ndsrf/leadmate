@@ -7,7 +7,7 @@ Lets the user read the Dog's body language during a walking Stage (where it look
 ## ADDED Requirements
 
 ### Requirement: Canine Posture derived from the simulation
-The system SHALL derive, on every drawn frame of a walking Stage, its Canine Posture, made of: gaze (at the Handler, away to the left, away to the right, at a Distractor, at the ground), head (up, level, down), ears (forward, neutral, back), tail (high, wagging, neutral, tucked) and action (idle, walk, trot, sniff-walk, sniffing in place, planted, marking, lunging). Deriving it SHALL NOT change the simulation, its seed or its telemetry.
+The system SHALL derive, on every drawn frame of a walking Stage, its Canine Posture, made of: gaze (at the Handler, straight ahead, away to the left, away to the right, at a Distractor, at the ground), head (up, level, down), ears (forward, neutral, back), tail (high, wagging, neutral, tucked) and action (idle, walk, trot, sniff-walk, sniffing in place, planted, marking, lunging). Deriving it SHALL NOT change the simulation, its seed or its telemetry.
 
 #### Scenario: Same Stage, same Canine Postures
 - **WHEN** two Stages run with the same seed and the same inputs
