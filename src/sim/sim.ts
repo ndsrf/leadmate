@@ -2,11 +2,12 @@ import { classifyTension, tensionRatio, type TensionState } from './leash';
 import { defaultScenario, RATIO_EPSILON, requiredCue, RIGID_MIN, SLACK_MAX, type CueType, type DistractorConfig, type ScenarioConfig } from './config';
 import { BODY_RADIUS, buildWallIndex, closestOnSegment, hasLineOfSight, leashLength, leashPath, resolveWalls, segmentsCross, wallsNear, type LeashPath, type Wall, type WallIndex } from './geometry';
 import { propWalls } from './scenery';
-import { GoalDrive, type Drive } from './drives';
+import { BlendDrive, GoalDrive, nearestScent, ScentDrive, type Drive, type ScentPull } from './drives';
 import { resolveDog, TRIGGER_FACTORS, type DistractorKind, type ResolvedDog } from './learning';
 import { addMeterPoints, initialMeters, type MeterValue } from './meters';
 import type { FeedbackActionKind } from './feedbackKinds';
 import { createRng, type Rng } from './rng';
+import { createScentWalk, emptyScentWalkCounts, freshnessOf, scentFollowChance, turnKind, type ChangeKind, type Freshness, type ScentWalkCounts, type ScentWalkState } from './scentWalk';
 import { add, distance, dot, length, normalize, rotate, scale, sub, vec, type Vec2 } from './vec';
 
 /** Movement input for one tick: a direction plus a strength from 0 to 1, and a Marker press. */
@@ -20,6 +21,8 @@ export interface SimInput {
   cueType?: CueType;
   /** The Go Sniff button was pressed this tick. */
   sniff?: boolean;
+  /** The Jackpot button was pressed this tick (only with a `jackpotBudget`). */
+  jackpot?: boolean;
 }
 
 export const noInput: SimInput = { direction: { x: 0, y: 0 }, strength: 0, marker: false, cue: false, sniff: false };
@@ -37,8 +40,9 @@ export function tierFor(arousal: number, threshold: number, alertFraction: numbe
 /**
  * 'goal': following the Drive. 'fixated': locked on the Distractor. 'holding': Disengagement
  * happened, standing still during the Reward Window. 'returning': walking back to the Handler.
+ * 'sniffing': a Go Sniff. 'planted': a Plant at a hot Scent Spot. 'marking': marking a post.
  */
-export type DogMode = 'goal' | 'fixated' | 'holding' | 'returning' | 'sniffing';
+export type DogMode = 'goal' | 'fixated' | 'holding' | 'returning' | 'sniffing' | 'planted' | 'marking';
 
 /** Marker timing grade of a hit: Perfect within `PERFECT_MARK_SECONDS` of the window's start, Good later in it. */
 export type MarkerGrade = 'perfect' | 'good';
@@ -62,7 +66,8 @@ export type SimEvent =
   /** A Late Marker press: within `LATE_PRESS_SECONDS` after a window closed unmarked. Spends a Mark, rewards nothing. */
   | { type: 'marker-late'; time: number }
   | { type: 'marker-wasted'; time: number }
-  | { type: 'dog-follow'; time: number }
+  /** The Dog followed a change; `change` names it in a scent Stage. */
+  | { type: 'dog-follow'; time: number; change?: ChangeKind }
   | { type: 'dog-correction'; time: number }
   /** A Cue took effect (cooldown passed); `strength` is its share of a full response. */
   | { type: 'cue'; time: number; strength: number; cueType: CueType }
@@ -78,10 +83,33 @@ export type SimEvent =
   | { type: 'dog-approaching'; time: number; position: Vec2 }
   | { type: 'sintonia-start'; time: number }
   | { type: 'sintonia-end'; time: number }
-  | { type: 'go-sniff-start'; time: number }
+  /**
+   * In a scent Stage `scent` says what the Go Sniff found: a Scent Spot (`granted`, with its index
+   * and position), nothing (`empty`) or the food (`food`, which also sends `food-eaten`).
+   */
+  | { type: 'go-sniff-start'; time: number; scent?: 'granted' | 'empty' | 'food'; spot?: number; pos?: Vec2 }
   | { type: 'go-sniff-end'; time: number; reason: 'time' | 'tension' | 'calm' }
   /** Meter Points an action added to a Stage Meter (only in Stages with meters); `full` once it reaches its target. */
   | { type: 'meter-points'; time: number; meterId: string; kind: FeedbackActionKind; points: number; value: number; full: boolean }
+  /** Scent Stage: a counted change of the Handler, with its Novelty before it was made and whether the Dog followed. */
+  | { type: 'walk-change'; time: number; change: ChangeKind; novelty: number; freshness: Freshness; followed: boolean; pos: Vec2 }
+  /** Scent Stage: the Dog was pulling toward an unsniffed Scent Spot and the leash reached Rigid Pull. */
+  | { type: 'scent-dragged-past'; time: number; spot: number; pos: Vec2 }
+  | { type: 'plant-start'; time: number; spot: number; pos: Vec2; seconds: number }
+  /** `granted`: a Go Sniff took over; `followed`: a change the Dog followed ended it (a waited Plant). */
+  | { type: 'plant-end'; time: number; spot: number; pos: Vec2; result: 'waited' | 'dragged' | 'granted'; followed: boolean }
+  | { type: 'marking-start'; time: number; spot: number; pos: Vec2; seconds: number }
+  | { type: 'marking-end'; time: number; spot: number; pos: Vec2; result: 'waited' | 'interrupted' | 'granted' }
+  /** Scent Stage: a Go Sniff at the food let the Dog eat it. */
+  | { type: 'food-eaten'; time: number; pos: Vec2 }
+  /** Scent Stage: "Leave It" turned the Dog away from the food. */
+  | { type: 'food-left'; time: number; pos: Vec2 }
+  /** Scent Stage: a Check-in hit on the look after a change the Dog followed. */
+  | { type: 'change-check-in'; time: number; change: ChangeKind; grade: MarkerGrade }
+  /** A Chain: followed change, Marker on the look, then Slack walking (`walk`) or a Go Sniff (`sniff`). */
+  | { type: 'chain'; time: number; change: ChangeKind; ending: 'walk' | 'sniff' }
+  /** A Jackpot hit: `smart` in a hard moment, `wasted` otherwise; `hit` is the hit it was judged as. */
+  | { type: 'jackpot'; time: number; result: 'smart' | 'wasted'; hit: 'marker-hit' | 'check-in-hit' }
   | { type: 'stage-end'; time: number };
 
 export interface Telemetry {
@@ -111,6 +139,10 @@ export interface Telemetry {
   goSniffs: number;
   /** Marker timing grades of Marker hits and Check-in hits, and Late Marker presses. */
   markGrades: { perfect: number; good: number; late: number };
+  /** Jackpots spent, and the hits judged smart or wasted. */
+  jackpots: { used: number; smart: number; wasted: number };
+  /** Scent-walk counts; only in a scent Stage. */
+  scentWalk?: ScentWalkCounts;
 }
 
 /** What the last stop at the leash limit looked like (the leash-physics abrupt stop measure). */
@@ -162,7 +194,8 @@ export interface SimState {
   sniffPending: boolean;
   /** The Go Sniff button is on offer until this time. */
   sniffOfferUntil: number;
-  sniff: { until: number; dir: Vec2 } | null;
+  /** A running Go Sniff; `target` is the Scent Spot or food it heads for in a scent Stage. */
+  sniff: { until: number; dir: Vec2; startedAt: number; target: Vec2 | null } | null;
   /** Seconds of continuous calm so far in the current Fixation. */
   calmElapsed: number;
   rewardWindow: { openedAt: number; closesAt: number } | null;
@@ -202,6 +235,8 @@ export interface SimState {
   telemetry: Telemetry;
   /** The scenario's Stage Meters in declared order; empty when it declares none. */
   meters: MeterValue[];
+  /** Scent Spots, Autopilot, Novelty, Plants and Chains; null outside a scent Stage. */
+  scentWalk: ScentWalkState | null;
   paused: boolean;
   ended: boolean;
 }
@@ -210,13 +245,19 @@ export interface SimState {
 export function createState(seed: number, config: ScenarioConfig = defaultScenario): SimState {
   const rng = createRng(seed);
   const eventRng = createRng(seed ^ 0x9e3779b9);
+  const scentWalk = createScentWalk(config);
   const state: SimState = {
     config,
     seed,
     time: 0,
     rng,
     eventRng,
-    drive: new GoalDrive(config, rng),
+    drive: scentWalk
+      ? new BlendDrive([
+          new GoalDrive(config, rng, 'heading', scentWalk.cfg.headingLead),
+          new ScentDrive({ dogGoalSpeed: config.dogGoalSpeed, autopilotFloor: scentWalk.cfg.autopilotFloor, reachDistance: scentWalk.cfg.reachDistance }),
+        ])
+      : new GoalDrive(config, rng),
     dogTraits: resolveDog(config.learning, config.ranges),
     arousal: 0,
     handler: { ...config.handlerStart },
@@ -285,8 +326,11 @@ export function createState(seed: number, config: ScenarioConfig = defaultScenar
       sintoniaTime: 0,
       goSniffs: 0,
       markGrades: { perfect: 0, good: 0, late: 0 },
+      jackpots: { used: 0, smart: 0, wasted: 0 },
+      ...(scentWalk ? { scentWalk: emptyScentWalkCounts() } : {}),
     },
     meters: initialMeters(config),
+    scentWalk,
     paused: false,
     ended: false,
   };
@@ -409,9 +453,16 @@ function leashRatio(state: SimState): number {
 /** The first World with walking Stages; Worlds 1 and 2 are static, so Go Sniff never shows there. */
 export const FIRST_WALKING_WORLD = 3;
 
-/** Whether the Go Sniff button is on offer: World 3 or later (the first walking World), in the window, with the leash Slack. */
+/**
+ * Whether the Go Sniff button is on offer: World 3 or later (the first walking World), in the window, with the leash Slack.
+ * In a scent Stage it is on offer at any time on Slack while no Go Sniff runs, except during a
+ * Reward Window or a Fixation (unless the Dog is fixated on food it has reached).
+ */
 export function isGoSniffAvailable(state: SimState): boolean {
-  return state.config.world >= FIRST_WALKING_WORLD && state.sniff === null && state.time < state.sniffOfferUntil && state.ratio < SLACK_MAX;
+  if (state.config.world < FIRST_WALKING_WORLD || state.sniff !== null || state.ratio >= SLACK_MAX) return false;
+  if (!state.scentWalk) return state.time < state.sniffOfferUntil;
+  if (state.dogMode === 'holding') return false;
+  return state.dogMode !== 'fixated' || foodInReach(state) !== null;
 }
 
 /**
@@ -470,8 +521,13 @@ function detectTurn(state: SimState, dir: Vec2, events: SimEvent[]): void {
   const { config } = state;
   const angle = Math.acos(Math.max(-1, Math.min(1, dot(dir, state.headingAnchor))));
   if (angle <= config.turnAngle) return;
+  const from = state.headingAnchor;
   state.headingAnchor = dir;
   if (state.ratio >= SLACK_MAX) return;
+  if (state.scentWalk) {
+    registerChange(state, turnKind(from, dir, state.scentWalk.cfg.uTurnAngle), dir, events);
+    return;
+  }
   const { cue } = config;
   const base = state.dogTraits.followChance;
   const boosted = state.time - state.lastCueAt <= cue.followBoostSeconds;
@@ -503,12 +559,92 @@ function updateSteering(state: SimState, events: SimEvent[]): void {
   if (state.steer && state.time > state.steer.until) state.steer = null;
 }
 
+/** The base follow chance, with the boost of a Cue given just before (capped; a chance already above the cap is left alone). */
+function cueBoostedChance(state: SimState): number {
+  const { cue } = state.config;
+  const base = state.dogTraits.followChance;
+  const boosted = state.time - state.lastCueAt <= cue.followBoostSeconds;
+  return boosted ? Math.max(base, Math.min(cue.followCap, base + cue.followBoost)) : base;
+}
+
+/**
+ * Scent Stage: one counted change of the Handler (a turn, a pace change or a stop, made on Slack).
+ * Novelty and Autopilot set the seeded follow chance; the change then lowers Autopilot by its
+ * Novelty and uses up some of that Novelty. A followed change ends a Plant (the Dog turns it into a Check-in).
+ */
+function registerChange(state: SimState, change: ChangeKind, dir: Vec2, events: SimEvent[]): void {
+  const sw = state.scentWalk!;
+  const { config } = state;
+  if (state.ratio >= SLACK_MAX) return;
+  const novelty = sw.novelty[change];
+  const freshness = freshnessOf(novelty, sw.cfg);
+  const chance = scentFollowChance(cueBoostedChance(state), novelty, sw.autopilot, config.cue.followCap, sw.cfg);
+  sw.autopilot = Math.max(0, sw.autopilot - sw.cfg.autopilot.dropPerChange * novelty);
+  sw.novelty[change] = Math.max(0, novelty - sw.cfg.novelty.step);
+  const counts = state.telemetry.scentWalk!;
+  if (freshness === 'fresh') counts.freshMoves += 1;
+  if (freshness === 'repeated') counts.repeatedMoves += 1;
+  const followed = state.eventRng.next() < chance;
+  events.push({ type: 'walk-change', time: state.time, change, novelty, freshness, followed, pos: { ...state.handler } });
+  if (!followed) {
+    if (change !== 'stop' && change !== 'speed-up' && change !== 'slow-down') state.correctionPending = { dir, until: state.time + config.correctionWaitSeconds };
+    return;
+  }
+  // a turn the Dog follows ends a Plant: it becomes a Check-in instead of a drag
+  if (sw.stay?.kind === 'plant' && (change === 'left-turn' || change === 'right-turn' || change === 'u-turn')) endStay(state, 'waited', events, true);
+  // on a stop the Dog stops too; otherwise it walks the Handler's way
+  state.steer = { dir: change === 'stop' ? vec() : dir, until: state.time + config.followSeconds };
+  state.correctionPending = null;
+  startLook(state, state.time + config.checkInWindow, 'follow', true);
+  sw.followed = { change, lookStartedAt: state.time };
+  events.push({ type: 'dog-follow', time: state.time, change });
+}
+
+/** Scent Stage, every tick: Novelty recovers, pace changes are detected, and steady walking raises Autopilot. */
+function trackPace(state: SimState, strength: number, dir: Vec2, dt: number, events: SimEvent[]): void {
+  const sw = state.scentWalk!;
+  const { cfg } = sw;
+  for (const k of Object.keys(sw.novelty) as ChangeKind[]) sw.novelty[k] = Math.min(1, sw.novelty[k] + cfg.novelty.recoveryPerSecond * dt);
+  const pace = sw.pace;
+  // the smoothed strength is the mean over the last `smoothingSeconds`
+  pace.samples.push({ time: state.time, strength });
+  while (pace.samples.length > 1 && state.time - pace.samples[0].time >= cfg.pace.smoothingSeconds - TIME_EPSILON) pace.samples.shift();
+  pace.smooth = pace.samples.reduce((sum, p) => sum + p.strength, 0) / pace.samples.length;
+  if (strength === 0) {
+    pace.anchor = null;
+    sw.steadyHeading = null;
+    sw.steadySince = state.time;
+    return;
+  }
+  if (pace.anchor === null) {
+    // a pace counts once it has settled after a start or a change
+    if (Math.abs(pace.smooth - strength) <= 0.1 * strength) pace.anchor = pace.smooth;
+  } else if (Math.abs(pace.smooth - pace.anchor) > cfg.pace.threshold * pace.anchor) {
+    const change: ChangeKind = pace.smooth > pace.anchor ? 'speed-up' : 'slow-down';
+    // the new pace is measured again once it has settled, so one change counts once
+    pace.anchor = null;
+    registerChange(state, change, dir, events);
+  }
+  const heading = sw.steadyHeading;
+  const straight = heading !== null && Math.acos(Math.max(-1, Math.min(1, dot(dir, heading)))) < cfg.autopilot.steadyAngle;
+  const even = pace.anchor !== null && Math.abs(pace.smooth - pace.anchor) <= cfg.autopilot.steadyPace * pace.anchor;
+  if (!straight) sw.steadyHeading = dir;
+  if (!straight || !even) sw.steadySince = state.time;
+  // walking counts as steady once it has held for `steadySeconds`, so a weave never does
+  else if (state.time - sw.steadySince >= cfg.autopilot.steadySeconds - TIME_EPSILON) sw.autopilot = Math.min(1, sw.autopilot + cfg.autopilot.risePerSecond * dt);
+}
+
 function moveHandler(state: SimState, input: SimInput, dt: number, events: SimEvent[]): void {
   const { config } = state;
   const strength = Math.max(0, Math.min(1, input.strength));
   const dir = normalize(input.direction);
   const standing = strength === 0 || (dir.x === 0 && dir.y === 0);
+  const wasMoving = state.prevStrength > 0;
   trackStop(state, standing ? 0 : strength, events);
+  if (state.scentWalk) {
+    if (standing && wasMoving) registerChange(state, 'stop', state.handlerFacing, events);
+    trackPace(state, standing ? 0 : strength, dir, dt, events);
+  }
   if (standing) {
     // Poste: the Handler stays put. The little stretch of a leash pushed past its length springs
     // back once the push stops, so Rigid Pull ends when the Handler does.
@@ -637,6 +773,97 @@ function moveDistractor(state: SimState, dt: number): void {
   }
 }
 
+/** A stationary food Distractor still in play, in a scent Stage: it smells like a hot Scent Spot. */
+function foodScent(state: SimState): Vec2 | null {
+  const cfg = activeDistractor(state);
+  const d = state.distractor;
+  if (!state.scentWalk || cfg.kind !== 'food' || cfg.speed !== 0 || !d.active || d.consumed || d.finished) return null;
+  return d.pos;
+}
+
+/** The food, when the Dog is at it (within reach). */
+function foodInReach(state: SimState): Vec2 | null {
+  const food = foodScent(state);
+  return food && distance(state.dog, food) <= state.scentWalk!.cfg.reachDistance ? food : null;
+}
+
+/** What still pulls the Dog's nose: unsniffed Scent Spots, and the food. */
+export function scentPulls(state: SimState): (ScentPull & { spot: number })[] {
+  const sw = state.scentWalk!;
+  const pulls: (ScentPull & { spot: number })[] = [];
+  sw.spots.forEach((s, i) => {
+    if (!s.sniffed) pulls.push({ pos: s.pos, pull: sw.cfg.pull[s.strength], radius: s.radius, spot: i });
+  });
+  const food = foodScent(state);
+  if (food) pulls.push({ pos: food, pull: sw.cfg.pull.hot, radius: sw.cfg.radius.hot, spot: -1 });
+  return pulls;
+}
+
+/** The unsniffed Scent Spot nearest the Dog whose nose radius reaches it, as an index; -1 for none. */
+function spotInRange(state: SimState): number {
+  const sw = state.scentWalk!;
+  const near = nearestScent(state.dog, sw.spots.map((s, i) => ({ pos: s.pos, pull: 0, radius: s.sniffed ? -1 : s.radius, spot: i })));
+  return near ? near.spot : -1;
+}
+
+/** A Plant or a marking ends: the spot is used up and the result is recorded. */
+function endStay(state: SimState, result: 'waited' | 'dragged' | 'granted', events: SimEvent[], followed = false): void {
+  const sw = state.scentWalk!;
+  const stay = sw.stay!;
+  const spot = sw.spots[stay.spot];
+  spot.sniffed = true;
+  sw.stay = null;
+  if (state.dogMode === 'planted' || state.dogMode === 'marking') state.dogMode = 'goal';
+  const counts = state.telemetry.scentWalk!;
+  const pos = { ...spot.pos };
+  if (stay.kind === 'plant') {
+    if (result === 'waited') counts.plantsWaited += 1;
+    if (result === 'dragged') counts.plantsDragged += 1;
+    events.push({ type: 'plant-end', time: state.time, spot: stay.spot, pos, result, followed });
+  } else {
+    const r = result === 'dragged' ? 'interrupted' : result;
+    if (r === 'waited') counts.markingsWaited += 1;
+    if (r === 'interrupted') counts.markingsInterrupted += 1;
+    events.push({ type: 'marking-end', time: state.time, spot: stay.spot, pos, result: r });
+  }
+  if (result === 'dragged') raiseArousal(state, sw.cfg.dragArousal * state.dogTraits.equipment.rigidPull);
+}
+
+/**
+ * Scent Stage, after the leash is measured: a Dog that reaches a hot Scent Spot Plants and one that
+ * reaches a marking post marks (each for a seeded time); Rigid Pull drags it out of either; and a
+ * pull toward a spot that ends in Rigid Pull is a scent dragged past.
+ */
+function updateScentStops(state: SimState, events: SimEvent[]): void {
+  const sw = state.scentWalk!;
+  const rigid = state.tension === 'rigid';
+  if (sw.stay) {
+    if (rigid) endStay(state, 'dragged', events);
+    else if (state.time >= sw.stay.until - TIME_EPSILON) endStay(state, 'waited', events);
+    return;
+  }
+  if (state.dogMode !== 'goal') return;
+  const i = spotInRange(state);
+  if (i < 0) return;
+  const spot = sw.spots[i];
+  if (rigid) {
+    if (!spot.draggedPast) {
+      spot.draggedPast = true;
+      state.telemetry.scentWalk!.scentsDraggedPast += 1;
+      events.push({ type: 'scent-dragged-past', time: state.time, spot: i, pos: { ...spot.pos } });
+    }
+    return;
+  }
+  if (distance(state.dog, spot.pos) > sw.cfg.reachDistance || (!spot.marking && spot.strength !== 'hot')) return;
+  const kind = spot.marking ? 'marking' : 'plant';
+  const range = spot.marking ? sw.cfg.markingSeconds : sw.cfg.plantSeconds;
+  const seconds = range.min + (range.max - range.min) * state.eventRng.next();
+  sw.stay = { kind, spot: i, until: state.time + seconds };
+  state.dogMode = spot.marking ? 'marking' : 'planted';
+  state.steer = null;
+  events.push({ type: spot.marking ? 'marking-start' : 'plant-start', time: state.time, spot: i, pos: { ...spot.pos }, seconds });
+}
+
 function moveDog(state: SimState, dt: number): void {
   const { config } = state;
   let direction = vec();
@@ -645,7 +872,9 @@ function moveDog(state: SimState, dt: number): void {
     direction = state.steer.dir;
     speed = config.dogGoalSpeed;
   } else if (state.dogMode === 'goal') {
-    ({ direction, speed } = state.drive.desire({ dog: state.dog, handler: state.handler, waypoint: currentTarget(state), dt }));
+    const sw = state.scentWalk;
+    const context = { dog: state.dog, handler: state.handler, waypoint: currentTarget(state), dt };
+    ({ direction, speed } = state.drive.desire(sw ? { ...context, handlerFacing: state.handlerFacing, scents: scentPulls(state), autopilot: sw.autopilot } : context));
     if (state.time < state.detourUntil) direction = state.detourDir;
     // an Alert Dog slows down a little as it watches
     if (state.tier === 'alert') speed *= config.reaction.alertSlowdown;
@@ -659,6 +888,12 @@ function moveDog(state: SimState, dt: number): void {
     state.sniff.dir = rotate(state.sniff.dir, (state.eventRng.next() - 0.5) * 2 * dt * 2);
     direction = state.sniff.dir;
     speed = config.goSniff.speed;
+    const target = state.sniff.target;
+    // a granted sniff first takes the Dog to the spot, then it noses around there
+    if (target && distance(state.dog, target) > state.scentWalk!.cfg.reachDistance) {
+      direction = normalize(sub(target, state.dog));
+      speed = config.dogGoalSpeed;
+    }
   } else if (state.dogMode === 'returning') {
     if (distance(state.dog, state.handler) <= config.dogReturnDistance) {
       state.dogMode = 'goal';
@@ -816,12 +1051,14 @@ function applyCue(state: SimState, input: SimInput, events: SimEvent[]): void {
     return;
   }
   let strength = state.dogTraits.equipment.signalResponse;
+  const food = type === 'leave-it' ? foodScent(state) : null;
   if (state.dogMode === 'fixated' && type === 'leave-it') {
     // the right Cue on food lets the Dog go cleanly
     state.lastCueAt = state.time;
     events.push({ type: 'cue', time: state.time, strength: 1, cueType: type });
     raiseArousal(state, -cue.arousalDrop);
     disengage(state, events);
+    if (food) leaveFood(state, food, events);
     return;
   }
   if (state.dogMode === 'fixated') strength *= cue.fixatedFactor;
@@ -833,6 +1070,16 @@ function applyCue(state: SimState, input: SimInput, events: SimEvent[]): void {
   }
   raiseArousal(state, -cue.arousalDrop * strength);
   events.push({ type: 'cue', time: state.time, strength, cueType: type });
+  if (food) {
+    // in a scent Stage "Leave It" on food the Dog is heading for puts the food out of play
+    state.distractor.consumed = true;
+    leaveFood(state, food, events);
+  }
+}
+
+function leaveFood(state: SimState, food: Vec2, events: SimEvent[]): void {
+  state.telemetry.scentWalk!.foodLeft += 1;
+  events.push({ type: 'food-left', time: state.time, pos: { ...food } });
 }
 
 function evaluateMarker(state: SimState, input: SimInput, events: SimEvent[]): void {
@@ -844,9 +1091,39 @@ function evaluateMarker(state: SimState, input: SimInput, events: SimEvent[]): v
     state.telemetry.markerMisses += 1;
     events.push({ type: 'marker-miss', time: state.time });
   }
-  if (!input.marker || state.telemetry.marksUsed >= state.config.markBudget) return;
-  state.telemetry.marksUsed += 1;
+  if (input.marker && state.telemetry.marksUsed < state.config.markBudget) {
+    state.telemetry.marksUsed += 1;
+    judgePress(state, events);
+  }
+  const jackpots = state.telemetry.jackpots;
+  if (input.jackpot && jackpots.used < (state.config.jackpotBudget ?? 0)) {
+    jackpots.used += 1;
+    const hard = isHardMoment(state);
+    const hit = judgePress(state, events);
+    if (hit) {
+      const result = hit === 'marker-hit' || hard ? 'smart' : 'wasted';
+      jackpots[result] += 1;
+      events.push({ type: 'jackpot', time: state.time, result, hit });
+    }
+  }
+}
 
+/**
+ * A hard moment for a Jackpot (design Decision 8): a Reward Window is open, or a hot Scent Spot not
+ * yet sniffed, the food or a Distractor in play is within its radius of the Dog.
+ */
+function isHardMoment(state: SimState): boolean {
+  if (state.rewardWindow) return true;
+  const d = state.distractor;
+  if (d.active && !d.finished && !d.consumed && distance(state.dog, d.pos) <= activeDistractor(state).triggerRadius) return true;
+  const sw = state.scentWalk;
+  if (!sw) return false;
+  if (foodScent(state) && distance(state.dog, state.distractor.pos) <= sw.cfg.radius.hot) return true;
+  return sw.spots.some((s) => s.strength === 'hot' && !s.sniffed && distance(state.dog, s.pos) <= s.radius);
+}
+
+/** Judges one Marker (or Jackpot) press and reports it; returns the hit it was, if any. */
+function judgePress(state: SimState, events: SimEvent[]): 'marker-hit' | 'check-in-hit' | null {
   if (state.rewardWindow) {
     const accuracyMs = Math.round((state.time - state.rewardWindow.openedAt) * 1000);
     state.telemetry.hitAccuraciesMs.push(accuracyMs);
@@ -857,6 +1134,7 @@ function evaluateMarker(state: SimState, input: SimInput, events: SimEvent[]): v
     const kind = activeDistractor(state).kind;
     state.telemetry.calmEncounters[kind] = (state.telemetry.calmEncounters[kind] ?? 0) + 1;
     events.push({ type: 'marker-hit', time: state.time, accuracyMs, grade: gradeMark(state, accuracyMs) });
+    return 'marker-hit';
   } else if (state.dogMode === 'fixated' || state.tier === 'reactive' || state.ratio > RIGID_MIN + RATIO_EPSILON) {
     state.telemetry.reactiveMarkers += 1;
     events.push({ type: 'marker-reactive', time: state.time });
@@ -865,13 +1143,41 @@ function evaluateMarker(state: SimState, input: SimInput, events: SimEvent[]): v
     if (state.lookCause === 'follow') state.telemetry.followMarks += 1;
     state.lookMarked = true;
     const delayMs = Math.round((state.time - (state.lookStartedAt ?? state.time)) * 1000);
-    events.push({ type: 'check-in-hit', time: state.time, grade: gradeMark(state, delayMs) });
+    const grade = gradeMark(state, delayMs);
+    events.push({ type: 'check-in-hit', time: state.time, grade });
+    const sw = state.scentWalk;
+    if (sw?.followed && state.lookCause === 'follow' && sw.followed.lookStartedAt === state.lookStartedAt) {
+      // the Marker on the look after a followed change: the Chain now waits for Slack walking or a Go Sniff
+      events.push({ type: 'change-check-in', time: state.time, change: sw.followed.change, grade });
+      sw.chain = { change: sw.followed.change, markedAt: state.time, walkedFor: 0 };
+      sw.followed = null;
+    }
+    return 'check-in-hit';
   } else if (isLatePress(state)) {
     state.telemetry.markGrades.late += 1;
     events.push({ type: 'marker-late', time: state.time });
   } else {
     events.push({ type: 'marker-wasted', time: state.time });
   }
+  return null;
+}
+
+/** Scent Stage: completes a Chain with Slack walking for `walkSeconds`, or drops it when that and the Go Sniff time have both run out. */
+function updateChain(state: SimState, input: SimInput, dt: number, events: SimEvent[]): void {
+  const sw = state.scentWalk!;
+  const chain = sw.chain;
+  if (!chain || chain.markedAt === state.time) return;
+  const walking = input.strength > 0 && state.ratio < SLACK_MAX && !state.sniff;
+  chain.walkedFor = walking ? chain.walkedFor + dt : 0;
+  if (chain.walkedFor >= sw.cfg.chain.walkSeconds - TIME_EPSILON) completeChain(state, 'walk', events);
+  else if (chain.walkedFor === 0 && state.time - chain.markedAt > sw.cfg.chain.sniffSeconds + TIME_EPSILON) sw.chain = null;
+}
+
+function completeChain(state: SimState, ending: 'walk' | 'sniff', events: SimEvent[]): void {
+  const sw = state.scentWalk!;
+  state.telemetry.scentWalk!.chains += 1;
+  events.push({ type: 'chain', time: state.time, change: sw.chain!.change, ending });
+  sw.chain = null;
 }
 
 /** The Marker timing grade of a hit `delayMs` after its window opened, counted in telemetry. */
@@ -949,20 +1255,64 @@ function updateGoSniff(state: SimState, input: SimInput, events: SimEvent[]): vo
   }
   if (input.sniff && isGoSniffAvailable(state)) {
     const angle = state.eventRng.next() * Math.PI * 2;
-    state.sniff = { until: state.time + cfg.durationSeconds, dir: { x: Math.cos(angle), y: Math.sin(angle) } };
+    state.sniff = { until: state.time + cfg.durationSeconds, dir: { x: Math.cos(angle), y: Math.sin(angle) }, startedAt: state.time, target: null };
     state.sniffOfferUntil = -1;
-    state.dogMode = 'sniffing';
-    state.steer = null;
-    state.telemetry.goSniffs += 1;
-    events.push({ type: 'go-sniff-start', time: state.time });
+    const sw = state.scentWalk;
+    if (sw) {
+      startScentSniff(state, events);
+    } else {
+      state.dogMode = 'sniffing';
+      state.steer = null;
+      state.telemetry.goSniffs += 1;
+      events.push({ type: 'go-sniff-start', time: state.time });
+    }
     return;
   }
   if (!state.sniff) return;
-  const reason = state.ratio >= SLACK_MAX ? 'tension' : state.arousal <= 0 ? 'calm' : state.time >= state.sniff.until ? 'time' : null;
+  // in a scent Stage a calm Dog still sniffs for the whole Go Sniff
+  const calm = !state.scentWalk && state.arousal <= 0;
+  const reason = state.ratio >= SLACK_MAX ? 'tension' : calm ? 'calm' : state.time >= state.sniff.until ? 'time' : null;
   if (!reason) return;
   state.sniff = null;
   state.dogMode = 'goal';
   events.push({ type: 'go-sniff-end', time: state.time, reason });
+}
+
+/**
+ * Scent Stage Go Sniff: at the food the Dog eats it; otherwise it heads for the nearest unsniffed
+ * Scent Spot in range and uses it up (granted), or meanders as elsewhere (empty). A Plant or a
+ * marking in progress gives way to it, and a pending Chain completes.
+ */
+function startScentSniff(state: SimState, events: SimEvent[]): void {
+  const sw = state.scentWalk!;
+  const sniff = state.sniff!;
+  const counts = state.telemetry.scentWalk!;
+  const food = foodInReach(state);
+  // a Plant or a marking in progress gives way to the Go Sniff, which is then granted at that spot
+  const staying = sw.stay ? sw.stay.spot : -1;
+  if (sw.stay) endStay(state, 'granted', events);
+  const spot = food ? -1 : staying >= 0 ? staying : spotInRange(state);
+  state.dogMode = 'sniffing';
+  state.steer = null;
+  state.telemetry.goSniffs += 1;
+  if (food) {
+    state.distractor.consumed = true;
+    state.calmElapsed = 0;
+    sniff.target = { ...food };
+    counts.foodEaten += 1;
+    events.push({ type: 'go-sniff-start', time: state.time, scent: 'food', pos: { ...food } });
+    events.push({ type: 'food-eaten', time: state.time, pos: { ...food } });
+  } else if (spot >= 0) {
+    const s = sw.spots[spot];
+    s.sniffed = true;
+    sniff.target = { ...s.pos };
+    counts.sniffsGranted += 1;
+    events.push({ type: 'go-sniff-start', time: state.time, scent: 'granted', spot, pos: { ...s.pos } });
+  } else {
+    counts.sniffsEmpty += 1;
+    events.push({ type: 'go-sniff-start', time: state.time, scent: 'empty' });
+  }
+  if (sw.chain && state.time - sw.chain.markedAt <= sw.cfg.chain.sniffSeconds + TIME_EPSILON) completeChain(state, 'sniff', events);
 }
 
 function checkEnd(state: SimState, events: SimEvent[]): void {
@@ -999,6 +1349,7 @@ export function tick(state: SimState, input: SimInput, dt: number = state.config
   const previousTension = state.tension;
   state.tension = classifyTension(state.ratio);
   if (state.tension !== previousTension) events.push({ type: 'tension-change', time: state.time, tension: state.tension });
+  if (state.scentWalk) updateScentStops(state, events);
 
   updateArousal(state, dt);
   refreshTier(state, events);
@@ -1008,6 +1359,7 @@ export function tick(state: SimState, input: SimInput, dt: number = state.config
   evaluateMarker(state, input, events);
   updateSintonia(state, dt, events);
   updateGoSniff(state, input, events);
+  if (state.scentWalk) updateChain(state, input, dt, events);
   refreshTier(state, events);
 
   const t = state.telemetry;

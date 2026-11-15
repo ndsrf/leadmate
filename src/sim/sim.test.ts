@@ -123,6 +123,52 @@ describe('Drives', () => {
   });
 });
 
+describe('Drives in a scent Stage', () => {
+  /** A scent Stage whose only Scent Spot is out of reach, unless one is given. */
+  const scentStage = (scents: ScenarioConfig['scents'] = [{ pos: { x: 500, y: 500 }, strength: 'weak' }]) => scenario({ distractor: noDistractor, world: 6, scents, scenery: [] });
+
+  it('moves the Dog exactly as before when the scenario declares no Scent Spots', () => {
+    const path = (config: ScenarioConfig) => {
+      const s = createState(5, config);
+      const out: number[] = [];
+      run(s, 8, (st) => move(st.time < 4 ? 0.6 : 1, 1, st.time < 2 ? 0 : 0.5));
+      out.push(s.dog.x, s.dog.y, s.handler.x, s.handler.y, s.ratio);
+      return out;
+    };
+    const plain = scenario({ distractor: noDistractor });
+    expect(path({ ...plain, scents: [] })).toEqual(path(plain));
+  });
+
+  it('veers the Dog toward a weak Scent Spot near the path, staying Slack at a normal pace', () => {
+    const sideways = (config: ScenarioConfig) => {
+      const s = createState(3, config);
+      let maxY = -Infinity;
+      let rigid = false;
+      for (let i = 0; i < 8 / STEP; i++) {
+        tick(s, move(0.6));
+        maxY = Math.max(maxY, s.dog.y);
+        if (s.tension === 'rigid') rigid = true;
+      }
+      return { maxY, rigid };
+    };
+    const without = sideways(scentStage());
+    const withSpot = sideways(scentStage([{ pos: { x: 6, y: 2.4 }, strength: 'weak' }]));
+    expect(withSpot.maxY).toBeGreaterThan(without.maxY + 0.12);
+    expect(withSpot.rigid).toBe(false);
+  });
+
+  it("follows the Handler's heading, not the waypoint", () => {
+    const s = createState(4, scentStage());
+    run(s, 5, move(0.6, 0, 1));
+    const ahead = { x: s.dog.x - s.handler.x, y: s.dog.y - s.handler.y };
+    expect(ahead.y).toBeGreaterThan(0.8);
+    expect(Math.abs(ahead.x)).toBeLessThan(0.6);
+    const old = createState(4, scenario({ distractor: noDistractor, scenery: [] }));
+    run(old, 5, move(0.6, 0, 1));
+    expect(old.dog.x - old.handler.x).toBeGreaterThan(0.6); // the waypoint Goal still pulls toward the route's end
+  });
+});
+
 describe('Fixation and Disengagement', () => {
   const near = () => createState(5, scenario({ distractor: nearbyDistractor }));
 
