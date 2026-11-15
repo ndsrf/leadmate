@@ -7,8 +7,8 @@ import { createState, isDogLooking, noInput, tick, type SimEvent, type SimInput,
 const STEP = defaultScenario.fixedStep;
 const fastCheckIns = { ...defaultScenario.ranges, checkInMeanInterval: { worst: 5, best: 5 } };
 const noDistractor = { ...defaultScenario.distractor, activateAfterMeters: 1e9 };
-const connection: StageMeterConfig = { id: 'connection', labelKey: 'meter.connection', icon: 'eye', target: 15, meterPoints: { 'check-in': 10 } };
-const nose: StageMeterConfig = { id: 'nose', labelKey: 'meter.nose', icon: 'nose', target: 30, meterPoints: { 'sniff-release': 10 } };
+const connection: StageMeterConfig = { id: 'connection', labelKey: 'meter.connection', icon: 'eye', target: 15, meterPoints: { 'check-in-hit': 10 } };
+const nose: StageMeterConfig = { id: 'nose', labelKey: 'meter.nose', icon: 'nose', target: 30, meterPoints: { 'go-sniff': 10 } };
 const scenario = (o: Partial<ScenarioConfig> = {}): ScenarioConfig => ({ ...defaultScenario, distractor: noDistractor, ranges: fastCheckIns, ...o });
 const press: SimInput = { ...noInput, marker: true };
 
@@ -32,19 +32,19 @@ function markNextCheckIn(s: SimState): SimEvent[] {
 
 describe('Feedback action kinds', () => {
   it('maps simulation events to right and wrong kinds', () => {
-    expect(feedbackKindOf({ type: 'check-in-hit', time: 0, grade: 'good' })).toBe('check-in');
-    expect(feedbackKindOf({ type: 'marker-hit', time: 0, accuracyMs: 200, grade: 'perfect' })).toBe('mark');
+    expect(feedbackKindOf({ type: 'check-in-hit', time: 0, grade: 'good' })).toBe('check-in-hit');
+    expect(feedbackKindOf({ type: 'marker-hit', time: 0, accuracyMs: 200, grade: 'perfect' })).toBe('marker-hit');
     expect(feedbackKindOf({ type: 'disengagement', time: 0, poste: true })).toBe('poste');
-    expect(feedbackKindOf({ type: 'disengagement', time: 0, poste: false })).toBe('let-go');
+    expect(feedbackKindOf({ type: 'disengagement', time: 0, poste: false })).toBe('disengagement');
     expect(feedbackKindOf({ type: 'poste-stop', time: 0, abrupt: true, outwardSpeed: 1, arousalBump: 1 })).toBe('harsh-stop');
     expect(feedbackKindOf({ type: 'poste-stop', time: 0, abrupt: false, outwardSpeed: 1, arousalBump: 1 })).toBeNull();
-    expect(feedbackKindOf({ type: 'tension-change', time: 0, tension: 'rigid' })).toBe('pull');
+    expect(feedbackKindOf({ type: 'tension-change', time: 0, tension: 'rigid' })).toBe('rigid-pull');
     expect(feedbackKindOf({ type: 'tension-change', time: 0, tension: 'taut' })).toBeNull();
-    expect(feedbackKindOf({ type: 'go-sniff-end', time: 0, reason: 'tension' })).toBe('sniff-cut-short');
+    expect(feedbackKindOf({ type: 'go-sniff-end', time: 0, reason: 'tension' })).toBe('go-sniff-cut-short');
     expect(feedbackKindOf({ type: 'go-sniff-end', time: 0, reason: 'time' })).toBeNull();
-    expect(feedbackKindOf({ type: 'marker-late', time: 0 })).toBe('late');
-    expect(FEEDBACK_ACTION_KINDS['check-in']).toBe('right');
-    expect(FEEDBACK_ACTION_KINDS.late).toBe('wrong');
+    expect(feedbackKindOf({ type: 'marker-late', time: 0 })).toBe('late-marker-press');
+    expect(FEEDBACK_ACTION_KINDS['check-in-hit']).toBe('right');
+    expect(FEEDBACK_ACTION_KINDS['late-marker-press']).toBe('wrong');
   });
 });
 
@@ -64,7 +64,7 @@ describe('Stage Meters', () => {
     const points = events.findIndex((e) => e.type === 'meter-points');
     expect(hit).toBeGreaterThanOrEqual(0);
     expect(points).toBeGreaterThan(hit);
-    expect(events[points]).toMatchObject({ type: 'meter-points', meterId: 'connection', kind: 'check-in', points: 10, value: 10, full: false });
+    expect(events[points]).toMatchObject({ type: 'meter-points', meterId: 'connection', kind: 'check-in-hit', points: 10, value: 10, full: false });
     expect(s.meters).toEqual([
       { id: 'connection', value: 10, target: 15 },
       { id: 'nose', value: 0, target: 30 },
@@ -132,11 +132,11 @@ describe('Stage Meter validation', () => {
 
   it('rejects an action kind the simulation does not report, and a wrong action', () => {
     expect(valid([{ ...connection, meterPoints: { 'tail-wag': 5 } }])).toContain('meter "connection": meterPoints has an unknown action kind "tail-wag"');
-    expect(valid([{ ...connection, meterPoints: { late: 5 } }])).toContain('meter "connection": meterPoints "late" is a wrong action and cannot add Meter Points');
+    expect(valid([{ ...connection, meterPoints: { 'late-marker-press': 5 } }])).toContain('meter "connection": meterPoints "late-marker-press" is a wrong action and cannot add Meter Points');
   });
 
   it('rejects points that are not above 0, and a meter that nothing fills', () => {
-    expect(valid([{ ...connection, meterPoints: { 'check-in': 0 } }])).toContain('meter "connection": meterPoints "check-in" must be a number above 0');
+    expect(valid([{ ...connection, meterPoints: { 'check-in-hit': 0 } }])).toContain('meter "connection": meterPoints "check-in-hit" must be a number above 0');
     expect(valid([{ ...connection, meterPoints: {} }])).toContain('meter "connection": meterPoints adds no Meter Points');
   });
 

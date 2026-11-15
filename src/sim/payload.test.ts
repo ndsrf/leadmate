@@ -234,7 +234,7 @@ describe('Marker timing grades in the payload', () => {
 });
 
 describe('handling score from Stage Meters', () => {
-  const meter = (id: string, target: number) => ({ id, labelKey: `meter.${id}`, icon: id, target, meterPoints: { 'check-in': 10 } });
+  const meter = (id: string, target: number) => ({ id, labelKey: `meter.${id}`, icon: id, target, meterPoints: { 'check-in-hit': 10 } });
   const twoMeters = scenario({ meters: [meter('nose', 40), meter('connection', 20)] });
   const ended = (nose: number, connection: number) => {
     const s = createState(1, twoMeters);

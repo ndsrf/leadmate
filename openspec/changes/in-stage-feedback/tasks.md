@@ -2,10 +2,10 @@
 
 ## 1. Simulation: grades, Late Marker press and meters
 
-- [ ] 1.1 Track `lookStartedAt`, add `grade` to `marker-hit` and `check-in-hit`, emit `marker-late` within 1.0 s after a window closed, and count `markGrades` in telemetry; verify with new `sim.test.ts` / `feedback.test.ts` cases for Perfect (≤0.3 s), Good, Late and still-wasted presses.
-- [ ] 1.2 Add `meters` to `ScenarioConfig`, add Meter Points on matching events capped at the target, and reject bad meters in `validateScenario`; verify with unit tests for filling, the cap, determinism with the same seed, and each validation error.
-- [ ] 1.3 Add `markGrades` and `meters` to `SimulationDebriefPayload`, and compute `handlingScore` from meters when declared; verify with `payload.test.ts` (1000 when full, 750 for full + half, unchanged score and no `meters` without them) and that the Daily Stage tests still pass.
-- [ ] 1.4 Check that the `GLOSSARY.md` entries already added for Feedback Message, Hint, Combo, Stage Meter, Meter Points, Mark, Marker timing grade and Late Marker press still match the specs as built; verify by reading them against the final code names.
+- [x] 1.1 Track `lookStartedAt`, add `grade` to `marker-hit` and `check-in-hit`, emit `marker-late` within 1.0 s after a window closed, and count `markGrades` in telemetry; verify with new `sim.test.ts` / `feedback.test.ts` cases for Perfect (≤0.3 s), Good, Late and still-wasted presses.
+- [x] 1.2 Add `meters` to `ScenarioConfig`, add Meter Points on matching events capped at the target, and reject bad meters in `validateScenario`; verify with unit tests for filling, the cap, determinism with the same seed, and each validation error.
+- [x] 1.3 Add `markGrades` and `meters` to `SimulationDebriefPayload`, and compute `handlingScore` from meters when declared; verify with `payload.test.ts` (1000 when full, 750 for full + half, unchanged score and no `meters` without them) and that the Daily Stage tests still pass.
+- [x] 1.4 Check that the `GLOSSARY.md` entries already added for Feedback Message, Hint, Combo, Stage Meter, Meter Points, Mark, Marker timing grade and Late Marker press still match the specs as built; verify by reading them against the final code names.
 
 ## 2. Feedback decision module
 
