@@ -1,14 +1,20 @@
 // Renders Kenney CC0 GLB models (Mini Characters, Cube Pets, Car Kit) to isometric sprites with the
 // game's projection: 2:1 diamonds, +x of the world toward the upper right, +y toward the lower right.
-// usage: node scripts/kenney/render-sprites.mjs <kenney-downloads-dir> <out-dir>
+// usage: node scripts/kenney/render-sprites.mjs <kenney-downloads-dir> <out-dir> [job-id ...]
+// With no job ids it renders JOBS; with ids it renders only those, from JOBS and SPIKE_JOBS.
 // The raw frames are then trimmed, shrunk and palette-quantised by pack-sprites.py.
+// Models under `@models/` are read from scripts/kenney/models/ (committed with their LICENSE.txt), not the downloads.
+// A clip can pose bones on top of the animation (`overrides`, see pose-overrides.mjs).
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
+import { clipPlan } from './pose-overrides.mjs';
 
-const [src, out] = process.argv.slice(2);
-if (!src || !out) throw new Error('usage: render-sprites.mjs <downloads> <out>');
+const [src, out, ...only] = process.argv.slice(2);
+if (!src || !out) throw new Error('usage: render-sprites.mjs <downloads> <out> [job-id ...]');
+const MODELS = path.join(path.dirname(fileURLToPath(import.meta.url)), 'models');
 fs.mkdirSync(out, { recursive: true });
 
 const PPU = 35.36 * 2; // pixels per meter along a ground axis, drawn at 2x and shrunk afterwards
@@ -31,6 +37,43 @@ const JOBS = [
   { id: 'lamp_post', model: 'roads/Models/GLB format/light-curved.glb', clips: { still: [0] }, facings: [0, 90], fit: { height: 3.4 } },
   { id: 'planter', model: 'sub/Models/GLB format/planter.glb', clips: { still: [0] }, facings: [0, 90], fit: { length: 1.3 } },
   { id: 'fence', model: 'sub/Models/GLB format/fence-low.glb', clips: { still: [0] }, facings: LONG, fit: { length: 3 } },
+];
+
+// readable-dog spike (openspec/changes/readable-dog, task 1.2): the Quaternius Husky, walking with the head turned
+// back toward the Handler. Not in the shipped atlas; rendered only when asked for by id.
+const RDOG_WALK = [0, 0.25, 0.5, 0.75];
+// Head turned back over the Dog's left shoulder toward the Handler behind it (about 120 degrees), spread over the
+// neck so it bends instead of snapping. On this rig a bone's local +z turns the head to the Dog's left.
+const LOOK_BACK = [
+  { bone: 'Neck1', rotate: [0, 0, 30] },
+  { bone: 'Neck2', rotate: [0, 0, 30] },
+  { bone: 'Neck3', rotate: [0, 0, 30] },
+  { bone: 'Head', rotate: [0, 0, 30] },
+];
+// The Husky's coat materials (dark back, grey sides, light belly), lightened; its eyes and nose stay dark.
+const RDOG_COAT = { Material: '#c9c4ba', 'Material.001': '#dedad2', 'Material.003': '#f6f4f0' };
+const LOOK_BACK_R = LOOK_BACK.map((o) => ({ ...o, rotate: [0, 0, -o.rotate[2]] }));
+const HEAD_DOWN = [{ bone: 'Neck1', rotate: [35, 0, 0] }, { bone: 'Neck2', rotate: [20, 0, 0] }, { bone: 'Head', rotate: [25, 0, 0] }];
+const TAIL_HIGH = [{ bone: 'Tail1', rotate: [-35, 0, 0] }];
+const TAIL_TUCKED = [{ bone: 'Tail1', rotate: [60, 0, 0] }, { bone: 'Tail2', rotate: [20, 0, 0] }];
+const TROT = [0, 0.135, 0.27, 0.405];
+const SPIKE_JOBS = [
+  // task 1.3: a stand-in for the full clip set (Decision 4), 30 frames per direction, 240 in all, to measure the
+  // atlas. The poses are rough; only their size and silhouette count here.
+  { id: 'rdogest', model: '@models/quaternius-husky/husky.glb', facings: DIRS8, fit: { height: 0.6 }, skinned: true, materials: RDOG_COAT, clips: {
+    idle: { clip: 'Idle', times: [0, 1.6] },
+    walk: { clip: 'Walk', times: RDOG_WALK },
+    walkwag: { clip: 'Walk', times: RDOG_WALK, overrides: TAIL_HIGH },
+    trot: { clip: 'Gallop', times: TROT },
+    sniffwalk: { clip: 'Walk', times: RDOG_WALK, overrides: HEAD_DOWN },
+    sniff: { clip: 'Idle_2_HeadLow', times: [1, 2] },
+    planted: { clip: 'Idle', times: [0, 1.6], overrides: TAIL_HIGH },
+    mark: { clip: 'Idle', times: [0, 1.6], overrides: [{ bone: 'BackUpperLeg.L', rotate: [0, 0, 60] }] },
+    lunge: { clip: 'Gallop', times: [0.1, 0.3], overrides: TAIL_TUCKED },
+    lookl: { clip: 'Walk', times: [0, 0.5], overrides: LOOK_BACK },
+    lookr: { clip: 'Walk', times: [0, 0.5], overrides: LOOK_BACK_R },
+  } },
+  { id: 'rdog', model: '@models/quaternius-husky/husky.glb', clips: { walk: { clip: 'Walk', times: RDOG_WALK }, walklook: { clip: 'Walk', times: RDOG_WALK, overrides: LOOK_BACK } }, facings: DIRS8, fit: { height: 0.6 }, skinned: true, materials: RDOG_COAT },
 ];
 
 const types = { '.glb': 'model/gltf-binary', '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/png' };
@@ -56,24 +99,41 @@ const loader = new GLTFLoader();
 window.renderJob = async (job) => {
   const gltf = await new Promise((ok, no) => loader.load('/' + job.model, ok, undefined, no));
   const root = gltf.scene; const holder = new THREE.Group(); holder.add(root); scene.add(holder);
+  // a skinned mesh's bounds come from its bone matrices, which are empty until the skeleton is updated
+  const refresh = () => job.skinned && (root.updateMatrixWorld(true), root.traverse((o) => { if (o.isSkinnedMesh) { o.skeleton.update(); o.computeBoundingBox(); } }));
+  refresh();
+  // recolour named materials (a light coat, so the game's coat tint, which can only darken, works)
+  if (job.materials) root.traverse((o) => {
+    for (const mat of [o.material].flat()) {
+      const want = mat && job.materials[mat.name];
+      if (want) { mat.color.set(want); mat.metalness = 0; }
+    }
+  });
   const box = new THREE.Box3().setFromObject(root); const size = box.getSize(new THREE.Vector3());
   const k = job.fit.height ? job.fit.height / size.y : job.fit.length / Math.max(size.x, size.z);
-  root.scale.setScalar(k); root.updateMatrixWorld(true);
+  root.scale.setScalar(k); root.updateMatrixWorld(true); refresh();
   const b2 = new THREE.Box3().setFromObject(root); root.position.y -= b2.min.y; // feet on the ground
   root.position.x -= (b2.min.x + b2.max.x) / 2; root.position.z -= (b2.min.z + b2.max.z) / 2;
   const mixer = new THREE.AnimationMixer(root);
   const frames = [];
-  for (const [clipName, times] of Object.entries(job.clips)) {
-    const clip = gltf.animations.find((a) => a.name === (clipName === 'still' ? 'static' : clipName));
-    if (!clip && clipName !== 'still') throw new Error(job.id + ': no clip ' + clipName);
+  for (const { name: clipName, source, times, overrides } of job.plan) {
+    const clip = gltf.animations.find((a) => a.name === source);
+    if (!clip && source !== 'static') throw new Error(job.id + ': no clip ' + source);
     const action = clip ? mixer.clipAction(clip) : null; action?.play();
+    const bones = overrides.map((o) => {
+      const bone = root.getObjectByName(THREE.PropertyBinding.sanitizeNodeName(o.bone));
+      if (!bone) throw new Error(job.id + ': no bone ' + o.bone);
+      return [bone, new THREE.Quaternion(...o.quaternion)];
+    });
     times.forEach((t, i) => {
       mixer.setTime(t);
+      const posed = bones.map(([bone, q]) => { const was = bone.quaternion.clone(); bone.quaternion.multiply(q); return was; });
       for (const f of job.facings) {
         holder.rotation.y = Math.PI / 2 - (f * Math.PI) / 180;
         renderer.render(scene, cam);
         frames.push({ name: job.id + '_' + clipName + i + '_' + f, data: renderer.domElement.toDataURL('image/png') });
       }
+      bones.forEach(([bone], k) => bone.quaternion.copy(posed[k])); // a bone the clip does not animate must not add up
     });
     action?.stop(); mixer.stopAllAction();
   }
@@ -86,8 +146,9 @@ window.ready = true;
 const server = http.createServer((req, res) => {
   const url = decodeURIComponent(req.url.split('?')[0]);
   if (url === '/') return void res.writeHead(200, { 'content-type': 'text/html' }).end(page);
-  const file = path.join(src, url);
-  if (!file.startsWith(path.resolve(src)) || !fs.existsSync(file)) return void res.writeHead(404).end();
+  const [base, rel] = url.startsWith('/@models/') ? [MODELS, url.slice('/@models'.length)] : [src, url];
+  const file = path.join(base, rel);
+  if (!file.startsWith(path.resolve(base)) || !fs.existsSync(file)) return void res.writeHead(404).end();
   res.writeHead(200, { 'content-type': types[path.extname(file)] ?? 'application/octet-stream' }).end(fs.readFileSync(file));
 });
 await new Promise((ok) => server.listen(0, ok));
@@ -96,8 +157,11 @@ const tab = await browser.newPage();
 tab.on('pageerror', (e) => console.error('page error', e.message));
 await tab.goto(`http://localhost:${server.address().port}/`);
 await tab.waitForFunction('window.ready', null, { timeout: 60000 });
-for (const job of JOBS) {
-  const frames = await tab.evaluate((j) => window.renderJob(j), job);
+const jobs = only.length ? [...JOBS, ...SPIKE_JOBS].filter((j) => only.includes(j.id)) : JOBS;
+const missing = only.filter((id) => !jobs.some((j) => j.id === id));
+if (missing.length) throw new Error('unknown job ' + missing.join(', '));
+for (const job of jobs) {
+  const frames = await tab.evaluate((j) => window.renderJob(j), { ...job, plan: clipPlan(job) });
   for (const f of frames) fs.writeFileSync(path.join(out, `${f.name}.png`), Buffer.from(f.data.split(',')[1], 'base64'));
   console.log(job.id, frames.length);
 }

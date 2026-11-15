@@ -1,7 +1,8 @@
 """Packs Kenney CC0 sprites into one palette atlas for the stage scene (bundle/assets/kenney/sprites.{png,json}).
 
-usage: python3 pack-sprites.py <kenney-downloads-dir> <raw-render-dir> <out-dir>
-Needs Pillow. <raw-render-dir> is the output of render-sprites.mjs (GLB renders, feet at (160, 230) at 2x).
+usage: python3 pack-sprites.py <kenney-downloads-dir> <raw-render-dir> <out-dir> [--sets id,id]
+Needs Pillow. With --sets it packs only those GLB render sets (no kit sprites), e.g. a spike atlas; spike sets are
+never packed otherwise. <raw-render-dir> is the output of render-sprites.mjs (GLB renders, feet at (160, 230) at 2x).
 """
 import json, re, sys
 from collections import defaultdict
@@ -9,10 +10,13 @@ from pathlib import Path
 from PIL import Image
 
 dl, raw, out = (Path(a) for a in sys.argv[1:4])
+ONLY = set(sys.argv[sys.argv.index('--sets') + 1].split(',')) if '--sets' in sys.argv else None
 NATURE = 0.77  # Nature Kit: one 130 px ground diamond is one 2 m tile, which is 100 px in the game
 ORIGIN = (160, 230)
-HIRES = {'handler': 1.5, 'dog': 1.5}  # drawn bigger than the game scale, so they stay sharp when the camera zooms in; the frame's `res` says by how much
+HIRES = {'handler': 1.5, 'dog': 1.5, 'rdog': 1.5, 'rdogest': 1.5}  # drawn bigger than the game scale, so they stay sharp when the camera zooms in; the frame's `res` says by how much
 SKIP = {'handlerf'}  # rendered, not packed (not used yet)
+SPIKE = {'rdog', 'rdogest'}  # readable-dog spike renders, packed only with --sets
+DOGS = {'dog', 'rdog', 'rdogest'}  # neutral coat, tinted in the game
 
 # 2D sprites straight from the kits: name -> (file, scale, pivot y)
 FRAMES = {}
@@ -47,7 +51,7 @@ def neutral(im):
     return out
 
 sprites = {}  # name -> (image, pivot)
-for name, (path, scale, pivot_y) in FRAMES.items():
+for name, (path, scale, pivot_y) in ({} if ONLY else FRAMES).items():
     im = Image.open(path).convert('RGBA')
     im = im.crop(im.getbbox())
     im = im.resize((max(1, round(im.width * scale)), max(1, round(im.height * scale))), Image.LANCZOS)
@@ -59,7 +63,7 @@ for f in sorted(raw.glob('*.png')):
     m = re.match(r'^(.*)_([a-z]+\d+)_(\d+)$', f.stem)
     sets[m.group(1)].append(f)
 for set_id, files in sets.items():
-    if set_id in SKIP: continue
+    if (set_id not in ONLY) if ONLY else (set_id in SKIP or set_id in SPIKE): continue
     res = HIRES.get(set_id, 1)
     ims = {f.stem: Image.open(f).convert('RGBA') for f in files}
     x0 = y0 = 10**6; x1 = y1 = 0
@@ -69,7 +73,7 @@ for set_id, files in sets.items():
     pivot = ((ORIGIN[0] - x0) / (x1 - x0), (ORIGIN[1] - y0) / (y1 - y0))
     for name, im in ims.items():
         c = im.crop((x0, y0, x1, y1))
-        if set_id == 'dog': c = neutral(c)
+        if set_id in DOGS: c = neutral(c)
         sprites[name] = (c.resize((round((x1 - x0) * res / 2), round((y1 - y0) * res / 2)), Image.LANCZOS), pivot, res)
 
 # shelf packing
