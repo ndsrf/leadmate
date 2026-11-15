@@ -165,6 +165,15 @@ node scripts/lesson-art-sheet.mjs             # contact sheet: every picture, ca
 
 Look at the PNGs (not the SVG source) at 320 pt before calling a picture done.
 
+**Claude Design canvas.** The LeadMate Design System canvas in Claude Design is the review surface: each picture is
+added there as a 640x360 artboard named by its key (World 6 Stretch 1 sits in the row "World 6 · Stretch 1 art"). The
+canvas export is **not** used as the shipped file: the trial (`theory-unpredictable-walks-1`) showed that the canvas
+holds HTML artboards, not kit-built SVG, so palette and no-words checks cannot run on its export. The repo SVG is the
+source: draw in `scripts/art/lessons/`, render with `render-lesson-art.mjs`, then put the same SVG (kit symbols inlined
+by `inline()` in `_kit/svg.mjs`) on the artboard. New kit symbols go in `_kit/kit.mjs` (run it to rewrite `kit.svg`).
+Node media (an Image Duel pair) is rendered the same way with `--out` and `--registry` pointing outside
+`assets/lessons`, so it stays out of the bundled-Lesson budget, and the PNGs are copied into the Node's `media/`.
+
 The How-to-play Lessons show captures of the real controls instead of drawings. `scripts/capture-controls.mjs` stages
 each one (fixed seed, scripted input, fixed date), rings the control and writes `assets/lessons/howto-<lesson>-<n>.png`
 into the same registry; their caption and alt are the Lesson's `c<n>` keys. It needs both dev servers
