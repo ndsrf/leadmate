@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+  <!-- duel, turn and look: the Person turns back smoothly on a slack leash; Migas turns to follow and glances up at the Person (a Check-in). No badges, no words -->
+  <use href="#sky"/>
+  <use href="#tree" transform="translate(70 284) scale(0.85)"/>
+  <use href="#tree" transform="translate(600 284) scale(0.75)"/>
+  <use href="#ground-park"/>
+  <use href="#bench" transform="translate(196 290) scale(0.7)"/>
+  <use href="#lamp" transform="translate(470 290) scale(0.8)"/>
+  <use href="#tuft" transform="translate(40 286)"/>
+  <use href="#tuft" transform="translate(380 282)"/>
+  <use href="#pigeon-peck" transform="translate(560 328)"/>
+  <use href="#pigeon" transform="translate(604 322)"/>
+  <path d="M24 308H330A13 13 0 0 1 330 334H150" fill="none" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="10 9" stroke-linecap="round"/>
+  <path d="M152 324L132 334L152 344z" fill="#1E2A3A"/>
+  <g transform="translate(250 322)">
+    <use href="#person-turn" transform="scale(-1 1)"/>
+    <use href="#dog-glance" transform="translate(170 0) scale(-1 1)"/>
+    <path d="M22 -84C40 -8 136 -6 156 -66" fill="none" stroke="#1E2A3A" stroke-width="8.5" stroke-linecap="round"/><path d="M22 -84C40 -8 136 -6 156 -66" fill="none" stroke="#6FAF73" stroke-width="4.5" stroke-linecap="round"/><circle cx="156" cy="-66" r="3.5" fill="#1E2A3A"/>
+  </g>
+  <path d="M362 236L270 174" fill="none" stroke="#1E2A3A" stroke-width="3.5" stroke-dasharray="10 8" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-unpredictable-walks.dont" data-alt="trail.theory-unpredictable-walks.dont">
+  <!-- dont: talking all the way and repeating the cue at every bend; Migas walks on ahead on autopilot, looking straight on -->
+  <use href="#sky"/>
+  <use href="#tree" transform="translate(560 284) scale(0.8)"/>
+  <use href="#ground-park"/>
+  <use href="#tuft" transform="translate(40 284)"/>
+  <use href="#tuft" transform="translate(470 282)"/>
+  <g transform="translate(110 326) scale(1.1)">
+    <use href="#person-walk"/>
+    <use href="#dog-walk" transform="translate(200 0)"/>
+    <use href="#leash-j"/>
+  </g>
+  <use href="#sound" transform="translate(148 148)"/>
+  <use href="#sound" transform="translate(180 120) scale(0.9)"/>
+  <use href="#sound" transform="translate(210 92) scale(0.8)"/>
+  <use href="#sight" transform="translate(396 248) scale(1.1)"/>
+  <use href="#badge-cross" transform="translate(570 70) scale(1.5)"/>
+</svg>
