@@ -121,7 +121,10 @@ describe('World unlocking', () => {
     expect(currentWorld(progressOf([])).id).toBe('basics');
     expect(currentWorld(finished('basics')).id).toBe('home');
     expect(currentWorld(finished('home')).id).toBe('sidewalk');
-    expect(currentWorld(finished('home', 'sidewalk', 'urban', 'park')).id).toBe('park');
+    // World 6 is playable (one Stretch), so it is the first World not complete once World 5 is done
+    expect(currentWorld(finished('home', 'sidewalk', 'urban', 'park')).id).toBe('recall');
+    // with every playable World done, the map stays on the last playable one; Coming-soon World 7 is never current
+    expect(currentWorld({ ...finished('home', 'sidewalk', 'urban', 'park', 'recall'), plus: true }).id).toBe('recall');
   });
 
   it('titles and topics every World from the catalog', () => {
@@ -324,8 +327,8 @@ describe('Node content of every World', () => {
 
   it('only lists prerequisites that exist and never loops', () => {
     for (const node of NODES) for (const id of node.prerequisites) expect(ids(NODES)).toContain(id);
-    // every Stop becomes reachable by doing the trail in order
-    let p = progressOf([]);
+    // every Stop becomes reachable by doing the trail in order, for a Plus user (World 6 onwards are Plus Worlds)
+    let p = progressOf([], { plus: true });
     for (const stop of WORLDS.flatMap(stopsOf)) {
       expect({ stop: stop.id, lock: stopLock(stop, p) }).toEqual({ stop: stop.id, lock: null });
       if (stop.kind === 'node') p = { ...p, completedNodes: [...p.completedNodes, stop.id] };
@@ -507,6 +510,8 @@ describe('Plus Worlds', () => {
 
   it('stays locked for a free user, even with the World before it complete', () => {
     expect(isWorldUnlocked(recall, finished('home', 'sidewalk', 'urban', 'park'))).toBe(false);
+    for (const stop of stopsOf(recall)) expect(stopLock(stop, finished('home', 'sidewalk', 'urban', 'park'))).toEqual({ kind: 'world' });
+    expect(stopLock(stopsOf(recall)[0], { ...finished('home', 'sidewalk', 'urban', 'park'), plus: true })).toBeNull();
   });
 
   it('is unlocked for a Plus member once the World before it is complete', () => {
@@ -715,7 +720,7 @@ describe('Home Behaviour content and the trail', () => {
 describe('worldsFor never makes a Stop unreachable', () => {
   test.each([['theory-home-rest'], ['theory-calm-first'], ['theory-calm-first', 'theory-home-rest']])('plan %s', (...ids) => {
     const worlds = worldsFor(ids.map((stretchId) => ({ stretchId })), progressOf([]));
-    const progress = progressOf([]);
+    const progress = progressOf([], { plus: true });
     for (const world of worlds.filter((w) => !w.preview)) {
       for (const stops of world.stretches) {
         for (const stop of stops) {

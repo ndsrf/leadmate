@@ -42,7 +42,8 @@ describe('celebrationsFor', () => {
   });
 
   it('names a Plus World opened during the trial, read through progressAt', () => {
-    const stops = WORLDS.filter((w) => !w.preview).flatMap(stopsOf);
+    // every free World done: passing World 5's last Mission opens World 6, the first Plus World
+    const stops = WORLDS.filter((w) => w.tier !== 'plus').flatMap(stopsOf);
     const missions = Object.fromEntries(stops.filter((s) => s.kind === 'mission').map((s) => [s.id, { ...started, passedOn: '2026-05-02' }]));
     const done = {
       completedNodes: stops.filter((s) => s.kind === 'node').map((s) => s.id),
