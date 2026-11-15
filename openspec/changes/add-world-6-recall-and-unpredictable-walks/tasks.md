@@ -20,9 +20,9 @@
 
 - [x] 3.1 Create `theory-unpredictable-walks` in `content/beta/lessons/` with `lesson.yaml`, `es.md`, `en.md` following the lesson pattern and word bounds; verify with `npm run content:validate -- --channel beta` and the lesson conformance test.
 - [x] 3.2 Create `howto-yield-pressure` (5-minute light-pressure drill, marking and rewarding check-ins) in ES and EN; verify method-rule wording by review (light pressure, released at once, no pulling, no repeated cues).
-- [ ] 3.3 Create the Stage Node (park theme, zig-zag waypoints, check-in scoring, the language's structured and Go Sniff cues, no Sintonía) with a 3-question Checkpoint (one Image Duel and two text questions), primer cards and exercises, in ES and EN; verify it loads and plays in the simulator preview.
-- [ ] 3.4 Create the Mission for Stretch 1 with target, success text and problems in ES and EN; verify validation and the Mission brief shows "Tu foco" from the Debrief.
-- [ ] 3.5 Wire Stretch 1 into `recall.yaml` and `recall/{es,en}.md` with `preview` cleared; verify the world-progression and map tests.
+- [x] 3.3 Create the Stage Node (park theme, zig-zag waypoints, check-in scoring, the language's structured and Go Sniff cues, no Sintonía) with a 3-question Checkpoint (one Image Duel and two text questions), primer cards and exercises, in ES and EN; verify it loads and plays in the simulator preview.
+- [x] 3.4 Create the Mission for Stretch 1 with target, success text and problems in ES and EN; verify validation and the Mission brief shows "Tu foco" from the Debrief.
+- [x] 3.5 Wire Stretch 1 into `recall.yaml` and `recall/{es,en}.md` with `preview` cleared; verify the world-progression and map tests.
 
 ## 4. Review and decisions
 

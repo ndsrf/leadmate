@@ -61,6 +61,8 @@ export interface ReactionConfig {
 
 /** Sintonía (sync combo) tunables. */
 export interface SintoniaConfig {
+  /** A Node can opt out (`false`): no Sintonía is ever measured, so its turn rule never applies. Default on. */
+  enabled?: boolean;
   /** Handler forward speed must exceed this, in m/s. */
   minSpeed: number;
   /** The Handler's turning rate must stay within these bounds, in rad/s. */

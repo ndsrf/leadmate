@@ -112,11 +112,10 @@ build with a media base shows the retry placeholder for it after the tap.
 | `marking-rewarding` | Marcar y recompensar | not generated |
 | `sniffing-decompression` | Olfatear y descomprimir | not generated |
 
-## World 6 Recall and Unpredictable Walks Lessons
+## World 6 Stage Node (Stretch 1)
 
-Added by `add-world-6-recall-and-unpredictable-walks` (Stretch 1). Illustrations are not drawn yet: each Lesson names unbundled art keys that fall back to the themed placeholder. Dedicated drawings following [lesson-guide.md](lesson-guide.md) will be produced in Claude Design before leaving this list.
+Added by `add-world-6-recall-and-unpredictable-walks`. The Stretch 1 Lesson art and the Image Duel pair are drawn (Claude Design canvas plus the repo kit), so only the Stage scoring is a stand-in.
 
-| Item | Kind | Pictures |
+| Item | Kind | Stand-in |
 | --- | --- | --- |
-| `theory-unpredictable-walks` | Theory Lesson "El paseo impredecible" ("Unpredictable Walks") | `theory-unpredictable-walks-1`, `-2`, `-do`, `-dont` |
-| `howto-yield-pressure` | Theory Lesson "Ceder a la presión de la correa" ("Giving Way to Leash Pressure") | `howto-yield-pressure-1`, `-2`, `-do`, `-dont` |
+| `park-unpredictable` | Stage Node "El paseo impredecible" / "The Unpredictable Walk" | Interim Stage: scored with Rigid Pull and Check-in counts only and exempt from Sintonía (`sintonia.enabled: false`); `rethink-unpredictable-walk-stage` will replace the scoring |
