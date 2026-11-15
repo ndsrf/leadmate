@@ -58,6 +58,25 @@ describe('Dog pose', () => {
       expect(dogPose(s)).toMatchObject({ tail: 'neutral' });
     });
 
+    it('Check-in while Alert still wags and picks the wag clip', () => {
+      const s = createState(1, free);
+      s.arousal = 0.8 * s.dogTraits.reactivityThreshold;
+      tick(s, noInput);
+      s.dogLookUntil = s.time + 1;
+      s.dogDesired = { x: 1, y: 0 };
+      const p = dogPose(s);
+      expect(p).toMatchObject({ tier: 'alert', gaze: 'handler', ears: 'forward', tail: 'wagging' });
+      expect(walkClipFor(p)).toBe('walk_wag');
+    });
+
+    it('sniffing while Alert keeps a neutral tail', () => {
+      const s = createState(1, free);
+      s.arousal = 0.8 * s.dogTraits.reactivityThreshold;
+      tick(s, noInput);
+      s.dogMode = 'sniffing';
+      expect(dogPose(s)).toMatchObject({ head: 'down', tail: 'neutral' });
+    });
+
     it('Alert: head up, ears forward, tail high', () => {
       const s = createState(1, free);
       s.arousal = 0.8 * s.dogTraits.reactivityThreshold;
@@ -78,7 +97,7 @@ describe('Dog pose', () => {
       s.tension = 'rigid';
       expect(dogPose(s).ears).toBe('back');
       s.dogMode = 'fixated';
-      expect(dogPose(s).ears).not.toBe('back');
+      expect(dogPose(s).ears).toBe('forward');
     });
 
     it('sniffing: head down, gaze on the ground, neutral tail', () => {

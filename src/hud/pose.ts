@@ -92,10 +92,11 @@ export function dogPose(state: SimState): DogPose {
   const head: Head = sniffing ? 'down' : state.tier !== 'calm' ? 'up' : 'level';
   let ears: Ears = 'neutral';
   if (state.tension === 'rigid' && !fixated) ears = 'back';
-  else if (checkIn || state.tier !== 'calm') ears = 'forward';
+  else if (checkIn || fixated || state.tier !== 'calm') ears = 'forward';
   let tail: Tail = 'neutral';
-  if (state.tier !== 'calm') tail = 'high';
-  else if (checkIn) tail = 'wagging';
+  if (checkIn) tail = 'wagging';
+  else if (sniffing) tail = 'neutral';
+  else if (state.tier !== 'calm') tail = 'high';
   return {
     gaze, head, ears, tail, action: actionOf(state),
     tier: state.tier,
