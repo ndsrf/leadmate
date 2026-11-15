@@ -111,3 +111,12 @@ build with a media base shows the retry placeholder for it after the tap.
 | `smile-leash` | La correa en sonrisa | not generated |
 | `marking-rewarding` | Marcar y recompensar | not generated |
 | `sniffing-decompression` | Olfatear y descomprimir | not generated |
+
+## World 6 Recall and Unpredictable Walks Lessons
+
+Added by `add-world-6-recall-and-unpredictable-walks` (Stretch 1). Text authored with placeholder art flags (`placeholder: true`); dedicated drawings following [lesson-guide.md](lesson-guide.md) will be produced in Claude Design before leaving this list.
+
+| Item | Kind | Pictures |
+| --- | --- | --- |
+| `theory-unpredictable-walks` | Theory Lesson "Paseos impredecibles" / "Unpredictable Walks" | placeholders `unpredictable-walks-1`, `-2`, `-do`, `-dont` |
+| `howto-yield-pressure` | How-to Lesson "Ceder a la presión" / "Yield to Leash Pressure" | placeholders `yield-pressure-1`, `-2`, `-do`, `-dont` |

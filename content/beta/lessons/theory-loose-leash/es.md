@@ -7,7 +7,7 @@ Cada paseo es un tira y afloja
 Sales con {name} y en dos minutos ya te duele el hombro. Tira hacia el árbol, hacia la farola, hacia el perro de enfrente. Tú vas detrás, frenando y soltando, y cuando por fin camina a tu lado ni te das cuenta: estás pendiente del siguiente tirón. Al volver, llegáis con menos energía que si hubierais corrido.
 
 ## why
-Para tu perro, la calle está llena de premios: olores, sitios nuevos, seguir avanzando. Lo que hace justo antes de conseguirlos es lo que aprende. Si llega al árbol tirando, tirar le ha funcionado. Si solo le hablas cuando tira, los ratos buenos pasan sin que nada los premie. Y si algo le sorprende de cerca, como un monopatín, la emoción le sube de golpe y tirar es lo único que le sale. Pasear con la correa floja es darle la vuelta a todo eso: que la calle se abra cuando la correa cuelga, y que tú veas venir lo difícil antes que él. Más adelante, en el Mundo 6 (El Parque y la Llamada), verás cómo hacer los paseos impredecibles para que tu perro siga eligiendo conectar contigo.
+Para tu perro, la calle está llena de premios: olores, sitios nuevos y avanzar. Lo que hace justo antes de conseguirlos es lo que aprende. Si llega al árbol tirando, tirar le funciona. Si solo intervienes cuando tira, los momentos de calma pasan sin recompensa. Y ante una distracción sorpresa, la emoción sube y tirar se vuelve su reflejo. Pasear con la correa floja cambia las reglas: la calle solo se abre cuando la correa cuelga. Más adelante, en el Mundo 6 (El Parque y la Llamada), aprenderás cómo hacer los paseos impredecibles para que {name} siga eligiendo conectar contigo.
 
 ## steps
 1. Mira lejos, media calle por delante. Así ves venir antes que él un monopatín, otro perro o un gato, y tienes tiempo de reaccionar.
