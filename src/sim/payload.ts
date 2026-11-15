@@ -1,4 +1,5 @@
 import type { DistractorKind } from './learning';
+import { meterScore, type MeterValue } from './meters';
 import type { SimState } from './sim';
 
 /** What the simulation reports to the shell when a Stage ends. */
@@ -40,6 +41,10 @@ export interface SimulationDebriefPayload {
   lunges?: number;
   /** Hand drill: whether the Dog settled or the time ran out first; neither is a failure. */
   handDrillOutcome?: 'calm' | 'not_calm';
+  /** Walking Stages: Marker timing grades of Marker hits and Check-in hits, and Late Marker presses. */
+  markGrades?: { perfect: number; good: number; late: number };
+  /** Only in a Stage with Stage Meters: each meter's final Meter Points and target; it then sets the handling score (ADR 0029). */
+  meters?: MeterValue[];
   /** Composite handling score, 0 to 1000 (see `handlingScore`). */
   handlingScore: number;
   /** 'bundled' or the version of the remote level config the Stage ran on. */
@@ -61,11 +66,13 @@ export const SCORE_SINTONIA_SHARE = 0.4;
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 
 /**
- * The normalized 0-1000 handling score: Composure (100 minus the peak Arousal), the Slack share,
+ * The normalized 0-1000 handling score. With Stage Meters it is 1000 times their mean fill (ADR 0029).
+ * Otherwise (ADR 0005): Composure (100 minus the peak Arousal), the Slack share,
  * Marker timing on Disengagements and Sintonía time. A Stage with no encounter to time scores the
  * full Marker points; one with encounters but no hit scores none.
  */
 export function handlingScore(p: Omit<SimulationDebriefPayload, 'handlingScore' | 'configVersion'>): number {
+  if (p.meters && p.meters.length > 0) return meterScore(p.meters);
   const composure = clamp01((100 - p.peakArousalScore) / 100) * SCORE_WEIGHTS.composure;
   const slack = clamp01(p.slackPercentage / 100) * SCORE_WEIGHTS.slack;
   const encounters = p.markerHits + p.markerMisses + p.missedOpportunities;
@@ -108,10 +115,12 @@ export function buildPayload(state: SimState): SimulationDebriefPayload {
     seed: state.seed,
     sintoniaTimeSeconds: Math.round(t.sintoniaTime * 10) / 10,
     goSniffs: t.goSniffs,
+    markGrades: { ...t.markGrades },
   };
   if (hits.length > 0) {
     base.markerAccuracyMs = Math.round(hits.reduce((a, b) => a + b, 0) / hits.length);
   }
+  if (state.meters.length > 0) base.meters = state.meters.map((m) => ({ ...m }));
   return { ...base, handlingScore: handlingScore(base), configVersion: state.config.configVersion };
 }
 
