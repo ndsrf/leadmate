@@ -188,3 +188,28 @@ describe('Ground Cover', () => {
     }
   });
 });
+
+describe('Scent Spots in a scenario', () => {
+  it('accepts a valid list and scenery that carries scent', () => {
+    const scenery = defaultScenario.scenery.map((item, i) => (i === 0 ? { ...item, scent: { strength: 'hot' as const, marking: true } } : item));
+    const config = base({ scents: [{ pos: { x: 10, y: 3 }, strength: 'weak' }, { pos: { x: 20, y: -3 }, strength: 'normal', radius: 5 }], scenery, jackpotBudget: 2 });
+    expect(validateScenario(config)).toEqual([]);
+  });
+
+  it('rejects a spot without a position, naming the spot and the field', () => {
+    const config = base({ scents: [{ pos: { x: 10, y: 3 }, strength: 'weak' }, { strength: 'normal' } as never] });
+    expect(validateScenario(config)).toEqual(['scent 2: pos is missing']);
+  });
+
+  it('rejects an unknown strength, naming the spot and the field', () => {
+    const config = base({ scents: [{ pos: { x: 10, y: 3 }, strength: 'strong' as never }] });
+    expect(validateScenario(config)).toEqual(['scent 1: strength "strong" is not one of weak, normal, hot']);
+    const scenery = defaultScenario.scenery.map((item, i) => (i === 0 ? { ...item, scent: { strength: 'strong' as never } } : item));
+    expect(validateScenario(base({ scenery })).join()).toMatch(/scent on .* strength "strong" is not one of weak, normal, hot/);
+  });
+
+  it('rejects a bad radius, marking flag or Jackpot budget', () => {
+    const config = base({ scents: [{ pos: { x: 1, y: 1 }, strength: 'hot', radius: 0, marking: 'yes' as never }], jackpotBudget: -1 });
+    expect(validateScenario(config)).toEqual(['scent 1: radius must be a number above 0', 'scent 1: marking must be true or false', 'jackpotBudget must be a whole number of 0 or more']);
+  });
+});
