@@ -117,6 +117,8 @@ export const EN_INTERFACE = {
   'node.checkpoint.title': 'Quick Check',
   'node.checkpoint.seconds': 's',
   'node.checkpoint.progress': 'Question {n} of {total}',
+  'node.duel.correct': 'Correct',
+  'node.duel.incorrect': 'Incorrect',
   'node.simulation.title': 'Simulation',
   'node.debrief.title': 'Debrief',
   'node.intro.title': 'First Walk: Slack Leash and Calm',

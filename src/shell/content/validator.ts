@@ -21,6 +21,7 @@ import {
   isHttpsUrl,
   isRecommendationTrigger,
   isRelativeMediaPath,
+  isSemver,
   isYouTubeId,
   SUPPORTED_METRICS,
   SUPPORTED_MINIGAMES,
@@ -418,7 +419,7 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
     }
   }
 
-  if (duelNodes.length > 0 && isSemverString(pack.pack?.minAppVersion) && compareAppVersions(pack.pack.minAppVersion, IMAGE_DUEL_MIN_APP_VERSION) < 0) {
+  if (duelNodes.length > 0 && isSemver(pack.pack?.minAppVersion) && compareAppVersions(pack.pack.minAppVersion, IMAGE_DUEL_MIN_APP_VERSION) < 0) {
     for (const nodeId of duelNodes) {
       errors.push({
         file: 'pack.yaml',
@@ -922,10 +923,6 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
     errors,
     warnings,
   };
-}
-
-function isSemverString(v: unknown): v is string {
-  return typeof v === 'string' && /^\d+\.\d+\.\d+/.test(v);
 }
 
 /**

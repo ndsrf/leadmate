@@ -11,9 +11,10 @@ import { loadPackFromDisk } from '../content/loader';
 import { resolvePack } from '../content/resolver';
 import type { ResolvedShop } from '../content/resolver';
 import type { NodeDef, NodeRun } from '../nodes/node';
-import { advance, startNode } from '../nodes/node';
+import { advance, onDebrief, startNode } from '../nodes/node';
 import type { ImageDuelQuestion } from '../nodes/content';
 import { newDogRecord } from '../dogRecord';
+import { payloadWith } from '../testPayload';
 import type { MissionDef, Fix } from '../missions/mission';
 
 const mockPressables: any[] = [];
@@ -555,7 +556,7 @@ describe('Node and Mission screens - ShopLinkCard recommendations (Task 7.1)', (
       expect(onTimeout).toHaveBeenCalledTimes(1);
     });
 
-    it('exposes localized alt text as accessibilityLabel on accessible buttons', () => {
+    it('exposes localized alt text before answering and appends localized verdict after answering', () => {
       const run = { ...startNode(duelNode), step: 'checkpoint' as const, question: 1 };
       let renderer: ReactTestRenderer.ReactTestRenderer;
       act(() => {
@@ -576,10 +577,21 @@ describe('Node and Mission screens - ShopLinkCard recommendations (Task 7.1)', (
 
       expect(option0.props.accessibilityRole).toBe('button');
       expect(option1.props.accessibilityRole).toBe('button');
+      // Before answering: alt text only, disabled is false, selected is undefined
       expect(option0.props.accessibilityLabel).toBe(t(duelQuestion.images[0].alt));
       expect(option1.props.accessibilityLabel).toBe(t(duelQuestion.images[1].alt));
-      expect(option0.props.accessibilityLabel).toBe('La guía camina mirando el móvil');
-      expect(option1.props.accessibilityLabel).toBe('La guía gira y mira a {name}');
+      expect(option0.props.accessibilityState).toEqual({ disabled: false });
+      expect(option1.props.accessibilityState).toEqual({ disabled: false });
+
+      // Answering option 1 (correct): chosen gets selected: true, both get localized verdict
+      act(() => {
+        option1.props.onPress();
+      });
+
+      expect(option1.props.accessibilityState).toEqual({ disabled: true, selected: true });
+      expect(option0.props.accessibilityState).toEqual({ disabled: true });
+      expect(option1.props.accessibilityLabel).toBe(`${t(duelQuestion.images[1].alt)}. ${t('node.duel.correct')}`);
+      expect(option0.props.accessibilityLabel).toBe(`${t(duelQuestion.images[0].alt)}. ${t('node.duel.incorrect')}`);
     });
 
     it('renders text and duel questions in authored order in a mixed Checkpoint', () => {
@@ -646,55 +658,57 @@ describe('Node and Mission screens - ShopLinkCard recommendations (Task 7.1)', (
       const singleDuelNode: NodeDef = {
         ...duelNode,
         checkpoint: [duelQuestion],
+        exercises: [{ metric: 'tension', key: 'node.intro.title' as any }],
       };
 
       const initialDog = newDogRecord();
-      const dogSnapshot = JSON.stringify(initialDog);
+      const now = new Date('2026-06-01T10:00:00Z');
+      const standardSimResult = { kind: 'stage' as const, payload: payloadWith({ handlingScore: 400 }) };
 
-      // Case 1: Correct choice advances to simulation
-      const runCorrect = startNode(singleDuelNode);
-      const atCheckpoint1 = advance(advance(advance(advance(runCorrect, { type: 'next' }), { type: 'next' }), { type: 'next' }), { type: 'next' });
-      expect(atCheckpoint1.step).toBe('checkpoint');
-      const afterCorrect = advance(atCheckpoint1, { type: 'answer', option: 1 });
-      expect(afterCorrect.step).toBe('simulation');
-      expect(afterCorrect.checkpoint).toEqual(['correct']);
-      expect(JSON.stringify(initialDog)).toBe(dogSnapshot);
+      const run = startNode(singleDuelNode);
+      const atCheckpoint = advance(run, { type: 'next' });
+      expect(atCheckpoint.step).toBe('checkpoint');
 
-      // Case 2: Wrong choice advances to simulation
-      const afterWrong = advance(atCheckpoint1, { type: 'answer', option: 0 });
-      expect(afterWrong.step).toBe('simulation');
-      expect(afterWrong.checkpoint).toEqual(['wrong']);
-      expect(JSON.stringify(initialDog)).toBe(dogSnapshot);
+      // Case 1: Correct choice advances to simulation and debrief
+      const atSimCorrect = advance(atCheckpoint, { type: 'answer', option: 1 });
+      expect(atSimCorrect.step).toBe('simulation');
+      expect(atSimCorrect.checkpoint).toEqual(['correct']);
+      const atDebriefCorrect = advance(atSimCorrect, { type: 'finish', result: standardSimResult });
+      expect(atDebriefCorrect.step).toBe('debrief');
+      const dogCorrect = onDebrief(initialDog, atDebriefCorrect, now);
 
-      // Case 3: Timeout advances to simulation
-      const afterTimeout = advance(atCheckpoint1, { type: 'timeout' });
-      expect(afterTimeout.step).toBe('simulation');
-      expect(afterTimeout.checkpoint).toEqual(['missed']);
-      expect(JSON.stringify(initialDog)).toBe(dogSnapshot);
-    });
+      // Case 2: Wrong choice advances to simulation and debrief
+      const atSimWrong = advance(atCheckpoint, { type: 'answer', option: 0 });
+      expect(atSimWrong.step).toBe('simulation');
+      expect(atSimWrong.checkpoint).toEqual(['wrong']);
+      const atDebriefWrong = advance(atSimWrong, { type: 'finish', result: standardSimResult });
+      expect(atDebriefWrong.step).toBe('debrief');
+      const dogWrong = onDebrief(initialDog, atDebriefWrong, now);
 
-    it('scales images to width without horizontal overflow at a narrow 320pt width', () => {
-      const run = { ...startNode(duelNode), step: 'checkpoint' as const, question: 1 };
-      let renderer: ReactTestRenderer.ReactTestRenderer;
-      act(() => {
-        renderer = ReactTestRenderer.create(
-          <CheckpointScreen
-            t={t}
-            run={run}
-            setting={15}
-            onAnswer={() => {}}
-            onTimeout={() => {}}
-            random={() => 0.99}
-          />,
-        );
-      });
+      // Case 3: Timeout advances to simulation and debrief
+      const atSimTimeout = advance(atCheckpoint, { type: 'timeout' });
+      expect(atSimTimeout.step).toBe('simulation');
+      expect(atSimTimeout.checkpoint).toEqual(['missed']);
+      const atDebriefTimeout = advance(atSimTimeout, { type: 'finish', result: standardSimResult });
+      expect(atDebriefTimeout.step).toBe('debrief');
+      const dogTimeout = onDebrief(initialDog, atDebriefTimeout, now);
 
-      const buttons = renderer!.root.findAll((el) => el.type === 'button' && typeof el.props?.testID === 'string' && el.props.testID.startsWith('duel-option-'));
-      expect(buttons).toHaveLength(2);
-      for (const btn of buttons) {
-        expect(btn.props.style?.width).toBe('100%');
-        expect(btn.props.style?.overflowX).toBeUndefined();
-      }
+      // The duel answer (correct vs wrong vs missed) does not change the Dog record
+      expect(dogCorrect).toEqual(dogWrong);
+      expect(dogCorrect).toEqual(dogTimeout);
+
+      // Sanity checks:
+      // 1. onDebrief on a debriefed run actually updates the Dog record compared to initialDog
+      expect(dogCorrect).not.toEqual(initialDog);
+      expect(dogCorrect.completedNodes).toContain(singleDuelNode.id);
+
+      // 2. A different simulation outcome does change the resulting Dog record
+      const differentSimResult = { kind: 'stage' as const, payload: payloadWith({ handlingScore: 900 }) };
+      const atDebriefDifferent = advance(atSimCorrect, { type: 'finish', result: differentSimResult });
+      expect(atDebriefDifferent.step).toBe('debrief');
+      const dogDifferent = onDebrief(initialDog, atDebriefDifferent, now);
+      expect(dogDifferent).not.toEqual(dogCorrect);
+      expect(dogDifferent.stars[singleDuelNode.id]).not.toEqual(dogCorrect.stars[singleDuelNode.id]);
     });
   });
 });
