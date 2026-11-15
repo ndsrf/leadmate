@@ -17,7 +17,7 @@ Los perros aprenden por patrones y anticipación. Si cada esquina y cada recta s
 
 ## example
 ### {name} en la plaza de los tilos
-Cruzando la plaza con la correa en comba, {name} mira unas palomas a lo lejos. Antes de que fije la atención, frenas el paso y giras con suavidad hacia la izquierda, manteniendo la correa holgada. Al notar el cambio de rumbo, {name} se gira para seguirte y busca tu mirada. Marcas ese check-in con un «bien» suave y entregas una golosina junto a tu rodilla. Dices «Vamos» para retomar el paso, hacéis dos giros tranquilos y dices «Olfatea» al llegar al césped.
+Cruzando la plaza con la correa en comba, {name} mira unas palomas a lo lejos. Antes de que fije la atención, frenas el paso y giras con suavidad hacia la izquierda, manteniendo la correa holgada. Al notar el cambio de rumbo, {name} se gira para seguirte y busca tu mirada. Marcas ese check-in con un «bien» suave y entregas una golosina junto a tu rodilla. Dices «Vamos» para retomar el paso, hacéis dos giros sin prisa y dices «Olfatea» al llegar al césped.
 
 ## compare
 ### do
