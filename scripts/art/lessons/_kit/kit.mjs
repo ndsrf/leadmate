@@ -76,6 +76,8 @@ function dogParts(p, coat, dark, light) {
   sym(`${p}-pull`, `${shadow}${legs([34, 20], [-6, -30])}<use href="#${p}-tail-up" transform="translate(-36 -54)"/><use href="#${p}-body" transform="translate(0 -42) rotate(6)"/><use href="#${p}-head-alert" transform="translate(52 -60) rotate(10)"/>`);
   // walking but looking back and up at the Person
   sym(`${p}-checkin`, `${shadow}${walkBody(`<use href="#${p}-head-calm" transform="translate(40 -74) rotate(18) scale(-1 1)"/>`, 'tail-down')}`);
+  // walking, head raised and turned up at a Person ahead of it: the Check-in seen from the front
+  sym(`${p}-glance`, `${shadow}${walkBody(`<use href="#${p}-head-calm" transform="translate(46 -74) rotate(-26)"/>`, 'tail-down')}`);
   sym(`${p}-sniff`, `${shadow}${walkBody(`<use href="#${p}-head-calm" transform="translate(52 -34) rotate(38)"/>`, 'tail-down')}`);
   sym(`${p}-sit`, `
     ${shadow}
@@ -152,6 +154,21 @@ sym('person-run', `
   <path d="M0 -164C0 -180 26 -182 30 -166C22 -170 10 -168 6 -162z" fill="${hair}" stroke="${INK}" stroke-width="${S}" stroke-linejoin="round"/>
   <use href="#person-forearm" transform="translate(4 -126) rotate(-110)"/>`);
 
+// walking on autopilot: the leash hand as in person-walk (18, -82), the other hand holding a phone up to the face
+sym('person-phone', `
+  <ellipse cx="0" cy="1" rx="34" ry="5" fill="${INK}" opacity="0.14"/>
+  <use href="#person-leg" transform="translate(-2 -80) rotate(16)"/><use href="#person-leg" transform="translate(2 -80) rotate(-16)"/>
+  <use href="#person-top" transform="translate(0 -76)"/>
+  <use href="#person-arm" transform="translate(4 -130) rotate(-14)"/>
+  <use href="#person-forearm" transform="translate(-2 -126) rotate(-137)"/>
+  <rect x="18" y="-166" width="11" height="19" rx="3" fill="${INK}"/><rect x="20.5" y="-163" width="6" height="12" rx="1.5" fill="${c.sky}"/>`);
+// stepping into a turn: the leash hand trails behind at (-22, -84); mirror it to walk back the way it came
+sym('person-turn', `
+  <ellipse cx="0" cy="1" rx="34" ry="5" fill="${INK}" opacity="0.14"/>
+  <use href="#person-leg" transform="translate(-2 -80) rotate(10)"/><use href="#person-leg" transform="translate(2 -80) rotate(-20)"/>
+  <use href="#person-top" transform="translate(0 -76)"/>
+  <use href="#person-arm" transform="translate(-2 -130) rotate(24)"/>`);
+
 // -- the leash between a Person at 0 and a Dog at +200 ----------------------------------------------------------------
 
 const leash = (d) => duo(d, c.brand, 4.5) + `<circle cx="214" cy="-66" r="3.5" fill="${INK}"/>`;
@@ -169,7 +186,7 @@ sym('food', `<path d="M-16 0C-16 -10 16 -12 18 -2C18 4 -16 6 -16 0z" fill="${c.c
 sym('mat', `<rect x="-70" y="-10" width="140" height="12" rx="6" fill="${c.accentSoft}" stroke="${INK}" stroke-width="${S}"/><path d="M-50 -10v12M-25 -10v12M0 -10v12M25 -10v12M50 -10v12" stroke="${c.accent}" stroke-width="4"/>`);
 sym('harness', `${duo('M-24 -6C-10 14 10 14 24 -6', c.brand, 6)}${duo('M-24 -6L24 -6', c.brand, 6)}<circle cx="0" cy="-10" r="6" fill="${c.accent}" stroke="${INK}" stroke-width="2"/>`);
 // a door in its frame, 90 wide and 180 tall, standing on y = 0
-sym('door', `<rect x="-52" y="-188" width="104" height="188" fill="${c.edge}" stroke="${INK}" stroke-width="${S}"/><rect x="-42" y="-178" width="84" height="178" rx="4" fill="${tokens.world.w1.deep}" stroke="${INK}" stroke-width="${S}"/><rect x="-30" y="-162" width="60" height="60" rx="4" fill="none" stroke="${INK}" stroke-width="2"/><circle cx="28" cy="-86" r="6" fill="${c.accent}" stroke="${INK}" stroke-width="2"/>`);
+sym('door', `<rect x="-52" y="-188" width="104" height="188" fill="${c.edge}" stroke="${INK}" stroke-width="${S}"/><rect x="-42" y="-178" width="84" height="178" rx="4" fill="${tokens.world.home.deep}" stroke="${INK}" stroke-width="${S}"/><rect x="-30" y="-162" width="60" height="60" rx="4" fill="none" stroke="${INK}" stroke-width="2"/><circle cx="28" cy="-86" r="6" fill="${c.accent}" stroke="${INK}" stroke-width="2"/>`);
 sym('doorbell', `<rect x="-9" y="-12" width="18" height="24" rx="5" fill="${c.surface}" stroke="${INK}" stroke-width="${S}"/><circle cx="0" cy="0" r="4.5" fill="${c.accent}" stroke="${INK}" stroke-width="2"/>`);
 // a building's wall seen from the side, 200 wide and 220 tall, standing on y = 0
 sym('wall', `<rect x="-100" y="-220" width="200" height="220" fill="${c.edge}" stroke="${INK}" stroke-width="${S}"/><path d="M-100 -180H100M-100 -140H100M-100 -100H100M-100 -60H100M-100 -20H100M-50 -220v40M50 -220v40M0 -180v40M-50 -140v40M50 -140v40M0 -100v40M-50 -60v40M50 -60v40M0 -20v20" stroke="${c.surfaceSunken}" stroke-width="3"/>`);
@@ -188,6 +205,37 @@ sym('bike', `
   <path d="M-44 -28L-12 -72H32L44 -28M-12 -72L4 -28L32 -72M-18 -82H-4M26 -84L32 -72" fill="none" stroke="${c.coral}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>`);
 sym('tree', `<rect x="-10" y="-90" width="20" height="90" rx="6" fill="${m.coatDark}" stroke="${INK}" stroke-width="${S}"/><circle cx="0" cy="-120" r="50" fill="${c.brand}" stroke="${INK}" stroke-width="${S}"/><circle cx="-26" cy="-102" r="26" fill="${c.brandDeep}" stroke="${INK}" stroke-width="${S}"/>`);
 sym('bush', `<path d="M-50 0C-60 -30 -30 -46 -10 -36C0 -56 36 -50 40 -30C60 -30 64 -6 50 0z" fill="${c.brandDeep}" stroke="${INK}" stroke-width="${S}" stroke-linejoin="round"/>`);
+
+// park props (World 6): a bench 150 wide, a pigeon facing right, a grass tuft, a lamp post; all stand on y = 0
+sym('bench', `
+  <ellipse cx="0" cy="1" rx="80" ry="5" fill="${INK}" opacity="0.14"/>
+  <rect x="-62" y="-40" width="9" height="40" rx="3" fill="${c.inkMuted}" stroke="${INK}" stroke-width="2"/><rect x="53" y="-40" width="9" height="40" rx="3" fill="${c.inkMuted}" stroke="${INK}" stroke-width="2"/>
+  <rect x="-75" y="-90" width="150" height="16" rx="6" fill="${tokens.coat.canela}" stroke="${INK}" stroke-width="${S}"/>
+  <rect x="-75" y="-68" width="150" height="16" rx="6" fill="${tokens.coat.canela}" stroke="${INK}" stroke-width="${S}"/>
+  <rect x="-80" y="-48" width="160" height="14" rx="6" fill="${tokens.coat.canela}" stroke="${INK}" stroke-width="${S}"/>
+  <rect x="-62" y="-90" width="9" height="44" fill="${c.inkMuted}" stroke="${INK}" stroke-width="2"/><rect x="53" y="-90" width="9" height="44" fill="${c.inkMuted}" stroke="${INK}" stroke-width="2"/>`);
+sym('pigeon', `
+  <ellipse cx="0" cy="1" rx="16" ry="2.5" fill="${INK}" opacity="0.14"/>
+  <path d="M-4 -6v6M4 -6v6" stroke="${c.coral}" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M-22 -18L-12 -14L-12 -8z" fill="${tokens.coat.negro}" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/>
+  <ellipse cx="0" cy="-13" rx="14" ry="9" fill="${tokens.coat.grisAzulado}" stroke="${INK}" stroke-width="2"/>
+  <path d="M-8 -16C-2 -20 6 -18 8 -12C2 -10 -4 -11 -8 -16z" fill="${tokens.coat.negro}"/>
+  <circle cx="12" cy="-24" r="6.5" fill="${tokens.coat.grisAzulado}" stroke="${INK}" stroke-width="2"/>
+  <path d="M18 -25l5 2l-5 1.5z" fill="${c.accent}" stroke="${INK}" stroke-width="1.2" stroke-linejoin="round"/>
+  <circle cx="13.5" cy="-25.5" r="1.4" fill="${INK}"/>`);
+// the same pigeon pecking at the ground
+sym('pigeon-peck', `
+  <ellipse cx="0" cy="1" rx="16" ry="2.5" fill="${INK}" opacity="0.14"/>
+  <path d="M-4 -6v6M4 -6v6" stroke="${c.coral}" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M-20 -24L-10 -16L-12 -12z" fill="${tokens.coat.negro}" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/>
+  <ellipse cx="0" cy="-12" rx="14" ry="8.5" fill="${tokens.coat.grisAzulado}" stroke="${INK}" stroke-width="2" transform="rotate(16 0 -12)"/>
+  <circle cx="15" cy="-6" r="6.5" fill="${tokens.coat.grisAzulado}" stroke="${INK}" stroke-width="2"/>
+  <path d="M19 -2l3 5l-5 -1z" fill="${c.accent}" stroke="${INK}" stroke-width="1.2" stroke-linejoin="round"/>
+  <circle cx="17" cy="-8" r="1.4" fill="${INK}"/>`);
+sym('tuft', `<path d="M-14 0Q-12 -12 -8 -16Q-6 -8 -4 0Q-2 -14 2 -20Q4 -8 4 0Q8 -10 14 -14Q10 -6 12 0z" fill="${c.brandDeep}" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/>`);
+sym('lamp', `<rect x="-5" y="-200" width="10" height="200" rx="4" fill="${c.inkMuted}" stroke="${INK}" stroke-width="${S}"/><rect x="-16" y="-226" width="32" height="30" rx="8" fill="${c.accentSoft}" stroke="${INK}" stroke-width="${S}"/><rect x="-12" y="-4" width="24" height="6" rx="3" fill="${INK}"/>`);
+// a U-turn: an ink route that goes right and comes back left, arrowhead at the end (-6, -48)
+sym('arrow-turn', `<path d="M0 0H34A24 24 0 0 0 34 -48H10" fill="none" stroke="${INK}" stroke-width="6" stroke-linecap="round"/><path d="M12 -61L-10 -48L12 -35z" fill="${INK}"/>`);
 
 // -- signs: right / wrong, attention, motion, sniffing, sound, arrows ---------------------------------------------------
 
@@ -221,6 +269,9 @@ sym('backdrop-indoor', `<rect x="0" y="0" width="640" height="360" fill="${c.acc
 sym('ground-grass', `<path d="M0 286C120 272 220 292 340 282S540 274 640 284V360H0z" fill="${c.brand}" stroke="${INK}" stroke-width="3.5"/><path d="M0 322C140 312 260 330 400 318S580 314 640 320V360H0z" fill="${c.brandDeep}" stroke="${INK}" stroke-width="3.5"/>`);
 sym('ground-street', `<rect x="-4" y="288" width="648" height="40" fill="${c.surfaceSunken}" stroke="${INK}" stroke-width="3.5"/><path d="M80 288v40M200 288v40M320 288v40M440 288v40M560 288v40" stroke="${c.edge}" stroke-width="3"/><rect x="-4" y="328" width="648" height="36" fill="${tokens.coat.grisAzulado}" stroke="${INK}" stroke-width="3.5"/>`);
 
+// a park: grass behind, a gravel path the cast walks on (stand them at y = 322), grass in front
+sym('ground-park', `<path d="M0 270C120 258 240 276 360 266S560 258 640 268V360H0z" fill="${c.brand}" stroke="${INK}" stroke-width="3.5"/><path d="M-4 298C160 292 480 292 644 298V344C480 338 160 338 -4 344z" fill="${c.surfaceSunken}" stroke="${INK}" stroke-width="3.5"/><path d="M60 312h10M190 328h8M300 310h12M420 330h9M540 314h10M600 330h7" stroke="${c.edge}" stroke-width="4" stroke-linecap="round"/><path d="M0 344C160 338 480 338 640 344V360H0z" fill="${c.brandDeep}" stroke="${INK}" stroke-width="3.5"/>`);
+
 // -- top-down pieces, for diagrams of positions ---------------------------------------------------------------------------
 
 sym('top-ground', `<rect x="0" y="0" width="640" height="360" fill="${c.surfaceSunken}"/>`);
@@ -232,6 +283,9 @@ sym('top-car', `<rect x="-60" y="-28" width="120" height="56" rx="16" fill="${to
 sym('top-scooter', `<rect x="-26" y="-6" width="52" height="12" rx="6" fill="${c.info}" stroke="${INK}" stroke-width="${S}"/><path d="M22 -16v32" stroke="${INK}" stroke-width="5" stroke-linecap="round"/><circle cx="-2" cy="0" r="10" fill="${hair}" stroke="${INK}" stroke-width="${S}"/>`);
 sym('top-bike', `<path d="M-34 0H34" stroke="${INK}" stroke-width="7" stroke-linecap="round"/><path d="M22 -16v32" stroke="${c.coral}" stroke-width="5" stroke-linecap="round"/><circle cx="-2" cy="0" r="10" fill="${hair}" stroke="${INK}" stroke-width="${S}"/>`);
 sym('top-tree', `<circle cx="0" cy="0" r="30" fill="${c.brand}" stroke="${INK}" stroke-width="${S}"/><circle cx="-8" cy="-6" r="14" fill="${c.brandDeep}"/>`);
+// park grass seen from above, and the Dog seen from above with its head turned back over its left shoulder (100 degrees)
+sym('top-grass', `<rect x="0" y="0" width="640" height="360" fill="${tokens.world.park.ground}"/>`);
+sym('top-dog-look', `<ellipse cx="-4" cy="0" rx="24" ry="13" fill="${m.coat}" stroke="${INK}" stroke-width="${S}"/><path d="M-26 0h-12" stroke="${m.coatDark}" stroke-width="5" stroke-linecap="round"/><circle cx="4" cy="-1" r="3.5" fill="${c.accent}" stroke="${INK}" stroke-width="1.5"/><g transform="rotate(-100 14 0)"><circle cx="24" cy="0" r="11" fill="${m.coat}" stroke="${INK}" stroke-width="${S}"/><ellipse cx="35" cy="0" rx="7" ry="5.5" fill="${m.coatLight}" stroke="${INK}" stroke-width="2"/></g>`);
 // a line of sight: dashed ink with an eye-end dot
 sym('sight', `<path d="M0 0H120" fill="none" stroke="${INK}" stroke-width="3.5" stroke-dasharray="10 8" stroke-linecap="round"/>`);
 // the 3 m reach of the long leash around a Person: a 120-radius ring
