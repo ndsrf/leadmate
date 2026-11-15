@@ -428,16 +428,16 @@ A Home Behaviour Stretch that is not a Concern SHALL be excluded from completion
 A Coming-soon World (a Plus World with no Stops yet) SHALL, when expanded, show a card that depends on whether the user has LeadMate Plus. A free user SHALL see the Plus teaser and a button that opens the paywall. A Plus user, on trial or subscribed, SHALL see a "Próximamente" card with a short description of what the World will teach and its planned walk count, and SHALL NOT see Plus-purchase wording or a paywall button. The card SHALL use the same membership check as the rest of the map, so it changes without leaving the map when the trial starts or ends.
 
 #### Scenario: Free user opens a Coming-soon World
-- **WHEN** a free user expands World 6
+- **WHEN** a free user expands World 7
 - **THEN** the card shows the Plus teaser and a button that opens the paywall
 
 #### Scenario: Trial user opens a Coming-soon World
-- **WHEN** a user with an active trial expands World 6
+- **WHEN** a user with an active trial expands World 7
 - **THEN** the card shows "Próximamente", what the World will teach and "4 paseos planificados", and no paywall button
 
 #### Scenario: Plus user before finishing the World before
-- **WHEN** a Plus user who has not completed World 5 expands World 6
-- **THEN** the unlock banner "Termina «…» en el Mundo 5 para abrir este mundo" still shows above the "Próximamente" card, with no paywall button
+- **WHEN** a Plus user who has not completed World 6 expands World 7
+- **THEN** the unlock banner "Termina «…» en el Mundo 6 para abrir este mundo" still shows above the "Próximamente" card, with no paywall button
 
 #### Scenario: Subscriber opens a Coming-soon World
 - **WHEN** a subscribed user expands World 9
@@ -459,7 +459,7 @@ Coming-soon Worlds SHALL NOT have Stops, SHALL NOT be the Next-up target, and SH
 - **THEN** the map shows the all-done message and the Coming-soon Worlds stay "Próximamente"
 
 ### Requirement: More-coming card at the end of the map
-After the last World, the map SHALL show a "Más próximamente" card listing the training scenarios planned after Worlds 6–9. A free user SHALL also see the Plus disclaimer and a button that opens the paywall. A Plus user SHALL see the list only. The card SHALL be informational and SHALL NOT open any Stop.
+After the last World, the map SHALL show a "Más próximamente" card listing the training scenarios planned after Worlds 7–9. A free user SHALL also see the Plus disclaimer and a button that opens the paywall. A Plus user SHALL see the list only. The card SHALL be informational and SHALL NOT open any Stop.
 
 #### Scenario: Free user reaches the end of the map
 - **WHEN** a free user scrolls past the last World
@@ -499,3 +499,14 @@ The World Map SHALL draw World 2 as one World with two titled sections in trail 
 #### Scenario: Stretch flags and scrolling
 - **WHEN** World 2 is shown with sections
 - **THEN** each Mission still carries its "Tramo N" flag numbered across the whole World, the section titles do not overlap any Stop, and the map still scrolls to the next-up Stop
+
+### Requirement: A World with more Stretches coming says so
+A playable World whose pack still lists planned Stops beyond those it has SHALL show a short note after its last Stretch saying more Stretches are coming. The note SHALL be informational, SHALL NOT open any Stop, and SHALL NOT affect completion or the next World's unlock.
+
+#### Scenario: World 6 with one Stretch
+- **WHEN** a Plus user expands World 6 with only the unpredictable walks Stretch
+- **THEN** a note after the Stretch says more Stretches are coming, and passing its Mission completes the World
+
+#### Scenario: Note disappears
+- **WHEN** a World holds every planned Stretch
+- **THEN** no note shows

@@ -39,4 +39,4 @@
 
 - [x] 6.1 Promote beta to stable, run `npm run release:prepare` and the content release check; verify baseline parity passes.
 - [x] 6.2 Bump `contentVersion` and set `minAppVersion`; run the full test suite; verify green and that the app starts with the World 6 trail visible to a Plus user who has completed World 5.
-- [ ] 6.3 Publish the beta pack and play World 6 end to end in EN and ES on a device or emulator; verify the duel, the Stage, the Mission brief and the World 3 teaser.
+- [x] 6.3 Publish the beta pack and play World 6 end to end in EN and ES on a device or emulator; verify the duel, the Stage, the Mission brief and the World 3 teaser.
