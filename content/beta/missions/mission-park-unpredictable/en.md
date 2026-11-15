@@ -23,7 +23,7 @@ On a walk in an open space, change direction without warning at least five times
 - cause: The surroundings are too interesting, or the reward comes too late.
 - c1: Walk in a calmer place and reward the first glance right away.
 - c2: Use "Go Sniff" after a few good turns so sniffing is part of the deal.
-- easier: A short zig-zag in a quiet corner of the park, 2 minutes.
+- easier: A few unexpected turns in a quiet corner of the park, 2 minutes.
 - alt: A Dog glances up at the handler on a quiet grass path
 - caption: Reward every glance
 
@@ -40,7 +40,7 @@ On a walk in an open space, change direction without warning at least five times
 ## general
 - reassure: The Unpredictable Walk is a skill that grows over many walks.
 - cause: New routines take a while to settle in for you and {name}.
-- c1: Repeat a short zig-zag walk on three different days.
+- c1: Repeat a short Unpredictable Walk on three different days.
 - c2: Review the Unpredictable Walks lesson.
 - easier: Five minutes of easy turns in a quiet park.
 - alt: A calm morning park path with a handler and a Dog

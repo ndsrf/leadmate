@@ -36,7 +36,7 @@ Try it today: during the next ten minutes of your walk, make five unexpected rig
 
 ## images
 ### theory-unpredictable-walks-1
-- alt: Diagram contrasting two walking paths: a straight dashed line where a dog looks straight ahead, versus a zig-zag path where the dog turns its head toward the handler at every turn
+- alt: Diagram contrasting two walking paths: a straight dashed line where a dog looks straight ahead, versus a path with sudden turns where the dog turns its head toward the handler at every turn
 - caption: Unexpected turns encourage voluntary focus compared to predictable straight lines
 
 ### theory-unpredictable-walks-2

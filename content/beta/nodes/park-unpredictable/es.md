@@ -3,7 +3,7 @@
 ## primer
 ### card 1
 Recuerda: cambia de rumbo sin avisar, mantén la correa floja y premia cada mirada de {name}. Usa «Vamos» para salir juntos y «Olfatea» para darle tiempo de oler.
-- caption: Los giros en zigzag invitan a un check-in
+- caption: Los giros imprevistos invitan a un check-in
 
 ## checkpoint
 ### tq1

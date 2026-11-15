@@ -3,7 +3,7 @@
 ## primer
 ### card 1
 Remember: change direction without warning, keep the leash Slack, and reward every glance {name} gives you. Use "Let's Go" to set off together and "Go Sniff" to give them time to sniff.
-- caption: Zig-zag turns invite a Check-in
+- caption: Unexpected turns invite a Check-in
 
 ## checkpoint
 ### tq1
