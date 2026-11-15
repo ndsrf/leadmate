@@ -317,3 +317,111 @@ describe('Sintonía through an S-curve', () => {
     expect(s.sintonia.active).toBe(true);
   });
 });
+
+describe('Marker timing grade', () => {
+  const quiet = scenario({ distractor: noDistractor, ranges: fastCheckIns });
+  const ofType = <T extends SimEvent['type']>(events: SimEvent[], type: T) => events.find((e) => e.type === type) as Extract<SimEvent, { type: T }> | undefined;
+
+  it('grades a Check-in hit 0.2 s into the look as Perfect', () => {
+    const s = createState(3, quiet);
+    runUntil(s, 'check-in-glance');
+    expect(s.lookStartedAt).toBeCloseTo(s.time, 6);
+    run(s, 0.2);
+    expect(ofType(tick(s, press), 'check-in-hit')?.grade).toBe('perfect');
+    expect(s.telemetry.markGrades).toEqual({ perfect: 1, good: 0, late: 0 });
+  });
+
+  it('grades a press exactly 0.3 s into the window as Perfect and a later one as Good', () => {
+    const s = createState(3, quiet);
+    runUntil(s, 'check-in-glance');
+    run(s, 0.3 - STEP);
+    expect(ofType(tick(s, press), 'check-in-hit')?.grade).toBe('perfect');
+    const t = createState(3, quiet);
+    runUntil(t, 'check-in-glance');
+    run(t, 0.6);
+    expect(ofType(tick(t, press), 'check-in-hit')?.grade).toBe('good');
+    expect(t.telemetry.markGrades).toEqual({ perfect: 0, good: 1, late: 0 });
+  });
+
+  it('grades a Marker hit 0.8 s after the Disengagement as Good and 0.2 s as Perfect', () => {
+    const s = createState(5, scenario({ distractor: nearbyDistractor }));
+    runUntil(s, 'disengagement');
+    run(s, 0.8 - STEP);
+    const hit = ofType(tick(s, press), 'marker-hit');
+    expect(hit?.accuracyMs).toBe(800);
+    expect(hit?.grade).toBe('good');
+    const t = createState(5, scenario({ distractor: nearbyDistractor }));
+    runUntil(t, 'disengagement');
+    run(t, 0.2 - STEP);
+    expect(ofType(tick(t, press), 'marker-hit')?.grade).toBe('perfect');
+    expect(t.telemetry.markGrades).toEqual({ perfect: 1, good: 0, late: 0 });
+  });
+
+  it('starts a fresh look when the Dog follows a turn', () => {
+    const s = createState(1, scenario({ distractor: noDistractor, ranges: slowCheckIns, learning: withFollow(1) }));
+    runUntil(s, 'dog-follow', move(0.6, 0, 1));
+    expect(s.lookStartedAt).toBeCloseTo(s.time, 6);
+    const hit = ofType(tick(s, { ...press, direction: { x: 0, y: 1 }, strength: 0.6 }), 'check-in-hit');
+    expect(hit?.grade).toBe('perfect');
+  });
+});
+
+describe('Late Marker press', () => {
+  const quiet = scenario({ distractor: noDistractor, ranges: fastCheckIns });
+  const types = (events: SimEvent[]) => events.map((e) => e.type);
+
+  it('records a press 0.4 s after a Check-in window closed as Late: a Mark spent, no hit', () => {
+    const s = createState(3, quiet);
+    runUntil(s, 'check-in-glance');
+    run(s, quiet.checkInWindow + 0.4);
+    expect(isDogLooking(s)).toBe(false);
+    const events = tick(s, press);
+    expect(types(events)).toContain('marker-late');
+    expect(types(events)).not.toContain('marker-wasted');
+    expect(s.telemetry.checkInHits).toBe(0);
+    expect(s.telemetry.marksUsed).toBe(1);
+    expect(s.telemetry.markGrades).toEqual({ perfect: 0, good: 0, late: 1 });
+  });
+
+  it('records a press just after a Reward Window closed unmarked as Late, after the miss', () => {
+    // a Disengagement that calms the Dog fully, so the press is not a reactive one
+    const s = createState(5, scenario({ distractor: nearbyDistractor, arousal: { ...defaultScenario.arousal, disengagementDrop: 100 } }));
+    runUntil(s, 'disengagement');
+    runUntil(s, 'marker-miss');
+    run(s, 0.3);
+    const events = tick(s, press);
+    expect(types(events)).toEqual(['marker-late']);
+    expect(s.telemetry.hitAccuraciesMs).toHaveLength(0);
+    expect(s.telemetry.markGrades.late).toBe(1);
+  });
+
+  it('keeps a press with no window closed in the last 1.0 s as wasted', () => {
+    const s = createState(3, quiet);
+    runUntil(s, 'check-in-glance');
+    run(s, quiet.checkInWindow + 1.1);
+    expect(isDogLooking(s)).toBe(false);
+    expect(types(tick(s, press))).toContain('marker-wasted');
+    expect(s.telemetry.markGrades).toEqual({ perfect: 0, good: 0, late: 0 });
+    const fresh = createState(5, scenario({ distractor: noDistractor, ranges: slowCheckIns }));
+    expect(types(tick(fresh, press))).toEqual(['marker-wasted']);
+  });
+
+  it('keeps a second press after a marked look as wasted, not Late', () => {
+    const s = createState(3, quiet);
+    runUntil(s, 'check-in-glance');
+    run(s, 0.2);
+    tick(s, press);
+    run(s, quiet.checkInWindow);
+    expect(isDogLooking(s)).toBe(false);
+    expect(types(tick(s, press))).toContain('marker-wasted');
+    expect(s.telemetry.markGrades.late).toBe(0);
+  });
+
+  it('records no Late press once the budget is spent', () => {
+    const s = createState(3, scenario({ distractor: noDistractor, ranges: fastCheckIns, markBudget: 0 }));
+    runUntil(s, 'check-in-glance');
+    run(s, quiet.checkInWindow + 0.4);
+    expect(types(tick(s, press))).not.toContain('marker-late');
+    expect(s.telemetry.markGrades.late).toBe(0);
+  });
+});

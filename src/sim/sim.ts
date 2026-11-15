@@ -38,15 +38,26 @@ export function tierFor(arousal: number, threshold: number, alertFraction: numbe
  */
 export type DogMode = 'goal' | 'fixated' | 'holding' | 'returning' | 'sniffing';
 
+/** Marker timing grade of a hit: Perfect within `PERFECT_MARK_SECONDS` of the window's start, Good later in it. */
+export type MarkerGrade = 'perfect' | 'good';
+/** A hit this soon after its window opened is Perfect. */
+export const PERFECT_MARK_SECONDS = 0.3;
+/** A press this soon after a window closed unmarked is a Late Marker press instead of a wasted one. */
+export const LATE_PRESS_SECONDS = 1.0;
+/** Float noise allowed when comparing summed tick times with a duration. */
+const TIME_EPSILON = 1e-9;
+
 export type SimEvent =
   | { type: 'fixation-start'; time: number }
   | { type: 'disengagement'; time: number }
-  | { type: 'marker-hit'; time: number; accuracyMs: number }
+  | { type: 'marker-hit'; time: number; accuracyMs: number; grade: MarkerGrade }
   | { type: 'marker-miss'; time: number }
   | { type: 'marker-reactive'; time: number }
   | { type: 'missed-opportunity'; time: number }
   | { type: 'check-in-glance'; time: number }
-  | { type: 'check-in-hit'; time: number }
+  | { type: 'check-in-hit'; time: number; grade: MarkerGrade }
+  /** A Late Marker press: within `LATE_PRESS_SECONDS` after a window closed unmarked. Spends a Mark, rewards nothing. */
+  | { type: 'marker-late'; time: number }
   | { type: 'marker-wasted'; time: number }
   | { type: 'dog-follow'; time: number }
   | { type: 'dog-correction'; time: number }
@@ -93,6 +104,8 @@ export interface Telemetry {
   sintoniaTime: number;
   /** Go Sniffs the Handler started. */
   goSniffs: number;
+  /** Marker timing grades of Marker hits and Check-in hits, and Late Marker presses. */
+  markGrades: { perfect: number; good: number; late: number };
 }
 
 /** What the last stop at the leash limit looked like (the leash-physics abrupt stop measure). */
@@ -152,6 +165,12 @@ export interface SimState {
   dogLookUntil: number;
   /** Why the Dog is looking: its own glance, following a turn, or a Cue. */
   lookCause: 'glance' | 'follow' | 'cue';
+  /** When the current (or last) look at the Handler started; null before the first look. */
+  lookStartedAt: number | null;
+  /** The current (or last) look already got a Check-in hit, so pressing after it is not Late. */
+  lookMarked: boolean;
+  /** When the last Reward Window closed unmarked; null if none has. */
+  rewardMissedAt: number | null;
   nextCheckInAt: number;
   /** Heading the last turn was measured from. */
   headingAnchor: Vec2;
@@ -224,6 +243,9 @@ export function createState(seed: number, config: ScenarioConfig = defaultScenar
     rewardWindow: null,
     dogLookUntil: -1,
     lookCause: 'glance',
+    lookStartedAt: null,
+    lookMarked: false,
+    rewardMissedAt: null,
     nextCheckInAt: 0,
     headingAnchor: normalize(sub(routeOf(config)[0], config.handlerStart)),
     steer: null,
@@ -255,6 +277,7 @@ export function createState(seed: number, config: ScenarioConfig = defaultScenar
       calmEncounters: {},
       sintoniaTime: 0,
       goSniffs: 0,
+      markGrades: { perfect: 0, good: 0, late: 0 },
     },
     paused: false,
     ended: false,
@@ -383,6 +406,19 @@ export function isGoSniffAvailable(state: SimState): boolean {
   return state.config.world >= FIRST_WALKING_WORLD && state.sniff === null && state.time < state.sniffOfferUntil && state.ratio < SLACK_MAX;
 }
 
+/**
+ * The Dog looks at the Handler until `until`. A look that starts while the Dog is not looking (or
+ * any look after a followed turn, which is a new thing to mark) restarts the Marker timing grade.
+ */
+function startLook(state: SimState, until: number, cause: SimState['lookCause'], fresh = false): void {
+  if (fresh || !isDogLooking(state)) {
+    state.lookStartedAt = state.time;
+    state.lookMarked = false;
+  }
+  state.dogLookUntil = until;
+  state.lookCause = cause;
+}
+
 /** True while the Dog is looking at the Handler (a glance or a look after following a turn). */
 export function isDogLooking(state: SimState): boolean {
   return state.time < state.dogLookUntil;
@@ -436,8 +472,7 @@ function detectTurn(state: SimState, dir: Vec2, events: SimEvent[]): void {
   if (state.eventRng.next() < chance) {
     state.steer = { dir, until: state.time + config.followSeconds };
     state.correctionPending = null;
-    state.dogLookUntil = state.time + config.checkInWindow;
-    state.lookCause = 'follow';
+    startLook(state, state.time + config.checkInWindow, 'follow', true);
     events.push({ type: 'dog-follow', time: state.time });
   } else {
     state.correctionPending = { dir, until: state.time + config.correctionWaitSeconds };
@@ -666,8 +701,7 @@ function trackStall(state: SimState, before: Vec2, intended: number, dt: number)
 function updateCheckIn(state: SimState, events: SimEvent[]): void {
   const { config } = state;
   if (state.dogMode !== 'goal' || state.time < state.nextCheckInAt) return;
-  state.dogLookUntil = Math.max(state.dogLookUntil, state.time + config.checkInWindow);
-  state.lookCause = 'glance';
+  startLook(state, Math.max(state.dogLookUntil, state.time + config.checkInWindow), 'glance');
   state.nextCheckInAt = state.time + state.dogTraits.checkInMeanInterval * (0.5 + state.eventRng.next());
   events.push({ type: 'check-in-glance', time: state.time });
 }
@@ -785,8 +819,7 @@ function applyCue(state: SimState, input: SimInput, events: SimEvent[]): void {
   if (state.dogMode === 'fixated') strength *= cue.fixatedFactor;
   if (isDogLooking(state)) strength *= cue.repeatFactor;
   state.lastCueAt = state.time;
-  state.dogLookUntil = Math.max(state.dogLookUntil, state.time + checkInWindow * strength);
-  state.lookCause = 'cue';
+  startLook(state, Math.max(state.dogLookUntil, state.time + checkInWindow * strength), 'cue');
   if (state.dogMode === 'goal') {
     state.steer = { dir: normalize(sub(state.handler, state.dog)), until: state.time + state.config.followSeconds * strength * 0.5 };
   }
@@ -798,6 +831,7 @@ function evaluateMarker(state: SimState, input: SimInput, events: SimEvent[]): v
   const window = state.rewardWindow;
   if (window && state.time > window.closesAt) {
     state.rewardWindow = null;
+    state.rewardMissedAt = window.closesAt;
     state.dogMode = 'goal';
     state.telemetry.markerMisses += 1;
     events.push({ type: 'marker-miss', time: state.time });
@@ -814,17 +848,36 @@ function evaluateMarker(state: SimState, input: SimInput, events: SimEvent[]): v
     raiseArousal(state, -state.config.arousal.markerHitDrop);
     const kind = activeDistractor(state).kind;
     state.telemetry.calmEncounters[kind] = (state.telemetry.calmEncounters[kind] ?? 0) + 1;
-    events.push({ type: 'marker-hit', time: state.time, accuracyMs });
+    events.push({ type: 'marker-hit', time: state.time, accuracyMs, grade: gradeMark(state, accuracyMs) });
   } else if (state.dogMode === 'fixated' || state.tier === 'reactive' || state.ratio > RIGID_MIN + RATIO_EPSILON) {
     state.telemetry.reactiveMarkers += 1;
     events.push({ type: 'marker-reactive', time: state.time });
   } else if (isDogLooking(state)) {
     state.telemetry.checkInHits += 1;
     if (state.lookCause === 'follow') state.telemetry.followMarks += 1;
-    events.push({ type: 'check-in-hit', time: state.time });
+    state.lookMarked = true;
+    const delayMs = Math.round((state.time - (state.lookStartedAt ?? state.time)) * 1000);
+    events.push({ type: 'check-in-hit', time: state.time, grade: gradeMark(state, delayMs) });
+  } else if (isLatePress(state)) {
+    state.telemetry.markGrades.late += 1;
+    events.push({ type: 'marker-late', time: state.time });
   } else {
     events.push({ type: 'marker-wasted', time: state.time });
   }
+}
+
+/** The Marker timing grade of a hit `delayMs` after its window opened, counted in telemetry. */
+function gradeMark(state: SimState, delayMs: number): MarkerGrade {
+  const grade: MarkerGrade = delayMs <= PERFECT_MARK_SECONDS * 1000 ? 'perfect' : 'good';
+  state.telemetry.markGrades[grade] += 1;
+  return grade;
+}
+
+/** A press with no window open, within `LATE_PRESS_SECONDS` after a Check-in window or a Reward Window closed unmarked. */
+function isLatePress(state: SimState): boolean {
+  const recent = (closedAt: number | null) => closedAt !== null && state.time - closedAt <= LATE_PRESS_SECONDS + TIME_EPSILON;
+  const lookClosed = state.lookStartedAt !== null && !state.lookMarked ? state.dogLookUntil : null;
+  return recent(lookClosed) || recent(state.rewardMissedAt);
 }
 
 /** The Dog heads for the next corridor point once the Handler or the Dog has reached this one. */
