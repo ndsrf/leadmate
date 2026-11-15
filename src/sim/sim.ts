@@ -4,6 +4,8 @@ import { BODY_RADIUS, buildWallIndex, closestOnSegment, hasLineOfSight, leashLen
 import { propWalls } from './scenery';
 import { GoalDrive, type Drive } from './drives';
 import { resolveDog, TRIGGER_FACTORS, type DistractorKind, type ResolvedDog } from './learning';
+import { addMeterPoints, initialMeters, type MeterValue } from './meters';
+import type { FeedbackActionKind } from './feedbackKinds';
 import { createRng, type Rng } from './rng';
 import { add, distance, dot, length, normalize, rotate, scale, sub, vec, type Vec2 } from './vec';
 
@@ -49,7 +51,8 @@ const TIME_EPSILON = 1e-9;
 
 export type SimEvent =
   | { type: 'fixation-start'; time: number }
-  | { type: 'disengagement'; time: number }
+  /** `poste`: the Handler stood with the leash at its limit (a Poste success). */
+  | { type: 'disengagement'; time: number; poste: boolean }
   | { type: 'marker-hit'; time: number; accuracyMs: number; grade: MarkerGrade }
   | { type: 'marker-miss'; time: number }
   | { type: 'marker-reactive'; time: number }
@@ -77,6 +80,8 @@ export type SimEvent =
   | { type: 'sintonia-end'; time: number }
   | { type: 'go-sniff-start'; time: number }
   | { type: 'go-sniff-end'; time: number; reason: 'time' | 'tension' | 'calm' }
+  /** Meter Points an action added to a Stage Meter (only in Stages with meters); `full` once it reaches its target. */
+  | { type: 'meter-points'; time: number; meterId: string; kind: FeedbackActionKind; points: number; value: number; full: boolean }
   | { type: 'stage-end'; time: number };
 
 export interface Telemetry {
@@ -195,6 +200,8 @@ export interface SimState {
   ratio: number;
   tension: TensionState;
   telemetry: Telemetry;
+  /** The scenario's Stage Meters in declared order; empty when it declares none. */
+  meters: MeterValue[];
   paused: boolean;
   ended: boolean;
 }
@@ -279,6 +286,7 @@ export function createState(seed: number, config: ScenarioConfig = defaultScenar
       goSniffs: 0,
       markGrades: { perfect: 0, good: 0, late: 0 },
     },
+    meters: initialMeters(config),
     paused: false,
     ended: false,
   };
@@ -761,7 +769,7 @@ function disengage(state: SimState, events: SimEvent[]): void {
   if (state.posteStop) state.telemetry.posteSuccesses += 1;
   // the offer of a Go Sniff opens once the Reward Window is over
   state.sniffPending = config.world >= FIRST_WALKING_WORLD;
-  events.push({ type: 'disengagement', time: state.time });
+  events.push({ type: 'disengagement', time: state.time, poste: state.posteStop });
 }
 
 function updateFixation(state: SimState, input: SimInput, dt: number, events: SimEvent[]): void {
@@ -1007,6 +1015,7 @@ export function tick(state: SimState, input: SimInput, dt: number = state.config
   else if (state.tension === 'taut') t.tautTime += dt;
   else t.rigidTime += dt;
 
+  addMeterPoints(state, events);
   checkEnd(state, events);
   return events;
 }

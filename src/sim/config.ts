@@ -1,4 +1,5 @@
 import { defaultRanges, DEFAULT_SNAPSHOT, type AttributeRanges, type DistractorKind, type LearningSnapshot } from './learning';
+import type { FeedbackActionKind } from './feedbackKinds';
 import type { SceneryItem, SceneryTheme, Wall } from './geometry';
 import { scatterScenery } from './scenery';
 import type { Vec2 } from './vec';
@@ -134,6 +135,19 @@ export interface CameraConfig {
   smoothing: number;
 }
 
+/** A Stage Meter: a bar that fills with Meter Points from right actions and, when declared, sets the handling score (ADR 0029). */
+export interface StageMeterConfig {
+  id: string;
+  /** i18n key of the meter's label. */
+  labelKey: string;
+  /** Icon from the HUD catalog. */
+  icon: string;
+  /** Meter Points that fill the meter. */
+  target: number;
+  /** Meter Points each kind of right action adds. */
+  meterPoints: Partial<Record<FeedbackActionKind, number>>;
+}
+
 /** Every tunable of a Stage. 1 world unit = 1 m. */
 /** Dog coats the bundle can draw (visual only). */
 export const DOG_COAT_NAMES = ['golden', 'black', 'chocolate', 'cream', 'white', 'grey', 'red'] as const;
@@ -206,6 +220,8 @@ export interface ScenarioConfig {
   configVersion: string;
   camera: CameraConfig;
   endCondition: EndCondition;
+  /** Stage Meters (at most `MAX_STAGE_METERS` of `meters.ts`); without them the handling score follows ADR 0005. */
+  meters?: StageMeterConfig[];
 }
 
 export const defaultScenario: ScenarioConfig = {
