@@ -39,7 +39,7 @@ export const ES_INTERFACE = {
   'feedback.disengagement.short': '¡Se soltó!',
   'feedback.poste.full': '¡Poste! Te detuviste y {name} soltó la tensión.',
   'feedback.poste.short': '¡Poste!',
-  'feedback.sintonia.full': '¡Sintonía! {name} y tú caminan a la par.',
+  'feedback.sintonia.full': '¡Sintonía! {name} y tú camináis a la par.',
   'feedback.sintonia.short': '¡Sintonía!',
   'feedback.go-sniff.full': 'Dijiste Olfatear y {name} puede explorar. ¡Disfruta del rastro!',
   'feedback.go-sniff.short': '¡A olfatear!',
