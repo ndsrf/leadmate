@@ -2,9 +2,11 @@
 
 ## 1. Spike: a rigged dog the pipeline can render
 
-- [ ] 1.1 Find a rigged quadruped dog GLB with walk/trot/idle clips and head, ear and tail bones under a licence that allows shipping (CC0 preferred); record the source, licence and bone names in design.md under Decision 3, and verify the licence text is saved next to the asset.
+- [x] 1.1 Find a rigged quadruped dog GLB with walk/trot/idle clips and head, ear and tail bones under a licence that allows shipping (CC0 preferred); record the source, licence and bone names in design.md under Decision 3, and verify the licence text is saved next to the asset.
 - [ ] 1.2 Add a bone `overrides` step to `scripts/kenney/render-sprites.mjs` and render one test pose (walk with head turned to the Handler) in all 8 directions; verify by looking at the 8 frames and at the packed result in a Stage on the Android test device.
+  - Done without a phone: the `overrides` step, the 8 frames, the contact sheet `spike/rdog-walklook-contact-sheet.png` and the packed spike atlas `spike/rdog-atlas/`. Still open, for a person: view the packed `walklook` frames in a Stage on the Android test device.
 - [ ] 1.3 Measure the atlas size and load time with an estimated full clip set (~240 Dog frames) on the low-end Android device and record go/no-go in design.md; if no-go, switch to the fallback rig described under Risks before continuing.
+  - Done without a phone: atlas size, memory and a desktop load time with a stand-in 240-frame set (`spike/estimate-atlas/`), and a provisional go recorded under Risks in design.md. Still open, for a person: load a Stage with `spike/estimate-atlas/` on the low-end Android test device and confirm load time and memory.
 
 ## 2. Derived Canine Posture
 
