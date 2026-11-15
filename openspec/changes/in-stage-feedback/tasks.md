@@ -9,8 +9,8 @@
 
 ## 2. Feedback decision module
 
-- [ ] 2.1 Write `src/hud/feedback.ts`: map events to kinds and tiers (design Decision 2), choose the Hint or the short form from the seen kinds, route the existing event Hints through the same slot at top priority, drop wrong kinds in the Taste Stage, and apply priority, drop-not-queue, 4 s Combos and the 8 s Rigid Pull limit; verify with `src/hud/feedback.test.ts` covering each scenario in the `stage-action-feedback` spec.
-- [ ] 2.2 Add `feedback.*` i18n keys in Spanish and English for every kind (full and short, with what to try for wrong kinds) and the Combo format; verify with the i18n catalog test that both languages have every key.
+- [x] 2.1 Write `src/hud/feedback.ts`: map events to kinds and tiers (design Decision 2), choose the Hint or the short form from the seen kinds, route the existing event Hints through the same slot at top priority, drop wrong kinds in the Taste Stage, and apply priority, drop-not-queue, 4 s Combos and the 8 s Rigid Pull limit; verify with `src/hud/feedback.test.ts` covering each scenario in the `stage-action-feedback` spec.
+- [x] 2.2 Add `feedback.*` i18n keys in Spanish and English for every kind (full and short, with what to try for wrong kinds) and the Combo format; verify with the i18n catalog test that both languages have every key.
 
 ## 3. Drawing the effects
 
