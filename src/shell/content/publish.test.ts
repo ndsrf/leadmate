@@ -67,6 +67,8 @@ class MockStorageClient implements StorageClientLike {
 
 describe('publishPack / content:publish', () => {
   const BETA_DIR = path.resolve(__dirname, '../../../content/beta');
+  // the real beta pack is published here, so its version is read from pack.yaml rather than pinned (it bumps every release)
+  const BETA_VERSION = Number(/^contentVersion:\s*(\d+)\s*$/m.exec(fs.readFileSync(path.join(BETA_DIR, 'pack.yaml'), 'utf8'))![1]);
 
   let tmpOutDir: string;
   let mockClient: MockStorageClient;
@@ -95,14 +97,14 @@ describe('publishPack / content:publish', () => {
     // Verify storage has files, manifest and latest.json under beta/
     expect(mockClient.bucket.files.has('beta/latest.json')).toBe(true);
     expect(mockClient.bucket.files.has('beta/manifest.json')).toBe(true);
-    expect(mockClient.bucket.files.has('beta/packs/4/manifest.json')).toBe(true);
+    expect(mockClient.bucket.files.has(`beta/packs/${BETA_VERSION}/manifest.json`)).toBe(true);
 
-    // Verify latest.json points to packs/4/manifest.json
+    // Verify latest.json points to the pack's own manifest
     const latestRaw = mockClient.bucket.files.get('beta/latest.json')!.toString();
     const latest = JSON.parse(latestRaw);
     expect(latest.channel).toBe('beta');
-    expect(latest.contentVersion).toBe(4);
-    expect(latest.manifestPath).toBe('packs/4/manifest.json');
+    expect(latest.contentVersion).toBe(BETA_VERSION);
+    expect(latest.manifestPath).toBe(`packs/${BETA_VERSION}/manifest.json`);
   });
 
   it('interrupted upload leaves latest.json untouched', async () => {
@@ -128,10 +130,10 @@ describe('publishPack / content:publish', () => {
   it('rejects publishing when pack contentVersion does not advance beyond remote latest.json', async () => {
     const remoteLatest = {
       channel: 'beta',
-      contentVersion: 4,
+      contentVersion: BETA_VERSION,
       formatVersion: 1,
       minAppVersion: '1.0.0',
-      manifestPath: 'packs/4/manifest.json',
+      manifestPath: `packs/${BETA_VERSION}/manifest.json`,
       manifestHash: 'hash',
       createdAt: '2026-11-06T18:00:00Z',
     };
@@ -144,7 +146,7 @@ describe('publishPack / content:publish', () => {
         outDir: tmpOutDir,
         storageClient: mockClient,
       })
-    ).rejects.toThrow(/Remote channel "beta" is already at version 4/);
+    ).rejects.toThrow(`Remote channel "beta" is already at version ${BETA_VERSION}.`);
   });
 
   it('publishing to stable prompts for confirmation and aborts if not confirmed', async () => {

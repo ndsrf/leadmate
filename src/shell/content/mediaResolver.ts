@@ -1,6 +1,7 @@
 import { LESSON_ART } from '../lessons/lessonArtRegistry';
 import { isLessonArt } from '../ui/lessonArt';
 import { channelFileUrl, hasRemoteContent } from './config';
+import { NODE_MEDIA } from './nodeMediaRegistry';
 import { getActiveContent } from './runtime';
 import { sha256Hex } from './hash';
 import { ContentStore, type FileStorage } from './store';
@@ -72,6 +73,16 @@ export class MediaResolver {
         kind: 'bundled',
         source: LESSON_ART[art],
       };
+    }
+
+    // 2b. Check bundled Node media (an Image Duel pair), keyed by its path inside the pack
+    for (const candidate of this.getCandidates(art, options.itemPath)) {
+      if (candidate in NODE_MEDIA) {
+        return {
+          kind: 'bundled',
+          source: NODE_MEDIA[candidate],
+        };
+      }
     }
 
     // 3. Check inline SVG scenes

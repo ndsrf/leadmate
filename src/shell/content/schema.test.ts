@@ -356,13 +356,17 @@ describe('node.yaml checkpoint question kinds', () => {
     expect(isDuelQuestionYaml({})).toBe(false);
   });
 
-  it('every shipped node.yaml still validates and holds no duel', () => {
+  it('every shipped node.yaml still validates, and holds a duel only in park-unpredictable', () => {
     for (const channel of ['stable', 'beta']) {
       const dir = join(__dirname, '../../../content', channel, 'nodes');
+      const withDuel: string[] = [];
       for (const id of readdirSync(dir)) {
         const cfg = parseYaml<Record<string, unknown>>(readFileSync(join(dir, id, 'node.yaml'), 'utf8'));
         expect(validateNodeYaml(cfg).errors).toEqual([]);
+        const checkpoint = Array.isArray(cfg.checkpoint) ? cfg.checkpoint : [];
+        if (checkpoint.some(isDuelQuestionYaml)) withDuel.push(id);
       }
+      expect({ channel, withDuel }).toEqual({ channel, withDuel: ['park-unpredictable'] });
     }
   });
 

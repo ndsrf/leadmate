@@ -4,8 +4,8 @@ import type { ContentPack } from './validator';
 export const BASELINE_PACK: ContentPack = {
   "pack": {
     "formatVersion": 1,
-    "contentVersion": 2,
-    "minAppVersion": "1.0.0",
+    "contentVersion": 3,
+    "minAppVersion": "1.1.0",
     "languages": [
       "es",
       "en"
@@ -218,9 +218,27 @@ export const BASELINE_PACK: ContentPack = {
         "worldNumber": 6,
         "tier": "plus",
         "unlockedBy": "park",
-        "preview": true,
-        "nodeCount": 4,
-        "stretches": []
+        "nodeCount": 16,
+        "stretches": [
+          [
+            {
+              "kind": "lesson",
+              "id": "theory-unpredictable-walks"
+            },
+            {
+              "kind": "lesson",
+              "id": "howto-yield-pressure"
+            },
+            {
+              "kind": "node",
+              "id": "park-unpredictable"
+            },
+            {
+              "kind": "mission",
+              "id": "mission-park-unpredictable"
+            }
+          ]
+        ]
       },
       "text": {
         "en": "# The Park and Recall\n\n## topics\nreliable recall, open distractions, regulated play\n",
@@ -522,6 +540,27 @@ export const BASELINE_PACK: ContentPack = {
         "media/howto-walking-3.png",
         "media/howto-walking-4.png"
       ]
+    },
+    "howto-yield-pressure": {
+      "config": {
+        "id": "howto-yield-pressure",
+        "kind": "theory",
+        "images": [
+          "howto-yield-pressure-1",
+          "howto-yield-pressure-2"
+        ],
+        "compare": {
+          "do": "howto-yield-pressure-do",
+          "dont": "howto-yield-pressure-dont"
+        },
+        "steps": 4,
+        "takeaways": 4
+      },
+      "text": {
+        "en": "# Giving Way to Leash Pressure\n\n## heading\nTeaching your Dog to follow leash guidance without pulling\n\n## hook\nBefore you even step outside your front door, light leash tension often triggers the exact opposite reaction: your Dog braces against the harness and pulls harder. That opposition reflex is completely natural for any canine, but turns every walk into an exhausting tug-of-war unless you first teach that yielding to leash pressure makes it disappear instantly.\n\n## why\nWhen a dog feels leash tension, their physical instinct is to pull against it to keep balance. Meeting tension with force only triggers more resistance. Steady stillness guides cooperation instead. This 5-minute pre-walk drill builds a completely different habit: light leash pressure is a tactile hint. The moment {name} takes half a step toward the source of pressure, the leash goes completely Slack. That instant release is the primary relief, and marking it with your Marker word locks in the lesson. As taught in the Marking and Rewarding lesson, precise timing within one second makes all the difference.\n\n## steps\n1. Inside your living room or hallway, hold the leash at a comfortable distance and apply very light, steady pressure using just two fingers.\n2. Keep your hand still where it is. Wait quietly until {name} leans or takes a single step in that direction.\n3. The instant {name} yields and moves toward you, release all leash tension immediately, mark that step with \"good\", and deliver a treat.\n4. Practice three gentle repetitions to the left and three to the right; if distractions or arousal cause frustration at any point, turn around and end the session calmly.\n\n## example\n### {name} in the hallway\nYou are in the hallway getting ready for the afternoon walk. {name} faces the front door with ears pricked forward. Holding the leash at a relaxed distance, you apply gentle sideways tension using just two fingers, without moving your arm. {name} feels the light resistance and pauses at first. You remain still and silent. Three seconds later, {name} leans their weight toward you and takes half a step. You release the leash instantly, mark with \"good\", and deliver a treat beside your leg. {name} glances up into your eyes for a spontaneous Check-in: you mark and reward once again.\n\n## compare\n### do\nApply gentle, steady pressure with two fingers, waiting patiently for your Dog to take a step toward you before releasing and marking.\n### dont\nKeep holding leash tension after {name} moves or step toward them to help; waiting to release prevents your Dog from feeling that their step made the pressure disappear.\n\n## tip\nTry it today: spend five minutes indoors before your walk practicing three gentle repetitions to the left and three to the right until following light pressure feels effortless.\n\n## takeaways\n- Gentle leash pressure is a tactile hint, released the moment your Dog yields.\n- Releasing tension the instant your Dog yields is the relief that teaches the behavior.\n- Mark with \"good\" and deliver the treat the moment {name} takes a step.\n- If a distraction overwhelms your Dog, turn around, create distance, and end the drill.\n\n## images\n### howto-yield-pressure-1\n- alt: Two-step diagram in a hallway: step one shows gentle sideways arrow indicating light leash tension; step two shows the leash dropping Slack as the dog steps toward the handler\n- caption: Steady light pressure: release the leash the instant your Dog steps toward you\n\n### howto-yield-pressure-2\n- alt: A handler standing with hands relaxed by the waist offers a treat beside the leg to {name}, who makes eye contact on a Slack leash\n- caption: Yielding to leash pressure opens the reward beside your leg\n",
+        "es": "# Ceder a la presión de la correa\n\n## heading\nAprender a seguir la correa sin tirar\n\n## hook\nAntes de cruzar la puerta de la calle, una ligera tensión en la correa suele provocar la respuesta contraria: tu perro se apoya contra el arnés y tira con más fuerza. Ese reflejo de oposición es natural en cualquier perro, pero convierte el paseo en una batalla de fuerza física si nadie le enseña primero que ceder a esa presión hace que desaparezca de inmediato.\n\n## why\nCuando un perro nota tensión en la correa, su primer instinto es tirar hacia el lado opuesto para no perder el equilibrio. Responder con fuerza solo aumenta esa resistencia; la calma y la suavidad guían la cooperación. Este ejercicio de cinco minutos antes de salir enseña otra respuesta: la tensión suave es una pista táctil. En cuanto {name} da medio paso hacia ti, la presión se suelta al instante. Esa liberación inmediata es el primer alivio, y marcarlo con tu palabra sella el avance. Como vimos en la lección Marcar y recompensar, el valor está en la rapidez de ese segundo.\n\n## steps\n1. En el salón o en el pasillo de casa, sostén la correa a una distancia cómoda y ejerce una presión muy suave y constante usando solo dos dedos.\n2. Mantén la mano quieta en su sitio. Espera en silencio a que {name} mueva el peso del cuerpo o dé un solo paso hacia tu posición.\n3. En el instante en que {name} cede y se desplaza hacia ti, afloja la correa por completo, marca ese paso con un «bien» y entrega una golosina.\n4. Repite tres veces a la izquierda y tres a la derecha; si en algún momento surge frustración o inquietud, date la vuelta y termina la sesión con calma.\n\n## example\n### {name} en el pasillo de casa\nEstáis en el pasillo antes de salir al paseo de la tarde. {name} mira hacia la puerta principal con las orejas atentas. Sosteniendo la correa a una distancia relajada, aplicas una tensión lateral suave con dos dedos, sin mover tu brazo. {name} nota la resistencia y al principio se frena. Te mantienes sin hablar. Tres segundos después, {name} inclina el pecho hacia ti y da medio paso. Al instante destensas la correa, marcas con «bien» y das una golosina a la altura de tu pierna. {name} levanta la mirada hacia tus ojos en un check-in espontáneo: vuelves a marcar y pagas otra vez.\n\n## compare\n### do\nAplicar una tensión suave y fija con dos dedos, esperando con calma a que tu perro elija dar un paso hacia ti antes de soltar y marcar.\n### dont\nMantener la tensión de la correa después de que {name} se mueva o dar un paso hacia tu perro para ayudarle; retrasar la liberación impide sentir que su movimiento hizo desaparecer la presión.\n\n## tip\nPrueba hoy: dedica cinco minutos en casa antes del paseo a practicar tres repeticiones a la izquierda y tres a la derecha hasta que la respuesta sea automática.\n\n## takeaways\n- La presión suave de la correa es una pista táctil que se suelta en cuanto tu perro cede.\n- La liberación instantánea de la tensión es el verdadero premio que enseña a ceder.\n- Marca con «bien» y entrega la golosina en cuanto {name} dé el primer paso.\n- Si una distracción supera a tu perro, date la vuelta, gana distancia y termina el ejercicio.\n\n## images\n### howto-yield-pressure-1\n- alt: Diagrama de dos pasos en el pasillo: en el primer paso, una flecha suave muestra ligera tensión en la correa hacia la derecha; en el segundo paso, la correa cae en comba y el perro da un paso hacia la persona\n- caption: Presión ligera constante: aflojar la correa en cuanto el perro avanza hacia ti\n\n### howto-yield-pressure-2\n- alt: Una persona de pie con la mano relajada junto a la cintura ofrece una golosina a {name}, que la mira a la cara con la correa holgada\n- caption: Ceder a la correa abre el premio junto a tu pierna\n"
+      },
+      "files": []
     },
     "marking-rewarding": {
       "config": {
@@ -1013,8 +1052,8 @@ export const BASELINE_PACK: ContentPack = {
         "takeaways": 4
       },
       "text": {
-        "en": "# Walking on a Slack Leash\n\n## heading\nEvery walk is a tug-of-war\n\n## hook\nYou step outside with {name} and within two minutes your shoulder aches. Pulling toward the tree, the lamppost, the dog across the street. You trail behind, braking and yielding, and when they finally walk nicely beside you, you barely notice: you are bracing for the next yank. Upon returning home, you both have less energy than if you had gone for a run.\n\n## why\nTo your Dog, the outside world is overflowing with rewards: rich scents, novel sights, forward momentum. Whatever behavior occurs immediately prior to reaching those rewards is what gets reinforced. If pulling reaches the tree, pulling worked. If you only speak up when pulling happens, the calm stretches pass by unreinforced. And if a surprise Distractor, like a skateboard, appears close by, arousal spikes instantly and lunging becomes the default reflex. Walking on a Slack leash flips the equation: the world opens up only when the leash hangs Slack, and you spot challenging situations before your Dog does.\n\n## steps\n1. Scan far ahead, half a block down the street. That way you spot a skateboarder, another dog, or a cat before your Dog does, giving you time to respond.\n2. If a challenging Distractor approaches, step aside or slow down before the leash goes Taut. When in doubt, create more distance.\n3. Mark the good moments: when walking on a Slack leash or disengaging from a Distractor to check in with you, speak \"good\" and deliver a treat.\n4. If the leash goes Taut, perform Poste: stop still without jerking and wait. As soon as it goes Slack, continue walking.\n5. Pay with the environment: after a stretch on a Slack leash, cue \"Go sniff\" and accompany them over to that tree they wanted to investigate.\n\n## example\n### {name} and the skateboard\nYou walk down the market street and {name} walks on a Slack leash. You look far ahead and spot a boy on a skateboard approaching in the distance. {name} has not seen it yet. You step aside toward a shop window before it arrives. {name} hears the wheels, pricks ears forward, and the leash stretches: you perform Poste. Watching the skateboard pass, the moment their head turns back toward you: \"good\" Marker and a treat. You resume walking. Ten meters ahead is the tree they always want to smell; having walked nicely without pulling, you cue \"Go sniff\". The first block is challenging; the next, a little easier.\n\n## compare\n### do\nPerform Poste a few paces before the tree. Once the leash hangs Slack, cue \"Go sniff\": you arrive together and the scent rewards the Slack leash.\n### dont\nLet them pull all the way to the tree because \"they were going to sniff it anyway.\" That scent reinforces the pull, ensuring they pull even harder next time.\n\n## tip\nTry it today: before reaching the first corner, mark and reward five moments of a Slack leash. Notice how many used to pass by unnoticed.\n\n## takeaways\n- Whatever pays for the walk is what gets learned.\n- Scan far ahead: spot difficult Distractors first.\n- Mark Slack leash moments, not just the pulls.\n- Sniffing is the ultimate reward for a Slack leash.\n\n## images\n### theory-loose-leash-1\n- alt: Two scenes: on the left, the Handler and {name} walk on a Slack leash; on the right, the Handler pauses and {name} sniffs a shrub with the leash hanging Slack\n- caption: First, Slack leash; then, sniffing\n\n### theory-loose-leash-2\n- alt: On the sidewalk, the Handler looks into the distance at a boy wearing a helmet on a skateboard, while {name} walks calmly on a Slack leash\n- caption: Look far ahead: spot what is coming before your Dog does\n",
-        "es": "# Pasear con la correa floja\n\n## heading\nCada paseo es un tira y afloja\n\n## hook\nSales con {name} y en dos minutos ya te duele el hombro. Tira hacia el árbol, hacia la farola, hacia el perro de enfrente. Tú vas detrás, frenando y soltando, y cuando por fin camina a tu lado ni te das cuenta: estás pendiente del siguiente tirón. Al volver, llegáis con menos energía que si hubierais corrido.\n\n## why\nPara tu perro, la calle está llena de premios: olores, sitios nuevos, seguir avanzando. Lo que hace justo antes de conseguirlos es lo que aprende. Si llega al árbol tirando, tirar le ha funcionado. Si solo le hablas cuando tira, los ratos buenos pasan sin que nada los premie. Y si algo le sorprende de cerca, como un monopatín, la emoción le sube de golpe y tirar es lo único que le sale. Pasear con la correa floja es darle la vuelta a todo eso: que la calle se abra cuando la correa cuelga, y que tú veas venir lo difícil antes que él.\n\n## steps\n1. Mira lejos, media calle por delante. Así ves venir antes que él un monopatín, otro perro o un gato, y tienes tiempo de reaccionar.\n2. Si llega algo que le va a costar, apártate a un lado o frena antes de que la correa se tense. Si dudas, más distancia.\n3. Marca los ratos buenos: cuando camina con la correa colgando o deja de mirar algo para volver contigo, di «bien», que le señala ese momento, y dale una golosina.\n4. Si la correa se tensa, haz poste: te paras sin tirar y esperas. En cuanto se afloja, seguís andando.\n5. Paga con la calle: cuando lleva un rato con la correa floja, dile «venga, huele» y llévale tú hasta ese árbol que quería oler.\n\n## example\n### {name} y el monopatín\nVais por la calle del mercado y {name} camina con la correa colgando. Miras lejos y ves, al fondo, a un chico en monopatín que se acerca. {name} todavía no lo ha visto. Te apartas hacia un escaparate antes de que llegue. {name} lo oye, levanta las orejas y la correa se estira: te paras. Mira pasar el monopatín y, en cuanto vuelve la cabeza hacia ti, «bien» y golosina. Seguís. Diez metros después está el árbol que siempre quiere oler; lleva un buen rato sin tirar, así que le dices «venga, huele». La primera calle os cuesta; la siguiente, un poco menos.\n\n## compare\n### do\nHacer poste unos pasos antes del árbol. Cuando la correa cuelga, «venga, huele»: llegáis juntos y el olor premia la correa floja.\n### dont\nDejarle llegar tirando al árbol que quiere oler, porque «total, iba a olerlo igual». Ese olor le paga el tirón, y la próxima vez tirará antes.\n\n## tip\nPrueba hoy: antes de llegar a la primera esquina, marca y premia cinco ratos de correa floja. Fíjate en cuántos se te escapaban sin darte cuenta.\n\n## takeaways\n- Lo que le paga el paseo es lo que aprende.\n- Mira lejos: ve venir lo difícil antes que él.\n- Marca los ratos de correa floja, no solo los tirones.\n- Olfatear es el premio de la correa floja.\n\n## images\n### theory-loose-leash-1\n- alt: Dos escenas: a la izquierda, la persona y {name} caminan con la correa floja; a la derecha, la persona se para y {name} huele un arbusto con la correa colgando\n- caption: Primero, correa floja; después, a olfatear\n\n### theory-loose-leash-2\n- alt: En la acera, la persona mira a lo lejos a un chico con casco que llega en monopatín, mientras {name} camina con calma con la correa floja\n- caption: Mira lejos: lo ves llegar antes que él\n\n"
+        "en": "# Walking on a Slack Leash\n\n## heading\nEvery walk is a tug-of-war\n\n## hook\nYou step outside with {name} and within two minutes your shoulder aches. Pulling toward the tree, the lamppost, the dog across the street. You trail behind, braking and yielding, and when they finally walk nicely beside you, you barely notice: you are bracing for the next yank. Upon returning home, you both have less energy than if you had gone for a run.\n\n## why\nTo your Dog, the outside world is overflowing with rewards: rich scents, novel sights, forward momentum. Whatever behavior occurs immediately prior to reaching those rewards is what gets reinforced. If pulling reaches the tree, pulling worked. If you only speak up when pulling happens, the calm stretches pass by unreinforced. And if a surprise Distractor, like a skateboard, appears close by, arousal spikes instantly and lunging becomes the default reflex. Walking on a Slack leash flips the equation: the world opens up only when the leash hangs Slack, and you spot challenging situations before your Dog does. Later, in World 6 (The Park and Recall), you will learn how making walks unpredictable keeps your Dog choosing you.\n\n## steps\n1. Scan far ahead, half a block down the street. That way you spot a skateboarder, another dog, or a cat before your Dog does, giving you time to respond.\n2. If a challenging Distractor approaches, step aside or slow down before the leash goes Taut. When in doubt, create more distance.\n3. Mark the good moments: when walking on a Slack leash or disengaging from a Distractor to check in with you, speak \"good\" and deliver a treat.\n4. If the leash goes Taut, perform Poste: stop still without jerking and wait. As soon as it goes Slack, continue walking.\n5. Pay with the environment: after a stretch on a Slack leash, cue \"Go sniff\" and accompany them over to that tree they wanted to investigate.\n\n## example\n### {name} and the skateboard\nYou walk down the market street and {name} walks on a Slack leash. You look far ahead and spot a boy on a skateboard approaching in the distance. {name} has not seen it yet. You step aside toward a shop window before it arrives. {name} hears the wheels, pricks ears forward, and the leash stretches: you perform Poste. Watching the skateboard pass, the moment their head turns back toward you: \"good\" Marker and a treat. You resume walking. Ten meters ahead is the tree they always want to smell; having walked nicely without pulling, you cue \"Go sniff\". The first block is challenging; the next, a little easier.\n\n## compare\n### do\nPerform Poste a few paces before the tree. Once the leash hangs Slack, cue \"Go sniff\": you arrive together and the scent rewards the Slack leash.\n### dont\nLet them pull all the way to the tree because \"they were going to sniff it anyway.\" That scent reinforces the pull, ensuring they pull even harder next time.\n\n## tip\nTry it today: before reaching the first corner, mark and reward five moments of a Slack leash. Notice how many used to pass by unnoticed.\n\n## takeaways\n- Whatever pays for the walk is what gets learned.\n- Scan far ahead: spot difficult Distractors first.\n- Mark Slack leash moments, not just the pulls.\n- Sniffing is the ultimate reward for a Slack leash.\n\n## images\n### theory-loose-leash-1\n- alt: Two scenes: on the left, the Handler and {name} walk on a Slack leash; on the right, the Handler pauses and {name} sniffs a shrub with the leash hanging Slack\n- caption: First, Slack leash; then, sniffing\n\n### theory-loose-leash-2\n- alt: On the sidewalk, the Handler looks into the distance at a boy wearing a helmet on a skateboard, while {name} walks calmly on a Slack leash\n- caption: Look far ahead: spot what is coming before your Dog does\n",
+        "es": "# Pasear con la correa floja\n\n## heading\nCada paseo es un tira y afloja\n\n## hook\nSales con {name} y en dos minutos ya te duele el hombro. Tira hacia el árbol, hacia la farola, hacia el perro de enfrente. Tú vas detrás, frenando y soltando, y cuando por fin camina a tu lado ni te das cuenta: estás pendiente del siguiente tirón. Al volver, llegáis con menos energía que si hubierais corrido.\n\n## why\nPara tu perro, la calle está llena de premios: olores, sitios nuevos, seguir avanzando. Lo que hace justo antes de conseguirlos es lo que aprende. Si llega al árbol tirando, tirar le ha funcionado. Si solo le hablas cuando tira, los ratos buenos pasan sin que nada los premie. Y si algo le sorprende de cerca, como un monopatín, la emoción le sube de golpe y tirar es lo único que le sale. Pasear con la correa floja es darle la vuelta a todo eso: que la calle se abra cuando la correa cuelga, y que tú veas venir lo difícil antes que él. Más adelante, en el Mundo 6 (El Parque y la Llamada), verás cómo hacer los paseos impredecibles para que tu perro siga eligiendo conectar contigo.\n\n## steps\n1. Mira lejos, media calle por delante. Así ves venir antes que él un monopatín, otro perro o un gato, y tienes tiempo de reaccionar.\n2. Si llega algo que le va a costar, apártate a un lado o frena antes de que la correa se tense. Si dudas, más distancia.\n3. Marca los ratos buenos: cuando camina con la correa colgando o deja de mirar algo para volver contigo, di «bien», que le señala ese momento, y dale una golosina.\n4. Si la correa se tensa, haz poste: te paras sin tirar y esperas. En cuanto se afloja, seguís andando.\n5. Paga con la calle: cuando lleva un rato con la correa floja, dile «venga, huele» y llévale tú hasta ese árbol que quería oler.\n\n## example\n### {name} y el monopatín\nVais por la calle del mercado y {name} camina con la correa colgando. Miras lejos y ves, al fondo, a un chico en monopatín que se acerca. {name} todavía no lo ha visto. Te apartas hacia un escaparate antes de que llegue. {name} lo oye, levanta las orejas y la correa se estira: te paras. Mira pasar el monopatín y, en cuanto vuelve la cabeza hacia ti, «bien» y golosina. Seguís. Diez metros después está el árbol que siempre quiere oler; lleva un buen rato sin tirar, así que le dices «venga, huele». La primera calle os cuesta; la siguiente, un poco menos.\n\n## compare\n### do\nHacer poste unos pasos antes del árbol. Cuando la correa cuelga, «venga, huele»: llegáis juntos y el olor premia la correa floja.\n### dont\nDejarle llegar tirando al árbol que quiere oler, porque «total, iba a olerlo igual». Ese olor le paga el tirón, y la próxima vez tirará antes.\n\n## tip\nPrueba hoy: antes de llegar a la primera esquina, marca y premia cinco ratos de correa floja. Fíjate en cuántos se te escapaban sin darte cuenta.\n\n## takeaways\n- Lo que le paga el paseo es lo que aprende.\n- Mira lejos: ve venir lo difícil antes que él.\n- Marca los ratos de correa floja, no solo los tirones.\n- Olfatear es el premio de la correa floja.\n\n## images\n### theory-loose-leash-1\n- alt: Dos escenas: a la izquierda, la persona y {name} caminan con la correa floja; a la derecha, la persona se para y {name} huele un arbusto con la correa colgando\n- caption: Primero, correa floja; después, a olfatear\n\n### theory-loose-leash-2\n- alt: En la acera, la persona mira a lo lejos a un chico con casco que llega en monopatín, mientras {name} camina con calma con la correa floja\n- caption: Mira lejos: lo ves llegar antes que él\n\n"
       },
       "files": [
         "media/theory-loose-leash-1.png",
@@ -1105,8 +1144,8 @@ export const BASELINE_PACK: ContentPack = {
         "takeaways": 4
       },
       "text": {
-        "en": "# The Slack U-Leash\n\n## heading\nThe leash tightens without warning\n\n## hook\nYou head out with the leash hanging Slack and everything is smooth. A few paces later, you feel the yank down your arm without knowing when it began. You perform Poste, it goes Slack, you continue, and moments later it repeats. It feels like tension arrives out of nowhere, but that is rarely the case: the leash gives you early warnings, if you know what to watch for.\n\n## why\nYour Dog walks faster than you and the street is rich with enticing scents. When something sparks interest, pace quickens gradually, and the leash transforms. First it hangs in a deep, relaxed U-shape: you are moving in sync. Then the curve shortens into a J-shape, still Slack but close to your hand: your Dog is surging ahead. Finally, straight and Taut. During the J-shape they can still hear you, because attention is not yet fully locked onto the scent. Once the leash goes Taut, they are fixated and disengaging takes far more effort. That is why you want to act during the J-shape. And not with your arm: reaching forward to avoid tension maintains the illusion of a U, but teaches that surging ahead works.\n\n## steps\n1. Keep your leash hand still against your waist and glance at the leash regularly, not just at your Dog.\n2. Read its shape: deep U-shape, walking together; J-shape, surging ahead; straight line, pulling has begun and it is time for Poste.\n3. The moment you spot the J-shape, make an adjustment before tension hits: slow your pace slightly or speak their name softly once.\n4. If they keep advancing, calmly turn 180 degrees and walk in the opposite direction. When they follow, the U-shape returns naturally.\n5. As soon as they return to your side, mark that exact instant with a gentle \"good\" Marker and deliver a treat beside your leg.\n\n## example\n### {name} and the sidewalk flowerbeds\nYou walk along the garden sidewalk past flowerbeds and a bench. {name} catches the scent of blossoms, accelerates, and the U flattens into a J-shape. You slow your pace and speak their name softly once. This time they do not hear you and keep pulling toward the flowers, so you calmly turn 180 degrees and walk the other way. {name} turns to follow, the leash drops back into a U-shape, and they reach your leg: \"good\" Marker and a treat. Near the bench another J appears; you say their name and they check in on the first try.\n\n## compare\n### do\nKeep your hand steady by your waist. If the U closes into a J-shape, adjust yourself: slow down, speak their name, or turn around.\n### dont\nStretch your arm forward to keep the leash from going Taut. The U appears preserved, but your hand followed them and they learned to forge ahead.\n\n## tip\nTry it today: on a stretch of your street, count how many times you spot the J-shape before the leash goes Taut. Every J you catch is one less yank.\n\n## takeaways\n- U, in sync; J, forging ahead; straight, already pulling.\n- Act on the J-shape: your Dog can still listen.\n- The U-shape comes from proximity, not reaching your arm.\n- When they return to your side: \"good\" Marker and a treat by your leg.\n\n## images\n### theory-slack-u-1\n- alt: Three numbered scenes of the same pair: with the leash in a U-shape, {name} walks calmly; with the leash in a J-shape, surging forward eyeing a target; with a straight leash, pulling\n- caption: U, J, straight: the J is your early warning\n\n### theory-slack-u-2\n- alt: The Handler walks away from shrubs and {name} follows with the leash hanging in a U-shape; a curved arrow indicates the 180-degree turn\n- caption: Turning around: when following you, the U-shape returns\n",
-        "es": "# La correa en U\n\n## heading\nLa correa se tensa sin avisar\n\n## hook\nSalís con la correa colgando y todo va bien. Unos metros después notas el tirón en el brazo y no sabes en qué momento empezó. Haces poste, se afloja, seguís, y al rato otra vez. Parece que la tensión llega de golpe, pero casi nunca es así: la correa te avisa antes, si sabes mirarla.\n\n## why\nTu perro camina más deprisa que tú y la calle está llena de olores. Cuando algo le interesa, acelera poco a poco, y la correa cambia de forma. Primero cuelga en U, honda: vais juntos. Luego la curva se acorta y queda una J, todavía floja pero cerca de tu mano: se está adelantando. Al final, recta. En la J aún te escucha, porque su atención no está del todo en el olor. Con la correa tensa ya está enganchado y le cuesta mucho más volver. Por eso conviene actuar en la J. Y no con el brazo: si lo estiras para que no se tense, la U sigue ahí, pero él aprende que puede ir delante.\n\n## steps\n1. Lleva la mano de la correa quieta junto a tu cintura y mira la correa de vez en cuando, no solo a tu perro.\n2. Lee su forma: U honda, vais juntos; J, se está adelantando; recta, ya tira y toca hacer poste.\n3. En cuanto veas la J, cambia tú antes de la tensión: frena un poco el paso o di su nombre una vez, en voz suave.\n4. Si sigue alejándose, da media vuelta con calma y camina hacia el otro lado. Cuando te sigue, la U vuelve sola.\n5. En cuanto vuelva a tu lado, márcalo con un «bien» suave, que le señala el momento exacto, y dale una golosina junto a tu pierna.\n\n## example\n### {name} y los jardines de la acera\nVais por la acera de los jardines, la de las flores y el banco. {name} huele el macizo de flores, acelera y la U se acorta hasta quedar en J. Frenas el paso y dices su nombre una vez, bajito. Esta vez no te oye y sigue hacia las flores, así que das media vuelta con calma y caminas hacia el otro lado. {name} te sigue, la correa vuelve a colgar en U y llega a tu pierna: «bien» y golosina. Junto al banco aparece otra J; dices su nombre y vuelve a la primera.\n\n## compare\n### do\nMano quieta junto a la cintura. Si la U se cierra en J, cambias tú: frenas, dices su nombre o das media vuelta.\n### dont\nEstirar el brazo hacia delante para que la correa no se tense. La U se mantiene, pero tu mano le sigue y aprende a ir delante.\n\n## tip\nPrueba hoy: en un tramo de tu calle, cuenta cuántas veces ves la J antes de que la correa se tense. Cada J que pillas es un tirón menos.\n\n## takeaways\n- U, vais juntos; J, se adelanta; recta, ya tira.\n- Actúa en la J: todavía te escucha.\n- La U viene de que esté cerca, no de tu brazo.\n- Si vuelve a tu lado, «bien» y golosina junto a tu pierna.\n\n## images\n### theory-slack-u-1\n- alt: Tres escenas numeradas de la misma pareja: con la correa en U, {name} va con calma; con la correa en J, se adelanta mirando algo; con la correa recta, tira\n- caption: U, J, recta: la J es el aviso\n\n### theory-slack-u-2\n- alt: La persona camina de vuelta, alejándose de unos arbustos, y {name} la sigue con la correa colgando en U; una flecha curva señala la media vuelta\n- caption: Media vuelta: cuando te sigue, la U vuelve\n\n"
+        "en": "# The Slack U-Leash\n\n## heading\nThe leash tightens without warning\n\n## hook\nYou head out with the leash hanging Slack and everything is smooth. A few paces later, you feel the yank down your arm without knowing when it began. You perform Poste, it goes Slack, you continue, and moments later it repeats. It feels like tension arrives out of nowhere, but that is rarely the case: the leash gives you early warnings, if you know what to watch for.\n\n## why\nYour Dog walks faster than you and the street is rich with enticing scents. When something sparks interest, pace quickens gradually, and the leash transforms. First it hangs in a deep, relaxed U-shape: you are moving in sync. Then the curve shortens into a J-shape, still Slack but close to your hand: your Dog is surging ahead. Finally, straight and Taut. During the J-shape they can still hear you, because attention is not yet fully locked onto the scent. Once the leash goes Taut, they are fixated and disengaging takes far more effort. That is why you want to act during the J-shape. And not with your arm: reaching forward to avoid tension maintains the illusion of a U, but teaches that surging ahead works. Later, in World 6 (The Park and Recall), you will learn how making walks unpredictable keeps your Dog choosing you.\n\n## steps\n1. Keep your leash hand still against your waist and glance at the leash regularly, not just at your Dog.\n2. Read its shape: deep U-shape, walking together; J-shape, surging ahead; straight line, pulling has begun and it is time for Poste.\n3. The moment you spot the J-shape, make an adjustment before tension hits: slow your pace slightly or speak their name softly once.\n4. If they keep advancing, calmly turn 180 degrees and walk in the opposite direction. When they follow, the U-shape returns naturally.\n5. As soon as they return to your side, mark that exact instant with a gentle \"good\" Marker and deliver a treat beside your leg.\n\n## example\n### {name} and the sidewalk flowerbeds\nYou walk along the garden sidewalk past flowerbeds and a bench. {name} catches the scent of blossoms, accelerates, and the U flattens into a J-shape. You slow your pace and speak their name softly once. This time they do not hear you and keep pulling toward the flowers, so you calmly turn 180 degrees and walk the other way. {name} turns to follow, the leash drops back into a U-shape, and they reach your leg: \"good\" Marker and a treat. Near the bench another J appears; you say their name and they check in on the first try.\n\n## compare\n### do\nKeep your hand steady by your waist. If the U closes into a J-shape, adjust yourself: slow down, speak their name, or turn around.\n### dont\nStretch your arm forward to keep the leash from going Taut. The U appears preserved, but your hand followed them and they learned to forge ahead.\n\n## tip\nTry it today: on a stretch of your street, count how many times you spot the J-shape before the leash goes Taut. Every J you catch is one less yank.\n\n## takeaways\n- U, in sync; J, forging ahead; straight, already pulling.\n- Act on the J-shape: your Dog can still listen.\n- The U-shape comes from proximity, not reaching your arm.\n- When they return to your side: \"good\" Marker and a treat by your leg.\n\n## images\n### theory-slack-u-1\n- alt: Three numbered scenes of the same pair: with the leash in a U-shape, {name} walks calmly; with the leash in a J-shape, surging forward eyeing a target; with a straight leash, pulling\n- caption: U, J, straight: the J is your early warning\n\n### theory-slack-u-2\n- alt: The Handler walks away from shrubs and {name} follows with the leash hanging in a U-shape; a curved arrow indicates the 180-degree turn\n- caption: Turning around: when following you, the U-shape returns\n",
+        "es": "# La correa en U\n\n## heading\nLa correa se tensa sin avisar\n\n## hook\nSalís con la correa colgando y todo va bien. Unos metros después notas el tirón en el brazo y no sabes en qué momento empezó. Haces poste, se afloja, seguís, y al rato otra vez. Parece que la tensión llega de golpe, pero casi nunca es así: la correa te avisa antes, si sabes mirarla.\n\n## why\nTu perro camina más deprisa que tú y la calle está llena de olores. Cuando algo le interesa, acelera poco a poco, y la correa cambia de forma. Primero cuelga en U, honda: vais juntos. Luego la curva se acorta y queda una J, todavía floja pero cerca de tu mano: se está adelantando. Al final, recta. En la J aún te escucha, porque su atención no está del todo en el olor. Con la correa tensa ya está enganchado y le cuesta mucho más volver. Por eso conviene actuar en la J. Y no con el brazo: si lo estiras para que no se tense, la U sigue ahí, pero él aprende que puede ir delante. Más adelante, en el Mundo 6 (El Parque y la Llamada), verás cómo hacer los paseos impredecibles para que tu perro siga eligiendo conectar contigo.\n\n## steps\n1. Lleva la mano de la correa quieta junto a tu cintura y mira la correa de vez en cuando, no solo a tu perro.\n2. Lee su forma: U honda, vais juntos; J, se está adelantando; recta, ya tira y toca hacer poste.\n3. En cuanto veas la J, cambia tú antes de la tensión: frena un poco el paso o di su nombre una vez, en voz suave.\n4. Si sigue alejándose, da media vuelta con calma y camina hacia el otro lado. Cuando te sigue, la U vuelve sola.\n5. En cuanto vuelva a tu lado, márcalo con un «bien» suave, que le señala el momento exacto, y dale una golosina junto a tu pierna.\n\n## example\n### {name} y los jardines de la acera\nVais por la acera de los jardines, la de las flores y el banco. {name} huele el macizo de flores, acelera y la U se acorta hasta quedar en J. Frenas el paso y dices su nombre una vez, bajito. Esta vez no te oye y sigue hacia las flores, así que das media vuelta con calma y caminas hacia el otro lado. {name} te sigue, la correa vuelve a colgar en U y llega a tu pierna: «bien» y golosina. Junto al banco aparece otra J; dices su nombre y vuelve a la primera.\n\n## compare\n### do\nMano quieta junto a la cintura. Si la U se cierra en J, cambias tú: frenas, dices su nombre o das media vuelta.\n### dont\nEstirar el brazo hacia delante para que la correa no se tense. La U se mantiene, pero tu mano le sigue y aprende a ir delante.\n\n## tip\nPrueba hoy: en un tramo de tu calle, cuenta cuántas veces ves la J antes de que la correa se tense. Cada J que pillas es un tirón menos.\n\n## takeaways\n- U, vais juntos; J, se adelanta; recta, ya tira.\n- Actúa en la J: todavía te escucha.\n- La U viene de que esté cerca, no de tu brazo.\n- Si vuelve a tu lado, «bien» y golosina junto a tu pierna.\n\n## images\n### theory-slack-u-1\n- alt: Tres escenas numeradas de la misma pareja: con la correa en U, {name} va con calma; con la correa en J, se adelanta mirando algo; con la correa recta, tira\n- caption: U, J, recta: la J es el aviso\n\n### theory-slack-u-2\n- alt: La persona camina de vuelta, alejándose de unos arbustos, y {name} la sigue con la correa colgando en U; una flecha curva señala la media vuelta\n- caption: Media vuelta: cuando te sigue, la U vuelve\n\n"
       },
       "files": [
         "media/theory-slack-u-1.png",
@@ -1114,6 +1153,27 @@ export const BASELINE_PACK: ContentPack = {
         "media/theory-slack-u-do.png",
         "media/theory-slack-u-dont.png"
       ]
+    },
+    "theory-unpredictable-walks": {
+      "config": {
+        "id": "theory-unpredictable-walks",
+        "kind": "theory",
+        "images": [
+          "theory-unpredictable-walks-1",
+          "theory-unpredictable-walks-2"
+        ],
+        "compare": {
+          "do": "theory-unpredictable-walks-do",
+          "dont": "theory-unpredictable-walks-dont"
+        },
+        "steps": 4,
+        "takeaways": 4
+      },
+      "text": {
+        "en": "# Unpredictable Walks\n\n## heading\nWhen walks are predictable, your Dog tunes out\n\n## hook\nYou walk through the front door, cross the exact same street, and head toward the park in a straight line at the same daily pace. {name} walks beside you on a loose leash, mind wandering across distant smells. There is no major conflict or pulling match, but there is zero engagement either: walking on autopilot while you act as nothing more than an anchor behind the leash.\n\n## why\nDogs learn through patterns and anticipation. When every corner and sidewalk path is completely familiar, {name} has no reason to pay attention: the routine navigates the way, leaving attention free to wander toward exciting outdoor distractions. An Unpredictable Walk breaks that autopilot habit. By altering your direction, changing your walking pace, or pausing without speaking, you encourage your Dog to check where you are going. Every spontaneous glance back toward you is a Check-in: the moment they choose your company over the environment. The structured cue \"Let's Go\" frames connected movement together, while \"Go Sniff\" releases your Dog to explore freely.\n\n## steps\n1. Walk ten paces in a straight line with the leash hanging Slack. Slow your pace slightly, then smoothly turn 180 degrees so the leash stays Slack and never tightens suddenly; if {name} ever fixates on a distraction, create distance, turn away, or end the session.\n2. As soon as {name} turns to follow your movement and offers a spontaneous Check-in, mark that instant with a soft \"good\" and deliver a treat beside your leg.\n3. Mix in sudden pace changes: switch from a slow stroll to several brisk steps, or pause entirely for three seconds without saying a word.\n4. Cue \"Let's Go\" to resume structured walking beside you, and cue \"Go Sniff\" whenever you reach a safe grassy spot where investigating scents is welcome.\n\n## example\n### {name} in the town square\nWalking across the town square on a Slack leash, {name} notices distant pigeons. Before attention locks on, you slow down and turn smoothly to the left, keeping the curve loose. Sensing your direction change, {name} turns and glances at your face. You mark that Check-in with \"good\" and deliver a treat beside your leg. You cue \"Let's Go\" to resume walking, make two unhurried turns, and cue \"Go Sniff\" at the grass to release exploration.\n\n## compare\n### do\nChange direction or pace quietly and reward every spontaneous Check-in the moment your Dog chooses to turn toward you.\n### dont\nChatter constantly or announce every turn out loud; when your voice warns of each change, your Dog stays on autopilot instead of looking to see where you are going.\n\n## tip\nTry it today: during the next ten minutes of your walk, make five unexpected right-angle or U-turns without speaking. Mark and reward each voluntary glance.\n\n## takeaways\n- Predictable routes create autopilot walks; unpredictability rebuilds voluntary focus.\n- Every voluntary glance toward you is a Check-in worth marking and rewarding.\n- \"Let's Go\" frames structured walking while \"Go Sniff\" unlocks free sniffing time.\n- Turn on a Slack leash: let the change of direction prompt the voluntary choice.\n\n## images\n### theory-unpredictable-walks-1\n- alt: Diagram contrasting two walking paths: a straight dashed line where a dog looks straight ahead, versus a path with sudden turns where the dog turns its head toward the handler at every turn\n- caption: Unexpected turns encourage voluntary focus compared to predictable straight lines\n\n### theory-unpredictable-walks-2\n- alt: In an open park setting, a handler turns left with a Slack leash while {name} pivots around and makes eye contact with the handler\n- caption: Changing direction without warning encourages your Dog to check your position\n",
+        "es": "# El paseo impredecible\n\n## heading\nCuando el paseo siempre es igual, tu perro desconecta\n\n## hook\nSales por la misma puerta, cruzas el mismo paso de cebra y caminas en línea recta hacia el parque al mismo ritmo de todos los días. {name} camina a tu lado con la correa floja, con la mente en cualquier rastro lejano. No hay conflicto ni lucha con la correa, pero tampoco hay conexión: camina en piloto automático y tú solo eres el ancla que va detrás.\n\n## why\nLos perros aprenden por patrones y anticipación. Si cada esquina y cada recta son predecibles, {name} no necesita prestarte atención para saber hacia dónde vais: la rutina guía el camino y su foco se va por completo a las distracciones del entorno. Un paseo impredecible cambia las reglas. Al cambiar de pronto el rumbo o el ritmo, o al detenerte sin previo aviso, animas a tu perro a comprobar dónde estás. Cada mirada espontánea hacia ti es un check-in: la señal de que vuelve a elegir tu compañía. La señal estructurada «Vamos» guía el avance conjunto, mientras que «Olfatea» abre el momento de explorar con libertad.\n\n## steps\n1. Camina diez pasos en línea recta mientras la correa cuelga en comba. Frena un poco el paso y gira con suavidad ciento ochenta grados, asegurando que la correa siga floja sin tensarse de golpe; si tu perro llega a fijarse en una distracción, aumenta la distancia, da media vuelta o termina la sesión.\n2. En cuanto {name} gire la cabeza para seguir tus pasos y te mire en un check-in espontáneo, marca ese instante con un «bien» suave y premia junto a tu pierna.\n3. Alterna cambios de ritmo: pasa de caminar despacio a unos pasos rápidos, o haz una pausa completa de tres segundos sin decir nada.\n4. Usa «Vamos» para reiniciar la marcha estructurada a tu lado, y di «Olfatea» cuando lleguéis a una zona segura donde pueda investigar la hierba a su aire.\n\n## example\n### {name} en la plaza de los tilos\nCruzando la plaza con la correa en comba, {name} mira unas palomas a lo lejos. Antes de que fije la atención, frenas el paso y giras con suavidad hacia la izquierda, manteniendo la correa holgada. Al notar el cambio de rumbo, {name} se gira para seguirte y busca tu mirada. Marcas ese check-in con un «bien» suave y entregas una golosina junto a tu rodilla. Dices «Vamos» para retomar el paso, hacéis dos giros sin prisa y dices «Olfatea» al llegar al césped.\n\n## compare\n### do\nVariar la dirección o el ritmo de forma silenciosa y premiar cada check-in espontáneo en cuanto tu perro decide orientarse hacia ti.\n### dont\nHablar sin parar o anunciar cada curva con la voz; si la voz te adelanta cada cambio, tu perro sigue en piloto automático y no aprende a buscarte con la mirada.\n\n## tip\nPrueba hoy: en los próximos diez minutos de paseo, haz cinco giros inesperados de noventa o ciento ochenta grados sin avisar con la voz. Premia cada mirada voluntaria.\n\n## takeaways\n- La previsibilidad genera desconexión; la variedad despierta la atención voluntaria.\n- Cada mirada espontánea a tu cara es un check-in que conviene marcar y premiar.\n- «Vamos» conduce el paso estructurado y «Olfatea» abre el tiempo de olfato libre.\n- Gira con la correa floja: permite que sea su propia decisión la que cambie la marcha.\n\n## images\n### theory-unpredictable-walks-1\n- alt: Esquema con dos trayectorias sobre el suelo: una línea recta continua con un perro mirando hacia adelante, frente a una línea quebrada con giros en ángulo recto donde el perro gira la cabeza hacia la persona\n- caption: Los giros imprevistos activan la atención voluntaria frente a la línea recta\n\n### theory-unpredictable-walks-2\n- alt: En un parque urbano, una persona gira hacia la izquierda cambiando de rumbo con la correa holgada, mientras {name} gira el cuerpo y busca la mirada de la persona\n- caption: Cambiar de rumbo sin avisar anima al perro a comprobar tu posición\n"
+      },
+      "files": []
     },
     "theory-visual-shields": {
       "config": {
@@ -3956,6 +4016,547 @@ export const BASELINE_PACK: ContentPack = {
         "media/theory-park-mix-1.png"
       ]
     },
+    "park-unpredictable": {
+      "config": {
+        "id": "park-unpredictable",
+        "mode": "stage",
+        "prerequisites": [
+          "park-mix"
+        ],
+        "simulation": {
+          "scenario": {
+            "world": 6,
+            "theme": "open_park",
+            "fixedStep": 0.016666666666666666,
+            "leashLength": 3,
+            "leashTolerance": 0.1,
+            "quickSpeed": 2,
+            "walkStrength": 0.6,
+            "handlerStart": {
+              "x": 0,
+              "y": 0
+            },
+            "dogStart": {
+              "x": 1,
+              "y": 0
+            },
+            "waypoint": {
+              "x": 76,
+              "y": 0
+            },
+            "waypoints": [
+              {
+                "x": 14,
+                "y": 0
+              },
+              {
+                "x": 24,
+                "y": 14
+              },
+              {
+                "x": 34,
+                "y": -2
+              },
+              {
+                "x": 46,
+                "y": 14
+              },
+              {
+                "x": 56,
+                "y": -2
+              },
+              {
+                "x": 66,
+                "y": 12
+              }
+            ],
+            "waypointRadius": 2,
+            "walls": [],
+            "scenery": [
+              {
+                "type": "tree",
+                "pos": {
+                  "x": -4,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": -4,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "bench",
+                "pos": {
+                  "x": -0.1,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": -0.1,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "flower_bed",
+                "pos": {
+                  "x": 3.8,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "picnic_table",
+                "pos": {
+                  "x": 3.8,
+                  "y": 19.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "fountain",
+                "pos": {
+                  "x": 7.7,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "conifer",
+                "pos": {
+                  "x": 7.7,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "sign",
+                "pos": {
+                  "x": 11.6,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 11.6,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "pond",
+                "pos": {
+                  "x": 15.5,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "kiosk",
+                "pos": {
+                  "x": 15.5,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "tree",
+                "pos": {
+                  "x": 19.4,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": 19.4,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "bench",
+                "pos": {
+                  "x": 23.3,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 23.3,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "flower_bed",
+                "pos": {
+                  "x": 27.2,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "picnic_table",
+                "pos": {
+                  "x": 27.2,
+                  "y": 19.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "fountain",
+                "pos": {
+                  "x": 31.1,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "conifer",
+                "pos": {
+                  "x": 31.1,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "sign",
+                "pos": {
+                  "x": 35,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 35,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "pond",
+                "pos": {
+                  "x": 38.9,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "kiosk",
+                "pos": {
+                  "x": 38.9,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "tree",
+                "pos": {
+                  "x": 42.8,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": 42.8,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "bench",
+                "pos": {
+                  "x": 46.7,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 46.7,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "flower_bed",
+                "pos": {
+                  "x": 50.6,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "picnic_table",
+                "pos": {
+                  "x": 50.6,
+                  "y": 19.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "fountain",
+                "pos": {
+                  "x": 54.5,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "conifer",
+                "pos": {
+                  "x": 54.5,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "sign",
+                "pos": {
+                  "x": 58.4,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 58.4,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "pond",
+                "pos": {
+                  "x": 62.3,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "kiosk",
+                "pos": {
+                  "x": 62.3,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "tree",
+                "pos": {
+                  "x": 66.2,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": 66.2,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "bench",
+                "pos": {
+                  "x": 70.1,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 70.1,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "flower_bed",
+                "pos": {
+                  "x": 74,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "picnic_table",
+                "pos": {
+                  "x": 74,
+                  "y": 19.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "fountain",
+                "pos": {
+                  "x": 77.9,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "conifer",
+                "pos": {
+                  "x": 77.9,
+                  "y": 19.5
+                }
+              }
+            ],
+            "cues": [
+              "lets-go"
+            ],
+            "dogGoalSpeed": 1.6,
+            "dogFixationSpeed": 1,
+            "dogReturnSpeed": 1.6,
+            "dogReturnDistance": 1,
+            "wanderMaxAngle": 0.5,
+            "wanderTurnRate": 2,
+            "distractor": {
+              "kind": "other",
+              "speed": 3.8,
+              "triggerRadius": 12,
+              "activateAfterMeters": 1000000000,
+              "startOffset": 28,
+              "path": {
+                "from": {
+                  "x": 28,
+                  "y": -12
+                },
+                "to": {
+                  "x": 28,
+                  "y": 14
+                }
+              }
+            },
+            "moreDistractors": [],
+            "calmSeconds": 3,
+            "rewardWindowSeconds": 1.1,
+            "markBudget": 5,
+            "checkInWindow": 1,
+            "learning": {
+              "attributes": {
+                "reconnectionLatency": 0.2,
+                "reactivityThreshold": 0.2,
+                "followChance": 0.5,
+                "checkInFrequency": 0.2
+              },
+              "triggerProfile": {
+                "child": 2,
+                "bicycle": 2,
+                "dog": 2,
+                "skateboard": 2,
+                "food": 2,
+                "other": 2,
+                "hand": 2
+              },
+              "equipment": "collar",
+              "capacityMultiplier": 1,
+              "posture": 0
+            },
+            "ranges": {
+              "reconnectionSeconds": {
+                "worst": 1.5,
+                "best": 0.3
+              },
+              "reactivityThreshold": {
+                "worst": 15,
+                "best": 60
+              },
+              "checkInMeanInterval": {
+                "worst": 14,
+                "best": 5
+              }
+            },
+            "arousal": {
+              "k": 30,
+              "minDistance": 2,
+              "decayPerSecond": 3,
+              "rigidPullRate": 4,
+              "disengagementDrop": 25,
+              "markerHitDrop": 20,
+              "posteJolt": 15,
+              "smoothStopFactor": 0.3,
+              "slowedSeconds": 0.5
+            },
+            "cue": {
+              "cooldownSeconds": 3,
+              "fixatedFactor": 0.3,
+              "repeatFactor": 0.5,
+              "arousalDrop": 10,
+              "followBoostSeconds": 2,
+              "followBoost": 0.25,
+              "followCap": 0.95
+            },
+            "reaction": {
+              "alertFraction": 0.6,
+              "lungeAccel": 1.5,
+              "lungeMaxSpeed": 4,
+              "alertSlowdown": 0.85
+            },
+            "sintonia": {
+              "enabled": false,
+              "minSpeed": 0.4,
+              "minTurnRate": 0.2,
+              "maxTurnRate": 1.8,
+              "turnWindow": 0.5,
+              "holdSeconds": 2
+            },
+            "goSniff": {
+              "offerSeconds": 3,
+              "durationSeconds": 4,
+              "speed": 0.4,
+              "decayFactor": 3
+            },
+            "turnAngle": 0.7853981633974483,
+            "followSeconds": 1.5,
+            "correctionWaitSeconds": 4,
+            "pullStrength": 0.8,
+            "configVersion": "bundled",
+            "camera": {
+              "closeZoom": 2.2,
+              "farZoom": 1.5,
+              "padding": 90,
+              "smoothing": 3
+            },
+            "endCondition": {
+              "kind": "reach-waypoint"
+            }
+          }
+        },
+        "checkpoint": [
+          {},
+          {
+            "kind": "duel",
+            "images": [
+              "duel-autopilot.png",
+              "duel-turn-look.png"
+            ],
+            "correct": 1
+          },
+          {}
+        ],
+        "exercises": [
+          {
+            "metric": "tension",
+            "key": "node.unpredictable.exercise1"
+          },
+          {
+            "metric": "attention",
+            "key": "node.unpredictable.exercise2"
+          }
+        ],
+        "primerCards": [
+          {
+            "kind": "real-world",
+            "media": {
+              "type": "image",
+              "url": "",
+              "art": "theory-unpredictable-walks-1"
+            }
+          }
+        ]
+      },
+      "text": {
+        "en": "# World 6 · The Unpredictable Walk\n\n## primer\n### card 1\nRemember: change direction without warning, keep the leash Slack, and reward every glance {name} gives you. Use \"Let's Go\" to set off together and \"Go Sniff\" to give them time to sniff.\n- caption: Unexpected turns invite a Check-in\n\n## checkpoint\n### tq1\n{name} walks ahead on autopilot and has not looked at you in a while. What helps most?\n- [x] Turn without warning and let {name} find you\n- [ ] Keep walking straight and chat to {name} the whole way\n- [ ] Keep to the usual route, just a bit faster\n- why: An unexpected turn makes {name} look for you, and that glance is a Check-in you can reward. Constant chatter keeps {name} on autopilot.\n\n### tq2\nWhich walk keeps {name} paying attention?\n- [ ] The handler walks in a straight line while looking at a phone\n- [ ] The handler turns and looks back at {name}\n- why: Turning and looking invites {name} to look for you, so the choice to check in becomes {name}'s own.\n\n### tq3\nWhich Cue do you use to release {name} to explore a safe patch of grass?\n- [x] \"Go Sniff\"\n- [ ] \"Let's Go\"\n- [ ] \"Good\"\n- why: \"Go Sniff\" opens free sniffing time, while \"Let's Go\" starts structured walking at your side.\n\n## exercises\n- tension: Outside: change direction every few steps and keep the leash Slack through each turn.\n- attention: Outside: turn without warning, and mark and reward each time your Dog looks at you.\n",
+        "es": "# Mundo 6 · El paseo impredecible\n\n## primer\n### card 1\nRecuerda: cambia de rumbo sin avisar, mantén la correa floja y premia cada mirada de {name}. Usa «Vamos» para salir juntos y «Olfatea» para darle tiempo de oler.\n- caption: Los giros imprevistos invitan a un check-in\n\n## checkpoint\n### tq1\n{name} camina delante en piloto automático y hace rato que no te mira. ¿Qué ayuda más?\n- [x] Giras sin avisar y dejas que {name} te busque\n- [ ] Sigues recto y le hablas a {name} sin parar\n- [ ] Sigues la ruta de siempre, un poco más deprisa\n- why: Un giro inesperado hace que {name} te busque, y esa mirada es un check-in que puedes premiar. Hablar sin parar mantiene a {name} en piloto automático.\n\n### tq2\n¿Qué paseo mantiene la atención de {name}?\n- [ ] La guía camina recto mirando el móvil\n- [ ] La guía gira y mira a {name}\n- why: Girar y mirar invita a {name} a buscarte, y así comprobar dónde estás pasa a ser decisión de {name}.\n\n### tq3\n¿Qué señal usas para soltar a {name} a explorar un trozo de césped seguro?\n- [x] «Olfatea»\n- [ ] «Vamos»\n- [ ] «Bien»\n- why: «Olfatea» abre el tiempo de olfato libre, mientras que «Vamos» inicia la marcha estructurada a tu lado.\n\n## exercises\n- tension: Fuera: cambia de dirección cada pocos pasos y mantén la correa floja en cada giro.\n- attention: Fuera: gira sin avisar, y marca y premia cada vez que tu perro te mire.\n"
+      },
+      "files": [
+        "media/duel-autopilot.png",
+        "media/duel-turn-look.png"
+      ]
+    },
     "poste-practice": {
       "config": {
         "id": "poste-practice",
@@ -6189,6 +6790,50 @@ export const BASELINE_PACK: ContentPack = {
       "text": {
         "en": "# The Busy Park\n\n## target\nWalk for 10 minutes through an active park: handle fast movers first, ground food next, with decompression sniffing in between.\n\n## success\nComplete the walk without any Rigid Pull.\n\n## problems\n### overwhelmed\n- label: Became overwhelmed\n- reassure: A bustling park carries heavy sensory load. Trigger stacking is not a failure.\n- cause: Distractors stacked up without decompression breaks in between.\n- c1: Build in a sniffing break every few minutes.\n- c2: Exit the park perimeter temporarily if arousal spikes.\n- easier: Five minutes along the outer edge of the park.\n- alt: A Dog sniffs calmly in a quiet corner of the park\n- caption: Decompression sniffing breaks\n\n### food\n- label: Found discarded food\n- reassure: Public parks are littered with scraps. It happens to every Handler.\n- cause: Attention was locked on moving Distractors, missing ground hazards.\n- c1: Survey the area before paying out leash length.\n- c2: Deliver the \"Leave It\" Cue before the Dog closes the distance.\n- easier: Pass discarded food using \"Leave It\" in the park, 1 time.\n- alt: A Handler inspects the grass before giving leash length\n- caption: Scan the ground\n\n### me\n- label: I felt overwhelmed\n- reassure: Feeling stressed is human. Handler regulation takes practice too.\n- cause: You tried to manage all environmental factors simultaneously.\n- c1: Breathe and pause: the Poste technique anchors your composure too.\n- c2: Address one Distractor at a time.\n- easier: A short stroll through the park at an off-peak hour.\n- alt: A Handler takes a deep breath while standing with the calm Dog\n- caption: Breathe and anchor\n\n## general\n- reassure: You have made significant progress. A busy park is the ultimate real-world test.\n- cause: Venturing out during maximum foot-traffic hours is common.\n- c1: Start by visiting during calm hours.\n- c2: Review the busy park lesson.\n- easier: Five minutes in a park with light activity.\n- alt: An early morning park scene with minimal activity\n- caption: Off-peak hours\n",
         "es": "# El parque lleno\n\n## target\nPasea 10 minutos por un parque con movimiento: primero lo rápido, luego la comida, y olfato entre medias.\n\n## success\nTerminas el paseo sin ningún tirón largo.\n\n## problems\n### overwhelmed\n- label: Se desbordó\n- reassure: Un parque lleno es mucho. Que se desborde no es un fracaso.\n- cause: Se acumularon estímulos sin pausas entre ellos.\n- c1: Haz una pausa de olfato cada pocos minutos.\n- c2: Sal del parque un momento si sube mucho.\n- easier: Cinco minutos en el borde del parque.\n- alt: Un perro olfatea tranquilo en un rincón del parque\n- caption: Pausas de olfato\n\n### food\n- label: Encontró comida\n- reassure: Los parques están llenos de restos. Le pasa a todo el mundo.\n- cause: Te centraste en lo rápido y no viste el suelo.\n- c1: Revisa la zona antes de soltar correa.\n- c2: Usa Déjalo antes de que llegue.\n- easier: Pasar junto a comida con Déjalo en el parque, 1 vez.\n- alt: Una persona revisa el suelo del parque antes de soltar correa\n- caption: Revisar el suelo\n\n### me\n- label: Me agobié yo\n- reassure: Agobiarse es humano. Tu calma también se entrena.\n- cause: Intentaste atender todo a la vez.\n- c1: Respira y para: el poste también es para ti.\n- c2: Atiende una cosa cada vez.\n- easier: Un paseo corto por el parque a una hora tranquila.\n- alt: Una persona respira parada con su perro tranquilo al lado\n- caption: Respirar y parar\n\n## general\n- reassure: Has llegado lejos. El parque lleno es el reto final.\n- cause: Lo habitual es elegir el momento de más gente.\n- c1: Ve primero a horas tranquilas.\n- c2: Repasa la lección del parque lleno.\n- easier: Cinco minutos en un parque con poco movimiento.\n- alt: El parque a primera hora, casi vacío\n- caption: Horas tranquilas\n\n"
+      },
+      "files": []
+    },
+    "mission-park-unpredictable": {
+      "config": {
+        "id": "mission-park-unpredictable",
+        "technique": "unpredictable-walks",
+        "reps": 1,
+        "trains": [
+          {
+            "kind": "node",
+            "id": "park-unpredictable"
+          }
+        ],
+        "problems": [
+          {
+            "id": "autopilot",
+            "label": "autopilot",
+            "practise": {
+              "kind": "node",
+              "id": "park-unpredictable"
+            }
+          },
+          {
+            "id": "nolook",
+            "label": "nolook",
+            "practise": {
+              "kind": "node",
+              "id": "park-unpredictable"
+            }
+          },
+          {
+            "id": "tight",
+            "label": "tight",
+            "practise": {
+              "kind": "node",
+              "id": "park-unpredictable"
+            }
+          }
+        ]
+      },
+      "text": {
+        "en": "# The Unpredictable Walk\n\n## target\nOn a walk in an open space, change direction without warning at least five times and reward each Check-in. Check back on a later day to see how {name} responds.\n\n## success\n{name} looks for you on most turns, and the leash stays Slack through every change of direction.\n\n## problems\n### autopilot\n- label: {name} stays on autopilot\n- reassure: Many dogs follow the route they know. Changing it takes a few walks to pay off.\n- cause: The turns were too predictable, or you named each one before making it.\n- c1: Turn without speaking and let {name} notice the change on their own.\n- c2: Mix the rhythm: a turn, a pause, then a few steps straight.\n- easier: Three turns on a quiet path, rewarding each look.\n- alt: A handler turns left on a park path while the Dog notices and looks back\n- caption: Turn first, let your Dog find you\n\n### nolook\n- label: {name} does not look at me\n- reassure: Glances take time to build. A quiet start is normal.\n- cause: The surroundings are too interesting, or the reward comes too late.\n- c1: Walk in a calmer place and reward the first glance right away.\n- c2: Use \"Go Sniff\" after a few good turns so sniffing is part of the deal.\n- easier: A few unexpected turns in a quiet corner of the park, 2 minutes.\n- alt: A Dog glances up at the handler on a quiet grass path\n- caption: Reward every glance\n\n### tight\n- label: The leash goes Taut on turns\n- reassure: Turns change the leash shape, and that takes practice for both of you.\n- cause: You turned too sharply while {name} was still ahead.\n- c1: Slow down before the turn so the leash stays Slack.\n- c2: Use \"Let's Go\" to set off again once the leash hangs in a U.\n- easier: Wide, gentle turns in an open space.\n- alt: A handler makes a wide turn with the leash hanging in a loose U\n- caption: Wide turns keep the leash Slack\n\n## general\n- reassure: The Unpredictable Walk is a skill that grows over many walks.\n- cause: New routines take a while to settle in for you and {name}.\n- c1: Repeat a short Unpredictable Walk on three different days.\n- c2: Review the Unpredictable Walks lesson.\n- easier: Five minutes of easy turns in a quiet park.\n- alt: A calm morning park path with a handler and a Dog\n- caption: Short, calm practice\n",
+        "es": "# El paseo impredecible\n\n## target\nEn un paseo por un espacio abierto, cambia de dirección sin avisar al menos cinco veces y premia cada check-in. Vuelve otro día para ver cómo responde {name}.\n\n## success\n{name} te busca en la mayoría de los giros y la correa se mantiene floja en cada cambio de dirección.\n\n## problems\n### autopilot\n- label: {name} sigue en piloto automático\n- reassure: Muchos perros siguen la ruta que conocen. Cambiarla tarda unos paseos en dar fruto.\n- cause: Los giros eran demasiado previsibles, o avisabas de cada uno antes de hacerlo.\n- c1: Gira sin hablar y deja que {name} note el cambio por su cuenta.\n- c2: Mezcla el ritmo: un giro, una pausa y unos pasos rectos.\n- easier: Tres giros en un camino tranquilo, premiando cada mirada.\n- alt: Una persona gira a la izquierda en un camino del parque y su perro lo nota y la mira\n- caption: Gira primero y deja que tu perro te busque\n\n### nolook\n- label: {name} no me mira\n- reassure: Las miradas tardan en llegar. Empezar despacio es normal.\n- cause: El entorno es demasiado interesante, o el premio llega tarde.\n- c1: Pasea en un sitio más tranquilo y premia la primera mirada al instante.\n- c2: Usa «Olfatea» tras unos buenos giros para que olfatear forme parte del trato.\n- easier: Unos giros imprevistos en un rincón tranquilo del parque, 2 minutos.\n- alt: Un perro levanta la vista hacia su guía en un camino de hierba tranquilo\n- caption: Premia cada mirada\n\n### tight\n- label: La correa se tensa en los giros\n- reassure: Los giros cambian la forma de la correa, y eso se entrena entre los dos.\n- cause: Hiciste el giro muy cerrado mientras {name} aún iba por delante.\n- c1: Reduce el paso antes del giro para que la correa siga floja.\n- c2: Usa «Vamos» para retomar la marcha cuando la correa vuelva a colgar en U.\n- easier: Giros amplios y suaves en un espacio abierto.\n- alt: Una persona hace un giro amplio con la correa colgando en una U floja\n- caption: Giros amplios, correa floja\n\n## general\n- reassure: El paseo impredecible es una habilidad que crece con muchos paseos.\n- cause: Las rutinas nuevas tardan en asentarse, para ti y para {name}.\n- c1: Repite un paseo impredecible corto en tres días distintos.\n- c2: Repasa la lección del paseo impredecible.\n- easier: Cinco minutos de giros fáciles en un parque tranquilo.\n- alt: Un camino del parque por la mañana con una persona y su perro en calma\n- caption: Práctica corta y tranquila\n"
       },
       "files": []
     },

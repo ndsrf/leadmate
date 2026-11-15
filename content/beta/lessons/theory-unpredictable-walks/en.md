@@ -17,7 +17,7 @@ Dogs learn through patterns and anticipation. When every corner and sidewalk pat
 
 ## example
 ### {name} in the town square
-Walking across the town square on a Slack leash, {name} notices distant pigeons. Before attention locks on, you slow down and turn smoothly to the left, keeping the curve loose. Sensing your direction change, {name} turns and glances at your face. You mark that Check-in with "good" and deliver a treat beside your leg. You cue "Let's Go" to resume walking, make two calm turns, and cue "Go Sniff" at the grass to release exploration.
+Walking across the town square on a Slack leash, {name} notices distant pigeons. Before attention locks on, you slow down and turn smoothly to the left, keeping the curve loose. Sensing your direction change, {name} turns and glances at your face. You mark that Check-in with "good" and deliver a treat beside your leg. You cue "Let's Go" to resume walking, make two unhurried turns, and cue "Go Sniff" at the grass to release exploration.
 
 ## compare
 ### do
