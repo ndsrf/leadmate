@@ -15,9 +15,10 @@
 
 ## 3. Walking Dog sprite
 
-- [ ] 3.1 Render the full clip set (`idle`, `walk`, `walk_wag`, `trot`, `sniffwalk`, `sniff`, `planted`, `mark`, `lunge`, `look_l`, `look_r`) in 8 directions and pack it into the atlas; verify the frame names in `sprites.json` and that `bundle/src/sprites.test.ts` covers each clip and direction.
-- [ ] 3.2 Choose the Dog's frame from the new Canine Posture in `StageScene.drawActors` (head turned back while walking away, planted, marking, lunge); verify with a debug scene or the devSeed that each action shows, in every Dog coat.
+- [x] 3.1 Render the full clip set (`idle`, `walk`, `walk_wag`, `trot`, `sniffwalk`, `sniff`, `planted`, `mark`, `lunge`, `look_l`, `look_r`) in 8 directions and pack it into the atlas; verify the frame names in `sprites.json` and that `bundle/src/sprites.test.ts` covers each clip and direction. _(240 frames in their own atlas `bundle/assets/kenney/husky.{png,json}`; contact sheet `art/husky-contact-sheet.png`; see design.md "Walking Dog as built".)_
+- [x] 3.2 Choose the Dog's frame from the new Canine Posture in `StageScene.drawActors` (head turned back while walking away, planted, marking, lunge); verify with a debug scene or the devSeed that each action shows, in every Dog coat. _(`art/dog-actions-by-coat.png`: 12 actions x 7 coats from the web build, by `scripts/kenney/dog-action-shots.mjs`.)_
 - [ ] 3.3 Keep the Check-in gaze line and eye; with reduced motion, use the still `walk` pose with a raised tail instead of `walk_wag`; verify on device with reduced motion on and off.
+  - Done without a phone: gaze line and eye kept; under reduced motion `walk_wag` holds frames 1 and 3 (tail straight up, no swing), checked on the web build with reduced motion on (`art/dog-walk-wag-reduced-motion.png`). Still open, for a person: reduced motion on and off on the Android device, and the shell passing `reducedMotion` to the Stage.
 
 ## 4. Dog portrait
 

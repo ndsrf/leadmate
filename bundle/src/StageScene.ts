@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type { Translate } from '../../src/i18n';
 import { HUD_AROUSAL_NUM, HUD_BORDER, HUD_COLOR, HUD_COLOR_NUM, HUD_DEPTH, HUD_PRIMARY_BUTTON, HUD_TENSION_NUM } from './tokens.generated';
 import { CUE_LABEL_WIDTH, CUE_RADIUS, fitFontSize, hudLayout, JOY_RADIUS, MARKER_RADIUS, SNIFF_RADIUS, visibleCues } from '../../src/hud/layout';
-import { dogPose, gaitPeriod } from '../../src/hud/pose';
+import { dogPose, gaitPeriod, walkClipFor, type WalkClip } from '../../src/hud/pose';
 import { applyDetents, keyboardInput, screenToWorldDirection, type Keys } from '../../src/hud/input';
 import { project } from '../../src/hud/iso';
 import { smoothZoom, targetZoom } from '../../src/hud/camera';
@@ -16,7 +16,7 @@ import { createSignalGate, type StageControl, type StageSignal } from '../../src
 import { add, length, scale, sub, type Vec2 } from '../../src/sim/vec';
 import { TEXTURES, TILE_ORIGIN_Y } from './assets';
 import { drawDecor, drawGroundPatch, drawProp, groundBounds, propLook, wallQuad, WALL_COLORS, WALL_HEIGHT } from './props';
-import { atlas, atlasUrl, ATLAS, DOG_COATS, facingDegrees, pivotOf, propFrame, propScale, resOf } from './sprites';
+import { atlas, atlasOf, atlasUrl, ATLAS, DOG_ATLAS, dogAtlas, dogAtlasUrl, DOG_COATS, facingDegrees, huskyFrame, pivotOf, propFrame, propScale, resOf } from './sprites';
 import { layoutGround, propWalls, routePoints, shapeOf, type GroundPlan } from '../../src/sim/scenery';
 
 export interface StageOptions {
@@ -29,6 +29,8 @@ export interface StageOptions {
   /** The Dog crossed a Reaction Tier threshold; the shell plays a vocalization. */
   onTier?: (tier: ReactionTier, time: number) => void;
   onSignal?: (signal: StageSignal, time: number, detail?: { control?: StageControl; bearing?: number }) => void;
+  /** The OS asks for reduced motion: the Dog's tail stops wagging (the still raised-tail pose). Defaults to the browser's `prefers-reduced-motion`. */
+  reducedMotion?: boolean;
   /** The scene finished creating; the render loop may now sleep when the Stage is paused or ended. */
   onReady?: () => void;
 }
@@ -40,6 +42,9 @@ const TILE_M = 2; // one ground tile is 2 m wide
 const ROAD_HALF: Partial<Record<ScenarioConfig['theme'], number>> = { quiet_suburb: 1.2 };
 /** Themes with a flat floor instead of grass tiles: indoors and the paved city. */
 const FLOORS: Partial<Record<ScenarioConfig['theme'], [number, number]>> = { indoor_apartment: [0xd6c7a8, 0xc8b78f], urban_street: [0x9ca3af, 0x94a3b8] };
+
+/** Animation steps per second of each walking-Dog clip. */
+const DOG_CLIP_FPS: Record<WalkClip, number> = { idle: 1, walk: 8, walk_wag: 8, trot: 12, sniffwalk: 6, sniff: 2, planted: 1, mark: 1.5, lunge: 10, look_l: 4, look_r: 4 };
 
 /** Texture pixels per scene pixel for baked scenery, so it stays sharp under the camera's zoom. */
 const BAKE_RES = 2;
@@ -106,8 +111,11 @@ export class StageScene extends Phaser.Scene {
     super('stage');
   }
 
+  private reducedMotion = false;
+
   init(options: StageOptions): void {
     this.options = options;
+    this.reducedMotion = options.reducedMotion ?? (typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
     this.ended = false;
     this.signalGate = createSignalGate();
     this.accumulator = 0;
@@ -131,6 +139,7 @@ export class StageScene extends Phaser.Scene {
       if (!this.textures.exists(key)) this.load.image(key, url);
     }
     if (!this.textures.exists(ATLAS)) this.load.atlas(ATLAS, atlasUrl, atlas as object);
+    if (!this.textures.exists(DOG_ATLAS)) this.load.atlas(DOG_ATLAS, dogAtlasUrl, dogAtlas as object);
   }
 
   create(): void {
@@ -142,6 +151,7 @@ export class StageScene extends Phaser.Scene {
     this.buildScenery();
     this.textures.get(ATLAS).setFilter(Phaser.Textures.FilterMode.LINEAR); // the game renders without antialiasing; sprites need smoothing
     this.under = this.add.graphics().setDepth(-5e4);
+    this.textures.get(DOG_ATLAS).setFilter(Phaser.Textures.FilterMode.LINEAR);
     const actor = () => this.add.image(0, 0, ATLAS, 'handler_idle0_0').setVisible(false);
     this.actors = { handler: actor(), dog: actor(), other: actor() };
     this.routeGfx = this.add.graphics(); // before gfx, so it draws under it at the same depth
@@ -736,6 +746,14 @@ export class StageScene extends Phaser.Scene {
     return `${set}_${clip}${Math.floor((this.time.now / 1000) * fps) % count}_${deg}`;
   }
 
+  /** The Dog's walking-sprite frame for a Canine Posture clip: the clip steps at its own rate; under reduced motion the wag stops. */
+  private dogFrame(clip: WalkClip, deg: number): string {
+    const step = Math.floor((this.time.now / 1000) * DOG_CLIP_FPS[clip]);
+    // walk_wag swings the tail on frames 0 and 2; frames 1 and 3 hold it straight up, the still raised-tail pose
+    if (clip === 'walk_wag' && this.reducedMotion) return huskyFrame(clip, 1 + 2 * (step % 2), deg);
+    return huskyFrame(clip, step, deg);
+  }
+
   /** The Handler, the Dog and the Distractor as sprites, with shadows and boards under them. */
   private drawActors(s: SimState, pose: ReturnType<typeof dogPose>, dogFace: Vec2): void {
     const u = this.under;
@@ -744,7 +762,7 @@ export class StageScene extends Phaser.Scene {
     this.fadeWalls(seen);
     const place = (img: Phaser.GameObjects.Image, frame: string, at: Vec2, size = 1) => {
       const pivot = pivotOf(frame);
-      img.setFrame(frame).setOrigin(pivot.x, pivot.y).setPosition(at.x, at.y).setScale(size / resOf(frame)).setDepth(at.y).setVisible(true).clearTint();
+      img.setTexture(atlasOf(frame), frame).setOrigin(pivot.x, pivot.y).setPosition(at.x, at.y).setScale(size / resOf(frame)).setDepth(at.y).setVisible(true).clearTint();
       u.fillStyle(0x000000, 0.22).fillEllipse(at.x, at.y, 30 * size, 15 * size);
     };
 
@@ -756,7 +774,7 @@ export class StageScene extends Phaser.Scene {
     const dm = this.track('dog', s.dog, dogFace);
     // facing: where it is looking while it holds or fixates, otherwise where it goes
     const dogDeg = dm.moving && s.dogMode !== 'fixated' && !pose.headDown ? dm.deg : facingDegrees(dogFace);
-    const dogFrame = pose.headDown ? this.clip('dog', 'eat', 2, dogDeg, 3) : dm.moving ? this.clip('dog', pose.lunging ? 'run' : 'walk', pose.lunging ? 2 : 4, dogDeg, pose.lunging ? 10 : 8) : `dog_idle0_${dogDeg}`;
+    const dogFrame = this.dogFrame(walkClipFor(pose), dogDeg);
     const look = s.config.look;
     place(this.actors.dog, dogFrame, d, (look?.dogScale ?? 1) * (s.config.learning.posture === 0 ? 0.94 : 1));
     this.actors.dog.setTint(DOG_COATS[look?.dogCoat ?? 'golden'] ?? DOG_COATS.golden);

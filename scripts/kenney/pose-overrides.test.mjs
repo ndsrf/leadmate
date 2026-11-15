@@ -67,3 +67,42 @@ test('an override needs a bone name and three angles', () => {
   assert.throws(() => clipPlan({ id: 'rdog', overrides: [{ rotate: [0, 0, 0] }], clips: { idle: [0] } }), /bone/);
   assert.throws(() => clipPlan({ id: 'rdog', overrides: [{ bone: 'Head', rotate: [0, 0] }], clips: { idle: [0] } }), /rotate/);
 });
+
+test('a posed clip can exaggerate its own overrides for chosen facings, leaving the job overrides alone', () => {
+  const plan = clipPlan({
+    id: 'husky',
+    overrides: [{ bone: 'Tail1', rotate: [0, 0, 10] }],
+    clips: { lookl: { clip: 'Walk', times: [0], overrides: [{ bone: 'Head', rotate: [0, 0, 30] }], facingScale: { 45: 2 } } },
+  });
+  assert.equal(plan[0].overridesFor(0).length, 2);
+  assert.ok(close(plan[0].overridesFor(0)[1].quaternion, eulerDegToQuat([0, 0, 30])));
+  const wide = plan[0].overridesFor(45);
+  assert.ok(close(wide[0].quaternion, eulerDegToQuat([0, 0, 10])));
+  assert.ok(close(wide[1].quaternion, eulerDegToQuat([0, 0, 60])));
+});
+
+test('facingScale is JSON friendly: a plan serialises to per-facing override lists', () => {
+  const [c] = clipPlan({ id: 'husky', clips: { lookl: { clip: 'Walk', times: [0], overrides: [{ bone: 'Head', rotate: [0, 0, 30] }], facingScale: { 225: 1.5 } } } });
+  const sent = JSON.parse(JSON.stringify(c));
+  assert.deepEqual(Object.keys(sent.byFacing), ['225']);
+  assert.ok(close(sent.byFacing[225][0].quaternion, eulerDegToQuat([0, 0, 45])));
+});
+
+test('a posed clip can add overrides per frame (a wagging tail): one plan entry per time, with its frame index', () => {
+  const plan = clipPlan({
+    id: 'husky',
+    clips: { walkwag: { clip: 'Walk', times: [0, 0.2], overrides: [{ bone: 'Tail1', rotate: [-35, 0, 0] }], perFrame: [[{ bone: 'Tail2', rotate: [0, 0, 20] }], [{ bone: 'Tail2', rotate: [0, 0, -20] }]] } },
+  });
+  assert.deepEqual(plan.map((e) => [e.name, e.times, e.index]), [['walkwag', [0], 0], ['walkwag', [0.2], 1]]);
+  assert.deepEqual(plan[1].overrides.map((o) => o.bone), ['Tail1', 'Tail2']);
+  assert.ok(close(plan[1].overrides[1].quaternion, eulerDegToQuat([0, 0, -20])));
+  assert.throws(() => clipPlan({ id: 'h', clips: { a: { clip: 'Walk', times: [0, 1], perFrame: [[]] } } }), /perFrame/);
+});
+
+test('facingExtra adds overrides for chosen facings only (after the scaled ones)', () => {
+  const [c] = clipPlan({ id: 'husky', clips: { lookl: { clip: 'Walk', times: [0], overrides: [{ bone: 'Head', rotate: [0, 0, 30] }], facingScale: { 45: 2 }, facingExtra: { 45: [{ bone: 'Neck1', rotate: [-20, 0, 0] }], 90: [{ bone: 'Neck2', rotate: [5, 0, 0] }] } } } });
+  assert.deepEqual(c.overridesFor(45).map((o) => o.bone), ['Head', 'Neck1']);
+  assert.ok(close(c.overridesFor(45)[0].quaternion, eulerDegToQuat([0, 0, 60])));
+  assert.deepEqual(c.overridesFor(90).map((o) => o.bone), ['Head', 'Neck2']);
+  assert.deepEqual(c.overridesFor(0).map((o) => o.bone), ['Head']);
+});

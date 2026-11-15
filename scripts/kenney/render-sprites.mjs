@@ -57,7 +57,34 @@ const HEAD_DOWN = [{ bone: 'Neck1', rotate: [35, 0, 0] }, { bone: 'Neck2', rotat
 const TAIL_HIGH = [{ bone: 'Tail1', rotate: [-35, 0, 0] }];
 const TAIL_TUCKED = [{ bone: 'Tail1', rotate: [60, 0, 0] }, { bone: 'Tail2', rotate: [20, 0, 0] }];
 const TROT = [0, 0.135, 0.27, 0.405];
+
+// The shipped walking Dog (readable-dog, tasks 3.1): the Quaternius Husky, light-coated so the game's coat tint works.
+// 30 frames per facing. Each clip bakes its own tail (Decision 4). Frame names are husky_<clip><n>_<facing>; the game
+// maps the Canine Posture clip names (look_l, walk_wag, ...) by dropping the underscore (sprites.ts `huskyFrame`).
+const WAG = (a) => [{ bone: 'Tail2', rotate: [0, 0, a] }, { bone: 'Tail3', rotate: [0, 0, a] }, { bone: 'Tail4', rotate: [0, 0, a] }];
+// Side-on to the camera (45, 225) the head turn is weak: on the near side turn it further; on the far side the head
+// hides behind the body, so lift the neck to bring it over the back.
+const LIFT = [{ bone: 'Neck1', rotate: [-25, 0, 0] }, { bone: 'Neck2', rotate: [-20, 0, 0] }, { bone: 'Head', rotate: [-10, 0, 0] }];
+const HUSKY = {
+  id: 'husky', model: '@models/quaternius-husky/husky.glb', facings: DIRS8, fit: { height: 0.6 }, skinned: true, materials: RDOG_COAT,
+  clips: {
+    idle: { clip: 'Idle', times: [0, 1.6] },
+    walk: { clip: 'Walk', times: RDOG_WALK },
+    walkwag: { clip: 'Walk', times: RDOG_WALK, overrides: TAIL_HIGH, perFrame: [WAG(25), WAG(0), WAG(-25), WAG(0)] },
+    trot: { clip: 'Gallop', times: TROT },
+    sniffwalk: { clip: 'Walk', times: RDOG_WALK, overrides: HEAD_DOWN },
+    sniff: { clip: 'Idle_2_HeadLow', times: [1, 2] },
+    planted: { clip: 'Idle', times: [0, 1.6], overrides: TAIL_HIGH },
+    mark: { clip: 'Idle', times: [0, 1.6], overrides: [{ bone: 'BackUpperLeg.L', rotate: [0, 0, 60] }] },
+    lunge: { clip: 'Gallop', times: [0.1, 0.3], overrides: TAIL_TUCKED },
+    lookl: { clip: 'Walk', times: [0, 0.5], overrides: LOOK_BACK, facingScale: { 225: 1.6 }, facingExtra: { 45: LIFT } },
+    lookr: { clip: 'Walk', times: [0, 0.5], overrides: LOOK_BACK_R, facingScale: { 45: 1.6 }, facingExtra: { 225: LIFT } },
+  },
+};
+JOBS.push(HUSKY);
+// The head-turn clips without the side-on exaggeration, for the before/after in the contact sheet only.
 const SPIKE_JOBS = [
+  { ...HUSKY, id: 'huskyflat', clips: { lookl: { ...HUSKY.clips.lookl, facingScale: undefined, facingExtra: undefined }, lookr: { ...HUSKY.clips.lookr, facingScale: undefined, facingExtra: undefined } } },
   // task 1.3: a stand-in for the full clip set (Decision 4), 30 frames per direction, 240 in all, to measure the
   // atlas. The poses are rough; only their size and silhouette count here.
   { id: 'rdogest', model: '@models/quaternius-husky/husky.glb', facings: DIRS8, fit: { height: 0.6 }, skinned: true, materials: RDOG_COAT, clips: {
@@ -116,24 +143,29 @@ window.renderJob = async (job) => {
   root.position.x -= (b2.min.x + b2.max.x) / 2; root.position.z -= (b2.min.z + b2.max.z) / 2;
   const mixer = new THREE.AnimationMixer(root);
   const frames = [];
-  for (const { name: clipName, source, times, overrides } of job.plan) {
+  for (const { name: clipName, source, times, overrides, byFacing, index = 0 } of job.plan) {
     const clip = gltf.animations.find((a) => a.name === source);
     if (!clip && source !== 'static') throw new Error(job.id + ': no clip ' + source);
+    // a bone the clip does not animate keeps the last clip's pose; start every clip from the bind pose, as if rendered alone
+    root.traverse((o) => { if (o.isSkinnedMesh) o.skeleton.pose(); });
     const action = clip ? mixer.clipAction(clip) : null; action?.play();
-    const bones = overrides.map((o) => {
+    const bind = (list) => list.map((o) => {
       const bone = root.getObjectByName(THREE.PropertyBinding.sanitizeNodeName(o.bone));
       if (!bone) throw new Error(job.id + ': no bone ' + o.bone);
       return [bone, new THREE.Quaternion(...o.quaternion)];
     });
+    const base = bind(overrides);
+    const own = Object.fromEntries(Object.entries(byFacing ?? {}).map(([f, list]) => [f, bind(list)])); // exaggerated for some facings
     times.forEach((t, i) => {
       mixer.setTime(t);
-      const posed = bones.map(([bone, q]) => { const was = bone.quaternion.clone(); bone.quaternion.multiply(q); return was; });
       for (const f of job.facings) {
+        const bones = own[f] ?? base;
+        const posed = bones.map(([bone, q]) => { const was = bone.quaternion.clone(); bone.quaternion.multiply(q); return was; });
         holder.rotation.y = Math.PI / 2 - (f * Math.PI) / 180;
         renderer.render(scene, cam);
-        frames.push({ name: job.id + '_' + clipName + i + '_' + f, data: renderer.domElement.toDataURL('image/png') });
+        frames.push({ name: job.id + '_' + clipName + (index + i) + '_' + f, data: renderer.domElement.toDataURL('image/png') });
+        for (let k = bones.length - 1; k >= 0; k--) bones[k][0].quaternion.copy(posed[k]); // undo last to first: a bone named twice must come back to the clip's pose, and must not add up
       }
-      bones.forEach(([bone], k) => bone.quaternion.copy(posed[k])); // a bone the clip does not animate must not add up
     });
     action?.stop(); mixer.stopAllAction();
   }
