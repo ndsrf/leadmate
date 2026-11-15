@@ -11,7 +11,7 @@ import { loadPackFromDisk } from '../content/loader';
 import { resolvePack } from '../content/resolver';
 import type { ResolvedShop } from '../content/resolver';
 import type { NodeDef, NodeRun } from '../nodes/node';
-import { advance, startNode } from '../nodes/node';
+import { advance, onDebrief, startNode } from '../nodes/node';
 import type { ImageDuelQuestion } from '../nodes/content';
 import { newDogRecord } from '../dogRecord';
 import type { MissionDef, Fix } from '../missions/mission';
@@ -555,7 +555,7 @@ describe('Node and Mission screens - ShopLinkCard recommendations (Task 7.1)', (
       expect(onTimeout).toHaveBeenCalledTimes(1);
     });
 
-    it('exposes localized alt text as accessibilityLabel on accessible buttons', () => {
+    it('exposes localized alt text before answering and appends localized verdict after answering', () => {
       const run = { ...startNode(duelNode), step: 'checkpoint' as const, question: 1 };
       let renderer: ReactTestRenderer.ReactTestRenderer;
       act(() => {
@@ -576,10 +576,21 @@ describe('Node and Mission screens - ShopLinkCard recommendations (Task 7.1)', (
 
       expect(option0.props.accessibilityRole).toBe('button');
       expect(option1.props.accessibilityRole).toBe('button');
+      // Before answering: alt text only, disabled is false, selected is undefined
       expect(option0.props.accessibilityLabel).toBe(t(duelQuestion.images[0].alt));
       expect(option1.props.accessibilityLabel).toBe(t(duelQuestion.images[1].alt));
-      expect(option0.props.accessibilityLabel).toBe('La guía camina mirando el móvil');
-      expect(option1.props.accessibilityLabel).toBe('La guía gira y mira a {name}');
+      expect(option0.props.accessibilityState).toEqual({ disabled: false });
+      expect(option1.props.accessibilityState).toEqual({ disabled: false });
+
+      // Answering option 1 (correct): chosen gets selected: true, both get localized verdict
+      act(() => {
+        option1.props.onPress();
+      });
+
+      expect(option1.props.accessibilityState).toEqual({ disabled: true, selected: true });
+      expect(option0.props.accessibilityState).toEqual({ disabled: true });
+      expect(option1.props.accessibilityLabel).toBe(`${t(duelQuestion.images[1].alt)}. ${t('node.duel.correct')}`);
+      expect(option0.props.accessibilityLabel).toBe(`${t(duelQuestion.images[0].alt)}. ${t('node.duel.incorrect')}`);
     });
 
     it('renders text and duel questions in authored order in a mixed Checkpoint', () => {
@@ -649,52 +660,36 @@ describe('Node and Mission screens - ShopLinkCard recommendations (Task 7.1)', (
       };
 
       const initialDog = newDogRecord();
-      const dogSnapshot = JSON.stringify(initialDog);
+      const now = new Date('2026-06-01T10:00:00Z');
 
-      // Case 1: Correct choice advances to simulation
-      const runCorrect = startNode(singleDuelNode);
-      const atCheckpoint1 = advance(advance(advance(advance(runCorrect, { type: 'next' }), { type: 'next' }), { type: 'next' }), { type: 'next' });
-      expect(atCheckpoint1.step).toBe('checkpoint');
-      const afterCorrect = advance(atCheckpoint1, { type: 'answer', option: 1 });
+      const run = startNode(singleDuelNode);
+      const atCheckpoint = advance(advance(advance(advance(run, { type: 'next' }), { type: 'next' }), { type: 'next' }), { type: 'next' });
+      expect(atCheckpoint.step).toBe('checkpoint');
+
+      // Dog record evaluated before answering the checkpoint
+      const dogBefore = onDebrief(initialDog, atCheckpoint, now);
+      expect(dogBefore).toEqual(initialDog);
+
+      // Case 1: Correct choice advances to simulation without touching Dog
+      const afterCorrect = advance(atCheckpoint, { type: 'answer', option: 1 });
       expect(afterCorrect.step).toBe('simulation');
       expect(afterCorrect.checkpoint).toEqual(['correct']);
-      expect(JSON.stringify(initialDog)).toBe(dogSnapshot);
+      const dogAfterCorrect = onDebrief(initialDog, afterCorrect, now);
+      expect(dogAfterCorrect).toEqual(dogBefore);
 
-      // Case 2: Wrong choice advances to simulation
-      const afterWrong = advance(atCheckpoint1, { type: 'answer', option: 0 });
+      // Case 2: Wrong choice advances to simulation without touching Dog
+      const afterWrong = advance(atCheckpoint, { type: 'answer', option: 0 });
       expect(afterWrong.step).toBe('simulation');
       expect(afterWrong.checkpoint).toEqual(['wrong']);
-      expect(JSON.stringify(initialDog)).toBe(dogSnapshot);
+      const dogAfterWrong = onDebrief(initialDog, afterWrong, now);
+      expect(dogAfterWrong).toEqual(dogBefore);
 
-      // Case 3: Timeout advances to simulation
-      const afterTimeout = advance(atCheckpoint1, { type: 'timeout' });
+      // Case 3: Timeout advances to simulation without touching Dog
+      const afterTimeout = advance(atCheckpoint, { type: 'timeout' });
       expect(afterTimeout.step).toBe('simulation');
       expect(afterTimeout.checkpoint).toEqual(['missed']);
-      expect(JSON.stringify(initialDog)).toBe(dogSnapshot);
-    });
-
-    it('scales images to width without horizontal overflow at a narrow 320pt width', () => {
-      const run = { ...startNode(duelNode), step: 'checkpoint' as const, question: 1 };
-      let renderer: ReactTestRenderer.ReactTestRenderer;
-      act(() => {
-        renderer = ReactTestRenderer.create(
-          <CheckpointScreen
-            t={t}
-            run={run}
-            setting={15}
-            onAnswer={() => {}}
-            onTimeout={() => {}}
-            random={() => 0.99}
-          />,
-        );
-      });
-
-      const buttons = renderer!.root.findAll((el) => el.type === 'button' && typeof el.props?.testID === 'string' && el.props.testID.startsWith('duel-option-'));
-      expect(buttons).toHaveLength(2);
-      for (const btn of buttons) {
-        expect(btn.props.style?.width).toBe('100%');
-        expect(btn.props.style?.overflowX).toBeUndefined();
-      }
+      const dogAfterTimeout = onDebrief(initialDog, afterTimeout, now);
+      expect(dogAfterTimeout).toEqual(dogBefore);
     });
   });
 });

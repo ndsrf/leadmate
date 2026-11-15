@@ -1,4 +1,4 @@
-import { ContentUpdater, MAX_CONCURRENT_DOWNLOADS, type HttpFetcher, type HttpFetchOptions, type HttpResponse } from './updater';
+import { compareSemver, ContentUpdater, MAX_CONCURRENT_DOWNLOADS, type HttpFetcher, type HttpFetchOptions, type HttpResponse } from './updater';
 import { ContentStore, type BaselineSource, type FileStorage, type KeyValueStorage } from './store';
 import { type ContentManifest } from './build';
 import { sha256Hex } from './hash';
@@ -767,6 +767,28 @@ describe('ContentUpdater (baseline seeding, merged content, concurrent downloads
       expect(await fileStorage.exists('/app/content/beta/staging/1')).toBe(false);
       expect(await u.getPendingUpdate('beta')).toBeNull();
       expect(await store.getActivePointer('beta')).toBeNull();
+    });
+  });
+
+  describe('compareSemver', () => {
+    it('compares standard major.minor.patch versions', () => {
+      expect(compareSemver('1.0.0', '1.0.0')).toBe(0);
+      expect(compareSemver('1.1.0', '1.0.9')).toBe(1);
+      expect(compareSemver('1.0.0', '1.0.1')).toBe(-1);
+      expect(compareSemver('2.0.0', '1.9.9')).toBe(1);
+      expect(compareSemver('0.9.0', '1.0.0')).toBe(-1);
+    });
+
+    it('handles prerelease strings by comparing numeric major.minor.patch', () => {
+      expect(compareSemver('1.2.3-beta.1', '1.2.3')).toBe(0);
+      expect(compareSemver('1.2.3-rc.1', '1.2.4')).toBe(-1);
+      expect(compareSemver('1.2.4-alpha', '1.2.3')).toBe(1);
+    });
+
+    it('handles invalid or empty strings gracefully without throwing', () => {
+      expect(compareSemver('invalid', '1.0.0')).toBe(-1);
+      expect(compareSemver('invalid', 'invalid')).toBe(0);
+      expect(compareSemver('', '')).toBe(0);
     });
   });
 });

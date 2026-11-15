@@ -4,7 +4,8 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import type { TextKey, Translate } from '../../i18n';
 import type { SimulationDebriefPayload } from '../../sim/payload';
 import { Button, Row } from '../Overlays';
-import { Badge, Choice, OptionCard, Panel, ProgressBar, Raised, StarRow } from '../ui/components';
+import { Badge, Choice, OptionCard, Panel, ProgressBar, Raised, StarRow, useFocus } from '../ui/components';
+import { handlePress } from '../ui/press';
 import { ContentPicture } from '../ui/ContentPicture';
 import { theme, usePalette } from '../ui/theme';
 import { InAppBrowserModal } from '../ui/InAppBrowserModal';
@@ -126,7 +127,7 @@ export function DuelVerdictBadge({ verdict }: { verdict: 'check' | 'cross' }) {
   return (
     <View
       testID={`duel-badge-${verdict}`}
-      accessibilityLabel={isCheck ? 'check' : 'cross'}
+      aria-hidden
       style={{
         position: 'absolute',
         top: 10,
@@ -153,6 +154,69 @@ export function DuelVerdictBadge({ verdict }: { verdict: 'check' | 'cross' }) {
         />
       </Svg>
     </View>
+  );
+}
+
+function DuelImageOption({
+  t,
+  image,
+  authoredIndex,
+  isAnswered,
+  isChosen,
+  isCorrect,
+  badge,
+  onPress,
+}: {
+  t: Translate;
+  image: ImageDuelQuestion['images'][number];
+  authoredIndex: number;
+  isAnswered: boolean;
+  isChosen: boolean;
+  isCorrect: boolean;
+  badge: 'check' | 'cross' | null;
+  onPress: () => void;
+}) {
+  const color = usePalette();
+  const focus = useFocus();
+
+  const baseLabel = t(image.alt);
+  const accessibilityLabel = isAnswered
+    ? `${baseLabel}. ${isCorrect ? t('node.duel.correct') : t('node.duel.incorrect')}`
+    : baseLabel;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{
+        disabled: isAnswered,
+        ...(isChosen ? { selected: true } : {}),
+      }}
+      disabled={isAnswered}
+      onPress={() => handlePress(onPress, isAnswered)}
+      onFocus={focus.onFocus}
+      onBlur={focus.onBlur}
+      testID={`duel-option-${authoredIndex}`}
+      className="mb-3 w-full"
+      style={{ width: '100%', minHeight: theme.size.touchMin }}
+    >
+      {({ pressed }) => (
+        <Raised
+          fill={pressed && !isAnswered ? color.surfaceSunken : color.surface}
+          radius={theme.radius.lg}
+          offset={theme.depth.sm.x}
+          shift={pressed && !isAnswered ? theme.depth.pressed.translate - 1 : 0}
+          focused={focus.focused}
+          pressable={!isAnswered}
+          faceStyle={{ overflow: 'hidden', width: '100%' }}
+        >
+          <View style={{ width: '100%', position: 'relative' }}>
+            <ContentPicture t={t} art={image.art} itemPath={image.itemPath} />
+            {badge !== null && <DuelVerdictBadge verdict={badge} />}
+          </View>
+        </Raised>
+      )}
+    </Pressable>
   );
 }
 
@@ -242,37 +306,21 @@ export function ImageDuelQuestionView({
             }
           }
           return (
-            <Pressable
-              key={image.path}
-              accessibilityRole="button"
-              accessibilityLabel={t(image.alt)}
-              accessibilityState={{ disabled: isAnswered }}
-              disabled={isAnswered}
+            <DuelImageOption
+              key={authoredIndex}
+              t={t}
+              image={image}
+              authoredIndex={authoredIndex}
+              isAnswered={isAnswered}
+              isChosen={authoredIndex === chosen}
+              isCorrect={authoredIndex === question.correct}
+              badge={badge}
               onPress={() => {
                 if (!isAnswered) {
                   setChosen(authoredIndex);
                 }
               }}
-              testID={`duel-option-${authoredIndex}`}
-              className="mb-3 w-full"
-              style={{ width: '100%', minHeight: theme.size.touchMin }}
-            >
-              {({ pressed }) => (
-                <Raised
-                  fill={pressed && !isAnswered ? color.surfaceSunken : color.surface}
-                  radius={theme.radius.lg}
-                  offset={theme.depth.sm.x}
-                  shift={pressed && !isAnswered ? theme.depth.pressed.translate - 1 : 0}
-                  pressable={!isAnswered}
-                  faceStyle={{ overflow: 'hidden', width: '100%' }}
-                >
-                  <View style={{ width: '100%', position: 'relative' }}>
-                    <ContentPicture t={t} art={image.art} itemPath={image.itemPath} />
-                    {badge !== null && <DuelVerdictBadge verdict={badge} />}
-                  </View>
-                </Raised>
-              )}
-            </Pressable>
+            />
           );
         })}
       </View>

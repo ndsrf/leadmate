@@ -227,13 +227,13 @@ checkpoint:
 In `nodes/<node-id>/<lang>.md` (e.g. `es.md` and `en.md`), one `### N` subsection per checkpoint entry:
 ```markdown
 ### tq2
-¿Qué guía mantiene a {name} atento?
+¿Qué guía mantiene la atención de {name}?
 - [ ] La guía camina mirando el móvil
 - [ ] La guía gira y mira a {name}
 - why: Girar y mirar invita a {name} a buscarte.
 ```
 - First line: the question prompt.
-- Next two lines: two `- [ ]` lines with the alt-text description for each image in image order (matching `images` in `node.yaml`).
+- Next two lines: two alt-text description lines in image order (matching `images` in `node.yaml`), usually written as `- [ ]`. An optional `- [x]` mark on the correct image's line is accepted by the validator; it must agree with `correct` in `node.yaml`.
 - `- why:` the one-sentence explanation shown after answering.
 
 #### Compatibility (`minAppVersion`)
@@ -283,9 +283,10 @@ starting. One Lesson per author; Lessons can be written in parallel because each
 5. For a trail theory Lesson: rewrite `node.<slug>.tq1..3.*` so each question tests a different point of the new text
    and each `why` uses the Lesson's words; update `node.<slug>.recap1` if the Lesson's core idea changed; point the
    Node's recap card at the Lesson's clearest picture (`recapPrimer(slug, { art: '<name>' })` in
-   `src/shell/nodes/content.ts`). If the Checkpoint uses an Image Duel, ensure duel images are 640x360, wordless, and free of badges or hints; provide localized alt texts in image order in `<lang>.md`; and ensure `pack.yaml` sets `minAppVersion: 1.1.0`.
-   The game's controls belong to the How-to-play Lessons and the recap's second card (`recap2`): describe what the
-   handler does on a real walk, not which button to press, and leave those keys alone.
+   `src/shell/nodes/content.ts`). The game's controls belong to the How-to-play Lessons and the recap's second card
+   (`recap2`): describe what the handler does on a real walk, not which button to press, and leave those keys alone.
+   If the Checkpoint uses an Image Duel, ensure duel images are 640x360, wordless, and free of badges or hints; provide
+   localized alt texts in image order in `<lang>.md`; and ensure `pack.yaml` sets `minAppVersion: 1.1.0`.
 6. Check: `npx jest src/shell/lessons src/shell/nodes src/i18n` passes, the conformance test included.
 
 **Outputs** (all in the change, nothing else touched): the shot list (in the hand-off message), the catalog keys,

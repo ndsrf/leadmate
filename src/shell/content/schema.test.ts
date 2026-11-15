@@ -43,8 +43,14 @@ describe('schema primitives', () => {
   it('validates semver strings', () => {
     expect(isSemver('1.0.0')).toBe(true);
     expect(isSemver('0.2.1-beta')).toBe(true);
+    expect(isSemver('1.1.0-rc.1')).toBe(true);
     expect(isSemver('1.0')).toBe(false);
+    expect(isSemver('1.0.0.0')).toBe(false);
     expect(isSemver('v1.0.0')).toBe(false);
+    expect(isSemver('not-a-version')).toBe(false);
+    expect(isSemver('')).toBe(false);
+    expect(isSemver(123)).toBe(false);
+    expect(isSemver(undefined)).toBe(false);
     expect(isSemver(null)).toBe(false);
   });
 
@@ -391,5 +397,10 @@ describe('node.yaml checkpoint question kinds', () => {
     expect(compareAppVersions('1.1.0', IMAGE_DUEL_MIN_APP_VERSION)).toBe(0);
     expect(compareAppVersions('1.10.0', '1.9.0')).toBeGreaterThan(0);
     expect(compareAppVersions('2.0.0-beta.1', '2.0.0')).toBe(0);
+    expect(compareAppVersions('1.2.3-alpha', '1.2.4')).toBe(-1);
+    expect(compareAppVersions('1.2.4', '1.2.3-alpha')).toBe(1);
+    expect(compareAppVersions('invalid', '1.0.0')).toBe(-1);
+    expect(compareAppVersions('invalid', 'invalid')).toBe(0);
+    expect(compareAppVersions('', '')).toBe(0);
   });
 });

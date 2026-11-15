@@ -116,6 +116,8 @@ export const ES_INTERFACE = {
   'node.checkpoint.title': 'Pregunta rápida',
   'node.checkpoint.seconds': 's',
   'node.checkpoint.progress': 'Pregunta {n} de {total}',
+  'node.duel.correct': 'Acierto',
+  'node.duel.incorrect': 'Error',
   'node.simulation.title': 'Simulación',
   'node.debrief.title': 'Resumen',
   'node.intro.title': 'Primer paseo: Correa floja y calma',

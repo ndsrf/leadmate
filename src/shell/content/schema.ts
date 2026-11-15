@@ -347,14 +347,15 @@ export interface ValidationResult {
 const ID_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const SEMVER_REGEX = /^\d+\.\d+\.\d+(-[a-zA-Z0-9.-]+)?$/;
 
-/** Compares the numeric `major.minor.patch` of two versions: negative, zero or positive like a sort comparator. */
+/** Compares the numeric `major.minor.patch` of two versions: -1, 0 or 1 like a sort comparator. */
 export function compareAppVersions(a: string, b: string): number {
   const parts = (v: string) => v.split('-')[0].split('.').map((n) => parseInt(n, 10) || 0);
   const pa = parts(a);
   const pb = parts(b);
   for (let i = 0; i < 3; i++) {
     const diff = (pa[i] ?? 0) - (pb[i] ?? 0);
-    if (diff !== 0) return diff;
+    if (diff > 0) return 1;
+    if (diff < 0) return -1;
   }
   return 0;
 }

@@ -1,7 +1,7 @@
 import { type ContentManifest } from './build';
 import { channelFileUrl, channelLatestUrl, channelManifestUrl, hasRemoteContent } from './config';
 import { endContentProgress, reportContentProgress } from './progress';
-import { parseYaml } from './schema';
+import { compareAppVersions, parseYaml } from './schema';
 import { baselineFillFor, ContentStore, DEFAULT_BASELINE, loadPackFromStorage, type BaselineSource, type FileStorage, type KeyValueStorage } from './store';
 import { validatePack } from './validator';
 
@@ -97,17 +97,7 @@ export interface LaunchUpdateResult {
   error?: string;
 }
 
-export function compareSemver(v1: string, v2: string): number {
-  const parts1 = v1.split('.').map((p) => parseInt(p, 10) || 0);
-  const parts2 = v2.split('.').map((p) => parseInt(p, 10) || 0);
-  for (let i = 0; i < 3; i++) {
-    const p1 = parts1[i] ?? 0;
-    const p2 = parts2[i] ?? 0;
-    if (p1 > p2) return 1;
-    if (p1 < p2) return -1;
-  }
-  return 0;
-}
+export const compareSemver = compareAppVersions;
 
 export class ContentUpdater {
   constructor(

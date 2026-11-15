@@ -252,14 +252,14 @@ Nodes define Checkpoint questions under `## checkpoint` in `nodes/<node-id>/<lan
   In `es.md` (and `en.md`):
   ```markdown
   ### tq2
-  ¿Qué guía mantiene a {name} atento?
+  ¿Qué guía mantiene la atención de {name}?
   - [ ] La guía camina mirando el móvil
   - [ ] La guía gira y mira a {name}
   - why: Girar y mirar invita a {name} a buscarte.
   ```
   For Image Duels:
   - First line: The question prompt.
-  - Exactly two `- [ ]` lines with the alt-text description for each image, in the exact order declared in `node.yaml`'s `images` list.
+  - Exactly two alt-text description lines in the exact order declared in `node.yaml`'s `images` list. Each line is typically written as `- [ ]`, but an optional `- [x]` mark on the correct image's line is accepted by the validator (it must agree with `correct` in `node.yaml`).
   - `- why:` The explanation displayed after answering.
   - The correct answer index (`0` or `1`) is configured in `node.yaml` (the app shuffles presentation order at runtime).
 
@@ -518,7 +518,7 @@ Cambia de dirección sin avisar y premia cuando {name} te mire.
 - why: Un giro tranquilo hace que el paseo vuelva a ser cosa de dos.
 
 ### tq2
-¿Qué guía mantiene a {name} atento?
+¿Qué guía mantiene la atención de {name}?
 - [ ] La guía camina mirando el móvil
 - [ ] La guía gira y mira a {name}
 - why: Girar y mirar invita a {name} a buscarte.
@@ -540,6 +540,6 @@ Before completing an edit or adding new content:
 - [ ] Subcategories belong to a Category and Products belong to a Subcategory.
 - [ ] Packs using Image Duels declare `minAppVersion: 1.1.0` or higher in `pack.yaml`.
 - [ ] Image Duel entries in `node.yaml` define `kind: duel`, exactly two existing `media/` images, and `correct: 0` or `1`.
-- [ ] Each Image Duel in `<lang>.md` has a prompt, exactly two `- [ ]` alt-text lines in image order, and `- why:`.
+- [ ] Each Image Duel in `<lang>.md` has a prompt, exactly two alt-text lines in image order (`- [ ]`, or optional `[x]` on the correct image agreeing with `node.yaml`), and `- why:`.
 - [ ] Duel images are 640x360, wordless, and free of badges or right/wrong hints.
 - [ ] Run `npm run content:validate -- --channel beta` and ensure zero errors.
