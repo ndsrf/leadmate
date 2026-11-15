@@ -2,6 +2,7 @@ import type { Catalog } from '../i18n';
 import type { CueType, ScenarioConfig } from './config';
 import type { CloseExerciseConfig } from './closeExercise';
 import type { SimulationDebriefPayload } from './payload';
+import { FEEDBACK_ACTION_KINDS, isFeedbackActionKind, type FeedbackActionKind, type FeedbackPolarity } from './feedbackKinds';
 import type { ReactionTier } from './sim';
 
 /** Shell -> bundle. */
@@ -39,7 +40,37 @@ export type BundleMessage =
    * control (`control`), and `dog-approaching` where the dog comes from on screen (`bearing`, radians).
    */
   | { type: 'stage-signal'; signal: StageSignal; time: number; control?: StageControl; bearing?: number }
+  /**
+   * A Feedback Message was shown in the Stage; the shell plays its sound and haptic (fire and forget). `combo` is the
+   * run of right actions of this kind (1 for the first). `firstTime` says the Hint (full text) was shown, so the shell
+   * records `feedback:<kind>` in `seenHints` (recorded Stages only).
+   */
+  | FeedbackMessage
   | { type: 'error'; message: string };
+
+export const FEEDBACK_TIERS = ['small', 'medium', 'big'] as const;
+export type FeedbackTier = (typeof FEEDBACK_TIERS)[number];
+
+export interface FeedbackMessage {
+  type: 'feedback';
+  kind: FeedbackActionKind;
+  tier: FeedbackTier;
+  polarity: FeedbackPolarity;
+  combo: number;
+  firstTime: boolean;
+}
+
+function isFeedbackMessage(v: Record<string, unknown>): boolean {
+  return (
+    typeof v.kind === 'string' &&
+    isFeedbackActionKind(v.kind) &&
+    (FEEDBACK_TIERS as readonly unknown[]).includes(v.tier) &&
+    v.polarity === FEEDBACK_ACTION_KINDS[v.kind] &&
+    Number.isInteger(v.combo) &&
+    (v.combo as number) >= 0 &&
+    typeof v.firstTime === 'boolean'
+  );
+}
 
 export const STAGE_SIGNALS = ['first-taut', 'first-fixation', 'leash-limit', 'first-input', 'dog-approaching', 'control-used'] as const;
 export type StageSignal = (typeof STAGE_SIGNALS)[number];
@@ -69,7 +100,10 @@ export function encode(message: ShellMessage | BundleMessage): string {
 export function decode<T extends { type: string }>(raw: unknown, types: readonly T['type'][]): T | null {
   try {
     const value = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    if (value && typeof value === 'object' && types.includes((value as { type: string }).type)) return value as T;
+    if (value && typeof value === 'object' && types.includes((value as { type: string }).type)) {
+      if ((value as { type: string }).type === 'feedback' && !isFeedbackMessage(value as Record<string, unknown>)) return null;
+      return value as T;
+    }
   } catch {
     // not ours
   }
@@ -77,7 +111,7 @@ export function decode<T extends { type: string }>(raw: unknown, types: readonly
 }
 
 export const SHELL_MESSAGE_TYPES: readonly ShellMessage['type'][] = ['start', 'pause', 'resume', 'focus', 'suspend', 'wake'];
-export const BUNDLE_MESSAGE_TYPES: readonly BundleMessage['type'][] = ['ready', 'paused', 'debrief', 'playCue', 'reaction-tier-change', 'stage-signal', 'error'];
+export const BUNDLE_MESSAGE_TYPES: readonly BundleMessage['type'][] = ['ready', 'paused', 'debrief', 'playCue', 'reaction-tier-change', 'stage-signal', 'feedback', 'error'];
 
 /** Where the bundle sends its messages: the native WebView bridge, the parent window, or nowhere. */
 export type Outbox = (message: BundleMessage) => void;

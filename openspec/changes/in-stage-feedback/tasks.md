@@ -21,10 +21,10 @@
 
 ## 4. Shell: sounds, haptics and seen kinds
 
-- [ ] 4.1 Add the `feedback` bundle message to `messages.ts` (types and decoder); verify with `messages.test.ts`.
+- [x] 4.1 Add the `feedback` bundle message to `messages.ts` (types and decoder); verify with `messages.test.ts`.
 - [ ] 4.2 Add `tick`, `chime`, `fanfare` and `bonk` SFX (licence recorded next to the files), preload players at Stage start, raise the tick's pitch with the Combo, and lower feedback volume to 35% while `cueAudioActive()`; verify with feedback-service unit tests and by ear on device during a Cue.
 - [ ] 4.3 Play the light-tick or soft-thud haptic per polarity, respecting the haptics setting; verify on Android.
-- [ ] 4.4 Record `feedback:<kind>` in `seenHints` on first Hint in recorded Stages only, cleared by Reset progress; verify with `dogRecord`/hints tests.
+- [x] 4.4 Record `feedback:<kind>` in `seenHints` on first Hint in recorded Stages only, cleared by Reset progress; verify with `dogRecord`/hints tests.
 
 ## 5. Integration checks
 

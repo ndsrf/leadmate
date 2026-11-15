@@ -82,6 +82,8 @@ describe('Barkdoku UI & Canine Visuals', () => {
       haptic: mockHaptic,
       sound: mockSound,
       cueAudioActive: () => false,
+      stageSound: jest.fn(),
+      preload: jest.fn(),
     });
   });
 

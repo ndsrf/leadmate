@@ -1,5 +1,6 @@
 import { STAGE_SIGNALS } from '../../sim/messages';
 import { loadDogRecord, newDogRecord, saveDogRecord, type KeyValueStore } from '../dogRecord';
+import { feedbackHintId, feedbackKindSeen, markFeedbackKindSeen } from './hints';
 import { closeMarksOn, COACH_ID, hintFor, HINT_IDS, hintsRemain, markHintSeen } from './hints';
 
 describe('hints', () => {
@@ -77,5 +78,29 @@ describe('close-view Coach marks', () => {
     r = markHintSeen(r, COACH_ID.gather);
     expect(r.seenHints).toEqual(['coach-gather']);
     for (const id of Object.values(COACH_ID)) expect(HINT_IDS).toContain(id);
+  });
+});
+
+describe('feedback seen kinds', () => {
+  it('records feedback:<kind> once', () => {
+    expect(feedbackHintId('marker-hit')).toBe('feedback:marker-hit');
+    let r = newDogRecord();
+    expect(feedbackKindSeen(r.seenHints, 'marker-hit')).toBe(false);
+    r = markFeedbackKindSeen(r, 'marker-hit');
+    r = markFeedbackKindSeen(r, 'marker-hit');
+    expect(r.seenHints).toEqual(['feedback:marker-hit']);
+    expect(feedbackKindSeen(r.seenHints, 'marker-hit')).toBe(true);
+    expect(feedbackKindSeen(r.seenHints, 'wrong-cue')).toBe(false);
+  });
+
+  it('does not count as one of the hints left to show', () => {
+    expect(hintsRemain(['feedback:marker-hit'])).toBe(true);
+  });
+
+  it('persists across a restart', async () => {
+    const data = new Map<string, string>();
+    const store: KeyValueStore = { getItem: async (k) => data.get(k) ?? null, setItem: async (k, v) => void data.set(k, v) };
+    await saveDogRecord(store, markFeedbackKindSeen(newDogRecord(), 'poste'));
+    expect((await loadDogRecord(store)).seenHints).toEqual(['feedback:poste']);
   });
 });

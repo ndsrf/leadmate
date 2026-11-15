@@ -329,6 +329,13 @@ describe('the Basics World and Reset Progress', () => {
   });
 });
 
+describe('reset and seen Feedback Message kinds (in-stage-feedback 4.4)', () => {
+  it('clears feedback:<kind> from seenHints so the Hints show again', () => {
+    const played = { ...newDogRecord(), seenHints: ['marker', 'feedback:marker-hit', 'feedback:wrong-cue'] } as DogRecord;
+    expect(createResetRecord(played).seenHints).toEqual([]);
+  });
+});
+
 describe('reset and the hand drill (task 3.3)', () => {
   it('clears the "calm hands and leash" completion and shows the close-view Coach marks again', () => {
     const played = {

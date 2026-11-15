@@ -50,7 +50,7 @@ describe('device-local UI settings', () => {
     const sound = jest.fn();
     const haptic = jest.fn();
     const feedback = createFeedback(
-      () => ({ sound, haptic, cueAudioActive: () => false }),
+      () => ({ sound, haptic, cueAudioActive: () => false, stageSound: jest.fn(), preload: jest.fn() }),
       () => loaded,
     );
     const loaded = await loadUiSettings(store);
