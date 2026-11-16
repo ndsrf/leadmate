@@ -177,9 +177,13 @@ function startStage(message: Extract<ShellMessage, { type: 'start' }> | null): v
     seed: message?.seed ?? newSeed(),
     scenario: { ...defaultScenario, ...(message?.scenario as Partial<ScenarioConfig>) },
     t,
+    reducedMotion: message?.reducedMotion,
+    seenKinds: message?.seenKinds,
+    isTasteStage: message?.isTasteStage,
     onCue: (cueType) => send({ type: 'playCue', cueType }),
     onTier: (tier, time) => send({ type: 'reaction-tier-change', tier, time }),
     onSignal: (signal, time, detail) => send({ type: 'stage-signal', signal, time, ...detail }),
+    onFeedback: (feedback) => send({ type: 'feedback', ...feedback }),
     onReady: () => {
       starting = false;
       setRunning();

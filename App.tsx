@@ -2,7 +2,7 @@ import './global.css';
 import * as ExpoSplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, BackHandler, useColorScheme, View } from 'react-native';
+import { AccessibilityInfo, AppState, BackHandler, useColorScheme, View } from 'react-native';
 import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Fredoka_600SemiBold } from '@expo-google-fonts/fredoka';
@@ -175,6 +175,23 @@ export default function App() {
   const scheme: ColorScheme = ui.settings.appearance === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : ui.settings.appearance;
   const sim = useRef<SimViewHandle>(null);
   const { record, update, replace } = useDog(dogStore);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    if (typeof AccessibilityInfo?.isReduceMotionEnabled === 'function') {
+      AccessibilityInfo.isReduceMotionEnabled()
+        .then((on) => alive && setReducedMotion(Boolean(on)))
+        .catch(() => {});
+    }
+    const sub =
+      typeof AccessibilityInfo?.addEventListener === 'function'
+        ? AccessibilityInfo.addEventListener('reduceMotionChanged', (on) => setReducedMotion(Boolean(on)))
+        : null;
+    return () => {
+      alive = false;
+      sub?.remove?.();
+    };
+  }, []);
   const [language, setLanguage] = useState<Language>(() => detectDeviceLanguage());
 
   useEffect(() => {
@@ -357,11 +374,18 @@ export default function App() {
     (scenario: Partial<ScenarioConfig>, seed: number = newSeed(), snapshot?: LearningSnapshot) => {
       const current = recordRef.current;
       if (!current) return;
+      const seenKinds = (current.seenHints ?? [])
+        .filter((id) => id.startsWith('feedback:'))
+        .map((id) => id.slice('feedback:'.length));
+      const isTasteStage = routeRef.current.name === 'taste';
       const message: ShellMessage = {
         type: 'start',
         seed,
         catalog: getCatalog(language),
         scenario: { ...withPull(scenario, current.weights), learning: snapshot ?? toSnapshot(current, capacityRef.current), look: lookOf(current) },
+        seenKinds,
+        isTasteStage,
+        reducedMotion,
       };
       setPaused(false);
       setHint(null);
@@ -372,7 +396,7 @@ export default function App() {
       if (bundleReady.current) send(message);
       else pendingStart.current = message;
     },
-    [send],
+    [send, reducedMotion],
   );
 
   /** Starts a close leash exercise Stage; waits for the bundle if it is still loading. */
@@ -385,6 +409,7 @@ export default function App() {
         seed,
         catalog: getCatalog(language),
         scenario: { ...scenario, mode: 'close_exercise', learning: snapshot ?? toSnapshot(current, capacityRef.current), look: lookOf(current) },
+        reducedMotion,
       };
       setPaused(false);
       setHint(null);
@@ -394,7 +419,7 @@ export default function App() {
       if (bundleReady.current) send(message);
       else pendingStart.current = message;
     },
-    [send],
+    [send, reducedMotion],
   );
 
   const act = useCallback((action: NodeAction) => {
