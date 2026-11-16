@@ -39,3 +39,31 @@ describe('quantize', () => {
     expect(quantize(0.5, 10)).toBe(5);
   });
 });
+
+describe('effect dirty tracking (Task 3.4)', () => {
+  it('does no redraw work during a quiet period after an effect finishes', () => {
+    const d = createChangeDetector();
+    const effectKey = (active: boolean, progress: number) => (active ? `effect:${quantize(progress, 20)}` : 'effect:idle');
+
+    // Quiet before: no redraws after initial frame
+    expect(d.changed(effectKey(false, 0))).toBe(true);
+    expect(d.changed(effectKey(false, 0))).toBe(false);
+    expect(d.changed(effectKey(false, 0))).toBe(false);
+
+    // Active effect playing
+    let redrawsWhileActive = 0;
+    for (let frame = 0; frame <= 20; frame++) {
+      if (d.changed(effectKey(true, frame / 20))) redrawsWhileActive++;
+    }
+    expect(redrawsWhileActive).toBeGreaterThan(0);
+
+    // Quiet walk after: finishes into idle
+    expect(d.changed(effectKey(false, 0))).toBe(true); // final transition to idle
+    // Subsequent quiet frames do 0 redraws!
+    let quietRedraws = 0;
+    for (let quietFrame = 0; quietFrame < 60; quietFrame++) {
+      if (d.changed(effectKey(false, 0))) quietRedraws++;
+    }
+    expect(quietRedraws).toBe(0);
+  });
+});

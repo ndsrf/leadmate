@@ -14,6 +14,10 @@ export type ShellMessage =
       /** Text for the active language; keys it lacks fall back to Spanish. */
       catalog?: Catalog;
       scenario?: (Partial<ScenarioConfig> | Partial<CloseExerciseConfig>) & { mode?: string };
+      /** Kinds already in the Dog record's `seenHints` (without the `feedback:` prefix). */
+      seenKinds?: readonly string[];
+      /** The Taste Stage: wrong kinds are dropped and no Hint is offered to be recorded. */
+      isTasteStage?: boolean;
     }
   | { type: 'pause' }
   | { type: 'resume' }

@@ -357,11 +357,17 @@ export default function App() {
     (scenario: Partial<ScenarioConfig>, seed: number = newSeed(), snapshot?: LearningSnapshot) => {
       const current = recordRef.current;
       if (!current) return;
+      const seenKinds = (current.seenHints ?? [])
+        .filter((id) => id.startsWith('feedback:'))
+        .map((id) => id.slice('feedback:'.length));
+      const isTasteStage = routeRef.current.name === 'taste';
       const message: ShellMessage = {
         type: 'start',
         seed,
         catalog: getCatalog(language),
         scenario: { ...withPull(scenario, current.weights), learning: snapshot ?? toSnapshot(current, capacityRef.current), look: lookOf(current) },
+        seenKinds,
+        isTasteStage,
       };
       setPaused(false);
       setHint(null);

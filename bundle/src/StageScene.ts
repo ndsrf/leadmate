@@ -8,16 +8,19 @@ import { project } from '../../src/hud/iso';
 import { smoothZoom, targetZoom } from '../../src/hud/camera';
 import { createChangeDetector, quantize, RING_STEPS } from '../../src/hud/dirty';
 import { HINT_SECONDS, HintTracker } from '../../src/hud/hints';
+import { FeedbackDecider, feedbackTextKey, type FeedbackMessage } from '../../src/hud/feedback';
+import { withDogName } from '../../src/hud/effectsPool';
 import type { CueType, ScenarioConfig } from '../../src/sim/config';
 import { leashCurve, leashPoint, type TensionState } from '../../src/sim/leash';
 import { buildPayload, type SimulationDebriefPayload } from '../../src/sim/payload';
 import { activeDistractor, createState, isDogLooking, isGoSniffAvailable, routeOf, setPaused, tick, noInput, wrappedLeash, type ReactionTier, type SimEvent, type SimInput, type SimState } from '../../src/sim/sim';
-import { createSignalGate, type StageControl, type StageSignal } from '../../src/sim/messages';
+import { createOutbox, createSignalGate, type Outbox, type StageControl, type StageSignal } from '../../src/sim/messages';
 import { add, length, scale, sub, type Vec2 } from '../../src/sim/vec';
 import { TEXTURES, TILE_ORIGIN_Y } from './assets';
 import { drawDecor, drawGroundPatch, drawProp, groundBounds, propLook, wallQuad, WALL_COLORS, WALL_HEIGHT } from './props';
 import { atlas, atlasUrl, ATLAS, DOG_COATS, facingDegrees, pivotOf, propFrame, propScale, resOf } from './sprites';
 import { layoutGround, propWalls, routePoints, shapeOf, type GroundPlan } from '../../src/sim/scenery';
+import { EffectsView } from './effectsView';
 
 export interface StageOptions {
   seed: number;
@@ -31,6 +34,22 @@ export interface StageOptions {
   onSignal?: (signal: StageSignal, time: number, detail?: { control?: StageControl; bearing?: number }) => void;
   /** The scene finished creating; the render loop may now sleep when the Stage is paused or ended. */
   onReady?: () => void;
+  seenKinds?: readonly string[];
+  isTasteStage?: boolean;
+}
+
+let lastStartMessage: { seenKinds?: readonly string[]; isTasteStage?: boolean } | null = null;
+if (typeof window !== 'undefined') {
+  window.addEventListener('message', (e) => {
+    try {
+      const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+      if (data && data.type === 'start') {
+        lastStartMessage = { seenKinds: data.seenKinds, isTasteStage: data.isTasteStage };
+      }
+    } catch {
+      // not ours
+    }
+  });
 }
 
 const COLORS: Record<TensionState, number> = { slack: HUD_TENSION_NUM.slack, taut: HUD_TENSION_NUM.taut, rigid: HUD_TENSION_NUM.rigid };
@@ -73,8 +92,6 @@ export class StageScene extends Phaser.Scene {
   private sniffLabel!: Phaser.GameObjects.Text;
   private markerCount!: Phaser.GameObjects.Text;
   private hintText!: Phaser.GameObjects.Text;
-  private hintUntil = 0;
-  private hints = new HintTracker();
   private baseZoom = 1;
   private zoom = 0;
   private focused = false;
@@ -97,10 +114,12 @@ export class StageScene extends Phaser.Scene {
   private cameraDirty = createChangeDetector();
   /** Fixed simulation steps run so far (dev readout). */
   simSteps = 0;
-  private flash: { color: number; until: number } | null = null;
   private camPos: Vec2 = { x: 0, y: 0 };
   private ended = false;
   private signalGate = createSignalGate();
+  private decider!: FeedbackDecider;
+  private effectsView!: EffectsView;
+  private outbox: Outbox = createOutbox(typeof window !== 'undefined' ? window as never : {});
 
   constructor() {
     super('stage');
@@ -111,9 +130,9 @@ export class StageScene extends Phaser.Scene {
     this.ended = false;
     this.signalGate = createSignalGate();
     this.accumulator = 0;
-    this.flash = null;
-    this.hints = new HintTracker();
-    this.hintUntil = 0;
+    const seenKinds = options.seenKinds ?? lastStartMessage?.seenKinds ?? [];
+    const isTasteStage = options.isTasteStage ?? lastStartMessage?.isTasteStage ?? false;
+    this.decider = new FeedbackDecider({ seenKinds, isTasteStage });
     this.zoom = 0;
     this.focused = false;
     this.joy = null;
@@ -131,6 +150,7 @@ export class StageScene extends Phaser.Scene {
       if (!this.textures.exists(key)) this.load.image(key, url);
     }
     if (!this.textures.exists(ATLAS)) this.load.atlas(ATLAS, atlasUrl, atlas as object);
+    EffectsView.preload(this);
   }
 
   create(): void {
@@ -175,6 +195,9 @@ export class StageScene extends Phaser.Scene {
     this.hudCam = this.cameras.add(0, 0, this.scale.width, this.scale.height);
     this.hudCam.ignore(world);
     this.cameras.main.ignore([this.hud, this.markerLabel, this.cueLabel, this.leaveItLabel, this.sniffLabel, this.markerCount, this.hintText]);
+
+    this.effectsView = new EffectsView(this, this.hudCam);
+    this.effectsView.create();
 
     const kb = this.input.keyboard!;
     const K = Phaser.Input.Keyboard.KeyCodes;
@@ -528,7 +551,14 @@ export class StageScene extends Phaser.Scene {
         this.accumulator -= step;
       }
     }
-    this.showHints();
+    this.effectsView.update(
+      this.sim.time,
+      this.scale.width,
+      this.scale.height,
+      this.options.scenario.meters,
+      this.sim.meters,
+      this.options.t,
+    );
     this.followCamera(delta);
     this.draw(input);
     this.drawHud();
@@ -547,19 +577,62 @@ export class StageScene extends Phaser.Scene {
     return Math.atan2(to.y - from.y, to.x - from.x);
   }
 
+  private handleFeedback(events: SimEvent[]): void {
+    if (this.sim.paused || this.ended) return;
+    const dogWorld = project(this.sim.dog);
+    const { width, height } = this.scale;
+    const z = this.cameras.main.zoom;
+    const dogScreenX = (dogWorld.x - this.camPos.x) * z + width / 2;
+    const dogScreenY = (dogWorld.y - this.camPos.y) * z + height / 2;
+    const dogScreen = { x: dogScreenX, y: dogScreenY };
+
+    const msg = this.decider.step({
+      time: this.sim.time,
+      events,
+      tension: this.sim.tension,
+    });
+
+    if (msg) {
+      if (msg.kind !== 'leash-hint') {
+        this.outbox({
+          type: 'feedback',
+          kind: msg.kind,
+          tier: msg.tier === 'wrong' ? 'small' : msg.tier,
+          polarity: msg.polarity,
+          combo: msg.combo,
+          firstTime: msg.firstTime,
+        });
+      }
+
+      let text = '';
+      if (msg.combo > 1 && msg.polarity === 'right' && msg.kind !== 'leash-hint') {
+        const label = this.options.t(feedbackTextKey(msg.kind, 'short'));
+        text = this.options.t('feedback.combo').replace('{label}', label).replace('{n}', String(msg.combo));
+      } else {
+        text = this.options.t(msg.textKey);
+      }
+      const dogName = ((this.options.scenario as unknown as Record<string, unknown>).dogName as string | undefined) ?? '';
+      text = withDogName(text, dogName, this.options.t('dog.neutral'));
+
+      this.effectsView.showFeedback(msg, text, dogScreen, width, height, this.sim.time, this.options.scenario.cues);
+    }
+
+    if (this.options.scenario.meters && this.options.scenario.meters.length > 0) {
+      for (const e of events) {
+        if (e.type === 'meter-points') {
+          const meterPos = this.effectsView.getMeterPosition(width, height, e.meterId, this.options.scenario.meters);
+          if (meterPos) {
+            this.effectsView.showMeterPoints(e, dogScreen, meterPos, this.sim.time);
+          }
+        }
+      }
+    }
+  }
+
   private handleEvents(events: SimEvent[]): void {
-    const now = this.time.now;
+    this.handleFeedback(events);
     for (const e of events) {
-      if (e.type === 'marker-hit') this.flash = { color: 0x22c55e, until: now + 500 };
-      else if (e.type === 'marker-miss') this.flash = { color: 0xef4444, until: now + 500 };
-      else if (e.type === 'marker-reactive') this.flash = { color: 0xfb923c, until: now + 500 };
-      else if (e.type === 'check-in-hit') this.flash = { color: 0x38bdf8, until: now + 500 };
-      else if (e.type === 'marker-wasted') this.flash = { color: 0x94a3b8, until: now + 500 };
-      else if (e.type === 'cue') {
-        this.flash = { color: 0xa78bfa, until: now + 500 };
-        this.options.onCue?.(e.cueType);
-      } else if (e.type === 'cue-mismatch') this.flash = { color: 0x94a3b8, until: now + 500 };
-      else if (e.type === 'go-sniff-start') this.flash = { color: 0x38bdf8, until: now + 500 };
+      if (e.type === 'cue') this.options.onCue?.(e.cueType);
       else if (e.type === 'reaction-tier-change') this.options.onTier?.(e.tier, e.time);
       else if (e.type === 'tension-change' && e.tension === 'taut') this.signal('first-taut', e.time);
       else if (e.type === 'tension-change' && e.tension === 'rigid') this.signal('leash-limit', e.time);
@@ -592,17 +665,6 @@ export class StageScene extends Phaser.Scene {
     if (this.cameraDirty.changed(`${this.zoom},${this.camPos.x},${this.camPos.y},${width},${height}`)) {
       this.cameras.main.setZoom(this.zoom);
       this.cameras.main.centerOn(this.camPos.x, this.camPos.y);
-    }
-  }
-
-  private showHints(): void {
-    if (this.sim.paused || this.ended) return;
-    const key = this.hints.observe(this.sim.tension);
-    if (key) {
-      this.hintText.setText(this.options.t(key)).setVisible(true);
-      this.hintUntil = this.time.now + HINT_SECONDS * 1000;
-    } else if (this.hintText.visible && this.time.now >= this.hintUntil) {
-      this.hintText.setVisible(false);
     }
   }
 
@@ -693,11 +755,6 @@ export class StageScene extends Phaser.Scene {
     g.strokePath();
     g.setDepth(Math.max(handlerPos.y, dogPos.y) + 1);
     this.routeGfx.setDepth(g.depth);
-
-    // feedback ring around the dog
-    if (this.flash && this.time.now < this.flash.until) {
-      g.lineStyle(4, this.flash.color, 0.9).strokeCircle(dogPos.x, dogPos.y - 10, 26);
-    }
   }
 
   /** Route: small markers for the corridor points (grey once passed), the flag at the end. */
@@ -863,6 +920,7 @@ export class StageScene extends Phaser.Scene {
       this.cuePointerDown || this.keys.cue.isDown,
       this.leaveItPointerDown || this.keys.leaveIt.isDown,
       this.sniffPointerDown || this.keys.sniff.isDown,
+      this.effectsView.isActive(this.sim.time) ? quantize(this.sim.time, 30) : '-',
     ].join('|');
     if (!this.hudDirty.changed(key)) return;
     h.clear();
