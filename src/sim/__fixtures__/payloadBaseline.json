@@ -519,6 +519,7 @@
    "foodLeft": 0,
    "freshMoves": 0,
    "repeatedMoves": 0,
+   "repeatedMovesIgnored": 0,
    "chains": 0,
    "jackpotsSmart": 0,
    "jackpotsWasted": 0
@@ -867,6 +868,7 @@
    "foodLeft": 0,
    "freshMoves": 0,
    "repeatedMoves": 0,
+   "repeatedMovesIgnored": 0,
    "chains": 0,
    "jackpotsSmart": 0,
    "jackpotsWasted": 0
@@ -1220,6 +1222,7 @@
    "foodLeft": 0,
    "freshMoves": 0,
    "repeatedMoves": 0,
+   "repeatedMovesIgnored": 0,
    "chains": 0,
    "jackpotsSmart": 0,
    "jackpotsWasted": 0
@@ -1573,6 +1576,7 @@
    "foodLeft": 0,
    "freshMoves": 0,
    "repeatedMoves": 0,
+   "repeatedMovesIgnored": 0,
    "chains": 0,
    "jackpotsSmart": 0,
    "jackpotsWasted": 0
@@ -1926,6 +1930,7 @@
    "foodLeft": 0,
    "freshMoves": 0,
    "repeatedMoves": 0,
+   "repeatedMovesIgnored": 0,
    "chains": 0,
    "jackpotsSmart": 0,
    "jackpotsWasted": 0
@@ -2279,6 +2284,7 @@
    "foodLeft": 0,
    "freshMoves": 0,
    "repeatedMoves": 0,
+   "repeatedMovesIgnored": 0,
    "chains": 0,
    "jackpotsSmart": 0,
    "jackpotsWasted": 0
