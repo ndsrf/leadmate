@@ -28,7 +28,7 @@
 
 ## 5. Integration checks
 
-- [ ] 5.1 Run a seeded Stage with and without feedback and assert identical payloads; verify in CI.
-- [ ] 5.2 Run the `power-efficiency` scenario regression check and confirm no web audio context in the bundle; verify the results stay within budget.
+- [x] 5.1 Run a seeded Stage with and without feedback and assert identical payloads; verify in CI. Evidence: `src/hud/feedbackPayload.test.ts` (default Stage, `park-keep-fresh`, `park-not-that-one`, two seeds each).
+- [x] 5.2 Run the `power-efficiency` scenario regression check and confirm no web audio context in the bundle; verify the results stay within budget. Evidence: `node scripts/power.mjs` on the integrated branch, all checks passed, including "no audio engine in the bundle" (NoAudioSoundManager); playing 30 wakes/s and 30 frames/s.
 - [ ] 5.3 Play the Taste Stage and confirm no wrong Feedback Message and no new `seenHints` entry; play the guided first Stage and confirm its event Hints still show once each and never stack with a Feedback Message.
 - [ ] 5.4 Playtest a World 3, a World 5 and a Daily Stage on a phone; confirm every listed action shows its message and none is missed or stacked, and note tuning changes in design.md.
