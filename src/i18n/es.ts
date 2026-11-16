@@ -765,6 +765,8 @@ export const ES_INTERFACE = {
   'close.intro.go': 'Empezar',
   'close.meter.arousal': 'Emoción',
   'close.meter.calm': 'Calma',
+  'meter.nose': 'Olfato',
+  'meter.connection': 'Conexión',
   'close.sub': 'Entrenamiento de cerca',
   'close.step.1': 'Recoger',
   'close.step.2': 'Calmar',

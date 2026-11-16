@@ -766,6 +766,8 @@ export const EN_INTERFACE = {
   'close.intro.go': 'Start',
   'close.meter.arousal': 'Excitement',
   'close.meter.calm': 'Calm',
+  'meter.nose': 'Nose',
+  'meter.connection': 'Connection',
   'close.sub': 'Close-range drill',
   'close.step.1': 'Gather',
   'close.step.2': 'Calm',
