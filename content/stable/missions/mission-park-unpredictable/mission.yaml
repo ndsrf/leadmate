@@ -4,6 +4,8 @@ reps: 1
 trains:
   - kind: node
     id: park-unpredictable
+  - kind: node
+    id: park-keep-fresh
 problems:
   - id: autopilot
     label: autopilot

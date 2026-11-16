@@ -110,6 +110,18 @@ Behaviour decisions:
 - **Events for Feedback, Stage Meters and the timeline** (`FEEDBACK_ACTION_KINDS`, `feedbackKindOf`): right `granted-sniff`, `waited-plant`, `waited-marking`, `check-in-after-change`, `fresh-move`, `chain`, `leave-it-food`, `smart-jackpot`; wrong `scent-dragged-past`, `dragged-plant`, `interrupted-marking`, `food-eaten`, `repeated-move-ignored`, `empty-sniff`, `wasted-jackpot`. In a scent Stage `go-sniff-start` maps to `granted-sniff` or `empty-sniff` (not `go-sniff`), so a meter there uses those ids. "Check-in after a followed change" is its own `change-check-in` event next to the plain `check-in-hit`, so a Node can score either; the Feedback Message layer (4.2) should show one of the two. Events carry positions, spot indices, change kinds, Novelty and results for the timeline (4.1).
 - **Counts for `scentWalk` (4.1)** are kept in `telemetry.scentWalk` (scent Stages only); the Jackpot counts are in `telemetry.jackpots` (any Stage with a budget). `freshMoves` / `repeatedMoves` count every counted change by its freshness, followed or not.
 
+## Content release 1 tuning (task 6.4, automated part)
+
+`node scripts/tune-scent-nodes.mjs` (30 seeds, bot Handlers "good" and "great") plays the three Nodes of release 1. "Good" gives Go Sniff at 4 of the 6 Scent Spots, 1.5 s after the Dog comes into nose range, marks 70% of looks 0.7 s late, and repeats one change every 9 s. "Great" gives Go Sniff at all 6 at once, marks every look within 0.2 s, and cycles the six change kinds every 7 s. A Node passes when 90% of seeds earn the target Stars (2 good, 3 great). The scenarios keep every `scentWalk` default (no overrides were needed); only the Stage Meter targets were tuned. `scripts/gen-scent-nodes.mjs` writes the scenery, Scent Spots and meters from one table.
+
+| Node | Scent Spots (6, on lamp posts, bushes and bins) | Meter targets (Meter Points per action in Decision 10) | Good | Great |
+|---|---|---|---|---|
+| `park-nose-on` | 3 weak, 3 normal | Nose 110 (granted sniff 20) | 727, 2 Stars on 100% | 994, 3 Stars on 100% |
+| `park-unpredictable` | 6 normal | Nose 60 (10), Connection 45 (Check-in after a followed change 15) | 816, 2 Stars on 97% | 1000, 3 Stars on 100% |
+| `park-keep-fresh` | 6 normal | Nose 60 (10), Connection 120 (fresh move followed 15, Chain 30) | 791, 2 Stars on 90% | 1000, 3 Stars on 100% |
+
+Bots only bound the numbers: the Dog's seeded Check-in and follow draws spread a good run from 458 to 833 on the two Connection Nodes. The phone playtest (a person, with the devSeed) must confirm the feel and may move the targets, which live in each Node's scenario and need no app release. The Meter label keys are `meter.nose` and `meter.connection` and the icons `nose` and `eye` (HUD atlas `icon_nose`, `icon_eye`).
+
 ## Risks / Trade-offs
 
 - [The Dog feels too stubborn or too easy] → Every weight is a scenario value; tune per Node with playtests; the devSeed jumps straight to each Node.
