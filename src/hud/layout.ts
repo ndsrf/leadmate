@@ -156,16 +156,16 @@ export function visibleCues(cues: readonly HudCue[]): HudCue[] {
   return (['lets-go', 'leave-it'] as const).filter((c) => cues.includes(c));
 }
 
-/** Slot reserved for Dog portrait at top-right (readable-dog design Decision 6). */
+/**
+ * The shell's back button (`SimulatorBackButton`): 44 points, 12 points from the top-left corner (more with insets).
+ * The Stage draws nothing under it.
+ */
+export const BACK_BUTTON: Rect = { x: 12, y: 12, width: 44, height: 44 };
+
+/** The Dog portrait's box at top-right (readable-dog design Decision 6), the same one `hudLayout` places. */
 export function portraitSlot(width: number, height: number): Rect {
-  const short = Math.min(width, height);
-  const size = Math.max(80, Math.min(120, Math.round(short * 0.26)));
-  return {
-    x: width - 16 - size,
-    y: 16,
-    width: size,
-    height: size,
-  };
+  const { portrait } = hudLayout(width, height);
+  return { x: portrait.x - portrait.size / 2, y: portrait.y - portrait.size / 2, width: portrait.size, height: portrait.size };
 }
 
 /** Bounding boxes around the interactive HUD controls. */
@@ -182,6 +182,7 @@ export function controlZones(width: number, height: number, cues: readonly HudCu
     zones.push({ x: l.leaveItHome.x - CUE_RADIUS - 6, y: l.leaveItHome.y - CUE_RADIUS - 24, width: 2 * CUE_RADIUS + 12, height: 2 * CUE_RADIUS + 30 });
   }
   zones.push({ x: l.sniffHome.x - SNIFF_RADIUS - 6, y: l.sniffHome.y - SNIFF_RADIUS - 24, width: 2 * SNIFF_RADIUS + 12, height: 2 * SNIFF_RADIUS + 30 });
+  zones.push(BACK_BUTTON);
   return zones;
 }
 
@@ -196,7 +197,7 @@ export interface StageMeterLayout {
 }
 
 /**
- * Layout for Stage Meters in top-left, clear of controls, coach marks, and portrait slot.
+ * Layout for Stage Meters in top-left under the back button, clear of controls, coach marks, and portrait slot.
  */
 export function stageMetersLayout(width: number, height: number, meters: readonly { id: string }[]): StageMeterLayout[] {
   if (meters.length === 0) return [];
@@ -205,7 +206,7 @@ export function stageMetersLayout(width: number, height: number, meters: readonl
   const meterHeight = 26;
   const gapY = 8;
   const startX = 16;
-  const startY = 16;
+  const startY = BACK_BUTTON.y + BACK_BUTTON.height + 10;
 
   return meters.map((m, index) => {
     const y = startY + index * (meterHeight + gapY);
@@ -260,13 +261,15 @@ export function feedbackMessagePosition(dogPos: Point, width: number, height: nu
 }
 
 /**
- * Banner layout for Big-tier feedback effects: centered under top safe area.
+ * Banner layout for Big-tier feedback effects: under the top safe area, between the back button and the Dog portrait.
  */
-export function bannerLayout(width: number, _height: number): Rect {
-  const bannerW = Math.min(512, width - 24);
+export function bannerLayout(width: number, height: number): Rect {
+  const left = BACK_BUTTON.x + BACK_BUTTON.width + 8;
+  const right = portraitSlot(width, height).x - 8;
+  const bannerW = Math.min(512, right - left);
   const bannerH = 72;
   return {
-    x: width / 2,
+    x: (left + right) / 2,
     y: 20 + bannerH / 2,
     width: bannerW,
     height: bannerH,

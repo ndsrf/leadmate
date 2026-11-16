@@ -5,6 +5,7 @@ import {
   feedbackMessagePosition,
   hudLayout,
   portraitSlot,
+  BACK_BUTTON,
   stageMetersLayout,
   type Rect,
 } from './layout';
@@ -68,6 +69,27 @@ describe('stageMetersLayout (Task 3.3)', () => {
     }
   });
 
+  it.each(screens)('keeps the meters and the banner clear of the back button and the Dog portrait at $name', ({ width, height }) => {
+    const portrait = portraitSlot(width, height);
+    for (const m of stageMetersLayout(width, height, meters)) {
+      const meterRect: Rect = { x: m.x, y: m.y, width: m.width, height: m.height };
+      expect(intersects(meterRect, BACK_BUTTON)).toBe(false);
+      expect(intersects(meterRect, portrait)).toBe(false);
+    }
+    const b = bannerLayout(width, height);
+    const bannerRect: Rect = { x: b.x - b.width / 2, y: b.y - b.height / 2, width: b.width, height: b.height };
+    expect(intersects(bannerRect, BACK_BUTTON)).toBe(false);
+    expect(intersects(bannerRect, portrait)).toBe(false);
+    expect(b.width).toBeGreaterThan(100);
+  });
+
+  it('places the portrait slot where hudLayout draws the portrait', () => {
+    const { portrait } = hudLayout(375, 667);
+    const slot = portraitSlot(375, 667);
+    expect(slot.x + slot.width / 2).toBe(portrait.x);
+    expect(slot.width).toBe(portrait.size);
+  });
+
   it('handles a single meter', () => {
     const layouts = stageMetersLayout(375, 667, [{ id: 'nose' }]);
     expect(layouts).toHaveLength(1);
@@ -99,7 +121,7 @@ describe('feedbackMessagePosition & controlZones (Task 3.2)', () => {
 
   it('keeps banner under top safe area', () => {
     const b = bannerLayout(400, 700);
-    expect(b.x).toBe(200);
+    expect(b.x - b.width / 2).toBeGreaterThanOrEqual(BACK_BUTTON.x + BACK_BUTTON.width);
     expect(b.y).toBeGreaterThanOrEqual(16);
     expect(b.y).toBeLessThan(120);
     expect(b.width).toBeGreaterThan(0);
