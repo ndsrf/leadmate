@@ -40,6 +40,24 @@ export function iconForKind(kind: FeedbackKind, polarity: FeedbackPolarity): str
   }
 }
 
+/**
+ * Maps content meter icon name and meter id to the HUD texture atlas frame.
+ * Content nodes declare icon names like "nose" and "eye"; the HUD atlas contains
+ * frames "meter_nose", "meter_connection", "icon_nose", "icon_eye".
+ */
+export function meterBadgeFrame(icon?: string, id?: string): string {
+  if (icon === 'meter_nose' || icon === 'meter_connection' || icon === 'icon_nose' || icon === 'icon_eye') {
+    return icon;
+  }
+  if (icon === 'nose' || id === 'nose') {
+    return 'meter_nose';
+  }
+  if (icon === 'eye' || icon === 'connection' || id === 'connection') {
+    return 'meter_connection';
+  }
+  return id === 'connection' ? 'meter_connection' : 'meter_nose';
+}
+
 /** Horizontal wobble offset in pixels for wrong tier (with decaying oscillation). */
 export function wobbleOffset(elapsed: number, duration: number): number {
   if (elapsed < 0 || elapsed >= duration) return 0;

@@ -9,6 +9,7 @@ import {
   createEffectsTracker,
   iconForKind,
   MAX_EFFECT_PARTICLES,
+  meterBadgeFrame,
   wobbleOffset,
   type ActiveFlyingPoint,
   type EffectsTracker,
@@ -156,20 +157,20 @@ export class EffectsView {
     // 6. Stage Meters
     this.metersGfx = this.scene.add.graphics();
     this.meterBadges = [
-      this.scene.add.image(0, 0, HUD_ATLAS, 'meter_nose').setOrigin(0.5, 0.5).setScale(0.38).setVisible(false),
-      this.scene.add.image(0, 0, HUD_ATLAS, 'meter_connection').setOrigin(0.5, 0.5).setScale(0.38).setVisible(false),
+      this.scene.add.image(0, 0, HUD_ATLAS, 'meter_nose').setOrigin(0.5, 0.5).setScale(0.34).setVisible(false),
+      this.scene.add.image(0, 0, HUD_ATLAS, 'meter_connection').setOrigin(0.5, 0.5).setScale(0.34).setVisible(false),
     ];
     this.meterLabels = [
-      this.scene.add.text(0, 0, '', { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '11px', fontStyle: 'bold' }).setVisible(false),
-      this.scene.add.text(0, 0, '', { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '11px', fontStyle: 'bold' }).setVisible(false),
+      this.scene.add.text(0, 0, '', { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '10px', fontStyle: 'bold' }).setVisible(false),
+      this.scene.add.text(0, 0, '', { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '10px', fontStyle: 'bold' }).setVisible(false),
     ];
     this.meterValues = [
       this.scene.add.text(0, 0, '', { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.inkMuted, fontSize: '10px' }).setOrigin(1, 0).setVisible(false),
       this.scene.add.text(0, 0, '', { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.inkMuted, fontSize: '10px' }).setOrigin(1, 0).setVisible(false),
     ];
     this.meterStars = [
-      this.scene.add.image(0, 0, HUD_ATLAS, 'icon_star').setOrigin(0.5, 0.5).setScale(0.35).setVisible(false),
-      this.scene.add.image(0, 0, HUD_ATLAS, 'icon_star').setOrigin(0.5, 0.5).setScale(0.35).setVisible(false),
+      this.scene.add.image(0, 0, HUD_ATLAS, 'icon_star').setOrigin(0.5, 0.5).setScale(0.24).setVisible(false),
+      this.scene.add.image(0, 0, HUD_ATLAS, 'icon_star').setOrigin(0.5, 0.5).setScale(0.24).setVisible(false),
     ];
 
     // Ensure all effect objects are only drawn by hudCam
@@ -390,29 +391,34 @@ export class EffectsView {
 
       // Draw container card/bar
       // Card background
-      g.fillStyle(HUD_COLOR_NUM.surface, 0.9);
-      g.fillRoundedRect(layout.x, layout.y, layout.width, layout.height, 8);
-      g.lineStyle(HUD_BORDER - 1, HUD_COLOR_NUM.ink, 0.8);
-      g.strokeRoundedRect(layout.x, layout.y, layout.width, layout.height, 8);
+      g.fillStyle(HUD_COLOR_NUM.surface, 0.95);
+      g.fillRoundedRect(layout.x, layout.y, layout.width, layout.height, 6);
+      g.lineStyle(1, HUD_COLOR_NUM.ink, 0.6);
+      g.strokeRoundedRect(layout.x, layout.y, layout.width, layout.height, 6);
 
       // Sunken bar background
+      const barX = layout.bar.x;
+      const barY = layout.y + 15;
+      const barH = 6;
+      const barW = layout.width - 34;
       g.fillStyle(HUD_COLOR_NUM.surfaceSunken, 0.9);
-      g.fillRoundedRect(layout.bar.x, layout.bar.y + 11, layout.bar.width, 6, 3);
+      g.fillRoundedRect(barX, barY, barW, barH, 3);
 
       // Filled portion
       if (fillRatio > 0) {
-        const fillW = Math.max(4, Math.round(layout.bar.width * fillRatio));
+        const fillW = Math.max(4, Math.round(barW * fillRatio));
         g.fillStyle(isFull ? HUD_COLOR_NUM.accent : HUD_COLOR_NUM.brand, 1);
-        g.fillRoundedRect(layout.bar.x, layout.bar.y + 11, fillW, 6, 3);
+        g.fillRoundedRect(barX, barY, fillW, barH, 3);
       }
 
       // Badge image
       const badgeImg = this.meterBadges[i];
       if (badgeImg) {
-        const badgeFrame = meter.icon || (meter.id === 'nose' ? 'meter_nose' : 'meter_connection');
+        const badgeFrame = meterBadgeFrame(meter.icon, meter.id);
         badgeImg
           .setFrame(badgeFrame)
           .setPosition(layout.badge.x, layout.badge.y)
+          .setScale(0.34)
           .setVisible(true);
       }
 
@@ -422,7 +428,7 @@ export class EffectsView {
         const label = t ? t(meter.labelKey) : meter.labelKey;
         labelText
           .setText(label)
-          .setPosition(layout.bar.x, layout.bar.y - 1)
+          .setPosition(layout.bar.x, layout.y + 2)
           .setVisible(true);
       }
 
@@ -431,13 +437,21 @@ export class EffectsView {
       if (starImg) {
         if (isFull) {
           starImg
-            .setPosition(layout.x + layout.width - 10, layout.badge.y)
+            .setPosition(layout.x + layout.width - 11, layout.y + 8)
+            .setScale(0.24)
             .setVisible(true);
         } else {
           starImg.setVisible(false);
         }
       }
     });
+
+    for (let i = meters.length; i < this.meterBadges.length; i++) {
+      this.meterBadges[i]?.setVisible(false);
+      this.meterLabels[i]?.setVisible(false);
+      this.meterValues[i]?.setVisible(false);
+      this.meterStars[i]?.setVisible(false);
+    }
   }
 
   /**

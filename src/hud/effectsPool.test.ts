@@ -2,6 +2,7 @@ import {
   createEffectsTracker,
   iconForKind,
   MAX_EFFECT_PARTICLES,
+  meterBadgeFrame,
   particleBurst,
   wobbleOffset,
   bounceOffset,
@@ -28,6 +29,19 @@ describe('effectsPool constants & icons (Task 3.2)', () => {
     expect(iconForKind('sintonia', 'right')).toBe('icon_sparkle');
     expect(iconForKind('disengagement', 'right')).toBe('icon_star');
     expect(iconForKind('marker-hit', 'right')).toBe('icon_mark');
+  });
+
+  it('maps content meter icon names to HUD atlas frames', () => {
+    // Content nodes declare icon: nose or icon: eye
+    expect(meterBadgeFrame('nose', 'nose')).toBe('meter_nose');
+    expect(meterBadgeFrame('eye', 'connection')).toBe('meter_connection');
+    expect(meterBadgeFrame(undefined, 'nose')).toBe('meter_nose');
+    expect(meterBadgeFrame(undefined, 'connection')).toBe('meter_connection');
+    // Direct frames
+    expect(meterBadgeFrame('meter_nose')).toBe('meter_nose');
+    expect(meterBadgeFrame('meter_connection')).toBe('meter_connection');
+    expect(meterBadgeFrame('icon_nose')).toBe('icon_nose');
+    expect(meterBadgeFrame('icon_eye')).toBe('icon_eye');
   });
 });
 
