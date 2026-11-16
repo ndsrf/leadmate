@@ -74,6 +74,22 @@ export const FEEDBACK_RULES = {
   'harsh-stop': { tier: 'wrong' },
   'rigid-pull': { tier: 'wrong', minIntervalSeconds: RIGID_PULL_INTERVAL_SECONDS },
   'go-sniff-cut-short': { tier: 'wrong' },
+  // scent walks (rethink-unpredictable-walk-stage 4.2); Chains and full meters become big via the generic rule
+  'granted-sniff': { tier: 'small' },
+  'waited-plant': { tier: 'medium' },
+  'waited-marking': { tier: 'medium' },
+  'check-in-after-change': { tier: 'small' },
+  'fresh-move': { tier: 'small' },
+  chain: { tier: 'big' },
+  'leave-it-food': { tier: 'small' },
+  'smart-jackpot': { tier: 'medium' },
+  'scent-dragged-past': { tier: 'wrong' },
+  'dragged-plant': { tier: 'wrong' },
+  'interrupted-marking': { tier: 'wrong' },
+  'food-eaten': { tier: 'wrong' },
+  'repeated-move-ignored': { tier: 'wrong' },
+  'empty-sniff': { tier: 'wrong' },
+  'wasted-jackpot': { tier: 'wrong' },
 } as const satisfies Record<FeedbackActionKind, KindRule>;
 
 const RULES: Record<FeedbackActionKind, KindRule> = FEEDBACK_RULES;
@@ -142,6 +158,8 @@ export class FeedbackDecider {
     for (const e of events) {
       const kind = feedbackKindOf(e);
       if (!kind) continue;
+      // the Marker on the look after a change reports both events; show only the more specific message
+      if (kind === 'check-in-hit' && events.some((o) => o.type === 'change-check-in')) continue;
       const polarity = FEEDBACK_ACTION_KINDS[kind];
       if (polarity === 'wrong') {
         this.combos.clear();

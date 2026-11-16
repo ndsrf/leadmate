@@ -77,7 +77,7 @@ describe('Dog portrait layout (readable-dog 4.2)', () => {
   it.each(widths)('respects safe-area insets at width %i', (w) => {
     const h = screens[w];
     const insets: Insets = { top: 44, right: 16, bottom: 34, left: 16 };
-    const l = hudLayout(w, h, ['lets-go', 'leave-it'], insets);
+    const l = hudLayout(w, h, ['lets-go', 'leave-it'], { insets });
     const box = portraitBounds(l);
 
     // Top edge must clear insets.top + margin

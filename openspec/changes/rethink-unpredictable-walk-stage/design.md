@@ -66,6 +66,42 @@
 
 12. **Timeline.** The simulation appends `{t, kind, polarity}` for each Feedback-worthy event to a capped list (60 entries; when full, the oldest right moments are dropped first), exported as `timeline`. The Node Debrief in `src/shell/screens/NodeScreens.tsx` draws it and picks "done well / try next" from `scentWalk` with a fixed priority table.
 
+## Implementation notes (simulation, tasks 1.1-3.2)
+
+Every number below is a default in `DEFAULT_SCENT_WALK` (`src/sim/config.ts`); a scenario overrides any of them under `scentWalk:` (groups merge key by key), so tuning in 6.4 needs no app release. `jackpotBudget` is a top-level scenario field.
+
+| Tunable | Default | Note |
+|---|---|---|
+| `pull` weak / normal / hot | 1.5 / 3 / 5 | Strength weights in Decision 1. Lower values (0.5-2.5) made a weak spot invisible at Autopilot 0. |
+| `autopilotFloor` | 0.3 | The `0.3` of Decision 1. |
+| `radius` weak / normal / hot | 3 / 4 / 5 m | Nose radius when a spot sets none. Food uses the hot radius. |
+| `reachDistance` | 0.6 m | The Dog is "at" a spot (Plant, marking, food, granted sniff). |
+| `headingLead` | 1.4 m | **Differs from Decision 2 (2 m):** at 2 m the Dog settles at the leash limit, so the leash is Taut whenever the Handler stands and no change could count. 1.4 m keeps it Slack (ratio 0.7). |
+| `autopilot.risePerSecond` | 0.05 | 10 s of steady walking gives about 0.4. |
+| `autopilot.steadyAngle` / `steadyPace` | 15° / 20% | Decision 3. |
+| `autopilot.steadySeconds` | 1 s | Added: walking must hold steady this long before Autopilot rises, so a weave never counts as steady. |
+| `autopilot.dropPerChange` / `followDamping` | 0.6 / 0.4 | Decision 3. Autopilot before the drop sets the follow chance. |
+| `novelty.step` / `recoveryPerSecond` | 0.45 / 0.025 per s | **Differ from Decision 5 (0.35 / 0.05):** with those, three right turns within 10 s never reach "repeated" (< 0.4), as `walk-novelty` requires. With 0.45 / 0.025 turns 5 s apart reach 0.35, and a stop at 0 is fresh again after 28 s (the 30 s rule). |
+| `novelty.fresh` / `repeated` / `freshBonus` | 0.7 / 0.4 / 0.15 | Decision 5. |
+| `pace.smoothingSeconds` / `threshold` | 0.5 s / 35% | Decision 4. The smoothed strength is the mean over the window. After a pace change the new pace is measured again once it settles (within 10% of the input), so one change counts once. |
+| `uTurnAngle` | 135° | `walk-novelty`. |
+| `plantSeconds` / `markingSeconds` | 3-6 s / 2-4 s | Seeded with `eventRng` when the stop starts. |
+| `dragArousal` | 8 | One-off Arousal (times the Equipment Rigid Pull multiplier) of a dragged Plant or an interrupted marking, on top of the usual Rigid Pull rate. |
+| `chain.walkSeconds` / `sniffSeconds` | 2 s / 3 s | `walk-novelty` Chain. |
+
+Behaviour decisions:
+
+- **Scent Stage switch.** A scenario is a scent Stage when `scents` or any scenery item's `scent:` declares a spot. Only then does `SimState.scentWalk` exist; every other Stage takes no new random draw and sends no new event (golden payloads of both content channels, `payloadBaselineChannels.json`, stay byte-identical).
+- **Random draws** in a scent Stage, all on `eventRng`, in tick order: a stop change, a pace change, a turn (each one follow draw), the Plant or marking duration, then the existing Check-in and Go Sniff draws.
+- **Plant and marking.** Only hot spots make the Dog Plant; any spot with `marking: true` makes it mark. Rigid Pull ends either at once (dragged / interrupted) and uses the spot up. A followed turn (not a pace change or a stop) ends a Plant as waited. A marked post is used up too, so the Dog does not mark it again on every pass. A Go Sniff during a Plant or a marking ends it (`result: 'granted'`, no Feedback kind) and is a granted sniff at that spot.
+- **Following a stop or a pace change.** On a followed stop the Dog stops too and looks; on a pace change it walks the Handler's way and looks. Neither leaves a Taut correction pending (only turns do).
+- **Go Sniff in a scent Stage** is on offer on Slack with no Go Sniff running, except during a Reward Window and during a Fixation (unless the Dog is fixated on food it has reached). A granted sniff takes the Dog to the spot at its Goal speed, then it noses around at Go Sniff speed. The Handler must keep the spot within Slack, or tension ends the Go Sniff as usual.
+- **Food in a scent Stage.** A stationary `food` Distractor pulls like a hot spot while in play. A Go Sniff with the Dog within `reachDistance` of it eats it (`food-eaten`, the Distractor is used up). "Leave It" on it, fixated or not, puts it out of play (`food-left`).
+- **Scent dragged past.** Reported once per spot, when the leash reaches Rigid Pull while the Dog (walking by its Drive) has that unsniffed spot in nose range.
+- **Jackpot.** `SimInput.jackpot` runs the same judgment as a Marker press but spends a Jackpot (`telemetry.jackpots.used`), never a Mark. Only a hit (`marker-hit` or `check-in-hit`) adds a `jackpot` event, `smart` when a Reward Window was open or a Distractor in play, the food, or an unsniffed hot spot was within its radius at the press, else `wasted`. A press with nothing to reward is a wasted (or Late) Marker press as usual. HUD: `hudLayout(..., jackpot)` puts a 26 px button under Go Sniff, or left of it on a short screen; the bundle draws it with the HUD atlas `icon_star` and a badge of Jackpots left, key J. It has no text label, so no new i18n key.
+- **Events for Feedback, Stage Meters and the timeline** (`FEEDBACK_ACTION_KINDS`, `feedbackKindOf`): right `granted-sniff`, `waited-plant`, `waited-marking`, `check-in-after-change`, `fresh-move`, `chain`, `leave-it-food`, `smart-jackpot`; wrong `scent-dragged-past`, `dragged-plant`, `interrupted-marking`, `food-eaten`, `repeated-move-ignored`, `empty-sniff`, `wasted-jackpot`. In a scent Stage `go-sniff-start` maps to `granted-sniff` or `empty-sniff` (not `go-sniff`), so a meter there uses those ids. "Check-in after a followed change" is its own `change-check-in` event next to the plain `check-in-hit`, so a Node can score either; the Feedback Message layer (4.2) should show one of the two. Events carry positions, spot indices, change kinds, Novelty and results for the timeline (4.1).
+- **Counts for `scentWalk` (4.1)** are kept in `telemetry.scentWalk` (scent Stages only); the Jackpot counts are in `telemetry.jackpots` (any Stage with a budget). `freshMoves` / `repeatedMoves` count every counted change by its freshness, followed or not.
+
 ## Risks / Trade-offs
 
 - [The Dog feels too stubborn or too easy] → Every weight is a scenario value; tune per Node with playtests; the devSeed jumps straight to each Node.

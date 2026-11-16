@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import type { Translate } from '../../src/i18n';
 import { HUD_AROUSAL_NUM, HUD_BORDER, HUD_COLOR, HUD_COLOR_NUM, HUD_DEPTH, HUD_PRIMARY_BUTTON, HUD_TENSION_NUM } from './tokens.generated';
-import { CUE_LABEL_WIDTH, CUE_RADIUS, fitFontSize, hudLayout, isPointInPortrait, JOY_RADIUS, MARKER_RADIUS, SNIFF_RADIUS, visibleCues, type PortraitLayout } from '../../src/hud/layout';
+import { CUE_LABEL_WIDTH, CUE_RADIUS, fitFontSize, hudLayout, isPointInPortrait, JACKPOT_RADIUS, JOY_RADIUS, MARKER_RADIUS, SNIFF_RADIUS, visibleCues, type PortraitLayout } from '../../src/hud/layout';
 import { dogPose, gaitPeriod, walkClipFor, type WalkClip } from '../../src/hud/pose';
 import { applyDetents, keyboardInput, screenToWorldDirection, type Keys } from '../../src/hud/input';
 import { project } from '../../src/hud/iso';
@@ -20,6 +20,11 @@ import { TEXTURES, TILE_ORIGIN_Y } from './assets';
 import { drawDecor, drawGroundPatch, drawProp, groundBounds, propLook, wallQuad, WALL_COLORS, WALL_HEIGHT } from './props';
 import { atlas, atlasOf, atlasUrl, ATLAS, DOG_ATLAS, dogAtlas, dogAtlasUrl, DOG_COATS, facingDegrees, huskyFrame, pivotOf, propFrame, propScale, resOf } from './sprites';
 import { layoutGround, propWalls, routePoints, shapeOf, type GroundPlan } from '../../src/sim/scenery';
+import hudAtlasUrl from '../assets/hud/sprites.png';
+import hudAtlas from '../assets/hud/sprites.json';
+
+/** The HUD icon atlas (feedback icons); the Jackpot button draws its star from it. */
+const HUD_ATLAS = 'hud';
 
 export interface StageOptions {
   seed: number;
@@ -85,7 +90,13 @@ export class StageScene extends Phaser.Scene {
   private baseZoom = 1;
   private zoom = 0;
   private focused = false;
-  private keys!: Record<keyof Keys | 'marker' | 'marker2' | 'cue' | 'leaveIt' | 'sniff', Phaser.Input.Keyboard.Key>;
+  private keys!: Record<keyof Keys | 'marker' | 'marker2' | 'cue' | 'leaveIt' | 'sniff' | 'jackpot', Phaser.Input.Keyboard.Key>;
+  /** The Jackpot button (only with a Jackpot budget): where it is, its star and the Jackpots left. */
+  private jackpotHome: Vec2 | null = null;
+  private jackpotStar: Phaser.GameObjects.Image | null = null;
+  private jackpotCount!: Phaser.GameObjects.Text;
+  private jackpotPointerDown = false;
+  private jackpotPressed = false;
   private joy: { id: number; base: Vec2; knob: Vec2 } | null = null;
   private joyHome: Vec2 = { x: 120, y: 300 };
   private markerHome: Vec2 = { x: 700, y: 300 };
@@ -146,6 +157,8 @@ export class StageScene extends Phaser.Scene {
     this.leaveItPointerDown = false;
     this.sniffPointerDown = false;
     this.sniffPressed = false;
+    this.jackpotPointerDown = false;
+    this.jackpotPressed = false;
   }
 
   preload(): void {
@@ -155,6 +168,15 @@ export class StageScene extends Phaser.Scene {
     if (!this.textures.exists(ATLAS)) this.load.atlas(ATLAS, atlasUrl, atlas as object);
     if (!this.textures.exists(DOG_ATLAS)) this.load.atlas(DOG_ATLAS, dogAtlasUrl, dogAtlas as object);
     if (!this.textures.exists(PORTRAIT_ATLAS)) this.load.atlas(PORTRAIT_ATLAS, portraitAtlasUrl, portraitAtlas as object);
+    if (this.jackpotBudget > 0 && !this.textures.exists(HUD_ATLAS)) this.load.atlas(HUD_ATLAS, hudAtlasUrl, hudAtlas as object);
+  }
+
+  private get jackpotBudget(): number {
+    return this.options.scenario.jackpotBudget ?? 0;
+  }
+
+  private get jackpotsLeft(): number {
+    return this.jackpotBudget - this.sim.telemetry.jackpots.used;
   }
 
   create(): void {
@@ -202,6 +224,11 @@ export class StageScene extends Phaser.Scene {
     this.markerCount = this.add
       .text(0, 0, '', { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '15px', fontStyle: 'bold' })
       .setOrigin(0.5);
+    this.jackpotCount = this.add
+      .text(0, 0, '', { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '13px', fontStyle: 'bold' })
+      .setOrigin(0.5)
+      .setVisible(this.jackpotBudget > 0);
+    this.jackpotStar = this.jackpotBudget > 0 ? this.add.image(0, 0, HUD_ATLAS, 'icon_star') : null;
     this.hintText = this.add
       .text(0, 0, '', { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '16px', backgroundColor: `${HUD_COLOR.surface}f2`, padding: { x: 10, y: 6 }, align: 'center' })
       .setOrigin(0.5, 0)
@@ -216,12 +243,14 @@ export class StageScene extends Phaser.Scene {
       this.leaveItLabel,
       this.sniffLabel,
       this.markerCount,
+      this.jackpotCount,
       this.hintText,
       this.portraitImages.tail,
       this.portraitImages.body,
       this.portraitImages.head,
       this.portraitImages.ears,
       this.portraitImages.eyes,
+      ...(this.jackpotStar ? [this.jackpotStar] : []),
     ]);
 
     const kb = this.input.keyboard!;
@@ -237,12 +266,14 @@ export class StageScene extends Phaser.Scene {
       cue: kb.addKey(K.C),
       leaveIt: kb.addKey(K.L),
       sniff: kb.addKey(K.N),
+      jackpot: kb.addKey(K.J),
     };
     kb.on('keydown-SPACE', () => (this.markerPressed = true));
     kb.on('keydown-M', () => (this.markerPressed = true));
     kb.on('keydown-C', () => (this.cuePressed = 'lets-go'));
     kb.on('keydown-L', () => (this.cuePressed = 'leave-it'));
     kb.on('keydown-N', () => (this.sniffPressed = true));
+    kb.on('keydown-J', () => (this.jackpotPressed = this.jackpotBudget > 0));
 
     this.input.addPointer(2);
     this.input.on('pointerdown', this.onPointerDown, this);
@@ -294,10 +325,15 @@ export class StageScene extends Phaser.Scene {
       cueHome: this.cueHome,
       leaveItHome: this.leaveItHome,
       sniffHome: this.sniffHome,
+      jackpotHome: this.jackpotHome,
       portraitHome: this.portraitHome,
       portraitSize: this.portraitSize,
       portrait: this.portraitLayout,
-    } = hudLayout(width, height, this.options.scenario.cues));
+    } = hudLayout(width, height, this.options.scenario.cues, { jackpot: this.jackpotBudget > 0 }));
+    if (this.jackpotHome) {
+      this.jackpotStar?.setPosition(this.jackpotHome.x, this.jackpotHome.y).setDisplaySize(JACKPOT_RADIUS * 1.3, JACKPOT_RADIUS * 1.3);
+      this.jackpotCount.setPosition(this.jackpotHome.x + JACKPOT_RADIUS * 0.75, this.jackpotHome.y - JACKPOT_RADIUS * 0.75);
+    }
     if (this.portraitImages) {
       const pScale = this.portraitSize / 256;
       const pAnchorY = this.portraitHome.y + 30 * pScale;
@@ -509,6 +545,12 @@ export class StageScene extends Phaser.Scene {
       this.leaveItPointerDown = true;
       return;
     }
+    const j = this.jackpotHome;
+    if (j && Math.hypot(p.x - j.x, p.y - j.y) <= JACKPOT_RADIUS * 1.3) {
+      this.jackpotPressed = true;
+      this.jackpotPointerDown = true;
+      return;
+    }
     if (this.sniffOnOffer && Math.hypot(p.x - this.sniffHome.x, p.y - this.sniffHome.y) <= SNIFF_RADIUS * 1.5) {
       this.sniffPressed = true;
       this.sniffPointerDown = true;
@@ -538,6 +580,7 @@ export class StageScene extends Phaser.Scene {
       this.cuePointerDown = false;
       this.leaveItPointerDown = false;
       this.sniffPointerDown = false;
+      this.jackpotPointerDown = false;
     }
   }
 
@@ -560,7 +603,8 @@ export class StageScene extends Phaser.Scene {
     }
     // the press stays queued until a tick consumes it (a frame can be shorter than one tick)
     const marker = this.markerPressed && this.marksLeft > 0;
-    return { ...move, marker, cue: this.cuePressed !== null, cueType: this.cuePressed ?? undefined, sniff: this.sniffPressed };
+    const jackpot = this.jackpotPressed && this.jackpotsLeft > 0;
+    return { ...move, marker, cue: this.cuePressed !== null, cueType: this.cuePressed ?? undefined, sniff: this.sniffPressed, jackpot };
   }
 
   private get marksLeft(): number {
@@ -578,12 +622,13 @@ export class StageScene extends Phaser.Scene {
       this.markerPressed = false;
       this.cuePressed = null;
       this.sniffPressed = false;
+      this.jackpotPressed = false;
       if (this.hudDirty.changed('paused')) {
         this.drawHud();
         this.drawPortrait();
       }
     } else {
-      if (input.strength > 0 || input.marker || input.cue || input.sniff) this.signal('first-input', this.sim.time);
+      if (input.strength > 0 || input.marker || input.cue || input.sniff || input.jackpot) this.signal('first-input', this.sim.time);
       if (input.strength > 0) this.signal('control-used', this.sim.time, { control: 'move' });
       // a press counts even with no marks left: the Coach mark is about learning the button
       if (this.markerPressed) this.signal('control-used', this.sim.time, { control: 'mark' });
@@ -591,10 +636,11 @@ export class StageScene extends Phaser.Scene {
       while (this.accumulator >= step && !this.sim.ended) {
         this.simSteps++;
         this.handleEvents(tick(this.sim, input, step));
-        input = { ...input, marker: false, cue: false, sniff: false }; // a press counts for one tick only
+        input = { ...input, marker: false, cue: false, sniff: false, jackpot: false }; // a press counts for one tick only
         this.markerPressed = false;
         this.cuePressed = null;
         this.sniffPressed = false;
+        this.jackpotPressed = false;
         this.accumulator -= step;
       }
       this.showHints();
@@ -942,6 +988,7 @@ export class StageScene extends Phaser.Scene {
       this.cuePointerDown || this.keys.cue.isDown,
       this.leaveItPointerDown || this.keys.leaveIt.isDown,
       this.sniffPointerDown || this.keys.sniff.isDown,
+      this.jackpotHome ? `${this.jackpotsLeft}${this.jackpotPointerDown || this.keys.jackpot.isDown}` : '-',
     ].join('|');
     if (!this.hudDirty.changed(key)) return;
     h.clear();
@@ -995,6 +1042,19 @@ export class StageScene extends Phaser.Scene {
       h.fillStyle(HUD_COLOR_NUM.surface).fillCircle(n.x - 4 + press, n.y + 3 + press, 2).fillCircle(n.x + 4 + press, n.y + 3 + press, 2);
       // the time left to use it, as a ring that runs down
       h.lineStyle(4, HUD_COLOR_NUM.sintonia).beginPath().arc(n.x, n.y, SNIFF_RADIUS + 7, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * timeLeft).strokePath();
+    }
+
+    // Jackpot: a smaller paper disc with a gold star beside the Marker, and the Jackpots left as a badge
+    const j = this.jackpotHome;
+    if (j) {
+      const jackpots = this.jackpotsLeft;
+      const on = jackpots > 0;
+      const press = on && (this.jackpotPointerDown || this.keys.jackpot.isDown) ? 3 : 0;
+      this.hudDisc(h, j.x, j.y, JACKPOT_RADIUS, on ? HUD_COLOR_NUM.surface : HUD_COLOR_NUM.disabled, on ? HUD_DEPTH : 0, press, on ? HUD_COLOR_NUM.ink : HUD_COLOR_NUM.disabledText);
+      this.jackpotStar?.setPosition(j.x + press, j.y + press).setAlpha(on ? 1 : 0.4);
+      const badge = { x: j.x + JACKPOT_RADIUS * 0.75, y: j.y - JACKPOT_RADIUS * 0.75 };
+      h.fillStyle(on ? HUD_COLOR_NUM.surface : HUD_COLOR_NUM.disabled).fillCircle(badge.x, badge.y, 11).lineStyle(HUD_BORDER - 0.5, on ? HUD_COLOR_NUM.ink : HUD_COLOR_NUM.disabledText).strokeCircle(badge.x, badge.y, 11);
+      this.jackpotCount.setText(String(Math.max(0, jackpots)));
     }
 
     // Arousal: a thin bar at the top of the screen, no text

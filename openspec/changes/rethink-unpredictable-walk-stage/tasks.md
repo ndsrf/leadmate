@@ -2,27 +2,27 @@
 
 ## 1. Scent Spots and the blended Drive
 
-- [ ] 1.1 Add `scents` to `ScenarioConfig` and the scenery `scent:` helper, and validate them in `validateScenario`; verify with tests for a valid list, a missing position and an unknown strength.
-- [ ] 1.2 Add `ScentDrive` and `BlendDrive`, and the `heading` target for `GoalDrive` in scent Stages; verify with `sim.test.ts` cases: no Scent Spots gives an identical payload to before, the Dog veers toward a weak spot, and the Dog follows the Handler's heading, not the waypoint.
-- [ ] 1.3 Add Autopilot (rises on steady walking, drops on changes) and feed it into the scent weight; verify with tests that 10 s of straight walking raises the pull and a stop lowers it.
-- [ ] 1.4 Add the `planted` (Plant) and `marking` modes with seeded durations, Rigid Pull Arousal while in them, and waited/dragged/interrupted results; verify with tests for waiting, dragging and interrupting.
-- [ ] 1.5 Stop sniffed spots from pulling after a Go Sniff or a Plant, and make stationary food attract like a hot Scent Spot, with `food-eaten` on Go Sniff; verify with tests for a sniffed spot, Leave-it on food and food eaten.
+- [x] 1.1 Add `scents` to `ScenarioConfig` and the scenery `scent:` helper, and validate them in `validateScenario`; verify with tests for a valid list, a missing position and an unknown strength.
+- [x] 1.2 Add `ScentDrive` and `BlendDrive`, and the `heading` target for `GoalDrive` in scent Stages; verify with `sim.test.ts` cases: no Scent Spots gives an identical payload to before, the Dog veers toward a weak spot, and the Dog follows the Handler's heading, not the waypoint.
+- [x] 1.3 Add Autopilot (rises on steady walking, drops on changes) and feed it into the scent weight; verify with tests that 10 s of straight walking raises the pull and a stop lowers it.
+- [x] 1.4 Add the `planted` (Plant) and `marking` modes with seeded durations, Rigid Pull Arousal while in them, and waited/dragged/interrupted results; verify with tests for waiting, dragging and interrupting.
+- [x] 1.5 Stop sniffed spots from pulling after a Go Sniff or a Plant, and make stationary food attract like a hot Scent Spot, with `food-eaten` on Go Sniff; verify with tests for a sniffed spot, Leave-it on food and food eaten.
 
 ## 2. Changes, Novelty and Chains
 
-- [ ] 2.1 Detect pace changes (smoothed strength, 35% threshold) and route turns, pace changes and stops through one change registration; verify with tests that each of the six kinds is counted only with a Slack leash.
-- [ ] 2.2 Add Novelty per kind (step, recovery, fresh/repeated) and scale the follow chance by Novelty and Autopilot in scent Stages only; verify with tests that a repeated U-turn is followed less often than a fresh one over many seeds, and that Stages without Scent Spots are unchanged.
-- [ ] 2.3 Record Chains (followed change → Marker on the look → Slack walking for 2 s or Go Sniff within 3 s); verify with a seeded test of the turn, look, Marker and sniff sequence.
+- [x] 2.1 Detect pace changes (smoothed strength, 35% threshold) and route turns, pace changes and stops through one change registration; verify with tests that each of the six kinds is counted only with a Slack leash.
+- [x] 2.2 Add Novelty per kind (step, recovery, fresh/repeated) and scale the follow chance by Novelty and Autopilot in scent Stages only; verify with tests that a repeated U-turn is followed less often than a fresh one over many seeds, and that Stages without Scent Spots are unchanged.
+- [x] 2.3 Record Chains (followed change → Marker on the look → Slack walking for 2 s or Go Sniff within 3 s); verify with a seeded test of the turn, look, Marker and sniff sequence.
 
 ## 3. Go Sniff and Jackpot
 
-- [ ] 3.1 In scent Stages, make Go Sniff available at any time on Slack, skip the `calm` end, and steer to the nearest unsniffed Scent Spot (granted) or meander (empty); verify with go-sniff tests, including Arousal at 0 when it starts.
-- [ ] 3.2 Add the Jackpot input, `jackpotBudget`, the smart/wasted judgment and a HUD button shown only when budgeted; verify with sim tests and a layout test at 320 points wide.
+- [x] 3.1 In scent Stages, make Go Sniff available at any time on Slack, skip the `calm` end, and steer to the nearest unsniffed Scent Spot (granted) or meander (empty); verify with go-sniff tests, including Arousal at 0 when it starts.
+- [x] 3.2 Add the Jackpot input, `jackpotBudget`, the smart/wasted judgment and a HUD button shown only when budgeted; verify with sim tests and a layout test at 320 points wide.
 
 ## 4. Telemetry, Feedback Messages and Debrief
 
-- [ ] 4.1 Add `scentWalk` and the capped `timeline` to the payload, only in scent Stages; verify with `payload.test.ts` for both cases and the 60-entry cap.
-- [ ] 4.2 Add the scent-walk kinds to `src/hud/feedback.ts`, with Spanish and English Hints and short forms; verify with feedback tests for each kind and the i18n completeness test.
+- [x] 4.1 Add `scentWalk` and the capped `timeline` to the payload, only in scent Stages; verify with `payload.test.ts` for both cases and the 60-entry cap.
+- [x] 4.2 Add the scent-walk kinds to `src/hud/feedback.ts`, with Spanish and English Hints and short forms; verify with feedback tests for each kind and the i18n completeness test.
 - [ ] 4.3 Show the timeline, tappable moments and the "done well / try next" summary in the Node Debrief; verify with a component test fed by a fixture payload, and on device.
 
 ## 5. Progression for inserted Stretches
