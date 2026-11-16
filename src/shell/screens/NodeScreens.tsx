@@ -25,6 +25,7 @@ import { DIARY_OUTCOMES, type DiaryOutcome } from '../streak';
 import { Screen } from './Screen';
 import { RecommendationCardList } from './RecommendationCard';
 import { getActiveContent } from '../content/runtime';
+import { DebriefTimelineSection } from './DebriefTimeline';
 
 export function PrimerScreen({
   t,
@@ -570,6 +571,9 @@ function DebriefBody({
         <>
           {result.kind === 'stage' || result.kind === 'close_exercise' ? (
             <>
+              {result.kind === 'stage' && result.payload.timeline !== undefined && (
+                <DebriefTimelineSection t={t} payload={result.payload} />
+              )}
               <Panel className="mb-1">
                 <StageRows t={t} p={result.payload} />
               </Panel>

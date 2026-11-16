@@ -15,6 +15,7 @@ import { advance, onDebrief, startNode } from '../nodes/node';
 import type { ImageDuelQuestion } from '../nodes/content';
 import { newDogRecord } from '../dogRecord';
 import { payloadWith } from '../testPayload';
+import type { SimulationDebriefPayload } from '../../sim/payload';
 import type { MissionDef, Fix } from '../missions/mission';
 
 const mockPressables: any[] = [];
@@ -709,6 +710,127 @@ describe('Node and Mission screens - ShopLinkCard recommendations (Task 7.1)', (
       const dogDifferent = onDebrief(initialDog, atDebriefDifferent, now);
       expect(dogDifferent).not.toEqual(dogCorrect);
       expect(dogDifferent.stars[singleDuelNode.id]).not.toEqual(dogCorrect.stars[singleDuelNode.id]);
+    });
+  });
+
+  describe('Node Debrief - Scent Walk Timeline & Summary (Task 4.3)', () => {
+    const scentPayload = payloadWith({
+      durationSeconds: 45,
+      scentWalk: {
+        sniffsGranted: 2,
+        sniffsEmpty: 0,
+        scentsDraggedPast: 0,
+        plantsWaited: 1,
+        plantsDragged: 0,
+        markingsWaited: 0,
+        markingsInterrupted: 0,
+        foodEaten: 1,
+        foodLeft: 0,
+        freshMoves: 1,
+        repeatedMoves: 0,
+        chains: 0,
+        jackpotsSmart: 1,
+        jackpotsWasted: 0,
+      },
+      timeline: [
+        { t: 5.5, kind: 'granted-sniff', polarity: 'right' },
+        { t: 15.0, kind: 'food-eaten', polarity: 'wrong' },
+        { t: 32.2, kind: 'smart-jackpot', polarity: 'right' },
+      ],
+    });
+
+    const standardPayload = payloadWith({
+      durationSeconds: 45,
+    });
+
+    const runWithPayload = (p: SimulationDebriefPayload): NodeRun => ({
+      ...startNode(sampleNode),
+      step: 'debrief' as const,
+      result: { kind: 'stage', payload: p },
+    });
+
+    it('renders the timeline strip and "done well / try next" summary when timeline is present', () => {
+      const run = runWithPayload(scentPayload);
+
+      const markup = renderToStaticMarkup(
+        <DebriefScreen
+          t={t}
+          run={run}
+          showPosteLink={false}
+          onPosteLink={() => {}}
+          onDone={() => {}}
+          onPlayAgain={() => {}}
+          best={2}
+          celebrations={[]}
+        />
+      );
+
+      // Shows timeline title
+      expect(markup).toContain(t('debrief.timeline.title'));
+      // Shows "done well" section
+      expect(markup).toContain(t('debrief.summary.doneWell'));
+      // Shows "try next" section
+      expect(markup).toContain(t('debrief.summary.tryNext'));
+      // Shows the summary items
+      expect(markup).toContain(t('feedback.waited-plant.short'));
+      expect(markup).toContain(t('feedback.smart-jackpot.short'));
+      expect(markup).toContain(t('feedback.food-eaten.short'));
+    });
+
+    it('leaves every other Debrief unchanged when timeline is absent', () => {
+      const run = runWithPayload(standardPayload);
+
+      const markup = renderToStaticMarkup(
+        <DebriefScreen
+          t={t}
+          run={run}
+          showPosteLink={false}
+          onPosteLink={() => {}}
+          onDone={() => {}}
+          onPlayAgain={() => {}}
+          best={2}
+          celebrations={[]}
+        />
+      );
+
+      // Outside scent Stages, timeline and summary are NOT rendered
+      expect(markup).not.toContain(t('debrief.timeline.title'));
+      expect(markup).not.toContain(t('debrief.summary.doneWell'));
+      expect(markup).not.toContain(t('debrief.summary.tryNext'));
+      // Existing Debrief elements still render
+      expect(markup).toContain(t('results.title'));
+      expect(markup).toContain(t('results.duration'));
+    });
+
+    it('allows tapping a moment on the timeline to inspect feedback and time', () => {
+      const run = runWithPayload(scentPayload);
+
+      let root: any;
+      act(() => {
+        root = ReactTestRenderer.create(
+          <DebriefScreen
+            t={t}
+            run={run}
+            showPosteLink={false}
+            onPosteLink={() => {}}
+            onDone={() => {}}
+            onPlayAgain={() => {}}
+            best={2}
+            celebrations={[]}
+          />
+        );
+      });
+
+      // Tap wrong moment button (index 1: food-eaten)
+      const wrongBtn = root.root.find((node: any) => node.type === 'button' && node.props['data-moment-index'] === 1);
+      act(() => {
+        wrongBtn.props.onPress();
+      });
+
+      const messageNode = root.root.find((node: any) => node.type === 'span' && node.props.testID === 'timeline-selected-message');
+      expect(messageNode.props.children).toBe(t('feedback.food-eaten.short'));
+      const timeNode = root.root.find((node: any) => node.type === 'span' && node.props.testID === 'timeline-selected-time');
+      expect(timeNode.props.children).toContain('15');
     });
   });
 });
