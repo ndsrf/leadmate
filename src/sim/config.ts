@@ -153,7 +153,7 @@ export { SCENT_STRENGTHS, type ScentStrength } from './geometry';
 /** What makes a place a Scent Spot; a scenery item may carry one as `scent:` (its position is the item's). */
 export interface ScentSpec {
   strength: ScentStrength;
-  /** Nose radius in meters: the Dog smells the spot within this distance. Defaults per strength (`ScentWalkConfig.radius`). */
+  /** Nose radius in meters: the spot reaches the Dog's nose within this distance. Defaults per strength (`ScentWalkConfig.radius`). */
   radius?: number;
   /** A marking post: the Dog stops to mark it instead of only sniffing. */
   marking?: boolean;

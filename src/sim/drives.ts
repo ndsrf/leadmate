@@ -2,7 +2,7 @@ import type { ScenarioConfig } from './config';
 import type { Rng } from './rng';
 import { add, distance, normalize, rotate, scale, sub, type Vec2 } from './vec';
 
-/** A smell the Dog can follow: where it is, how hard it pulls (before Autopilot) and how far it reaches. */
+/** A scent the Dog can follow (a Scent Spot or the food): where it is, how hard it pulls (before Autopilot) and how far it reaches. */
 export interface ScentPull {
   pos: Vec2;
   /** Pull weight from the spot's strength (`ScentWalkConfig.pull`). */
@@ -18,7 +18,7 @@ export interface DriveContext {
   dt: number;
   /** The Handler's current heading (unit); used by a heading Goal. */
   handlerFacing?: Vec2;
-  /** Smells in the scene that still pull (a scent Stage only). */
+  /** Scent Spots (and food) in the scene that still pull (a scent Stage only). */
   scents?: readonly ScentPull[];
   /** Autopilot, 0 to 1 (a scent Stage only). */
   autopilot?: number;
@@ -68,26 +68,26 @@ export class GoalDrive implements Drive {
 }
 
 /**
- * The nose: heads for the nearest smell in range, weighted by its pull and by Autopilot
+ * The nose: heads for the nearest scent in range, weighted by its pull and by Autopilot
  * (`pull x (floor + (1 - floor) x autopilot)`); weight 0 with nothing in range.
  */
 export class ScentDrive implements Drive {
   constructor(private readonly config: { dogGoalSpeed: number; autopilotFloor: number; reachDistance: number }) {}
 
   desire({ dog, scents = [], autopilot = 0 }: DriveContext): DriveOutput {
-    const smell = nearestScent(dog, scents);
-    if (!smell) return { direction: { x: 0, y: 0 }, speed: 0, weight: 0 };
+    const spot = nearestScent(dog, scents);
+    if (!spot) return { direction: { x: 0, y: 0 }, speed: 0, weight: 0 };
     const { dogGoalSpeed, autopilotFloor, reachDistance } = this.config;
-    const d = distance(dog, smell.pos);
+    const d = distance(dog, spot.pos);
     return {
-      direction: normalize(sub(smell.pos, dog)),
+      direction: normalize(sub(spot.pos, dog)),
       speed: dogGoalSpeed * Math.min(1, d / Math.max(reachDistance, 1e-6)),
-      weight: smell.pull * (autopilotFloor + (1 - autopilotFloor) * autopilot),
+      weight: spot.pull * (autopilotFloor + (1 - autopilotFloor) * autopilot),
     };
   }
 }
 
-/** The nearest smell whose nose radius reaches the Dog, or null. */
+/** The nearest Scent Spot (or food) whose nose radius reaches the Dog, or null. */
 export function nearestScent<T extends ScentPull>(dog: Vec2, scents: readonly T[]): T | null {
   let best: T | null = null;
   let bestD = Infinity;

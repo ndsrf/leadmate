@@ -3,7 +3,8 @@ import { ScentDrive } from './drives';
 import { feedbackKindOf } from './feedbackKinds';
 import { DEFAULT_SNAPSHOT } from './learning';
 import { buildPayload } from './payload';
-import { createState, isGoSniffAvailable, noInput, scentPulls, tick, type SimEvent, type SimInput, type SimState } from './sim';
+import { createState, isDogLooking, isGoSniffAvailable, noInput, scentPulls, tick, type SimEvent, type SimInput, type SimState } from './sim';
+import { scentFollowChance } from './scentWalk';
 import { distance } from './vec';
 
 const STEP = defaultScenario.fixedStep;
@@ -457,5 +458,64 @@ describe('Jackpot', () => {
   it('is judged like a Marker press when nothing is there to reward', () => {
     const s = createState(10, stage({ jackpotBudget: 1 }));
     expect(run(s, STEP, jackpot).map((e) => e.type)).toEqual(['marker-wasted']);
+  });
+});
+
+describe('review fixes', () => {
+  it('honours followCap even when the base follow chance is above it', () => {
+    expect(scentFollowChance(0.8, 1, 0, 0.5, DEFAULT_SCENT_WALK)).toBeLessThanOrEqual(0.5);
+    expect(scentFollowChance(0.4, 1, 0, 0.95, DEFAULT_SCENT_WALK)).toBeCloseTo(0.55);
+  });
+
+  it('stops the Dog and starts a look on a followed stop in a scent Stage', () => {
+    const s = createState(11, stage());
+    s.dogTraits = { ...s.dogTraits, followChance: 1 };
+    run(s, 1.5, walk());
+    const events = run(s, STEP, stand);
+    expect(events.find((e) => e.type === 'dog-follow')).toMatchObject({ change: 'stop' });
+    expect(isDogLooking(s)).toBe(true);
+    const at = { ...s.dog };
+    run(s, 0.5, stand);
+    expect(distance(s.dog, at)).toBeLessThan(1e-9);
+  });
+
+  it('ends a scent-Stage Go Sniff with reason tension when the leash passes Slack', () => {
+    const s = createState(11, stage());
+    run(s, 0.5, stand);
+    tick(s, { ...stand, sniff: true });
+    expect(s.dogMode).toBe('sniffing');
+    const { event } = runUntil(s, 'go-sniff-end', walk(1, -1, 0), 5);
+    expect(event).toMatchObject({ reason: 'tension' });
+    expect(event!.time).toBeLessThan(defaultScenario.goSniff.durationSeconds);
+  });
+
+  it.each([
+    ['Plants at a hot spot', { strength: 'hot' as const }, 'plant-start'],
+    ['marks a marking post', { strength: 'normal' as const, marking: true }, 'marking-start'],
+  ])('%s in reach even when a weaker spot is nearer', (_name, spot, type) => {
+    const s = createState(11, stage({ scents: [{ pos: { x: 1, y: 0.05 }, strength: 'weak' }, { pos: { x: 1, y: 0.25 }, ...spot }] }));
+    const events = run(s, STEP, stand);
+    expect(events.find((e) => e.type === type)).toMatchObject({ spot: 1 });
+  });
+
+  it('leaves no Taut correction pending for a turn the Planted Dog does not follow', () => {
+    const s = createState(3, stage({ scents: [{ pos: { x: 5, y: 0.5 }, strength: 'hot' }], scentWalk: { plantSeconds: { min: 6, max: 6 } } }));
+    runUntil(s, 'plant-start', walk());
+    s.dogTraits = { ...s.dogTraits, followChance: 0 };
+    run(s, 0.2, stand);
+    const events = run(s, 1, walk(0.6, 0, -1));
+    expect(changes(events).some((e) => e.change === 'right-turn' && !e.followed)).toBe(true);
+    expect(s.correctionPending).toBeNull();
+    expect(events.some((e) => e.type === 'dog-correction')).toBe(false);
+  });
+
+  it('reports a scent dragged past once, and counts it once', () => {
+    const s = createState(12, stage({ scents: [{ pos: { x: 4, y: 3 }, strength: 'normal' }], scentWalk: { pull: { normal: 30 } } }));
+    const events = run(s, 8, walk(1));
+    const dragged = events.filter((e) => e.type === 'scent-dragged-past');
+    expect(dragged).toHaveLength(1);
+    expect(dragged[0]).toMatchObject({ spot: 0, pos: { x: 4, y: 3 } });
+    expect(feedbackKindOf(dragged[0])).toBe('scent-dragged-past');
+    expect(s.telemetry.scentWalk!.scentsDraggedPast).toBe(1);
   });
 });
