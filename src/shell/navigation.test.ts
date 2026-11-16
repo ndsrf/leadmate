@@ -290,7 +290,8 @@ describe('Mission flows', () => {
 
   it('opens a grandfathered Mission on its passed screen, so "Start mission" cannot un-grandfather it', () => {
     // a Node of World 1's second Stretch is completed: the first Stretch's Mission was gone past before Missions
-    const legacy = progressOf(['harness-ritual', 'doorbell-mat'], { readLessons: ['theory-harness', 'howto-tap-hold', 'theory-doorbell'] });
+    // (a record from before Missions carries its Nodes as legacy Nodes, as `migrateRecord` sets them)
+    const legacy = progressOf(['harness-ritual', 'doorbell-mat'], { readLessons: ['theory-harness', 'howto-tap-hold', 'theory-doorbell'], legacyNodes: ['harness-ritual', 'doorbell-mat'] });
     expect(missionEntryOf('mission-harness', legacy, at(9))).toBe('passed');
     expect(missionEntryOf('mission-doorbell', legacy, at(9))).toBe('brief');
   });
