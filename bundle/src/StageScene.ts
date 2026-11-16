@@ -1,12 +1,14 @@
 import Phaser from 'phaser';
 import type { Translate } from '../../src/i18n';
 import { HUD_AROUSAL_NUM, HUD_BORDER, HUD_COLOR, HUD_COLOR_NUM, HUD_DEPTH, HUD_PRIMARY_BUTTON, HUD_TENSION_NUM } from './tokens.generated';
-import { CUE_LABEL_WIDTH, CUE_RADIUS, fitFontSize, hudLayout, JOY_RADIUS, MARKER_RADIUS, SNIFF_RADIUS, visibleCues } from '../../src/hud/layout';
-import { dogPose, gaitPeriod } from '../../src/hud/pose';
+import { CUE_LABEL_WIDTH, CUE_RADIUS, fitFontSize, hudLayout, isPointInPortrait, JOY_RADIUS, MARKER_RADIUS, SNIFF_RADIUS, visibleCues, type PortraitLayout } from '../../src/hud/layout';
+import { dogPose, gaitPeriod, walkClipFor, type WalkClip } from '../../src/hud/pose';
 import { applyDetents, keyboardInput, screenToWorldDirection, type Keys } from '../../src/hud/input';
 import { project } from '../../src/hud/iso';
 import { smoothZoom, targetZoom } from '../../src/hud/camera';
-import { createChangeDetector, quantize, RING_STEPS } from '../../src/hud/dirty';
+import { createChangeDetector, portraitDirtyKey, quantize, RING_STEPS } from '../../src/hud/dirty';
+import { portraitLayers } from '../../src/hud/portrait';
+import { PORTRAIT_ATLAS, portraitAtlas, portraitAtlasUrl } from './portrait';
 import { HINT_SECONDS, HintTracker } from '../../src/hud/hints';
 import type { CueType, ScenarioConfig } from '../../src/sim/config';
 import { leashCurve, leashPoint, type TensionState } from '../../src/sim/leash';
@@ -16,7 +18,7 @@ import { createSignalGate, type StageControl, type StageSignal } from '../../src
 import { add, length, scale, sub, type Vec2 } from '../../src/sim/vec';
 import { TEXTURES, TILE_ORIGIN_Y } from './assets';
 import { drawDecor, drawGroundPatch, drawProp, groundBounds, propLook, wallQuad, WALL_COLORS, WALL_HEIGHT } from './props';
-import { atlas, atlasUrl, ATLAS, DOG_COATS, facingDegrees, pivotOf, propFrame, propScale, resOf } from './sprites';
+import { atlas, atlasOf, atlasUrl, ATLAS, DOG_ATLAS, dogAtlas, dogAtlasUrl, DOG_COATS, facingDegrees, huskyFrame, pivotOf, propFrame, propScale, resOf } from './sprites';
 import { layoutGround, propWalls, routePoints, shapeOf, type GroundPlan } from '../../src/sim/scenery';
 
 export interface StageOptions {
@@ -29,6 +31,8 @@ export interface StageOptions {
   /** The Dog crossed a Reaction Tier threshold; the shell plays a vocalization. */
   onTier?: (tier: ReactionTier, time: number) => void;
   onSignal?: (signal: StageSignal, time: number, detail?: { control?: StageControl; bearing?: number }) => void;
+  /** The OS asks for reduced motion: the Dog's tail stops wagging (the still raised-tail pose). Defaults to the browser's `prefers-reduced-motion`. */
+  reducedMotion?: boolean;
   /** The scene finished creating; the render loop may now sleep when the Stage is paused or ended. */
   onReady?: () => void;
 }
@@ -40,6 +44,9 @@ const TILE_M = 2; // one ground tile is 2 m wide
 const ROAD_HALF: Partial<Record<ScenarioConfig['theme'], number>> = { quiet_suburb: 1.2 };
 /** Themes with a flat floor instead of grass tiles: indoors and the paved city. */
 const FLOORS: Partial<Record<ScenarioConfig['theme'], [number, number]>> = { indoor_apartment: [0xd6c7a8, 0xc8b78f], urban_street: [0x9ca3af, 0x94a3b8] };
+
+/** Animation steps per second of each walking-Dog clip. */
+const DOG_CLIP_FPS: Record<WalkClip, number> = { idle: 1, walk: 8, walk_wag: 8, trot: 12, sniffwalk: 6, sniff: 2, planted: 1, mark: 1.5, lunge: 10, look_l: 4, look_r: 4 };
 
 /** Texture pixels per scene pixel for baked scenery, so it stays sharp under the camera's zoom. */
 const BAKE_RES = 2;
@@ -85,6 +92,18 @@ export class StageScene extends Phaser.Scene {
   private cueHome: Vec2 = { x: 700, y: 180 };
   private leaveItHome: Vec2 = { x: 700, y: 180 };
   private sniffHome: Vec2 = { x: 600, y: 300 };
+  private portraitHome: Vec2 = { x: 700, y: 60 };
+  private portraitSize = 96;
+  private portraitLayout!: PortraitLayout;
+  private portraitDirty = createChangeDetector();
+  private portraitImages!: {
+    tail: Phaser.GameObjects.Image;
+    body: Phaser.GameObjects.Image;
+    head: Phaser.GameObjects.Image;
+    ears: Phaser.GameObjects.Image;
+    eyes: Phaser.GameObjects.Image;
+  };
+  private reduceMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   private cuePointerDown = false;
   private cuePressed: CueType | null = null;
   private leaveItPointerDown = false;
@@ -106,8 +125,11 @@ export class StageScene extends Phaser.Scene {
     super('stage');
   }
 
+  private reducedMotion = false;
+
   init(options: StageOptions): void {
     this.options = options;
+    this.reducedMotion = options.reducedMotion ?? (typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
     this.ended = false;
     this.signalGate = createSignalGate();
     this.accumulator = 0;
@@ -131,6 +153,8 @@ export class StageScene extends Phaser.Scene {
       if (!this.textures.exists(key)) this.load.image(key, url);
     }
     if (!this.textures.exists(ATLAS)) this.load.atlas(ATLAS, atlasUrl, atlas as object);
+    if (!this.textures.exists(DOG_ATLAS)) this.load.atlas(DOG_ATLAS, dogAtlasUrl, dogAtlas as object);
+    if (!this.textures.exists(PORTRAIT_ATLAS)) this.load.atlas(PORTRAIT_ATLAS, portraitAtlasUrl, portraitAtlas as object);
   }
 
   create(): void {
@@ -141,7 +165,9 @@ export class StageScene extends Phaser.Scene {
     });
     this.buildScenery();
     this.textures.get(ATLAS).setFilter(Phaser.Textures.FilterMode.LINEAR); // the game renders without antialiasing; sprites need smoothing
+    if (this.textures.exists(PORTRAIT_ATLAS)) this.textures.get(PORTRAIT_ATLAS).setFilter(Phaser.Textures.FilterMode.LINEAR);
     this.under = this.add.graphics().setDepth(-5e4);
+    this.textures.get(DOG_ATLAS).setFilter(Phaser.Textures.FilterMode.LINEAR);
     const actor = () => this.add.image(0, 0, ATLAS, 'handler_idle0_0').setVisible(false);
     this.actors = { handler: actor(), dog: actor(), other: actor() };
     this.routeGfx = this.add.graphics(); // before gfx, so it draws under it at the same depth
@@ -150,6 +176,15 @@ export class StageScene extends Phaser.Scene {
     const world = [...this.children.list];
     this.hud = this.add.graphics();
     this.hudDirty.reset();
+    this.portraitDirty.reset();
+    const pLayer = (frame: string) => this.add.image(0, 0, PORTRAIT_ATLAS, frame).setOrigin(0.5, 0.6172);
+    this.portraitImages = {
+      tail: pLayer('portrait_tail_neutral'),
+      body: pLayer('portrait_body'),
+      head: pLayer('portrait_head_level'),
+      ears: pLayer('portrait_ears_neutral'),
+      eyes: pLayer('portrait_eyes_right'),
+    };
     this.cameraDirty.reset();
     this.markerLabel = this.add
       .text(0, 0, this.options.t('hud.marker'), { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '16px', fontStyle: 'bold', backgroundColor: HUD_COLOR.surface, padding: { x: 8, y: 2 } })
@@ -174,7 +209,20 @@ export class StageScene extends Phaser.Scene {
     // the HUD has its own unzoomed camera so it stays in screen pixels
     this.hudCam = this.cameras.add(0, 0, this.scale.width, this.scale.height);
     this.hudCam.ignore(world);
-    this.cameras.main.ignore([this.hud, this.markerLabel, this.cueLabel, this.leaveItLabel, this.sniffLabel, this.markerCount, this.hintText]);
+    this.cameras.main.ignore([
+      this.hud,
+      this.markerLabel,
+      this.cueLabel,
+      this.leaveItLabel,
+      this.sniffLabel,
+      this.markerCount,
+      this.hintText,
+      this.portraitImages.tail,
+      this.portraitImages.body,
+      this.portraitImages.head,
+      this.portraitImages.ears,
+      this.portraitImages.eyes,
+    ]);
 
     const kb = this.input.keyboard!;
     const K = Phaser.Input.Keyboard.KeyCodes;
@@ -240,7 +288,24 @@ export class StageScene extends Phaser.Scene {
 
   private layout(): void {
     const { width, height } = this.scale;
-    ({ joyHome: this.joyHome, markerHome: this.markerHome, cueHome: this.cueHome, leaveItHome: this.leaveItHome, sniffHome: this.sniffHome } = hudLayout(width, height, this.options.scenario.cues));
+    ({
+      joyHome: this.joyHome,
+      markerHome: this.markerHome,
+      cueHome: this.cueHome,
+      leaveItHome: this.leaveItHome,
+      sniffHome: this.sniffHome,
+      portraitHome: this.portraitHome,
+      portraitSize: this.portraitSize,
+      portrait: this.portraitLayout,
+    } = hudLayout(width, height, this.options.scenario.cues));
+    if (this.portraitImages) {
+      const pScale = this.portraitSize / 256;
+      const pAnchorY = this.portraitHome.y + 30 * pScale;
+      for (const img of Object.values(this.portraitImages)) {
+        img.setPosition(this.portraitHome.x, pAnchorY).setScale(pScale);
+      }
+      this.portraitDirty.reset();
+    }
     const font = fitFontSize(this.options.t('hud.marker'), MARKER_RADIUS * 2.4, 16);
     this.markerLabel.setFontSize(font).setPosition(this.markerHome.x, this.markerHome.y + MARKER_RADIUS + 6);
     // Cue labels sit above their buttons, clear of the Marker below
@@ -431,6 +496,7 @@ export class StageScene extends Phaser.Scene {
   // -- input -----------------------------------------------------------------------------------
 
   private onPointerDown(p: Phaser.Input.Pointer): void {
+    if (this.portraitLayout && isPointInPortrait(p, this.portraitLayout)) return;
     const { width } = this.scale;
     const cues = visibleCues(this.options.scenario.cues);
     if (cues.includes('lets-go') && Math.hypot(p.x - this.cueHome.x, p.y - this.cueHome.y) <= CUE_RADIUS * 1.5) {
@@ -512,6 +578,10 @@ export class StageScene extends Phaser.Scene {
       this.markerPressed = false;
       this.cuePressed = null;
       this.sniffPressed = false;
+      if (this.hudDirty.changed('paused')) {
+        this.drawHud();
+        this.drawPortrait();
+      }
     } else {
       if (input.strength > 0 || input.marker || input.cue || input.sniff) this.signal('first-input', this.sim.time);
       if (input.strength > 0) this.signal('control-used', this.sim.time, { control: 'move' });
@@ -527,11 +597,12 @@ export class StageScene extends Phaser.Scene {
         this.sniffPressed = false;
         this.accumulator -= step;
       }
+      this.showHints();
+      this.followCamera(delta);
+      this.draw(input);
+      this.drawHud();
+      this.drawPortrait();
     }
-    this.showHints();
-    this.followCamera(delta);
-    this.draw(input);
-    this.drawHud();
   }
 
   /** Each signal goes to the shell once per Stage. */
@@ -736,6 +807,14 @@ export class StageScene extends Phaser.Scene {
     return `${set}_${clip}${Math.floor((this.time.now / 1000) * fps) % count}_${deg}`;
   }
 
+  /** The Dog's walking-sprite frame for a Canine Posture clip: the clip steps at its own rate; under reduced motion the wag stops. */
+  private dogFrame(clip: WalkClip, deg: number): string {
+    const step = Math.floor((this.time.now / 1000) * DOG_CLIP_FPS[clip]);
+    // walk_wag swings the tail on frames 0 and 2; frames 1 and 3 hold it straight up, the still raised-tail pose
+    if (clip === 'walk_wag' && this.reducedMotion) return huskyFrame(clip, 1 + 2 * (step % 2), deg);
+    return huskyFrame(clip, step, deg);
+  }
+
   /** The Handler, the Dog and the Distractor as sprites, with shadows and boards under them. */
   private drawActors(s: SimState, pose: ReturnType<typeof dogPose>, dogFace: Vec2): void {
     const u = this.under;
@@ -744,7 +823,7 @@ export class StageScene extends Phaser.Scene {
     this.fadeWalls(seen);
     const place = (img: Phaser.GameObjects.Image, frame: string, at: Vec2, size = 1) => {
       const pivot = pivotOf(frame);
-      img.setFrame(frame).setOrigin(pivot.x, pivot.y).setPosition(at.x, at.y).setScale(size / resOf(frame)).setDepth(at.y).setVisible(true).clearTint();
+      img.setTexture(atlasOf(frame), frame).setOrigin(pivot.x, pivot.y).setPosition(at.x, at.y).setScale(size / resOf(frame)).setDepth(at.y).setVisible(true).clearTint();
       u.fillStyle(0x000000, 0.22).fillEllipse(at.x, at.y, 30 * size, 15 * size);
     };
 
@@ -756,7 +835,7 @@ export class StageScene extends Phaser.Scene {
     const dm = this.track('dog', s.dog, dogFace);
     // facing: where it is looking while it holds or fixates, otherwise where it goes
     const dogDeg = dm.moving && s.dogMode !== 'fixated' && !pose.headDown ? dm.deg : facingDegrees(dogFace);
-    const dogFrame = pose.headDown ? this.clip('dog', 'eat', 2, dogDeg, 3) : dm.moving ? this.clip('dog', pose.lunging ? 'run' : 'walk', pose.lunging ? 2 : 4, dogDeg, pose.lunging ? 10 : 8) : `dog_idle0_${dogDeg}`;
+    const dogFrame = this.dogFrame(walkClipFor(pose), dogDeg);
     const look = s.config.look;
     place(this.actors.dog, dogFrame, d, (look?.dogScale ?? 1) * (s.config.learning.posture === 0 ? 0.94 : 1));
     this.actors.dog.setTint(DOG_COATS[look?.dogCoat ?? 'golden'] ?? DOG_COATS.golden);
@@ -925,5 +1004,40 @@ export class StageScene extends Phaser.Scene {
 
     // checkmark icon: the Marker says "right now, good"
     h.lineStyle(8, enabled ? HUD_COLOR_NUM.ink : HUD_COLOR_NUM.disabledText).beginPath().moveTo(m.x - 18, my).lineTo(m.x - 5, my + 14).lineTo(m.x + 20, my - 14).strokePath();
+
+    // Dog portrait backing disc in the HUD layer
+    if (this.portraitHome) {
+      const pr = this.portraitSize / 2;
+      h.fillStyle(HUD_COLOR_NUM.surface, 0.85).fillCircle(this.portraitHome.x, this.portraitHome.y, pr);
+      h.lineStyle(HUD_BORDER, HUD_COLOR_NUM.ink, 0.6).strokeCircle(this.portraitHome.x, this.portraitHome.y, pr);
+    }
+  }
+
+  /**
+   * Redraws the Dog portrait only when the Canine Posture changes or on a wag step (Decision 6).
+   */
+  private drawPortrait(): void {
+    if (!this.portraitImages || !this.sim) return;
+    const s = this.sim;
+    const pose = dogPose(s);
+    const coat = s.config.look?.dogCoat ?? 'golden';
+    const key = portraitDirtyKey(pose, s.time, { reducedMotion: this.reduceMotion, coat });
+    if (!this.portraitDirty.changed(key)) return;
+
+    const wag = pose.tail === 'wagging' && !this.reduceMotion ? Math.floor(s.time * 4) % 2 : 0;
+    const layers = portraitLayers(pose, wag, { reducedMotion: this.reduceMotion });
+
+    this.portraitImages.tail.setFrame(layers.tail);
+    this.portraitImages.body.setFrame(layers.body);
+    this.portraitImages.head.setFrame(layers.head);
+    this.portraitImages.ears.setFrame(layers.ears);
+    this.portraitImages.eyes.setFrame(layers.eyes);
+
+    const tint = DOG_COATS[coat] ?? DOG_COATS.golden;
+    this.portraitImages.tail.setTint(tint);
+    this.portraitImages.body.setTint(tint);
+    this.portraitImages.head.setTint(tint);
+    this.portraitImages.ears.setTint(tint);
+    this.portraitImages.eyes.setTint(tint);
   }
 }

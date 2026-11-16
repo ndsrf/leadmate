@@ -1,8 +1,9 @@
 """Packs Kenney CC0 sprites into one palette atlas for the stage scene (bundle/assets/kenney/sprites.{png,json}).
 
-usage: python3 pack-sprites.py <kenney-downloads-dir> <raw-render-dir> <out-dir> [--sets id,id]
+usage: python3 pack-sprites.py <kenney-downloads-dir> <raw-render-dir> <out-dir> [--sets id,id] [--name base]
 Needs Pillow. With --sets it packs only those GLB render sets (no kit sprites), e.g. a spike atlas; spike sets are
-never packed otherwise. <raw-render-dir> is the output of render-sprites.mjs (GLB renders, feet at (160, 230) at 2x).
+never packed otherwise. --name writes <base>.png/<base>.json instead of sprites.* (the shipped Dog is its own atlas,
+bundle/assets/kenney/husky.*: the main atlas already uses all 256 palette colours, so merging would recolour its frames). <raw-render-dir> is the output of render-sprites.mjs (GLB renders, feet at (160, 230) at 2x).
 """
 import json, re, sys
 from collections import defaultdict
@@ -10,13 +11,14 @@ from pathlib import Path
 from PIL import Image
 
 dl, raw, out = (Path(a) for a in sys.argv[1:4])
+BASE = sys.argv[sys.argv.index('--name') + 1] if '--name' in sys.argv else 'sprites'
 ONLY = set(sys.argv[sys.argv.index('--sets') + 1].split(',')) if '--sets' in sys.argv else None
 NATURE = 0.77  # Nature Kit: one 130 px ground diamond is one 2 m tile, which is 100 px in the game
 ORIGIN = (160, 230)
-HIRES = {'handler': 1.5, 'dog': 1.5, 'rdog': 1.5, 'rdogest': 1.5}  # drawn bigger than the game scale, so they stay sharp when the camera zooms in; the frame's `res` says by how much
+HIRES = {'handler': 1.5, 'dog': 1.5, 'husky': 1.5, 'huskyflat': 1.5, 'rdog': 1.5, 'rdogest': 1.5}  # drawn bigger than the game scale, so they stay sharp when the camera zooms in; the frame's `res` says by how much
 SKIP = {'handlerf'}  # rendered, not packed (not used yet)
-SPIKE = {'rdog', 'rdogest'}  # readable-dog spike renders, packed only with --sets
-DOGS = {'dog', 'rdog', 'rdogest'}  # neutral coat, tinted in the game
+SPIKE = {'rdog', 'rdogest', 'husky', 'huskyflat'}  # not in the main atlas: spike renders, and the Husky, which has its own atlas; packed only with --sets
+DOGS = {'dog', 'husky', 'huskyflat', 'rdog', 'rdogest'}  # neutral coat, tinted in the game
 
 # 2D sprites straight from the kits: name -> (file, scale, pivot y)
 FRAMES = {}
@@ -95,6 +97,6 @@ for n, (px, py) in place.items():
                  'pivot': {'x': round(pivot[0], 4), 'y': round(pivot[1], 4)}, 'res': res}
 out.mkdir(parents=True, exist_ok=True)
 q = atlas.quantize(256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)
-q.save(out / 'sprites.png', optimize=True)
-(out / 'sprites.json').write_text(json.dumps({'frames': frames, 'meta': {'image': 'sprites.png', 'size': {'w': W, 'h': H}, 'scale': '1'}}, separators=(',', ':')))
-print(len(frames), 'frames', (out / 'sprites.png').stat().st_size // 1024, 'KB', W, H)
+q.save(out / f'{BASE}.png', optimize=True)
+(out / f'{BASE}.json').write_text(json.dumps({'frames': frames, 'meta': {'image': f'{BASE}.png', 'size': {'w': W, 'h': H}, 'scale': '1'}}, separators=(',', ':')))
+print(len(frames), 'frames', (out / f'{BASE}.png').stat().st_size // 1024, 'KB', W, H)

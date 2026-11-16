@@ -1,11 +1,14 @@
 import atlasUrl from '../assets/kenney/sprites.png';
 import atlas from '../assets/kenney/sprites.json';
+import dogAtlasUrl from '../assets/kenney/husky.png';
+import dogAtlas from '../assets/kenney/husky.json';
 import closeAtlasUrl from '../assets/close/sprites.png';
 import closeAtlas from '../assets/close/sprites.json';
 import type { CaninePosture, CloseExerciseControls, ShieldSide } from '../../src/sim/closeExercise';
 import type { ReactionTier } from '../../src/sim/sim';
 import type { SceneryItem } from '../../src/sim/geometry';
 import type { DogCoat } from '../../src/sim/config';
+import type { WalkClip } from '../../src/hud/pose';
 import type { Vec2 } from '../../src/sim/vec';
 
 /**
@@ -15,15 +18,31 @@ import type { Vec2 } from '../../src/sim/vec';
 export const ATLAS = 'kenney';
 export { atlasUrl, atlas };
 
+/** The walking Dog (a rigged Husky, CC0) has its own atlas: the main one already uses all 256 palette colours. */
+export const DOG_ATLAS = 'kenney_dog';
+export { dogAtlasUrl, dogAtlas };
+
 export const CLOSE_ATLAS = 'close_sprites';
 export { closeAtlasUrl, closeAtlas };
 
 type Frames = Record<string, { pivot: { x: number; y: number }; res: number }>;
 const frames = atlas.frames as unknown as Frames;
+const huskyFrames = dogAtlas.frames as unknown as Frames;
 export const hasFrame = (name: string): boolean => name in frames;
+export const hasHuskyFrame = (name: string): boolean => name in huskyFrames;
 /** How many times larger than the game scale a frame is drawn (the camera zooms in on the characters). */
-export const resOf = (name: string): number => frames[name].res;
-export const pivotOf = (name: string): { x: number; y: number } => frames[name].pivot;
+export const resOf = (name: string): number => (frames[name] ?? huskyFrames[name]).res;
+export const pivotOf = (name: string): { x: number; y: number } => (frames[name] ?? huskyFrames[name]).pivot;
+/** The atlas texture a frame lives in. */
+export const atlasOf = (name: string): string => (name in huskyFrames ? DOG_ATLAS : ATLAS);
+
+/** Frames per facing of each walking-Dog clip (`scripts/kenney/render-sprites.mjs`, job `husky`; 30 in all, 240 with the 8 facings). */
+export const HUSKY_CLIPS: Record<WalkClip, number> = {
+  idle: 2, walk: 4, walk_wag: 4, trot: 4, sniffwalk: 4, sniff: 2, planted: 2, mark: 2, lunge: 2, look_l: 2, look_r: 2,
+};
+/** The Dog's frame for a Canine Posture clip at an animation step and facing (the atlas names drop the clip's underscore). */
+export const huskyFrame = (clip: WalkClip, step: number, deg: number): string =>
+  `husky_${clip.replace('_', '')}${((step % HUSKY_CLIPS[clip]) + HUSKY_CLIPS[clip]) % HUSKY_CLIPS[clip]}_${deg}`;
 
 type CloseFrames = Record<string, { pivot: { x: number; y: number }; res: number }>;
 const closeFrames = closeAtlas.frames as unknown as CloseFrames;
