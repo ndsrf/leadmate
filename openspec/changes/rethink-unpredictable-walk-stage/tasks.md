@@ -27,7 +27,7 @@
 
 ## 5. Progression for inserted Stretches
 
-- [ ] 5.1 Keep Stops reachable under the previous trail available when a Stretch is inserted ahead (design Decision 11); verify with progression tests for each `world-progression` delta scenario: part-way user, brand-new user, finished Stretch with an added Node, completed World.
+- [x] 5.1 Keep Stops reachable under the previous trail available when a Stretch is inserted ahead (design Decision 11); verify with progression tests for each `world-progression` delta scenario: part-way user, brand-new user, finished Stretch with an added Node, completed World.
 
 ## 6. Content release 1: Let them sniff + Unpredictable walks
 
