@@ -47,6 +47,14 @@ for (const size of SIZES) {
     await page.keyboard.down('ArrowRight');
     await page.waitForTimeout(1500);
     await page.keyboard.up('ArrowRight');
+    // Fill meters visibly with Meter Points (first meter partially filled, second meter full)
+    await page.evaluate(() => {
+      const scene = window.__leadmate.scene();
+      if (!scene?.sim?.meters) return;
+      scene.sim.meters.forEach((m, idx) => {
+        m.value = idx === 1 ? m.target : Math.round(m.target * 0.65);
+      });
+    });
     await page.waitForTimeout(300);
     await page.screenshot({ path: join(out, `${id}-${size.name}.png`) });
     console.log('saved', id, size.name);
