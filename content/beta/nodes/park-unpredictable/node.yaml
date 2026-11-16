@@ -1,7 +1,7 @@
 id: park-unpredictable
 mode: stage
 prerequisites:
-  - park-mix
+  - park-nose-on
 simulation:
   scenario:
     world: 6
@@ -18,8 +18,8 @@ simulation:
       x: 1
       y: 0
     waypoint:
-      x: 76
-      y: 0
+      x: 66
+      y: 12
     waypoints:
       - x: 14
         y: 0
@@ -38,11 +38,11 @@ simulation:
     scenery:
       - type: tree
         pos:
-          x: -4.0
+          x: -4
           y: -9.5
       - type: bush
         pos:
-          x: -4.0
+          x: -4
           y: 19.5
       - type: bench
         pos:
@@ -124,11 +124,11 @@ simulation:
           y: 19.5
       - type: sign
         pos:
-          x: 35.0
+          x: 35
           y: -9.5
       - type: lamp_post
         pos:
-          x: 35.0
+          x: 35
           y: 19.5
       - type: pond
         pos:
@@ -208,12 +208,12 @@ simulation:
           y: 19.5
       - type: flower_bed
         pos:
-          x: 74.0
+          x: 74
           y: -9.5
         angle: 0
       - type: picnic_table
         pos:
-          x: 74.0
+          x: 74
           y: 19.5
         angle: 0
       - type: fountain
@@ -224,6 +224,42 @@ simulation:
         pos:
           x: 77.9
           y: 19.5
+      - type: lamp_post
+        pos:
+          x: 10
+          y: -2.7
+        scent:
+          strength: normal
+      - type: bush
+        pos:
+          x: 19.9
+          y: 13
+        scent:
+          strength: normal
+      - type: bin
+        pos:
+          x: 29.6
+          y: 0
+        scent:
+          strength: normal
+      - type: lamp_post
+        pos:
+          x: 40.2
+          y: 10.8
+        scent:
+          strength: normal
+      - type: bush
+        pos:
+          x: 50
+          y: 2.5
+        scent:
+          strength: normal
+      - type: bin
+        pos:
+          x: 60.2
+          y: 8.6
+        scent:
+          strength: normal
     cues:
       - lets-go
     dogGoalSpeed: 1.6
@@ -324,6 +360,20 @@ simulation:
       smoothing: 3
     endCondition:
       kind: reach-waypoint
+    meters:
+      - id: nose
+        labelKey: meter.nose
+        icon: nose
+        target: 60
+        meterPoints:
+          granted-sniff: 10
+      - id: connection
+        labelKey: meter.connection
+        icon: eye
+        target: 45
+        meterPoints:
+          check-in-after-change: 15
+    scentWalk: {}
 checkpoint:
   - {}
   - kind: duel

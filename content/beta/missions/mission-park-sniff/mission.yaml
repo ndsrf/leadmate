@@ -1,0 +1,22 @@
+id: mission-park-sniff
+technique: let-them-sniff
+reps: 1
+trains:
+  - kind: node
+    id: park-nose-on
+problems:
+  - id: pulls-to-smells
+    label: pulls-to-smells
+    practise:
+      kind: node
+      id: park-nose-on
+  - id: nolook
+    label: nolook
+    practise:
+      kind: node
+      id: park-nose-on
+  - id: tight
+    label: tight
+    practise:
+      kind: node
+      id: park-nose-on

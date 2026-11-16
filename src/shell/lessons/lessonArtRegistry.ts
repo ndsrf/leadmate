@@ -75,6 +75,8 @@ export const LESSON_ART: Readonly<Record<string, ImageSourcePropType>> = {
   'theory-slack-u-2': require('../../../assets/lessons/theory-slack-u-2.png'),
   'theory-slack-u-do': require('../../../assets/lessons/theory-slack-u-do.png'),
   'theory-slack-u-dont': require('../../../assets/lessons/theory-slack-u-dont.png'),
+  'theory-sniffing-walks-1': require('../../../assets/lessons/theory-sniffing-walks-1.png'),
+  'theory-sniffing-walks-2': require('../../../assets/lessons/theory-sniffing-walks-2.png'),
   'theory-unpredictable-walks-1': require('../../../assets/lessons/theory-unpredictable-walks-1.png'),
   'theory-unpredictable-walks-2': require('../../../assets/lessons/theory-unpredictable-walks-2.png'),
   'theory-unpredictable-walks-do': require('../../../assets/lessons/theory-unpredictable-walks-do.png'),

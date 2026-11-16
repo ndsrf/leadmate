@@ -31,11 +31,11 @@
 
 ## 6. Content release 1: Let them sniff + Unpredictable walks
 
-- [ ] 6.1 Draw the wordless art for `theory-sniffing-walks`, `park-nose-on` and `park-keep-fresh` in the LeadMate Design System canvas; verify the files exist in each item's `media/`.
-- [ ] 6.2 Author `theory-sniffing-walks`, `park-nose-on` and `mission-park-sniff` (target: Go Sniff 3 times after a look) in `content/beta/`, in Spanish and English, using each language's cue words; verify with `npm run content:validate -- --channel beta`.
-- [ ] 6.3 Retune `park-unpredictable` with Scent Spots and Stage Meters, author `park-keep-fresh`, and restructure `worlds/recall.yaml` into the "Let them sniff" and "Unpredictable walks" Stretches; verify with content validation and the progression tests.
+- [x] 6.1 Draw the wordless art for `theory-sniffing-walks`, `park-nose-on` and `park-keep-fresh` in the LeadMate Design System canvas; verify the files exist in each item's `media/`.
+- [x] 6.2 Author `theory-sniffing-walks`, `park-nose-on` and `mission-park-sniff` (target: Go Sniff 3 times after a look) in `content/beta/`, in Spanish and English, using each language's cue words; verify with `npm run content:validate -- --channel beta`.
+- [x] 6.3 Retune `park-unpredictable` with Scent Spots and Stage Meters, author `park-keep-fresh`, and restructure `worlds/recall.yaml` into the "Let them sniff" and "Unpredictable walks" Stretches; verify with content validation and the progression tests.
 - [ ] 6.4 Playtest the three Nodes with the devSeed on a phone and tune Autopilot, Novelty and Stage Meter targets until a good run earns 2 Stars and a great run 3; record the final values in the scenarios and a note in design.md.
-- [ ] 6.5 Promote to stable with the app's `minAppVersion` and a `contentVersion` bump; verify that `npm run content:validate` passes for stable and that an older app keeps its bundled baseline.
+- [x] 6.5 Promote to stable with the app's `minAppVersion` and a `contentVersion` bump; verify that `npm run content:validate` passes for stable and that an older app keeps its bundled baseline.
 
 ## 7. Content release 2: Sniffing on your terms
 

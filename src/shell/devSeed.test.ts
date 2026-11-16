@@ -85,30 +85,25 @@ describe('devSeedRecord', () => {
       // World 6 is unlocked
       expect(isWorldUnlocked(world6, progress)).toBe(true);
 
-      // Prerequisite node for park-unpredictable ('park-mix') is completed
+      // Prerequisite node for park-nose-on ('park-mix') is completed
       expect(record.completedNodes).toContain('park-mix');
 
-      // First stretch lessons of World 6 are pre-read by default
-      expect(record.readLessons).toContain('theory-unpredictable-walks');
-      expect(record.readLessons).toContain('howto-yield-pressure');
+      // First stretch lesson of World 6 ("Let them sniff") is pre-read by default
+      expect(record.readLessons).toContain('theory-sniffing-walks');
 
-      // The park-unpredictable Stage Node is immediately open and playable
-      expect(stopLock({ kind: 'node', id: 'park-unpredictable' }, progress)).toBeNull();
+      // The park-nose-on Stage Node is immediately open and playable
+      expect(stopLock({ kind: 'node', id: 'park-nose-on' }, progress)).toBeNull();
     });
 
     it('locks the Stage Node behind lessons when &fresh=1 or &clean=1 is passed', () => {
       const freshRecord = devSeedRecord('?seed=world6&fresh=1', now)!;
-      expect(freshRecord.readLessons).not.toContain('theory-unpredictable-walks');
-      expect(freshRecord.readLessons).not.toContain('howto-yield-pressure');
+      expect(freshRecord.readLessons).not.toContain('theory-sniffing-walks');
 
       const progress = { ...freshRecord, plus: true };
-      const lock = stopLock({ kind: 'node', id: 'park-unpredictable' }, progress);
+      const lock = stopLock({ kind: 'node', id: 'park-nose-on' }, progress);
       expect(lock).toEqual({
         kind: 'stops',
-        stops: expect.arrayContaining([
-          { kind: 'lesson', id: 'theory-unpredictable-walks' },
-          { kind: 'lesson', id: 'howto-yield-pressure' },
-        ]),
+        stops: expect.arrayContaining([{ kind: 'lesson', id: 'theory-sniffing-walks' }]),
       });
     });
 
