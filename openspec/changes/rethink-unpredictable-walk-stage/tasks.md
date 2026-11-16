@@ -46,7 +46,7 @@
 ## 8. Integration checks
 
 - [ ] 8.1 Run the full test suite and the `power-efficiency` scenario regression check on a World 6 Node; verify both pass.
-- [ ] 8.2 Update the Purpose line of `openspec/specs/recall-world/spec.md`, which still describes a single Stretch, to describe World 6 as sniffing and unpredictable walks before recall; verify it reads correctly after archive.
+- [x] 8.2 Update the Purpose line of `openspec/specs/recall-world/spec.md`, which still describes a single Stretch, to describe World 6 as sniffing and unpredictable walks before recall; verify it reads correctly after archive.
 
 ## Workflow follow-up
 

@@ -1,7 +1,7 @@
 # recall-world Specification
 
 ## Purpose
-Defines World 6, "The Park and Recall", and its first Stretch, which builds the dog's choice to stay with the Handler through unpredictable walks before recall, plus the World 3 hint that points to it.
+Defines World 6, "The Park and Recall": its Stretches on sniffing walks ("Let them sniff", "Unpredictable walks", "Sniffing on your terms"), which build the Dog's choice to stay with the Handler while the park competes for its nose, before recall; how their Stages are scored by Stage Meters and replayed in the Debrief; and the World 3 hint that points to the World.
 
 ## Requirements
 
