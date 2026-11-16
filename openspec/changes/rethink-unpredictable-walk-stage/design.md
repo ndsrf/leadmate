@@ -122,6 +122,17 @@ Behaviour decisions:
 
 Bots only bound the numbers: the Dog's seeded Check-in and follow draws spread a good run from 458 to 833 on the two Connection Nodes. The phone playtest (a person, with the devSeed) must confirm the feel and may move the targets, which live in each Node's scenario and need no app release. The Meter label keys are `meter.nose` and `meter.connection` and the icons `nose` and `eye` (HUD atlas `icon_nose`, `icon_eye`).
 
+## Content release 2 tuning (task 7.3, automated part)
+
+`node scripts/tune-scent-nodes.mjs` now also plays `park-plant-mark` and `park-not-that-one` (the bots of release 1 plus four skills: `sniffHard`, the share of hot Scent Spots and marking posts that get a Go Sniff and so are cut short instead of waited out; `leaveShare` / `leaveDelay` for "Leave It" on food; `jackpotShare`; and creeping at a slow pace, with no changes, while the Dog goes to a spot it will Plant or mark at). A good Handler there cuts every Plant short, marks half the looks late and uses no Jackpot; a great one waits out every Plant and marking, leaves every food and spends each Jackpot at a hard moment. `scripts/gen-sniff-terms-nodes.mjs` writes both Nodes. No `scentWalk` overrides were needed.
+
+| Node | Scent setup | Meter targets | Good | Great |
+|---|---|---|---|---|
+| `park-plant-mark` | 2 hot bins (Plant), 3 marking lamp posts, 1 bush | Nose 100, Connection 65 | 775, 2 Stars on 100% | 885, 3 Stars on 100% |
+| `park-not-that-one` | 1 hot bush, 1 marking post, 3 normal spots, 2 food Distractors by bins, `jackpotBudget` 3 | Nose 70, Connection 60 | 761, 2 Stars on 100% | 996, 3 Stars on 100% |
+
+Findings: a hot Scent Spot must sit on a small prop (bin, lamp post, sign): a bush (solid, radius 0.5) stops the Dog 0.8 m away, beyond `reachDistance`, so it never Plants. Any change resets Autopilot, so a Handler who keeps changing direction near a spot never lets the Dog go to it; waiting out Plants needs steady walking and a slow creep once the Dog heads for the spot. Connection saturates in `park-plant-mark` (every bot gets the same Check-ins), so only Nose separates good from great there. The bundled art budget in `scripts/art/lessons/_kit/svg.mjs` was raised from 6 to 7 MB for the four new pictures (the total was 5.99 MB). Promotion: stable contentVersion 5, beta 7, `minAppVersion` stays 1.2.0 (no scenario feature newer than 1.2.0). The phone playtest and the Jackpot button feel on a device are still to do.
+
 ## Risks / Trade-offs
 
 - [The Dog feels too stubborn or too easy] → Every weight is a scenario value; tune per Node with playtests; the devSeed jumps straight to each Node.

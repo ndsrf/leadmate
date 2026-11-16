@@ -13,7 +13,7 @@ Esperas con la correa floja mientras {name} termina, y {name} se aparta de la co
 - cause: Esperar parece un retraso, así que la correa se tensa antes de que {name} termine.
 - c1: Párate cuando {name} se pare y deja la correa colgando en U.
 - c2: Cuenta despacio hasta diez antes de decir «Vamos».
-- easier: Elige un camino tranquilo y un olor que le guste a {name}, sin prisa.
+- easier: Elige un camino con poca gente y un olor de los que interesan a {name}, sin prisa.
 - alt: Una persona espera con la correa floja mientras el perro está en una farola
 - caption: Espera a que levante la cabeza
 

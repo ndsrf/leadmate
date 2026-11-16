@@ -1,0 +1,24 @@
+id: mission-park-sniff-terms
+technique: sniffing-on-your-terms
+reps: 1
+trains:
+  - kind: node
+    id: park-plant-mark
+  - kind: node
+    id: park-not-that-one
+problems:
+  - id: drags-plant
+    label: drags-plant
+    practise:
+      kind: node
+      id: park-plant-mark
+  - id: eats-food
+    label: eats-food
+    practise:
+      kind: node
+      id: park-not-that-one
+  - id: tight
+    label: tight
+    practise:
+      kind: node
+      id: park-plant-mark

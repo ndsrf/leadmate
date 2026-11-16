@@ -17,7 +17,7 @@ Hay una patata frita junto a la papelera y {name} la mira fijamente. ¿Qué hace
 ¿Cuándo merece la pena pulsar el premio gordo?
 - [x] Cuando {name} te mira con comida o un olor fuerte cerca
 - [ ] En cada mirada, por si acaso
-- [ ] En un camino vacío, cuando {name} está tranquilo
+- [ ] En un camino vacío, sin nada alrededor
 - why: El premio gordo es para los momentos difíciles. En una mirada fácil se pierde y se acaba.
 
 ### tq3

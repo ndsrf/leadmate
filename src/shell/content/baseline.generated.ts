@@ -4,7 +4,7 @@ import type { ContentPack } from './validator';
 export const BASELINE_PACK: ContentPack = {
   "pack": {
     "formatVersion": 1,
-    "contentVersion": 4,
+    "contentVersion": 5,
     "minAppVersion": "1.2.0",
     "languages": [
       "es",
@@ -255,6 +255,28 @@ export const BASELINE_PACK: ContentPack = {
               "kind": "mission",
               "id": "mission-park-unpredictable"
             }
+          ],
+          [
+            {
+              "kind": "lesson",
+              "id": "theory-sniffing-on-your-terms"
+            },
+            {
+              "kind": "lesson",
+              "id": "howto-jackpot"
+            },
+            {
+              "kind": "node",
+              "id": "park-plant-mark"
+            },
+            {
+              "kind": "node",
+              "id": "park-not-that-one"
+            },
+            {
+              "kind": "mission",
+              "id": "mission-park-sniff-terms"
+            }
           ]
         ]
       },
@@ -496,6 +518,26 @@ export const BASELINE_PACK: ContentPack = {
       "files": [
         "media/howto-cues-1.png",
         "media/howto-cues-2.png"
+      ]
+    },
+    "howto-jackpot": {
+      "config": {
+        "id": "howto-jackpot",
+        "kind": "theory",
+        "images": [
+          "howto-jackpot-1",
+          "howto-jackpot-2"
+        ],
+        "steps": 4,
+        "takeaways": 4
+      },
+      "text": {
+        "en": "# How to Play: the Jackpot Button\n\n## heading\nA small button for the hard moments\n\n## hook\nFrom this Stage on, a small star button appears next to the Marker button. It is the Jackpot. It works like the Marker but pays far more, and you only get a few of them per Stage, so it matters when you press it.\n\n## why\nThe Marker (see Marking and Rewarding) tells {name} \"that was right\". A Jackpot says the same with a much bigger reward, and it is worth it when {name} chose you in a hard moment: there is food beside the path, a strong smell is close, or something is passing. A Jackpot on an easy look, on an empty path, is wasted, and you will see a message saying so. The badge on the button shows how many Jackpots are left. Press it instead of the Marker, never as well, and only after {name} looks at you.\n\n## steps\n1. Find the star button next to the Marker button. The number on it is your Jackpots left.\n2. Walk as usual and watch for a hard moment: food or a strong smell near {name}.\n3. When {name} looks at you at that moment, press the star button instead of the Marker, right as {name} looks.\n4. On an easy look, press the Marker as usual and keep your Jackpots for later.\n\n## example\n### {name} near the bin\nYou are in the park and there is food beside the bin. {name} stares at it and you give \"Leave It\". {name} turns and looks at you. This is a hard moment, so you press the star button. A message says it was a smart Jackpot. Later, on an empty path, {name} looks at you for a second. This is an easy moment, so you press the Marker and keep the star.\n\n## compare\n### do\nPress the star button when {name} looks at you with food or a strong smell close by.\n### dont\nPress the star button on every look; the Jackpots run out and the rest of the Stage gets only the Marker.\n\n## tip\nTry it today: in your next Stage, count your Jackpots and use each one only when {name} turns away from food or a strong smell to look at you.\n\n## takeaways\n- The star button is the Jackpot, a bigger reward than the Marker.\n- You get only a few per Stage; the badge shows how many are left.\n- Press it instead of the Marker, on a look in a hard moment.\n- On an easy look, use the Marker and keep the Jackpot.\n\n## images\n### howto-jackpot-1\n- alt: Two steps side by side: first a Dog looks up at its person beside food on the ground, then the person rewards the look with a gold star\n- caption: A hard moment, a look, then the Jackpot\n\n### howto-jackpot-2\n- alt: A Dog walks calmly beside its person on an empty path, with a gold star and a pause sign above them\n- caption: On an easy path, keep the Jackpot\n",
+        "es": "# Cómo jugar: el botón del premio gordo\n\n## heading\nUn botón pequeño para los momentos difíciles\n\n## hook\nA partir de esta fase aparece un botón pequeño con una estrella junto al botón del Marcador. Es el premio gordo. Funciona como el Marcador, pero paga mucho más, y solo tienes unos pocos por fase, así que importa cuándo lo pulsas.\n\n## why\nEl Marcador (mira Marcar y recompensar) le dice a {name} «eso estuvo bien». El premio gordo dice lo mismo con una recompensa mucho mayor, y merece la pena cuando {name} te eligió en un momento difícil: hay comida junto al camino, un olor fuerte cerca o algo pasando. Un premio gordo en una mirada fácil, en un camino vacío, se pierde, y verás un mensaje que lo dice. La insignia del botón muestra cuántos te quedan. Púlsalo en lugar del Marcador, nunca además, y solo cuando {name} te mire.\n\n## steps\n1. Busca el botón de la estrella junto al botón del Marcador. El número que lleva son los premios gordos que te quedan.\n2. Camina como siempre y vigila un momento difícil: comida o un olor fuerte cerca de {name}.\n3. Cuando {name} te mire en ese momento, pulsa la estrella en lugar del Marcador, justo cuando mira.\n4. En una mirada fácil, pulsa el Marcador como siempre y guarda tus premios gordos para más tarde.\n\n## example\n### {name} junto a la papelera\nEstás en el parque y hay comida junto a la papelera. {name} la mira fijamente y das «Déjalo». {name} se gira y te mira. Es un momento difícil, así que pulsas la estrella. Un mensaje dice que fue un premio gordo acertado. Más tarde, en un camino vacío, {name} te mira un segundo. Es un momento fácil, así que pulsas el Marcador y guardas la estrella.\n\n## compare\n### do\nPulsa la estrella cuando {name} te mira con comida o un olor fuerte cerca.\n### dont\nPulsar la estrella en cada mirada; los premios gordos se acaban y el resto de la fase solo tiene el Marcador.\n\n## tip\nPrueba hoy: en tu próxima fase, cuenta tus premios gordos y usa cada uno solo cuando {name} se aparte de la comida o de un olor fuerte para mirarte.\n\n## takeaways\n- El botón de la estrella es el premio gordo, una recompensa mayor que el Marcador.\n- Tienes pocos por fase; la insignia muestra cuántos quedan.\n- Púlsalo en lugar del Marcador, en una mirada de un momento difícil.\n- En una mirada fácil, usa el Marcador y guarda el premio gordo.\n\n## images\n### howto-jackpot-1\n- alt: Dos pasos lado a lado: primero un perro mira a su persona junto a comida en el suelo, luego la persona premia la mirada con una estrella dorada\n- caption: Un momento difícil, una mirada y el premio gordo\n\n### howto-jackpot-2\n- alt: Un perro camina tranquilo junto a su persona por un camino vacío, con una estrella dorada y una señal de pausa encima\n- caption: En un camino fácil, guarda el premio gordo\n"
+      },
+      "files": [
+        "media/howto-jackpot-1.png",
+        "media/howto-jackpot-2.png"
       ]
     },
     "howto-long-leash": {
@@ -1170,6 +1212,26 @@ export const BASELINE_PACK: ContentPack = {
         "media/theory-slack-u-2.png",
         "media/theory-slack-u-do.png",
         "media/theory-slack-u-dont.png"
+      ]
+    },
+    "theory-sniffing-on-your-terms": {
+      "config": {
+        "id": "theory-sniffing-on-your-terms",
+        "kind": "theory",
+        "images": [
+          "theory-sniffing-on-your-terms-1",
+          "theory-sniffing-on-your-terms-2"
+        ],
+        "steps": 4,
+        "takeaways": 4
+      },
+      "text": {
+        "en": "# Sniffing on Your Terms\n\n## heading\nSome smells are for waiting, and some are not for you to give\n\n## hook\nSome smells are strong enough that {name} simply stops: the legs lock, the nose goes down and no tug will move it. A tug is a bad idea anyway, because the leash goes Taut and the smell is gone before it was read. Other times it is the opposite: there is a chip on the pavement or a bin that smells of dinner, and {name} wants it badly. Both moments are about the same thing: who decides what gets sniffed, and when.\n\n## why\nWhen {name} Plants, it is reading something important, and waiting with a Slack leash costs you a few seconds. Dragging a Plant away teaches {name} that pulling is how smells get read, and it makes the next one stronger. A dog may also lift a leg at a post to leave its own mark. This is not the Marker, which is your \"good\" and the Marker button; it is {name} writing a message. Let it finish too. Food is different. Food is not a smell to read, it is a prize that would be eaten, and \"Go Sniff\" must never lead there. Teach \"Leave It\" and pay with something better. For a hard moment like this, use a high-value reward: a Jackpot, much better than the usual treat. Keep it for moments where choosing you over the smell or the food was difficult.\n\n## steps\n1. When {name} Plants at a strong smell or stops at a post to leave a mark, stop too, keep the leash Slack in a U and wait until the head comes up.\n2. Do not call, tug or say \"Let's Go\" until {name} has finished; then say \"Let's Go\" and walk on together.\n3. When you see food or rubbish ahead, say \"Leave It\" before {name} reaches it, and keep the leash Slack. Never give \"Go Sniff\" at food.\n4. When {name} looks at you instead of the food, mark the look and give a Jackpot: a handful of treats or something extra special, not the usual single piece.\n\n## example\n### {name} by the bin outside the café\n{name} slows beside the lamp post at the café and plants. You stop, keep the leash hanging in a U and wait. After about five seconds {name} lifts the head and you say \"Let's Go\". Two steps later there is a chip beside the bin. {name} stares at it. You say \"Leave It\" and wait. {name} glances up at you, you mark the look and give a Jackpot of three small treats, one after another. {name} walks on with the head up.\n\n## compare\n### do\nWait out a Plant or a marking post with a Slack leash, say \"Leave It\" before food and save the Jackpot for the hard moment when {name} chooses you.\n### dont\nDrag {name} away from a Plant, give \"Go Sniff\" at food, or spend the Jackpot on an easy moment when nothing was hard.\n\n## tip\nTry it today: on your next walk, wait out one strong smell without pulling. If you meet food or rubbish, say \"Leave It\" and reward the look with something special.\n\n## takeaways\n- A Plant is {name} reading something important: wait with a Slack leash.\n- Dragging a Plant or a marking post away teaches pulling.\n- Never give \"Go Sniff\" at food; use \"Leave It\" and pay with something better.\n- A Jackpot is for hard moments, so choose them.\n\n## images\n### theory-sniffing-on-your-terms-1\n- alt: Two steps side by side: first a Dog plants at a bush while its person waits with a Slack leash, then the Dog walks on with its person\n- caption: Wait out the Plant, then walk on\n\n### theory-sniffing-on-your-terms-2\n- alt: A park path with food on the ground, a lamp post ahead and a Dog looking up at its person with a gold star above them\n- caption: Choosing you over the food earns the best prize\n",
+        "es": "# Olfatear con tus reglas\n\n## heading\nAlgunos olores son para esperar, y otros no son para darlos\n\n## hook\nHay olores tan fuertes que {name} simplemente se planta: las patas se clavan, la nariz baja y ningún tirón lo mueve. Tirar es mala idea de todas formas, porque la correa se tensa y el olor se pierde antes de leerlo. Otras veces es lo contrario: hay una patata frita en la acera o una papelera que huele a cena, y {name} la quiere a toda costa. Los dos momentos van de lo mismo: quién decide qué se huele y cuándo.\n\n## why\nCuando {name} se planta, está leyendo algo importante, y esperar con la correa floja te cuesta unos segundos. Arrastrarle le enseña que tirar es la forma de leer los olores, y el siguiente le tirará más. Un perro también puede levantar la pata en un poste para dejar su marca. No es el Marcador, que es tu «bien» y el botón de Marcar: es {name} dejando un mensaje. Déjale terminar también. La comida es distinta. La comida no es un olor que leer, es un premio que se comería, y «Olfatea» nunca debe llevar hasta ella. Enseña «Déjalo» y paga con algo mejor. Para un momento difícil así, usa una recompensa de alto valor: un premio gordo, mucho mejor que la golosina de siempre. Resérvalo para los momentos en que elegirte a ti en lugar del olor o la comida costó trabajo.\n\n## steps\n1. Cuando {name} se plante en un olor fuerte o se pare en un poste a dejar su marca, párate también, deja la correa floja en U y espera hasta que levante la cabeza.\n2. No llames, no tires ni digas «Vamos» hasta que {name} haya terminado; entonces di «Vamos» y seguid juntos.\n3. Si ves comida o basura delante, di «Déjalo» antes de que {name} llegue y mantén la correa floja. No des nunca «Olfatea» ante comida.\n4. Cuando {name} te mire en lugar de la comida, marca la mirada y da un premio gordo: un puñado de golosinas o algo extra especial, no la pieza de siempre.\n\n## example\n### {name} junto a la papelera del café\n{name} frena junto a la farola del café y se planta. Te paras, dejas la correa colgando en U y esperas. Unos cinco segundos después {name} levanta la cabeza y dices «Vamos». Dos pasos más allá hay una patata frita junto a la papelera. {name} la mira fijamente. Dices «Déjalo» y esperas. {name} te mira, marcas la mirada y le das un premio gordo de tres golosinas pequeñas, una tras otra. {name} sigue caminando con la cabeza alta.\n\n## compare\n### do\nEspera un plante o un poste de marca con la correa floja, di «Déjalo» antes de la comida y guarda el premio gordo para el momento difícil en que {name} te elige.\n### dont\nArrastrar a {name} lejos de un plante, dar «Olfatea» ante comida o gastar el premio gordo en un momento fácil en el que nada costaba.\n\n## tip\nPrueba hoy: en tu próximo paseo, espera un olor fuerte sin tirar. Si te cruzas con comida o basura, di «Déjalo» y premia la mirada con algo especial.\n\n## takeaways\n- Cuando {name} se planta, lee algo importante: espera con la correa floja.\n- Arrastrarle de un plante o de un poste de marca enseña a tirar.\n- No des nunca «Olfatea» ante comida: usa «Déjalo» y paga con algo mejor.\n- El premio gordo es para momentos difíciles, así que elígelos.\n\n## images\n### theory-sniffing-on-your-terms-1\n- alt: Dos pasos lado a lado: primero un perro se planta en un arbusto mientras su persona espera con la correa floja, luego el perro sigue caminando con su persona\n- caption: Espera el plante y sigue después\n\n### theory-sniffing-on-your-terms-2\n- alt: Un camino de parque con comida en el suelo, una farola delante y un perro que mira a su persona con una estrella dorada encima\n- caption: Elegirte a ti en lugar de la comida gana el mejor premio\n"
+      },
+      "files": [
+        "media/theory-sniffing-on-your-terms-1.png",
+        "media/theory-sniffing-on-your-terms-2.png"
       ]
     },
     "theory-sniffing-walks": {
@@ -5270,6 +5332,1268 @@ export const BASELINE_PACK: ContentPack = {
         "media/park-nose-on-1.png"
       ]
     },
+    "park-not-that-one": {
+      "config": {
+        "id": "park-not-that-one",
+        "mode": "stage",
+        "prerequisites": [
+          "park-plant-mark"
+        ],
+        "simulation": {
+          "scenario": {
+            "world": 6,
+            "theme": "open_park",
+            "fixedStep": 0.016666666666666666,
+            "leashLength": 3,
+            "leashTolerance": 0.1,
+            "quickSpeed": 2,
+            "walkStrength": 0.6,
+            "handlerStart": {
+              "x": 0,
+              "y": 0
+            },
+            "dogStart": {
+              "x": 1,
+              "y": 0
+            },
+            "waypoint": {
+              "x": 72,
+              "y": 0
+            },
+            "waypoints": [
+              {
+                "x": 12,
+                "y": 6
+              },
+              {
+                "x": 24,
+                "y": -4
+              },
+              {
+                "x": 36,
+                "y": 8
+              },
+              {
+                "x": 48,
+                "y": -4
+              },
+              {
+                "x": 60,
+                "y": 8
+              },
+              {
+                "x": 72,
+                "y": 0
+              }
+            ],
+            "waypointRadius": 2,
+            "walls": [],
+            "scenery": [
+              {
+                "type": "tree",
+                "pos": {
+                  "x": -4,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": -4,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "bench",
+                "pos": {
+                  "x": -0.1,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": -0.1,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "flower_bed",
+                "pos": {
+                  "x": 3.8,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "picnic_table",
+                "pos": {
+                  "x": 3.8,
+                  "y": 19.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "fountain",
+                "pos": {
+                  "x": 7.7,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "conifer",
+                "pos": {
+                  "x": 7.7,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "sign",
+                "pos": {
+                  "x": 11.6,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 11.6,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "pond",
+                "pos": {
+                  "x": 15.5,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "kiosk",
+                "pos": {
+                  "x": 15.5,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "tree",
+                "pos": {
+                  "x": 19.4,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": 19.4,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "bench",
+                "pos": {
+                  "x": 23.3,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 23.3,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "flower_bed",
+                "pos": {
+                  "x": 27.2,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "picnic_table",
+                "pos": {
+                  "x": 27.2,
+                  "y": 19.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "fountain",
+                "pos": {
+                  "x": 31.1,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "conifer",
+                "pos": {
+                  "x": 31.1,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "sign",
+                "pos": {
+                  "x": 35,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 35,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "pond",
+                "pos": {
+                  "x": 38.9,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "kiosk",
+                "pos": {
+                  "x": 38.9,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "tree",
+                "pos": {
+                  "x": 42.8,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": 42.8,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "bench",
+                "pos": {
+                  "x": 46.7,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 46.7,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "flower_bed",
+                "pos": {
+                  "x": 50.6,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "picnic_table",
+                "pos": {
+                  "x": 50.6,
+                  "y": 19.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "fountain",
+                "pos": {
+                  "x": 54.5,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "conifer",
+                "pos": {
+                  "x": 54.5,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "sign",
+                "pos": {
+                  "x": 58.4,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 58.4,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "pond",
+                "pos": {
+                  "x": 62.3,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "kiosk",
+                "pos": {
+                  "x": 62.3,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "tree",
+                "pos": {
+                  "x": 66.2,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": 66.2,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "bench",
+                "pos": {
+                  "x": 70.1,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 70.1,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "flower_bed",
+                "pos": {
+                  "x": 74,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "picnic_table",
+                "pos": {
+                  "x": 74,
+                  "y": 19.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "fountain",
+                "pos": {
+                  "x": 77.9,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "conifer",
+                "pos": {
+                  "x": 77.9,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 7.7,
+                  "y": 6.9
+                },
+                "scent": {
+                  "strength": "normal"
+                }
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 29.4,
+                  "y": -2.4
+                },
+                "scent": {
+                  "strength": "hot"
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 39.3,
+                  "y": 8.5
+                },
+                "scent": {
+                  "strength": "normal",
+                  "marking": true
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": 45.4,
+                  "y": -5.2
+                },
+                "scent": {
+                  "strength": "normal"
+                }
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 63.2,
+                  "y": 9.1
+                },
+                "scent": {
+                  "strength": "normal"
+                }
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 20.3,
+                  "y": 2.6
+                }
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 56.3,
+                  "y": 0.5
+                }
+              }
+            ],
+            "cues": [
+              "lets-go",
+              "leave-it"
+            ],
+            "dogGoalSpeed": 1.6,
+            "dogFixationSpeed": 1,
+            "dogReturnSpeed": 1.6,
+            "dogReturnDistance": 1,
+            "wanderMaxAngle": 0.5,
+            "wanderTurnRate": 2,
+            "distractor": {
+              "kind": "food",
+              "speed": 0,
+              "triggerRadius": 6,
+              "activateAfterMeters": 12,
+              "startOffset": 28,
+              "salience": 6,
+              "path": {
+                "from": {
+                  "x": 20.3,
+                  "y": 2.6
+                },
+                "to": {
+                  "x": 20.3,
+                  "y": 2.6
+                }
+              }
+            },
+            "moreDistractors": [
+              {
+                "kind": "food",
+                "speed": 0,
+                "triggerRadius": 6,
+                "activateAfterMeters": 50,
+                "startOffset": 28,
+                "salience": 6,
+                "path": {
+                  "from": {
+                    "x": 56.3,
+                    "y": 0.5
+                  },
+                  "to": {
+                    "x": 56.3,
+                    "y": 0.5
+                  }
+                }
+              }
+            ],
+            "calmSeconds": 3,
+            "rewardWindowSeconds": 1.1,
+            "markBudget": 5,
+            "checkInWindow": 1,
+            "learning": {
+              "attributes": {
+                "reconnectionLatency": 0.2,
+                "reactivityThreshold": 0.2,
+                "followChance": 0.5,
+                "checkInFrequency": 0.2
+              },
+              "triggerProfile": {
+                "child": 2,
+                "bicycle": 2,
+                "dog": 2,
+                "skateboard": 2,
+                "food": 2,
+                "other": 2,
+                "hand": 2
+              },
+              "equipment": "collar",
+              "capacityMultiplier": 1,
+              "posture": 0
+            },
+            "ranges": {
+              "reconnectionSeconds": {
+                "worst": 1.5,
+                "best": 0.3
+              },
+              "reactivityThreshold": {
+                "worst": 15,
+                "best": 60
+              },
+              "checkInMeanInterval": {
+                "worst": 14,
+                "best": 5
+              }
+            },
+            "arousal": {
+              "k": 30,
+              "minDistance": 2,
+              "decayPerSecond": 3,
+              "rigidPullRate": 4,
+              "disengagementDrop": 25,
+              "markerHitDrop": 20,
+              "posteJolt": 15,
+              "smoothStopFactor": 0.3,
+              "slowedSeconds": 0.5
+            },
+            "cue": {
+              "cooldownSeconds": 3,
+              "fixatedFactor": 0.3,
+              "repeatFactor": 0.5,
+              "arousalDrop": 10,
+              "followBoostSeconds": 2,
+              "followBoost": 0.25,
+              "followCap": 0.95
+            },
+            "reaction": {
+              "alertFraction": 0.6,
+              "lungeAccel": 1.5,
+              "lungeMaxSpeed": 4,
+              "alertSlowdown": 0.85
+            },
+            "sintonia": {
+              "enabled": false,
+              "minSpeed": 0.4,
+              "minTurnRate": 0.2,
+              "maxTurnRate": 1.8,
+              "turnWindow": 0.5,
+              "holdSeconds": 2
+            },
+            "goSniff": {
+              "offerSeconds": 3,
+              "durationSeconds": 4,
+              "speed": 0.4,
+              "decayFactor": 3
+            },
+            "turnAngle": 0.7853981633974483,
+            "followSeconds": 1.5,
+            "correctionWaitSeconds": 4,
+            "pullStrength": 0.8,
+            "configVersion": "bundled",
+            "camera": {
+              "closeZoom": 2.2,
+              "farZoom": 1.5,
+              "padding": 90,
+              "smoothing": 3
+            },
+            "endCondition": {
+              "kind": "reach-waypoint"
+            },
+            "meters": [
+              {
+                "id": "nose",
+                "labelKey": "meter.nose",
+                "icon": "nose",
+                "target": 70,
+                "meterPoints": {
+                  "granted-sniff": 10,
+                  "leave-it-food": 25
+                }
+              },
+              {
+                "id": "connection",
+                "labelKey": "meter.connection",
+                "icon": "eye",
+                "target": 60,
+                "meterPoints": {
+                  "check-in-hit": 10,
+                  "smart-jackpot": 20
+                }
+              }
+            ],
+            "scentWalk": {},
+            "jackpotBudget": 3
+          }
+        },
+        "checkpoint": [
+          {},
+          {},
+          {}
+        ],
+        "exercises": [
+          {
+            "metric": "tension",
+            "key": "node.park-not-that-one.exercise1"
+          },
+          {
+            "metric": "attention",
+            "key": "node.park-not-that-one.exercise2"
+          }
+        ],
+        "primerCards": [
+          {
+            "kind": "real-world",
+            "media": {
+              "type": "image",
+              "url": "",
+              "art": "park-not-that-one-1"
+            }
+          }
+        ]
+      },
+      "text": {
+        "en": "# World 6 · Not That One\n\n## primer\n### card 1\nRemember: food is never for sniffing. Say \"Leave It\" before {name} reaches it, and when {name} looks at you instead, mark the look and press the Jackpot.\n- caption: Choosing you over the food earns the star\n\n## checkpoint\n### tq1\nThere is a chip by the bin ahead and {name} stares at it. What do you do?\n- [x] Say \"Leave It\" before {name} gets there\n- [ ] Say \"Go Sniff\" so {name} can check it\n- [ ] Tug hard to pull {name} past\n- why: Food is not a smell to read. \"Leave It\" before it is reached tells {name} what to do instead.\n\n### tq2\nWhen is the Jackpot worth pressing?\n- [x] When {name} looks at you with food or a strong smell near\n- [ ] On every look, to be safe\n- [ ] On an empty path, when {name} is calm\n- why: A Jackpot is for hard moments. On an easy look it is wasted and runs out.\n\n### tq3\n{name} turns away from the food and looks at you. What do you give?\n- [x] Mark the look and press the Jackpot\n- [ ] Nothing, since {name} should not have looked at the food\n- [ ] A \"Go Sniff\" at the food, as a reward\n- why: Choosing you over food was hard. A big reward shows it paid off, and food stays off the menu.\n\n## exercises\n- tension: Outside: when you see food or rubbish ahead, say \"Leave It\" and keep the leash Slack until you have passed.\n- attention: Outside: reward each look away from food with something better than usual.\n",
+        "es": "# Mundo 6 · Esa no\n\n## primer\n### card 1\nRecuerda: la comida nunca es para olfatear. Di «Déjalo» antes de que {name} llegue y, cuando te mire a ti, marca la mirada y pulsa el premio gordo.\n- caption: Elegirte a ti en lugar de la comida gana la estrella\n\n## checkpoint\n### tq1\nHay una patata frita junto a la papelera y {name} la mira fijamente. ¿Qué haces?\n- [x] Dices «Déjalo» antes de que llegue\n- [ ] Dices «Olfatea» para que la compruebe\n- [ ] Tiras fuerte para pasar de largo\n- why: La comida no es un olor que leer. «Déjalo» antes de llegar le dice a {name} qué hacer en su lugar.\n\n### tq2\n¿Cuándo merece la pena pulsar el premio gordo?\n- [x] Cuando {name} te mira con comida o un olor fuerte cerca\n- [ ] En cada mirada, por si acaso\n- [ ] En un camino vacío, sin nada alrededor\n- why: El premio gordo es para los momentos difíciles. En una mirada fácil se pierde y se acaba.\n\n### tq3\n{name} se aparta de la comida y te mira. ¿Qué das?\n- [x] Marcas la mirada y pulsas el premio gordo\n- [ ] Nada, porque no debió mirar la comida\n- [ ] Un «Olfatea» en la comida, como premio\n- why: Elegirte a ti en lugar de la comida costó trabajo. Un premio grande muestra que compensa, y la comida sigue fuera del menú.\n\n## exercises\n- tension: Fuera: cuando veas comida o basura delante, di «Déjalo» y mantén la correa floja hasta pasar.\n- attention: Fuera: premia cada mirada que se aparte de la comida con algo mejor que lo habitual.\n"
+      },
+      "files": [
+        "media/park-not-that-one-1.png"
+      ]
+    },
+    "park-plant-mark": {
+      "config": {
+        "id": "park-plant-mark",
+        "mode": "stage",
+        "prerequisites": [
+          "park-keep-fresh"
+        ],
+        "simulation": {
+          "scenario": {
+            "world": 6,
+            "theme": "open_park",
+            "fixedStep": 0.016666666666666666,
+            "leashLength": 3,
+            "leashTolerance": 0.1,
+            "quickSpeed": 2,
+            "walkStrength": 0.6,
+            "handlerStart": {
+              "x": 0,
+              "y": 0
+            },
+            "dogStart": {
+              "x": 1,
+              "y": 0
+            },
+            "waypoint": {
+              "x": 66,
+              "y": 12
+            },
+            "waypoints": [
+              {
+                "x": 14,
+                "y": 0
+              },
+              {
+                "x": 24,
+                "y": 14
+              },
+              {
+                "x": 34,
+                "y": -2
+              },
+              {
+                "x": 46,
+                "y": 14
+              },
+              {
+                "x": 56,
+                "y": -2
+              },
+              {
+                "x": 66,
+                "y": 12
+              }
+            ],
+            "waypointRadius": 2,
+            "walls": [],
+            "scenery": [
+              {
+                "type": "tree",
+                "pos": {
+                  "x": -4,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": -4,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "bench",
+                "pos": {
+                  "x": -0.1,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": -0.1,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "flower_bed",
+                "pos": {
+                  "x": 3.8,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "picnic_table",
+                "pos": {
+                  "x": 3.8,
+                  "y": 19.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "fountain",
+                "pos": {
+                  "x": 7.7,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "conifer",
+                "pos": {
+                  "x": 7.7,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "sign",
+                "pos": {
+                  "x": 11.6,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 11.6,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "pond",
+                "pos": {
+                  "x": 15.5,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "kiosk",
+                "pos": {
+                  "x": 15.5,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "tree",
+                "pos": {
+                  "x": 19.4,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": 19.4,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "bench",
+                "pos": {
+                  "x": 23.3,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 23.3,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "flower_bed",
+                "pos": {
+                  "x": 27.2,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "picnic_table",
+                "pos": {
+                  "x": 27.2,
+                  "y": 19.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "fountain",
+                "pos": {
+                  "x": 31.1,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "conifer",
+                "pos": {
+                  "x": 31.1,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "sign",
+                "pos": {
+                  "x": 35,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 35,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "pond",
+                "pos": {
+                  "x": 38.9,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "kiosk",
+                "pos": {
+                  "x": 38.9,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "tree",
+                "pos": {
+                  "x": 42.8,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": 42.8,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "bench",
+                "pos": {
+                  "x": 46.7,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 46.7,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "flower_bed",
+                "pos": {
+                  "x": 50.6,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "picnic_table",
+                "pos": {
+                  "x": 50.6,
+                  "y": 19.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "fountain",
+                "pos": {
+                  "x": 54.5,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "conifer",
+                "pos": {
+                  "x": 54.5,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "sign",
+                "pos": {
+                  "x": 58.4,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 58.4,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "pond",
+                "pos": {
+                  "x": 62.3,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "kiosk",
+                "pos": {
+                  "x": 62.3,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "tree",
+                "pos": {
+                  "x": 66.2,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": 66.2,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "bench",
+                "pos": {
+                  "x": 70.1,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 70.1,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "flower_bed",
+                "pos": {
+                  "x": 74,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "picnic_table",
+                "pos": {
+                  "x": 74,
+                  "y": 19.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "fountain",
+                "pos": {
+                  "x": 77.9,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "conifer",
+                "pos": {
+                  "x": 77.9,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 10,
+                  "y": -2.7
+                },
+                "scent": {
+                  "strength": "normal",
+                  "marking": true
+                }
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 18.8,
+                  "y": 11.3
+                },
+                "scent": {
+                  "strength": "hot"
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 27.4,
+                  "y": 3.4
+                },
+                "scent": {
+                  "strength": "normal",
+                  "marking": true
+                }
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 36.6,
+                  "y": 6
+                },
+                "scent": {
+                  "strength": "hot"
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": 45.8,
+                  "y": 9.2
+                },
+                "scent": {
+                  "strength": "normal"
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 55.6,
+                  "y": 2.1
+                },
+                "scent": {
+                  "strength": "normal",
+                  "marking": true
+                }
+              }
+            ],
+            "cues": [
+              "lets-go"
+            ],
+            "dogGoalSpeed": 1.6,
+            "dogFixationSpeed": 1,
+            "dogReturnSpeed": 1.6,
+            "dogReturnDistance": 1,
+            "wanderMaxAngle": 0.5,
+            "wanderTurnRate": 2,
+            "distractor": {
+              "kind": "other",
+              "speed": 3.8,
+              "triggerRadius": 12,
+              "activateAfterMeters": 1000000000,
+              "startOffset": 28,
+              "path": {
+                "from": {
+                  "x": 28,
+                  "y": -12
+                },
+                "to": {
+                  "x": 28,
+                  "y": 14
+                }
+              }
+            },
+            "moreDistractors": [],
+            "calmSeconds": 3,
+            "rewardWindowSeconds": 1.1,
+            "markBudget": 5,
+            "checkInWindow": 1,
+            "learning": {
+              "attributes": {
+                "reconnectionLatency": 0.2,
+                "reactivityThreshold": 0.2,
+                "followChance": 0.5,
+                "checkInFrequency": 0.2
+              },
+              "triggerProfile": {
+                "child": 2,
+                "bicycle": 2,
+                "dog": 2,
+                "skateboard": 2,
+                "food": 2,
+                "other": 2,
+                "hand": 2
+              },
+              "equipment": "collar",
+              "capacityMultiplier": 1,
+              "posture": 0
+            },
+            "ranges": {
+              "reconnectionSeconds": {
+                "worst": 1.5,
+                "best": 0.3
+              },
+              "reactivityThreshold": {
+                "worst": 15,
+                "best": 60
+              },
+              "checkInMeanInterval": {
+                "worst": 14,
+                "best": 5
+              }
+            },
+            "arousal": {
+              "k": 30,
+              "minDistance": 2,
+              "decayPerSecond": 3,
+              "rigidPullRate": 4,
+              "disengagementDrop": 25,
+              "markerHitDrop": 20,
+              "posteJolt": 15,
+              "smoothStopFactor": 0.3,
+              "slowedSeconds": 0.5
+            },
+            "cue": {
+              "cooldownSeconds": 3,
+              "fixatedFactor": 0.3,
+              "repeatFactor": 0.5,
+              "arousalDrop": 10,
+              "followBoostSeconds": 2,
+              "followBoost": 0.25,
+              "followCap": 0.95
+            },
+            "reaction": {
+              "alertFraction": 0.6,
+              "lungeAccel": 1.5,
+              "lungeMaxSpeed": 4,
+              "alertSlowdown": 0.85
+            },
+            "sintonia": {
+              "enabled": false,
+              "minSpeed": 0.4,
+              "minTurnRate": 0.2,
+              "maxTurnRate": 1.8,
+              "turnWindow": 0.5,
+              "holdSeconds": 2
+            },
+            "goSniff": {
+              "offerSeconds": 3,
+              "durationSeconds": 4,
+              "speed": 0.4,
+              "decayFactor": 3
+            },
+            "turnAngle": 0.7853981633974483,
+            "followSeconds": 1.5,
+            "correctionWaitSeconds": 4,
+            "pullStrength": 0.8,
+            "configVersion": "bundled",
+            "camera": {
+              "closeZoom": 2.2,
+              "farZoom": 1.5,
+              "padding": 90,
+              "smoothing": 3
+            },
+            "endCondition": {
+              "kind": "reach-waypoint"
+            },
+            "meters": [
+              {
+                "id": "nose",
+                "labelKey": "meter.nose",
+                "icon": "nose",
+                "target": 100,
+                "meterPoints": {
+                  "waited-plant": 25,
+                  "waited-marking": 20,
+                  "granted-sniff": 10
+                }
+              },
+              {
+                "id": "connection",
+                "labelKey": "meter.connection",
+                "icon": "eye",
+                "target": 65,
+                "meterPoints": {
+                  "check-in-hit": 10
+                }
+              }
+            ],
+            "scentWalk": {}
+          }
+        },
+        "checkpoint": [
+          {},
+          {},
+          {}
+        ],
+        "exercises": [
+          {
+            "metric": "tension",
+            "key": "node.park-plant-mark.exercise1"
+          },
+          {
+            "metric": "attention",
+            "key": "node.park-plant-mark.exercise2"
+          }
+        ],
+        "primerCards": [
+          {
+            "kind": "real-world",
+            "media": {
+              "type": "image",
+              "url": "",
+              "art": "park-plant-mark-1"
+            }
+          }
+        ]
+      },
+      "text": {
+        "en": "# World 6 · Hot Spots and Marking Posts\n\n## primer\n### card 1\nRemember: when {name} plants at a strong smell or stops to leave its mark, stop too and keep the leash Slack. Wait until the head comes up, then say \"Let's Go\".\n- caption: Wait out the plant, then walk on\n\n## checkpoint\n### tq1\n{name} stops firmly at a strong smell, nose down, and will not move. What do you do?\n- [x] Stop too, keep the leash Slack and wait\n- [ ] Tug gently so {name} keeps walking\n- [ ] Say \"Let's Go\" again and again\n- why: A Plant is {name} reading something important. Waiting lets it finish and teaches that pulling is not needed.\n\n### tq2\n{name} lifts a leg at a lamp post. Is that the Marker?\n- [x] No, it is {name} leaving a mark; wait for it\n- [ ] Yes, so mark it with \"good\"\n- [ ] Yes, so give \"Go Sniff\" right away\n- why: The Marker is your \"good\" and its button. A dog leaving its mark is just finishing its message, so you wait.\n\n### tq3\nWhat happens if you drag {name} away from a Plant?\n- [x] The leash goes Taut and {name} learns that pulling decides\n- [ ] {name} learns the smell was not important\n- [ ] {name} walks on happier\n- why: Dragging a Plant away teaches pulling, and the next strong smell will be harder to leave.\n\n## exercises\n- tension: Outside: when {name} stops at a strong smell, stand still with a Slack leash and let the head come up before you move.\n- attention: Outside: after the wait, say \"Let's Go\" and mark the first look at you with \"good\".\n",
+        "es": "# Mundo 6 · Puntos calientes y postes de marca\n\n## primer\n### card 1\nRecuerda: cuando {name} se planta en un olor fuerte o se para a dejar su marca, párate también y mantén la correa floja. Espera a que levante la cabeza y di «Vamos».\n- caption: Espera el plante y sigue después\n\n## checkpoint\n### tq1\n{name} se detiene firme en un olor fuerte, con la nariz baja, y no se mueve. ¿Qué haces?\n- [x] Te paras también, correa floja, y esperas\n- [ ] Tiras con suavidad para que siga andando\n- [ ] Dices «Vamos» una y otra vez\n- why: Un plante es {name} leyendo algo importante. Esperar le deja terminar y enseña que no hace falta tirar.\n\n### tq2\n{name} levanta la pata en una farola. ¿Es el Marcador?\n- [x] No, es {name} dejando su marca; espérale\n- [ ] Sí, así que lo marcas con «bien»\n- [ ] Sí, así que das «Olfatea» al momento\n- why: El Marcador es tu «bien» y su botón. Un perro que deja su marca solo termina su mensaje, así que esperas.\n\n### tq3\n¿Qué pasa si arrastras a {name} lejos de un plante?\n- [x] La correa se tensa y {name} aprende que tirar decide\n- [ ] {name} aprende que el olor no era importante\n- [ ] {name} sigue como si nada\n- why: Arrastrarle de un plante enseña a tirar, y el siguiente olor fuerte costará más dejarlo.\n\n## exercises\n- tension: Fuera: cuando {name} se pare en un olor fuerte, quédate quieto con la correa floja y deja que levante la cabeza antes de moverte.\n- attention: Fuera: tras la espera, di «Vamos» y marca con «bien» la primera mirada hacia ti.\n"
+      },
+      "files": [
+        "media/park-plant-mark-1.png"
+      ]
+    },
     "park-unpredictable": {
       "config": {
         "id": "park-unpredictable",
@@ -8169,6 +9493,54 @@ export const BASELINE_PACK: ContentPack = {
       "text": {
         "en": "# Let Them Sniff\n\n## target\nOn a walk, give \"Go Sniff\" at least three times, each right after {name} looks at you. Check back on a later day to see how it went.\n\n## success\n{name} looks at you before each sniff, and the leash stays Slack while {name} reads the smell.\n\n## problems\n### pulls-to-smells\n- label: {name} pulls toward smells\n- reassure: Many dogs rush at a smell that has always been out of reach. It eases as sniffing becomes part of the walk.\n- cause: Smells have been won by pulling, so pulling still pays.\n- c1: Stop and wait with a Slack leash until the leash hangs, then wait for a look.\n- c2: Mark the look and give \"Go Sniff\" so the smell comes after the glance.\n- easier: One smell on a quiet path, with a long wait.\n- alt: A person waits with a Slack leash while the Dog stands near a bush\n- caption: Wait for the look, then the smell\n\n### nolook\n- label: {name} does not look at me\n- reassure: Glances take time to build. A quiet start is normal.\n- cause: The smell is very strong, or the wait is too short.\n- c1: Choose a weaker smell and wait a little longer.\n- c2: Mark the first glance right away, even a tiny one.\n- easier: A faint smell in a calm corner of the park.\n- alt: A Dog glances up at its person near a lamp post\n- caption: Reward every glance\n\n### tight\n- label: The leash goes Taut at smells\n- reassure: Smells change where {name} wants to go, and the leash shows it first.\n- cause: You moved on before {name} finished, or stood too far from the smell.\n- c1: Step toward the smell so the leash hangs in a U again.\n- c2: Say \"Let's Go\" only when {name} lifts the head.\n- easier: Let {name} sniff close to your feet.\n- alt: A person steps toward a bush so the leash hangs in a U\n- caption: Keep the leash Slack while {name} sniffs\n\n## general\n- reassure: Letting your Dog sniff is a skill that grows over many walks.\n- cause: New routines take a while to settle in for you and {name}.\n- c1: Repeat the exercise on three different days.\n- c2: Review the Let Them Sniff lesson.\n- easier: Five minutes of sniffing in a quiet park.\n- alt: A calm morning park path with a person and a Dog\n- caption: Short, calm practice\n",
         "es": "# Déjale olfatear\n\n## target\nEn un paseo, da «Olfatea» al menos tres veces, cada una justo después de que {name} te mire. Vuelve otro día para ver cómo fue.\n\n## success\n{name} te mira antes de cada olfateo y la correa se mantiene floja mientras lee el olor.\n\n## problems\n### pulls-to-smells\n- label: {name} tira hacia los olores\n- reassure: Muchos perros se lanzan a un olor que siempre quedó fuera de su alcance. Mejora cuando olfatear pasa a formar parte del paseo.\n- cause: Los olores se han ganado tirando, así que tirar sigue funcionando.\n- c1: Párate y espera con la correa floja hasta que cuelgue, y luego espera una mirada.\n- c2: Marca la mirada y da «Olfatea» para que el olor llegue después de la mirada.\n- easier: Un solo olor en un camino tranquilo, con una espera larga.\n- alt: Una persona espera con la correa floja mientras el perro está junto a un arbusto\n- caption: Espera la mirada y después el olor\n\n### nolook\n- label: {name} no me mira\n- reassure: Las miradas tardan en llegar. Empezar despacio es normal.\n- cause: El olor es muy fuerte, o la espera es demasiado corta.\n- c1: Elige un olor más suave y espera un poco más.\n- c2: Marca la primera mirada al instante, aunque sea mínima.\n- easier: Un olor suave en un rincón tranquilo del parque.\n- alt: Un perro levanta la vista hacia su persona junto a una farola\n- caption: Premia cada mirada\n\n### tight\n- label: La correa se tensa en los olores\n- reassure: Los olores cambian adónde quiere ir {name}, y la correa lo muestra primero.\n- cause: Seguiste antes de que {name} terminara, o te quedaste demasiado lejos del olor.\n- c1: Acércate al olor para que la correa vuelva a colgar en U.\n- c2: Di «Vamos» solo cuando {name} levante la cabeza.\n- easier: Deja que {name} olfatee cerca de tus pies.\n- alt: Una persona se acerca a un arbusto para que la correa cuelgue en U\n- caption: Correa floja mientras {name} olfatea\n\n## general\n- reassure: Dejar olfatear es una habilidad que crece con muchos paseos.\n- cause: Las rutinas nuevas tardan en asentarse, para ti y para {name}.\n- c1: Repite el ejercicio en tres días distintos.\n- c2: Repasa la lección Déjale olfatear.\n- easier: Cinco minutos de olfateo en un parque tranquilo.\n- alt: Un camino del parque por la mañana con una persona y su perro en calma\n- caption: Práctica corta y tranquila\n"
+      },
+      "files": []
+    },
+    "mission-park-sniff-terms": {
+      "config": {
+        "id": "mission-park-sniff-terms",
+        "technique": "sniffing-on-your-terms",
+        "reps": 1,
+        "trains": [
+          {
+            "kind": "node",
+            "id": "park-plant-mark"
+          },
+          {
+            "kind": "node",
+            "id": "park-not-that-one"
+          }
+        ],
+        "problems": [
+          {
+            "id": "drags-plant",
+            "label": "drags-plant",
+            "practise": {
+              "kind": "node",
+              "id": "park-plant-mark"
+            }
+          },
+          {
+            "id": "eats-food",
+            "label": "eats-food",
+            "practise": {
+              "kind": "node",
+              "id": "park-not-that-one"
+            }
+          },
+          {
+            "id": "tight",
+            "label": "tight",
+            "practise": {
+              "kind": "node",
+              "id": "park-plant-mark"
+            }
+          }
+        ]
+      },
+      "text": {
+        "en": "# Sniffing on Your Terms\n\n## target\nOn a walk, wait out two sniffing stops without pulling, and say \"Leave It\" once on food or rubbish. Check back on a later day to see how it went.\n\n## success\nYou wait with a Slack leash while {name} finishes, and {name} turns from the food or rubbish when you say \"Leave It\".\n\n## problems\n### drags-plant\n- label: I pull {name} away from smells\n- reassure: It is a natural reflex when you are in a hurry or worried. Waiting feels long at first.\n- cause: Waiting feels like a delay, so the leash goes Taut before {name} has finished.\n- c1: Stop when {name} stops and let the leash hang in a U.\n- c2: Count slowly to ten before you say \"Let's Go\".\n- easier: Choose a quiet path and a smell {name} likes, with no hurry.\n- alt: A person waits with a Slack leash while the Dog stands at a lamp post\n- caption: Wait for the head to come up\n\n### eats-food\n- label: {name} eats food or rubbish\n- reassure: Food on the ground is the best prize there is for a dog. Even a well-trained dog gets it sometimes.\n- cause: The food was reached before you said \"Leave It\", or \"Leave It\" has not been practised enough.\n- c1: Say \"Leave It\" as soon as you see food, before {name} gets there.\n- c2: Practise \"Leave It\" at home first, and review the Leave It lesson.\n- easier: Practise with a treat in a closed hand on a quiet street.\n- alt: A person keeps the leash short beside food on the ground\n- caption: Say it before the food is reached\n\n### tight\n- label: The leash goes Taut when we wait\n- reassure: A stopped dog at a strong smell can feel like a tug. It is easier to avoid with practice.\n- cause: You stopped too far from {name}, or turned to walk on early.\n- c1: Step toward {name} so the leash hangs in a U again.\n- c2: Stay still until the head comes up.\n- easier: Wait right beside {name} on a short leash.\n- alt: A person steps toward the Dog so the leash hangs in a U\n- caption: Keep the leash Slack while you wait\n\n## general\n- reassure: Waiting and leaving things are skills that grow over many walks.\n- cause: New routines take a while to settle in for you and {name}.\n- c1: Repeat the exercise on three different days.\n- c2: Review the Sniffing on Your Terms lesson.\n- easier: Five minutes of waiting at a smell in a quiet park.\n- alt: A calm park path with a person and a Dog\n- caption: Short, calm practice\n",
+        "es": "# Olfatear con tus reglas\n\n## target\nEn un paseo, espera dos paradas de olfateo sin tirar y di «Déjalo» una vez ante comida o basura. Vuelve otro día para ver cómo fue.\n\n## success\nEsperas con la correa floja mientras {name} termina, y {name} se aparta de la comida o la basura cuando dices «Déjalo».\n\n## problems\n### drags-plant\n- label: Aparto a {name} de los olores tirando\n- reassure: Es un reflejo natural cuando tienes prisa o te preocupas. Al principio esperar se hace largo.\n- cause: Esperar parece un retraso, así que la correa se tensa antes de que {name} termine.\n- c1: Párate cuando {name} se pare y deja la correa colgando en U.\n- c2: Cuenta despacio hasta diez antes de decir «Vamos».\n- easier: Elige un camino con poca gente y un olor de los que interesan a {name}, sin prisa.\n- alt: Una persona espera con la correa floja mientras el perro está en una farola\n- caption: Espera a que levante la cabeza\n\n### eats-food\n- label: {name} come comida o basura\n- reassure: La comida del suelo es el mejor premio para un perro. Incluso un perro bien entrenado la consigue a veces.\n- cause: Llegó a la comida antes de que dijeras «Déjalo», o «Déjalo» no se ha practicado lo bastante.\n- c1: Di «Déjalo» en cuanto veas comida, antes de que {name} llegue.\n- c2: Practica «Déjalo» primero en casa y repasa la lección Déjalo.\n- easier: Practica con una golosina en el puño cerrado en una calle tranquila.\n- alt: Una persona mantiene la correa corta junto a comida en el suelo\n- caption: Dilo antes de que llegue a la comida\n\n### tight\n- label: La correa se tensa cuando esperamos\n- reassure: Un perro parado en un olor fuerte puede notarse como un tirón. Con práctica es más fácil evitarlo.\n- cause: Te quedaste demasiado lejos de {name}, o te giraste para seguir antes de tiempo.\n- c1: Acércate a {name} para que la correa vuelva a colgar en U.\n- c2: Quédate quieto hasta que levante la cabeza.\n- easier: Espera justo al lado de {name} con la correa corta.\n- alt: Una persona se acerca al perro para que la correa cuelgue en U\n- caption: Correa floja mientras esperas\n\n## general\n- reassure: Esperar y dejar cosas son habilidades que crecen con muchos paseos.\n- cause: Las rutinas nuevas tardan en asentarse, para ti y para {name}.\n- c1: Repite el ejercicio en tres días distintos.\n- c2: Repasa la lección Olfatear con tus reglas.\n- easier: Cinco minutos de espera en un olor en un parque tranquilo.\n- alt: Un camino tranquilo del parque con una persona y su perro\n- caption: Práctica corta y tranquila\n"
       },
       "files": []
     },

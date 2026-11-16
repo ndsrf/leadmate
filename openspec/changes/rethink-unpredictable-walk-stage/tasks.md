@@ -39,9 +39,9 @@
 
 ## 7. Content release 2: Sniffing on your terms
 
-- [ ] 7.1 Draw the art for `theory-sniffing-on-your-terms`, `howto-jackpot`, `park-plant-mark` and `park-not-that-one`; verify the files exist in each `media/`.
-- [ ] 7.2 Author the two Lessons, both Nodes and `mission-park-sniff-terms` (target: wait out 2 sniffing stops without pulling, Leave-it once on food or rubbish) in Spanish and English, and add the Stretch to `worlds/recall.yaml`; verify with content validation.
-- [ ] 7.3 Playtest and tune both Nodes as in 6.4, then promote to stable with a `contentVersion` bump; verify validation and the bundled baseline as in 6.5.
+- [x] 7.1 Draw the art for `theory-sniffing-on-your-terms`, `howto-jackpot`, `park-plant-mark` and `park-not-that-one`; verify the files exist in each `media/`.
+- [x] 7.2 Author the two Lessons, both Nodes and `mission-park-sniff-terms` (target: wait out 2 sniffing stops without pulling, Leave-it once on food or rubbish) in Spanish and English, and add the Stretch to `worlds/recall.yaml`; verify with content validation.
+- [ ] 7.3 (automated part and promotion done; the phone playtest of both Nodes is still to do) Playtest and tune both Nodes as in 6.4, then promote to stable with a `contentVersion` bump; verify validation and the bundled baseline as in 6.5.
 
 ## 8. Integration checks
 

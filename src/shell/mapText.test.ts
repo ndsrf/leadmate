@@ -87,7 +87,7 @@ describe('World subtitles and unlock banners', () => {
     const m = mapModel(stretch1, {}, at(9));
     expect(worldWalkSubtitle(m.worlds[1], t)).toBe('3 de 10 paradas');
     // World 6 is playable with its two Stretches (8 Stops); World 7 is the first Coming-soon World and shows its planned count
-    expect(worldWalkSubtitle(m.worlds.find((w) => w.world.id === 'recall')!, t)).toBe('0 de 8 paradas');
+    expect(worldWalkSubtitle(m.worlds.find((w) => w.world.id === 'recall')!, t)).toBe('0 de 13 paradas');
     expect(worldWalkSubtitle(m.worlds.find((w) => w.world.id === 'cafe')!, t)).toBe('4 paradas planificadas');
   });
 

@@ -24,7 +24,7 @@ Recuerda: cuando {name} se planta en un olor fuerte o se para a dejar su marca, 
 ¿Qué pasa si arrastras a {name} lejos de un plante?
 - [x] La correa se tensa y {name} aprende que tirar decide
 - [ ] {name} aprende que el olor no era importante
-- [ ] {name} sigue más contento
+- [ ] {name} sigue como si nada
 - why: Arrastrarle de un plante enseña a tirar, y el siguiente olor fuerte costará más dejarlo.
 
 ## exercises
