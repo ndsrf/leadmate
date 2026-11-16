@@ -171,3 +171,33 @@ describe('a legacy user from before Missions', () => {
     expect(stopStatus(node('park-nose-on'), p, now, worldsAfter, [])).toEqual({ state: 'open', satisfied: true });
   });
 });
+
+describe('a Personal Plan user whose touched Stretch moved ahead of finished ones', () => {
+  // World 2 as `worldsFor` orders it when the plan names the Poste Stretch first and the user read its Lesson (from
+  // the Library) after finishing the other two Stretches. At 713800d its Mission was grandfathered and World 3 open
+  const home: WorldDef = { ...base, id: 'home', worldNumber: 2, stretches: [
+    [lesson('theory-poste'), node('poste-practice'), mission('mission-poste')],
+    [lesson('theory-harness'), node('harness-ritual'), mission('mission-harness')],
+    [lesson('theory-doorbell'), node('doorbell-mat'), mission('mission-doorbell')],
+  ] };
+  const sidewalk: WorldDef = { ...base, id: 'sidewalk', worldNumber: 3, unlockedBy: 'home', stretches: [[lesson('theory-loose-leash'), node('walk-distraction'), mission('mission-walk')]] };
+  const worlds = [home, sidewalk];
+  const p = progressOf(['harness-ritual', 'doorbell-mat'], {
+    readLessons: ['theory-harness', 'theory-doorbell', 'theory-poste'],
+    missions: { 'mission-harness': passed, 'mission-doorbell': passed },
+  });
+
+  it('keeps the Mission to do, without re-locking the next World it could already reach', () => {
+    expect(stopStatus(mission('mission-poste'), p, now, worlds, []).state).not.toBe('done');
+    expect(stopStatus(node('poste-practice'), p, now, worlds, [])).toEqual({ state: 'open' });
+    expect(isWorldComplete(home, p)).toBe(false);
+    expect(isWorldUnlocked(sidewalk, p, worlds)).toBe(true);
+    expect(stopStatus(lesson('theory-loose-leash'), p, now, worlds, []).state).toBe('open');
+    expect(stopStatus(mission('mission-poste'), { ...p, completedNodes: [...p.completedNodes, 'poste-practice'] }, now, worlds, [])).toEqual({ state: 'open' });
+  });
+
+  it('still keeps the next World locked while a Stretch that is not inserted is unfinished', () => {
+    const notYet = { ...p, missions: { 'mission-harness': passed } };
+    expect(isWorldUnlocked(sidewalk, notYet, worlds)).toBe(false);
+  });
+});

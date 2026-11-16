@@ -230,13 +230,30 @@ export function isWorldComplete(world: WorldDef, progress: Progress): boolean {
   }));
 }
 
+/**
+ * True when every Stretch of the World is done except Stretches inserted ahead of ones the user reached: such a
+ * Stretch's Mission stays to do, but it does not lock the next World the user could already reach (design Decision 11).
+ */
+function isCompleteButInserted(world: WorldDef, progress: Progress): boolean {
+  if (world.preview || world.stretches.length === 0) return false;
+  let inserted = false;
+  const rest = world.stretches.every((stops, s) => {
+    if (isInserted(world, s, progress)) return (inserted = true);
+    return stops.every((_, i) => {
+      const d = doneness(world, s, i, progress);
+      return d.done && !d.owed;
+    });
+  });
+  return inserted && rest;
+}
+
 /** A World is open when the one that unlocks it is complete; the first World is always open, and a Plus World needs Plus. */
 export function isWorldUnlocked(world: WorldDef, progress: Progress, worlds: readonly WorldDef[] = WORLDS): boolean {
   if (world.tier === 'plus' && !progress.plus) return false;
   if (!world.unlockedBy) return true;
   const before = findWorld(world.unlockedBy, worlds);
   if (before === undefined) return false;
-  const finished = isWorldComplete(before, progress) || (progress.completedWorlds?.includes(before.id) ?? false);
+  const finished = isWorldComplete(before, progress) || (progress.completedWorlds?.includes(before.id) ?? false) || isCompleteButInserted(before, progress);
   return finished && isWorldUnlocked(before, progress, worlds);
 }
 
