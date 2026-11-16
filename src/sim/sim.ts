@@ -8,7 +8,7 @@ import { addMeterPoints, initialMeters, type MeterValue } from './meters';
 import type { FeedbackActionKind } from './feedbackKinds';
 import { createRng, type Rng } from './rng';
 import { appendTimeline, createScentWalk, emptyScentWalkCounts, freshnessOf, scentFollowChance, turnKind, type ChangeKind, type Freshness, type ScentWalkCounts, type ScentWalkState, type TimelineEntry } from './scentWalk';
-import { FEEDBACK_ACTION_KINDS, feedbackKindOf } from './feedbackKinds';
+import { FEEDBACK_ACTION_KINDS, feedbackKindOf, isFollowedFreshMove } from './feedbackKinds';
 import { add, distance, dot, length, normalize, rotate, scale, sub, vec, type Vec2 } from './vec';
 
 /** Movement input for one tick: a direction plus a strength from 0 to 1, and a Marker press. */
@@ -588,6 +588,7 @@ function registerChange(state: SimState, change: ChangeKind, dir: Vec2, events: 
   if (freshness === 'fresh') counts.freshMoves += 1;
   if (freshness === 'repeated') counts.repeatedMoves += 1;
   const followed = state.eventRng.next() < chance;
+  if (!followed && freshness === 'repeated') counts.repeatedMovesIgnored = (counts.repeatedMovesIgnored ?? 0) + 1;
   events.push({ type: 'walk-change', time: state.time, change, novelty, freshness, followed, pos: { ...state.handler } });
   if (!followed) {
     // a Planted or marking Dog stays put, so no Taut correction waits for it
@@ -1385,6 +1386,7 @@ function recordTimeline(timeline: TimelineEntry[], events: readonly SimEvent[]):
   for (const e of events) {
     const kind = feedbackKindOf(e);
     if (!kind || (kind === 'check-in-hit' && paired)) continue;
+    if (kind === 'followed-turn' && events.some(isFollowedFreshMove)) continue;
     appendTimeline(timeline, { t: Math.round(e.time * 10) / 10, kind, polarity: FEEDBACK_ACTION_KINDS[kind] });
   }
 }

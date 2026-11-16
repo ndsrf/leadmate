@@ -14,4 +14,8 @@ describe('summarizeScentWalk', () => {
   it('is empty when nothing happened', () => {
     expect(summarizeScentWalk(sw({}))).toEqual({ doneWell: [], tryNext: [] });
   });
+  it('suggests repeated-move-ignored only when a repeated move was ignored', () => {
+    expect(summarizeScentWalk(sw({ repeatedMoves: 2, repeatedMovesIgnored: 0 })).tryNext).toEqual([]);
+    expect(summarizeScentWalk(sw({ repeatedMoves: 2, repeatedMovesIgnored: 1 })).tryNext).toEqual(['repeated-move-ignored']);
+  });
 });

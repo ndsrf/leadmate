@@ -53,7 +53,8 @@ export function feedbackKindOf(e: SimEvent): FeedbackActionKind | null {
   switch (e.type) {
     case 'marker-hit': return 'marker-hit';
     case 'check-in-hit': return 'check-in-hit';
-    case 'dog-follow': return 'followed-turn';
+    // in a scent Stage the event names its change: only a turn is a followed turn (a stop or pace change is not)
+    case 'dog-follow': return e.change === undefined || e.change === 'left-turn' || e.change === 'right-turn' || e.change === 'u-turn' ? 'followed-turn' : null;
     case 'disengagement': return e.poste ? 'poste' : 'disengagement';
     case 'sintonia-start': return 'sintonia';
     case 'go-sniff-start':
@@ -83,4 +84,9 @@ export function feedbackKindOf(e: SimEvent): FeedbackActionKind | null {
     case 'scent-dragged-past': return 'scent-dragged-past';
     default: return null;
   }
+}
+
+/** A `walk-change` the Dog followed that was fresh: its `fresh-move` message covers the paired `dog-follow`. */
+export function isFollowedFreshMove(e: SimEvent): boolean {
+  return e.type === 'walk-change' && e.followed && e.freshness === 'fresh';
 }

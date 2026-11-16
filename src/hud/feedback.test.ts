@@ -1,5 +1,5 @@
 import { createTranslator, en, es, type TextKey } from '../i18n';
-import { FEEDBACK_ACTION_KINDS, type FeedbackActionKind } from '../sim/feedbackKinds';
+import { FEEDBACK_ACTION_KINDS, feedbackKindOf, type FeedbackActionKind } from '../sim/feedbackKinds';
 import type { SimEvent } from '../sim/sim';
 import { FEEDBACK_RULES, FeedbackDecider, feedbackTextKey, TIER_SECONDS } from './feedback';
 
@@ -290,6 +290,13 @@ describe('scent-walk kinds', () => {
     ['interrupted-marking', { type: 'marking-end', time: 0, result: 'interrupted' } as SimEvent],
     ['check-in-after-change', { type: 'change-check-in', time: 0, change: 'left-turn', grade: 'good' } as SimEvent],
     ['scent-dragged-past', { type: 'scent-dragged-past', time: 0 } as SimEvent],
+    ['fresh-move', { type: 'walk-change', time: 0, change: 'left-turn', novelty: 1, freshness: 'fresh', followed: true, pos: { x: 0, y: 0 } } as SimEvent],
+    ['repeated-move-ignored', { type: 'walk-change', time: 0, change: 'left-turn', novelty: 0.1, freshness: 'repeated', followed: false, pos: { x: 0, y: 0 } } as SimEvent],
+    ['chain', { type: 'chain' } as unknown as SimEvent],
+    ['leave-it-food', { type: 'food-left' } as unknown as SimEvent],
+    ['food-eaten', { type: 'food-eaten' } as unknown as SimEvent],
+    ['smart-jackpot', { type: 'jackpot', time: 0, result: 'smart' } as unknown as SimEvent],
+    ['wasted-jackpot', { type: 'jackpot', time: 0, result: 'wasted' } as unknown as SimEvent],
   ];
   it.each(cases)('shows %s with its polarity and Hint', (kind, event) => {
     const m = step(new FeedbackDecider(), 0, event);
@@ -311,12 +318,35 @@ describe('scent-walk kinds', () => {
     expect(m?.kind).toBe('check-in-after-change');
   });
 
+  it('shows one message for a followed fresh turn, and none for a followed stop', () => {
+    const fresh = { type: 'walk-change', time: 0, change: 'left-turn', novelty: 1, freshness: 'fresh', followed: true, pos: { x: 0, y: 0 } } as SimEvent;
+    expect(step(new FeedbackDecider(), 0, fresh, { type: 'dog-follow', time: 0, change: 'left-turn' })?.kind).toBe('fresh-move');
+    expect(feedbackKindOf({ type: 'dog-follow', time: 0, change: 'stop' })).toBeNull();
+    expect(feedbackKindOf({ type: 'dog-follow', time: 0 })).toBe('followed-turn');
+  });
+
+  it('gives a Perfect change Check-in the medium tier', () => {
+    const m = step(new FeedbackDecider(), 0, checkIn(0, 'perfect'), { type: 'change-check-in', time: 0, change: 'left-turn', grade: 'perfect' } as SimEvent);
+    expect(m).toMatchObject({ kind: 'check-in-after-change', tier: 'medium' });
+  });
+
+  it('says what to try for Dragged Plant and Repeated move', () => {
+    expect(en['feedback.dragged-plant.full']).toMatch(/sniffing/);
+    expect(en['feedback.dragged-plant.full']).toMatch(/turn/);
+    expect(en['feedback.repeated-move-ignored.full']).toMatch(/expected/);
+    expect(es['feedback.repeated-move-ignored.full']).toMatch(/esperaba/);
+  });
+
   it('has Spanish and English text for every kind, with a name slot', () => {
     for (const k of Object.keys(FEEDBACK_ACTION_KINDS) as FeedbackActionKind[]) {
       for (const form of ['full', 'short'] as const) {
         const key = feedbackTextKey(k, form);
         expect((es as Record<string, string>)[key]).toBeTruthy();
         expect((en as Record<string, string>)[key]).toBeTruthy();
+        if (form === 'full' && !['go-sniff-cut-short', 'harsh-stop', 'wrong-cue'].includes(k)) {
+          expect(`${k}: ${(es as Record<string, string>)[key]}`).toContain('{name}');
+          expect(`${k}: ${(en as Record<string, string>)[key]}`).toContain('{name}');
+        }
       }
     }
   });

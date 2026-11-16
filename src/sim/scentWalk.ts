@@ -34,6 +34,8 @@ export interface ScentWalkCounts {
   foodLeft: number;
   freshMoves: number;
   repeatedMoves: number;
+  /** Repeated changes the Dog did not follow (what `repeated-move-ignored` is about). */
+  repeatedMovesIgnored?: number;
   chains: number;
 }
 
@@ -49,6 +51,7 @@ export const emptyScentWalkCounts = (): ScentWalkCounts => ({
   foodLeft: 0,
   freshMoves: 0,
   repeatedMoves: 0,
+  repeatedMovesIgnored: 0,
   chains: 0,
 });
 
