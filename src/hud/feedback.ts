@@ -1,5 +1,5 @@
 import type { TextKey } from '../i18n';
-import { feedbackKindOf, FEEDBACK_ACTION_KINDS, type FeedbackActionKind, type FeedbackPolarity } from '../sim/feedbackKinds';
+import { feedbackKindOf, isFollowedFreshMove, FEEDBACK_ACTION_KINDS, type FeedbackActionKind, type FeedbackPolarity } from '../sim/feedbackKinds';
 import type { TensionState } from '../sim/leash';
 import type { SimEvent } from '../sim/sim';
 import { HINT_SECONDS, HintTracker } from './hints';
@@ -78,7 +78,7 @@ export const FEEDBACK_RULES = {
   'granted-sniff': { tier: 'small' },
   'waited-plant': { tier: 'medium' },
   'waited-marking': { tier: 'medium' },
-  'check-in-after-change': { tier: 'small' },
+  'check-in-after-change': { tier: 'small', perfectTier: 'medium' },
   'fresh-move': { tier: 'small' },
   chain: { tier: 'big' },
   'leave-it-food': { tier: 'small' },
@@ -160,6 +160,7 @@ export class FeedbackDecider {
       if (!kind) continue;
       // the Marker on the look after a change reports both events; show only the more specific message
       if (kind === 'check-in-hit' && events.some((o) => o.type === 'change-check-in')) continue;
+      if (kind === 'followed-turn' && events.some(isFollowedFreshMove)) continue; // the fresh move already says it
       const polarity = FEEDBACK_ACTION_KINDS[kind];
       if (polarity === 'wrong') {
         this.combos.clear();
@@ -209,7 +210,7 @@ export class FeedbackDecider {
   private build(kind: FeedbackActionKind, e: SimEvent, combo: number, events: readonly SimEvent[]): FeedbackMessage {
     const rule = RULES[kind];
     const polarity = FEEDBACK_ACTION_KINDS[kind];
-    const grade = e.type === 'marker-hit' || e.type === 'check-in-hit' ? e.grade : undefined;
+    const grade = e.type === 'marker-hit' || e.type === 'check-in-hit' || e.type === 'change-check-in' ? e.grade : undefined;
     let tier: FeedbackTier = grade === 'perfect' && rule.perfectTier ? rule.perfectTier : rule.tier;
 
     let meterPoints = 0;

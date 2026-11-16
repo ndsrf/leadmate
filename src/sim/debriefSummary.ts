@@ -24,7 +24,7 @@ export const WRONG_PRIORITY = [
   ['scent-dragged-past', 'scentsDraggedPast'],
   ['interrupted-marking', 'markingsInterrupted'],
   ['wasted-jackpot', 'jackpotsWasted'],
-  ['repeated-move-ignored', 'repeatedMoves'],
+  ['repeated-move-ignored', 'repeatedMovesIgnored'],
   ['empty-sniff', 'sniffsEmpty'],
 ] as const;
 
