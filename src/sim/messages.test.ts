@@ -55,12 +55,13 @@ describe('close exercise message encoding and decoding (Task 3.4)', () => {
     }
   });
 
-  it('encodes and decodes start message with seenKinds and isTasteStage', () => {
+  it('encodes and decodes start message with seenKinds, isTasteStage, and reducedMotion', () => {
     const startMsg: ShellMessage = {
       type: 'start',
       seed: 123,
       seenKinds: ['marker-hit', 'check-in-hit'],
       isTasteStage: true,
+      reducedMotion: true,
     };
     const encoded = encode(startMsg);
     const decoded = decode<ShellMessage>(encoded, SHELL_MESSAGE_TYPES);

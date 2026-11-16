@@ -10,7 +10,8 @@ import { createChangeDetector, portraitDirtyKey, quantize, RING_STEPS } from '..
 import { portraitLayers } from '../../src/hud/portrait';
 import { PORTRAIT_ATLAS, portraitAtlas, portraitAtlasUrl } from './portrait';
 import { HINT_SECONDS, HintTracker } from '../../src/hud/hints';
-import { FeedbackDecider, feedbackTextKey, type FeedbackMessage } from '../../src/hud/feedback';
+import { FeedbackDecider, feedbackTextKey, type FeedbackMessage, type FeedbackTier } from '../../src/hud/feedback';
+import type { FeedbackActionKind, FeedbackPolarity } from '../../src/sim/feedbackKinds';
 import { withDogName } from '../../src/hud/effectsPool';
 import type { CueType, ScenarioConfig } from '../../src/sim/config';
 import { leashCurve, leashPoint, type TensionState } from '../../src/sim/leash';
@@ -40,6 +41,13 @@ export interface StageOptions {
   onReady?: () => void;
   seenKinds?: readonly string[];
   isTasteStage?: boolean;
+  onFeedback?: (msg: {
+    kind: FeedbackActionKind;
+    tier: 'small' | 'medium' | 'big';
+    polarity: FeedbackPolarity;
+    combo: number;
+    firstTime: boolean;
+  }) => void;
 }
 
 let lastStartMessage: { seenKinds?: readonly string[]; isTasteStage?: boolean } | null = null;
@@ -191,7 +199,6 @@ export class StageScene extends Phaser.Scene {
 
   private get jackpotsLeft(): number {
     return this.jackpotBudget - this.sim.telemetry.jackpots.used;
-  }
   }
 
   create(): void {
@@ -706,14 +713,21 @@ export class StageScene extends Phaser.Scene {
 
     if (msg) {
       if (msg.kind !== 'leash-hint') {
-        this.outbox({
-          type: 'feedback',
+        const payload = {
           kind: msg.kind,
           tier: msg.tier === 'wrong' ? 'small' : msg.tier,
           polarity: msg.polarity,
           combo: msg.combo,
           firstTime: msg.firstTime,
-        });
+        } as const;
+        if (this.options.onFeedback) {
+          this.options.onFeedback(payload);
+        } else {
+          this.outbox({
+            type: 'feedback',
+            ...payload,
+          });
+        }
       }
 
       let text = '';

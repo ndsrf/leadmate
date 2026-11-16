@@ -18,6 +18,8 @@ export type ShellMessage =
       seenKinds?: readonly string[];
       /** The Taste Stage: wrong kinds are dropped and no Hint is offered to be recorded. */
       isTasteStage?: boolean;
+      /** OS reduced-motion preference: animations switch to fades, static poses, or 0 particles. */
+      reducedMotion?: boolean;
     }
   | { type: 'pause' }
   | { type: 'resume' }

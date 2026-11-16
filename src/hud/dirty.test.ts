@@ -143,5 +143,3 @@ describe('Dog portrait dirty tracking (readable-dog 4.3)', () => {
     expect(closeSceneSrc).not.toContain('drawPortrait');
   });
 });
-  });
-});
