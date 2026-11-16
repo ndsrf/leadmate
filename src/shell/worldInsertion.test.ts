@@ -35,31 +35,34 @@ const all = (w: WorldDef) => w.stretches.flat();
 
 describe('a Stretch inserted ahead of one in progress (Decision 11)', () => {
   it('keeps a part-way user\'s reachable Stops open and opens the inserted Stretch', () => {
-    const p = throughPark({ readLessons: ['theory-unpredictable-walks', 'howto-yield-pressure'] });
+    const p = throughPark({ readLessons: ['theory-unpredictable-walks', 'howto-yield-pressure'], completedNodes: ['park-unpredictable'] });
     // what this user could reach on the previous trail
     expect(states(p, worldsBefore, unpredictableBefore)).toEqual([
-      ['theory-unpredictable-walks', 'done'], ['howto-yield-pressure', 'done'], ['park-unpredictable', 'open'], ['mission-park-unpredictable', 'locked'],
+      ['theory-unpredictable-walks', 'done'], ['howto-yield-pressure', 'done'], ['park-unpredictable', 'done'], ['mission-park-unpredictable', 'open'],
     ]);
     expect(states(p, worldsAfter, all(after))).toEqual([
       ['theory-sniffing-walks', 'open'], ['park-nose-on', 'locked'], ['mission-park-sniff', 'locked'],
-      ['theory-unpredictable-walks', 'done'], ['howto-yield-pressure', 'done'], ['park-unpredictable', 'open'], ['park-keep-fresh', 'locked'], ['mission-park-unpredictable', 'locked'],
+      ['theory-unpredictable-walks', 'done'], ['howto-yield-pressure', 'done'], ['park-unpredictable', 'done'], ['park-keep-fresh', 'open'], ['mission-park-unpredictable', 'locked'],
     ]);
-    // the next Node of the Stretch is gated only by its own Stretch, never by the unpassed "Let them sniff" Mission
-    expect(stopLock(node('park-keep-fresh'), p, worldsAfter, [])).toEqual({ kind: 'stops', stops: [node('park-unpredictable')] });
-    expect(stopLock(node('park-keep-fresh'), { ...p, completedNodes: [...p.completedNodes, 'park-unpredictable'] }, worldsAfter, [])).toBeNull();
+    // the next Stop of the Stretch is gated only by its own Stretch, never by the unpassed "Let them sniff" Mission
+    expect(stopLock(mission('mission-park-unpredictable'), p, worldsAfter, [])).toEqual({ kind: 'stops', stops: [node('park-keep-fresh')] });
+    expect(stopLock(mission('mission-park-unpredictable'), { ...p, completedNodes: [...p.completedNodes, 'park-keep-fresh'] }, worldsAfter, [])).toBeNull();
   });
 
-  it('keeps open a user who only read the first Lesson of the Stretch', () => {
-    const p = throughPark({ readLessons: ['theory-unpredictable-walks'] });
-    expect(stopStatus(lesson('howto-yield-pressure'), p, now, worldsAfter, []).state).toBe('open');
-    expect(stopLock(node('park-unpredictable'), p, worldsAfter, [])).toEqual({ kind: 'stops', stops: [lesson('howto-yield-pressure')] });
+  it('counts only a completed Node or a started Mission as reaching a Stretch, since the Library opens any Lesson', () => {
+    const p = throughPark({ readLessons: ['theory-unpredictable-walks', 'howto-yield-pressure'] });
+    expect(stopStatus(lesson('theory-unpredictable-walks'), p, now, worldsAfter, []).state).toBe('done');
+    expect(stopLock(node('park-unpredictable'), p, worldsAfter, [])).toEqual({ kind: 'mission', id: 'mission-park-sniff' });
+    const started2 = throughPark({ readLessons: ['theory-unpredictable-walks', 'howto-yield-pressure'], completedNodes: ['park-unpredictable'], missions: { 'mission-park-unpredictable': started } });
+    expect(stopLock(node('park-keep-fresh'), started2, worldsAfter, [])).toBeNull();
   });
 
   it('leaves "Let them sniff" playable, not passed, for a user who already completed a Node after it', () => {
     const p = throughPark({ readLessons: ['theory-unpredictable-walks', 'howto-yield-pressure'], completedNodes: ['park-unpredictable'], missions: { 'mission-park-unpredictable': started } });
-    expect(stopStatus(lesson('theory-sniffing-walks'), p, now, worldsAfter, [])).toEqual({ state: 'open', satisfied: true });
-    expect(stopStatus(node('park-nose-on'), p, now, worldsAfter, [])).toEqual({ state: 'open', satisfied: true });
-    expect(stopStatus(mission('mission-park-sniff'), p, now, worldsAfter, [])).toEqual({ state: 'open' });
+    // the inserted Stretch is played in order: its Stops are neither satisfied nor passed by the later Node
+    expect(stopStatus(lesson('theory-sniffing-walks'), p, now, worldsAfter, [])).toEqual({ state: 'open' });
+    expect(stopStatus(node('park-nose-on'), p, now, worldsAfter, []).lock).toEqual({ kind: 'stops', stops: [lesson('theory-sniffing-walks')] });
+    expect(stopStatus(mission('mission-park-sniff'), p, now, worldsAfter, []).lock).toEqual({ kind: 'stops', stops: [lesson('theory-sniffing-walks'), node('park-nose-on')] });
     expect(stopStatus(node('park-keep-fresh'), p, now, worldsAfter, []).state).toBe('open');
     // the Mission they already started stays reachable although a Node now comes before it
     expect(stopStatus(mission('mission-park-unpredictable'), p, now, worldsAfter, [])).toEqual({ state: 'open', checkInDue: true });
@@ -77,6 +80,28 @@ describe('a Stretch inserted ahead of one in progress (Decision 11)', () => {
     expect(stopLock(lesson('theory-unpredictable-walks'), sniffDone, worldsAfter, [])).toEqual({ kind: 'mission', id: 'mission-park-sniff' });
     const sniffPassed = { ...sniffDone, missions: { ...sniffDone.missions, 'mission-park-sniff': passed } };
     expect(stopStatus(lesson('theory-unpredictable-walks'), sniffPassed, now, worldsAfter, []).state).toBe('open');
+  });
+
+  it('never passes the inserted Mission for free once the user starts the inserted Stretch (review defect 1, ADR 0013)', () => {
+    const p = throughPark({ readLessons: ['theory-unpredictable-walks', 'howto-yield-pressure', 'theory-sniffing-walks'], completedNodes: ['park-unpredictable'] });
+    expect(stopStatus(mission('mission-park-sniff'), p, now, worldsAfter, [])).toEqual({ state: 'locked', lock: { kind: 'stops', stops: [node('park-nose-on')] } });
+    const played = { ...p, completedNodes: [...p.completedNodes, 'park-nose-on'] };
+    expect(stopStatus(mission('mission-park-sniff'), played, now, worldsAfter, [])).toEqual({ state: 'open' });
+    expect(stopStatus(lesson('theory-unpredictable-walks'), played, now, worldsAfter, []).state).toBe('done');
+    expect(stopStatus(node('park-keep-fresh'), played, now, worldsAfter, []).state).toBe('open');
+  });
+
+  it('keeps a Stretch after a passed one open past a Stretch inserted ahead of both (review defect 2)', () => {
+    const w: WorldDef = { ...base, id: 'w', worldNumber: 1, stretches: [
+      [lesson('lA'), node('nA'), mission('mA')], [lesson('lB'), node('nB'), mission('mB')], [lesson('lC'), node('nC'), mission('mC')],
+    ] };
+    const p = progressOf(['nB'], { readLessons: ['lB'], missions: { mB: passed } });
+    expect(stopLock(lesson('lC'), p, [w], [])).toBeNull();
+    expect(stopLock(node('nC'), { ...p, readLessons: ['lB', 'lC'] }, [w], [])).toBeNull();
+    expect(stopLock(node('nA'), p, [w], [])).toEqual({ kind: 'stops', stops: [lesson('lA')] });
+    expect(stopStatus(mission('mA'), p, now, [w], []).state).toBe('locked');
+    // a brand-new user still meets the first Mission before the later Stretches
+    expect(stopLock(lesson('lC'), progressOf([]), [w], [])).toEqual({ kind: 'mission', id: 'mA' });
   });
 
   it('does not open a later Stretch for a user who only started the inserted one', () => {
@@ -121,7 +146,7 @@ describe('a completed World with a Stretch inserted ahead', () => {
 
   it('opens the new Stretch, keeps done Stops done and keeps the next World unlocked', () => {
     expect(states(finishedBefore, worldsAfter, all(after))).toEqual([
-      ['theory-sniffing-walks', 'open'], ['park-nose-on', 'open'], ['mission-park-sniff', 'open'],
+      ['theory-sniffing-walks', 'open'], ['park-nose-on', 'locked'], ['mission-park-sniff', 'locked'],
       ['theory-unpredictable-walks', 'done'], ['howto-yield-pressure', 'done'], ['park-unpredictable', 'done'], ['park-keep-fresh', 'open'], ['mission-park-unpredictable', 'done'],
     ]);
     expect(isWorldComplete(after, finishedBefore)).toBe(false);
@@ -129,5 +154,20 @@ describe('a completed World with a Stretch inserted ahead', () => {
     const m = mapModel(finishedBefore, {}, now, { worlds: worldsAfter, nodes: [], lessons: [], missions: [] });
     expect(m.worlds[1]).toMatchObject({ unlocked: true, complete: false });
     expect(m.worlds[2].unlocked).toBe(true);
+    expect(m.nextUp?.stop).toEqual(lesson('theory-sniffing-walks'));
+  });
+
+  it('plays the inserted Stretch in order, without satisfying it from the finished one (review defect 3)', () => {
+    const p = throughPark({ completedNodes: ['park-unpredictable'], missions: { 'mission-park-unpredictable': passed }, completedWorlds: ['park', 'recall'] });
+    expect(stopStatus(node('park-nose-on'), p, now, worldsAfter, []).state).toBe('locked');
+    expect(stopStatus(mission('mission-park-sniff'), p, now, worldsAfter, []).state).toBe('locked');
+  });
+});
+
+describe('a legacy user from before Missions', () => {
+  it('still has an earlier Mission grandfathered and earlier Stops satisfied by a legacy Node after them', () => {
+    const p = throughPark({ completedNodes: ['park-unpredictable'], legacyNodes: ['park-mix', 'park-unpredictable'] });
+    expect(stopStatus(mission('mission-park-sniff'), p, now, worldsAfter, [])).toEqual({ state: 'done', grandfathered: true });
+    expect(stopStatus(node('park-nose-on'), p, now, worldsAfter, [])).toEqual({ state: 'open', satisfied: true });
   });
 });
