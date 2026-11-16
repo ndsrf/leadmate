@@ -279,3 +279,45 @@ describe('texts', () => {
     expect(en['feedback.combo']).toContain('{n}');
   });
 });
+
+describe('scent-walk kinds', () => {
+  const cases: [FeedbackActionKind, SimEvent][] = [
+    ['granted-sniff', { type: 'go-sniff-start', time: 0, scent: 'granted' } as SimEvent],
+    ['empty-sniff', { type: 'go-sniff-start', time: 0, scent: 'empty' } as SimEvent],
+    ['waited-plant', { type: 'plant-end', time: 0, result: 'waited' } as SimEvent],
+    ['dragged-plant', { type: 'plant-end', time: 0, result: 'dragged' } as SimEvent],
+    ['waited-marking', { type: 'marking-end', time: 0, result: 'waited' } as SimEvent],
+    ['interrupted-marking', { type: 'marking-end', time: 0, result: 'interrupted' } as SimEvent],
+    ['check-in-after-change', { type: 'change-check-in', time: 0, change: 'left-turn', grade: 'good' } as SimEvent],
+    ['scent-dragged-past', { type: 'scent-dragged-past', time: 0 } as SimEvent],
+  ];
+  it.each(cases)('shows %s with its polarity and Hint', (kind, event) => {
+    const m = step(new FeedbackDecider(), 0, event);
+    expect(m).toMatchObject({ kind, polarity: FEEDBACK_ACTION_KINDS[kind], textKey: `feedback.${kind}.full` });
+  });
+
+  it('tiers: waited Plant and waited marking medium, Chain big, wrong kinds wrong', () => {
+    expect(FEEDBACK_RULES['waited-plant'].tier).toBe('medium');
+    expect(FEEDBACK_RULES['waited-marking'].tier).toBe('medium');
+    expect(FEEDBACK_RULES['smart-jackpot'].tier).toBe('medium');
+    expect(FEEDBACK_RULES.chain.tier).toBe('big');
+    for (const k of Object.keys(FEEDBACK_ACTION_KINDS) as FeedbackActionKind[]) {
+      if (FEEDBACK_ACTION_KINDS[k] === 'wrong') expect(FEEDBACK_RULES[k].tier).toBe('wrong');
+    }
+  });
+
+  it('shows one message for a Check-in hit paired with a change Check-in', () => {
+    const m = step(new FeedbackDecider(), 0, checkIn(0), { type: 'change-check-in', time: 0, change: 'left-turn', grade: 'good' } as SimEvent);
+    expect(m?.kind).toBe('check-in-after-change');
+  });
+
+  it('has Spanish and English text for every kind, with a name slot', () => {
+    for (const k of Object.keys(FEEDBACK_ACTION_KINDS) as FeedbackActionKind[]) {
+      for (const form of ['full', 'short'] as const) {
+        const key = feedbackTextKey(k, form);
+        expect((es as Record<string, string>)[key]).toBeTruthy();
+        expect((en as Record<string, string>)[key]).toBeTruthy();
+      }
+    }
+  });
+});

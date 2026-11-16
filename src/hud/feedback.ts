@@ -158,6 +158,8 @@ export class FeedbackDecider {
     for (const e of events) {
       const kind = feedbackKindOf(e);
       if (!kind) continue;
+      // the Marker on the look after a change reports both events; show only the more specific message
+      if (kind === 'check-in-hit' && events.some((o) => o.type === 'change-check-in')) continue;
       const polarity = FEEDBACK_ACTION_KINDS[kind];
       if (polarity === 'wrong') {
         this.combos.clear();
