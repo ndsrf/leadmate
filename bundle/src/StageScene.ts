@@ -555,7 +555,7 @@ export class StageScene extends Phaser.Scene {
       this.sniffPressed = false;
       this.jackpotPressed = false;
     } else {
-      if (input.strength > 0 || input.marker || input.cue || input.sniff) this.signal('first-input', this.sim.time);
+      if (input.strength > 0 || input.marker || input.cue || input.sniff || input.jackpot) this.signal('first-input', this.sim.time);
       if (input.strength > 0) this.signal('control-used', this.sim.time, { control: 'move' });
       // a press counts even with no marks left: the Coach mark is about learning the button
       if (this.markerPressed) this.signal('control-used', this.sim.time, { control: 'mark' });

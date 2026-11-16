@@ -120,6 +120,6 @@ export function freshnessOf(novelty: number, cfg: ScentWalkConfig): Freshness {
  */
 export function scentFollowChance(base: number, novelty: number, autopilot: number, cap: number, cfg: ScentWalkConfig): number {
   const fresh = novelty >= cfg.novelty.fresh ? cfg.novelty.freshBonus : 0;
-  const scaled = Math.min(Math.max(cap, base), base * (0.5 + 0.5 * novelty) + fresh);
+  const scaled = Math.min(cap, base * (0.5 + 0.5 * novelty) + fresh);
   return scaled * (1 - cfg.autopilot.followDamping * autopilot);
 }

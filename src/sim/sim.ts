@@ -587,7 +587,8 @@ function registerChange(state: SimState, change: ChangeKind, dir: Vec2, events: 
   const followed = state.eventRng.next() < chance;
   events.push({ type: 'walk-change', time: state.time, change, novelty, freshness, followed, pos: { ...state.handler } });
   if (!followed) {
-    if (change !== 'stop' && change !== 'speed-up' && change !== 'slow-down') state.correctionPending = { dir, until: state.time + config.correctionWaitSeconds };
+    // a Planted or marking Dog stays put, so no Taut correction waits for it
+    if (!sw.stay && change !== 'stop' && change !== 'speed-up' && change !== 'slow-down') state.correctionPending = { dir, until: state.time + config.correctionWaitSeconds };
     return;
   }
   // a turn the Dog follows ends a Plant: it becomes a Check-in instead of a drag
@@ -773,7 +774,7 @@ function moveDistractor(state: SimState, dt: number): void {
   }
 }
 
-/** A stationary food Distractor still in play, in a scent Stage: it smells like a hot Scent Spot. */
+/** A stationary food Distractor still in play, in a scent Stage: it pulls like a hot Scent Spot. */
 function foodScent(state: SimState): Vec2 | null {
   const cfg = activeDistractor(state);
   const d = state.distractor;
@@ -843,18 +844,20 @@ function updateScentStops(state: SimState, events: SimEvent[]): void {
     return;
   }
   if (state.dogMode !== 'goal') return;
-  const i = spotInRange(state);
-  if (i < 0) return;
-  const spot = sw.spots[i];
   if (rigid) {
-    if (!spot.draggedPast) {
+    const i = spotInRange(state);
+    const spot = sw.spots[i];
+    if (spot && !spot.draggedPast) {
       spot.draggedPast = true;
       state.telemetry.scentWalk!.scentsDraggedPast += 1;
       events.push({ type: 'scent-dragged-past', time: state.time, spot: i, pos: { ...spot.pos } });
     }
     return;
   }
-  if (distance(state.dog, spot.pos) > sw.cfg.reachDistance || (!spot.marking && spot.strength !== 'hot')) return;
+  // a nearer weak spot never hides a hot spot or a marking post the Dog has reached
+  const i = sw.spots.findIndex((s) => !s.sniffed && (s.marking || s.strength === 'hot') && distance(state.dog, s.pos) <= sw.cfg.reachDistance);
+  if (i < 0) return;
+  const spot = sw.spots[i];
   const kind = spot.marking ? 'marking' : 'plant';
   const range = spot.marking ? sw.cfg.markingSeconds : sw.cfg.plantSeconds;
   const seconds = range.min + (range.max - range.min) * state.eventRng.next();
