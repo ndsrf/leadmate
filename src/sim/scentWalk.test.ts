@@ -397,10 +397,10 @@ describe('Go Sniff in a scent Stage', () => {
     expect(events.find((e) => e.type === 'meter-points')).toMatchObject({ meterId: 'nose', kind: 'granted-sniff', points: 20 });
   });
 
-  it('keeps the payload without scent fields (they come with the Debrief payload task)', () => {
+  it('adds scentWalk and timeline to the payload', () => {
     const s = createState(8, stage());
     run(s, 1, walk());
-    expect(Object.keys(buildPayload(s))).not.toContain('scentWalk');
+    expect(Object.keys(buildPayload(s))).toEqual(expect.arrayContaining(['scentWalk', 'timeline']));
   });
 });
 

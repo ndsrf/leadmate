@@ -1,3 +1,4 @@
+import type { FeedbackActionKind, FeedbackPolarity } from './feedbackKinds';
 import { scentSpotsOf, scentWalkOf, type ScenarioConfig, type ScentStrength, type ScentWalkConfig } from './config';
 import { dot, type Vec2 } from './vec';
 
@@ -122,4 +123,24 @@ export function scentFollowChance(base: number, novelty: number, autopilot: numb
   const fresh = novelty >= cfg.novelty.fresh ? cfg.novelty.freshBonus : 0;
   const scaled = Math.min(Math.max(cap, base), base * (0.5 + 0.5 * novelty) + fresh);
   return scaled * (1 - cfg.autopilot.followDamping * autopilot);
+}
+
+/** One Feedback-worthy moment of a scent Stage, for the Node Debrief timeline (design Decision 12). */
+export interface TimelineEntry {
+  /** Seconds into the Stage. */
+  t: number;
+  kind: FeedbackActionKind;
+  polarity: FeedbackPolarity;
+}
+
+/** The timeline keeps at most this many moments. */
+export const TIMELINE_CAP = 60;
+
+/** Appends a moment; when full the oldest right moment is dropped first (the oldest wrong one if there is none). */
+export function appendTimeline(timeline: TimelineEntry[], entry: TimelineEntry): void {
+  if (timeline.length >= TIMELINE_CAP) {
+    const right = timeline.findIndex((e) => e.polarity === 'right');
+    timeline.splice(right === -1 ? 0 : right, 1);
+  }
+  timeline.push(entry);
 }

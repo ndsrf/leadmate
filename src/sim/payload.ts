@@ -1,6 +1,7 @@
 import type { DistractorKind } from './learning';
 import { meterScore, type MeterValue } from './meters';
 import type { SimState } from './sim';
+import type { ScentWalkCounts, TimelineEntry } from './scentWalk';
 
 /** What the simulation reports to the shell when a Stage ends. */
 export interface SimulationDebriefPayload {
@@ -45,6 +46,10 @@ export interface SimulationDebriefPayload {
   markGrades?: { perfect: number; good: number; late: number };
   /** Only in a Stage with Stage Meters: each meter's final Meter Points and target; it then sets the handling score (ADR 0029). */
   meters?: MeterValue[];
+  /** Only in a scent Stage: what the walk did around Scent Spots, food and changes. */
+  scentWalk?: ScentWalkCounts & { jackpotsSmart: number; jackpotsWasted: number };
+  /** Only in a scent Stage: up to 60 right and wrong moments in time order. */
+  timeline?: TimelineEntry[];
   /** Composite handling score, 0 to 1000 (see `handlingScore`). */
   handlingScore: number;
   /** 'bundled' or the version of the remote level config the Stage ran on. */
@@ -121,7 +126,10 @@ export function buildPayload(state: SimState): SimulationDebriefPayload {
     base.markerAccuracyMs = Math.round(hits.reduce((a, b) => a + b, 0) / hits.length);
   }
   if (state.meters.length > 0) base.meters = state.meters.map((m) => ({ ...m }));
-  return { ...base, handlingScore: handlingScore(base), configVersion: state.config.configVersion };
+  const scent = t.scentWalk
+    ? { scentWalk: { ...t.scentWalk, jackpotsSmart: t.jackpots.smart, jackpotsWasted: t.jackpots.wasted }, timeline: (t.timeline ?? []).map((e) => ({ ...e })) }
+    : {};
+  return { ...base, ...scent, handlingScore: handlingScore(base), configVersion: state.config.configVersion };
 }
 
 /** A valid baseline debrief payload synthesized when a simulation is skipped (ADR 0021). */

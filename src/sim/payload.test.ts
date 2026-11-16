@@ -2,6 +2,7 @@ import { defaultScenario, type ScenarioConfig } from './config';
 import { runScripted } from './harness';
 import { BUNDLE_MESSAGE_TYPES, SHELL_MESSAGE_TYPES, createOutbox, decode, encode, type BundleMessage, type ShellMessage } from './messages';
 import { buildPayload, handlingScore, SCORE_WEIGHTS, skippedSimulationPayload, type SimulationDebriefPayload } from './payload';
+import { appendTimeline, TIMELINE_CAP, type TimelineEntry } from './scentWalk';
 import { createState, noInput, tick, type SimInput, type SimState } from './sim';
 
 const scenario = (o: Partial<ScenarioConfig>): ScenarioConfig => ({ ...defaultScenario, ...o });
@@ -276,5 +277,37 @@ describe('handling score from Stage Meters', () => {
   it('uses the meter rule in handlingScore when meters are given', () => {
     const base = buildPayload(createState(1, scenario({})));
     expect(handlingScore({ ...base, meters: [{ id: 'nose', value: 5, target: 10 }] })).toBe(500);
+  });
+});
+
+describe('scent-walk payload', () => {
+  it('has no scentWalk or timeline outside scent Stages', () => {
+    const { payload } = runScripted(11, player(scenario({})), scenario({}));
+    expect(payload.scentWalk).toBeUndefined();
+    expect(payload.timeline).toBeUndefined();
+    expect('timeline' in payload).toBe(false);
+  });
+
+  it('has scentWalk counts and a timeline in a scent Stage', () => {
+    const cfg = scenario({ world: 6, scenery: [], scents: [{ pos: { x: 2, y: 2 }, strength: 'weak' }] });
+    const s = createState(3, cfg);
+    s.telemetry.scentWalk!.sniffsGranted = 2;
+    s.telemetry.jackpots.smart = 1;
+    s.telemetry.timeline!.push({ t: 4, kind: 'granted-sniff', polarity: 'right' });
+    const p = buildPayload(s);
+    expect(p.scentWalk).toMatchObject({ sniffsGranted: 2, jackpotsSmart: 1, jackpotsWasted: 0 });
+    expect(p.timeline).toEqual([{ t: 4, kind: 'granted-sniff', polarity: 'right' }]);
+  });
+
+  it('caps the timeline at 60, dropping the oldest right moments first', () => {
+    const tl: TimelineEntry[] = [];
+    appendTimeline(tl, { t: 0, kind: 'empty-sniff', polarity: 'wrong' });
+    for (let i = 1; i <= 70; i++) appendTimeline(tl, { t: i, kind: 'granted-sniff', polarity: 'right' });
+    expect(tl).toHaveLength(TIMELINE_CAP);
+    expect(tl[0]).toMatchObject({ kind: 'empty-sniff' }); // the wrong one survives
+    expect(tl[1].t).toBe(12);
+    const allWrong: TimelineEntry[] = Array.from({ length: 60 }, (_, i) => ({ t: i, kind: 'empty-sniff', polarity: 'wrong' }));
+    appendTimeline(allWrong, { t: 60, kind: 'empty-sniff', polarity: 'wrong' });
+    expect(allWrong[0].t).toBe(1);
   });
 });

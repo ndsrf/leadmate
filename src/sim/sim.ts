@@ -7,7 +7,8 @@ import { resolveDog, TRIGGER_FACTORS, type DistractorKind, type ResolvedDog } fr
 import { addMeterPoints, initialMeters, type MeterValue } from './meters';
 import type { FeedbackActionKind } from './feedbackKinds';
 import { createRng, type Rng } from './rng';
-import { createScentWalk, emptyScentWalkCounts, freshnessOf, scentFollowChance, turnKind, type ChangeKind, type Freshness, type ScentWalkCounts, type ScentWalkState } from './scentWalk';
+import { appendTimeline, createScentWalk, emptyScentWalkCounts, freshnessOf, scentFollowChance, turnKind, type ChangeKind, type Freshness, type ScentWalkCounts, type ScentWalkState, type TimelineEntry } from './scentWalk';
+import { FEEDBACK_ACTION_KINDS, feedbackKindOf } from './feedbackKinds';
 import { add, distance, dot, length, normalize, rotate, scale, sub, vec, type Vec2 } from './vec';
 
 /** Movement input for one tick: a direction plus a strength from 0 to 1, and a Marker press. */
@@ -143,6 +144,8 @@ export interface Telemetry {
   jackpots: { used: number; smart: number; wasted: number };
   /** Scent-walk counts; only in a scent Stage. */
   scentWalk?: ScentWalkCounts;
+  /** Feedback-worthy moments, capped; only in a scent Stage. */
+  timeline?: TimelineEntry[];
 }
 
 /** What the last stop at the leash limit looked like (the leash-physics abrupt stop measure). */
@@ -327,7 +330,7 @@ export function createState(seed: number, config: ScenarioConfig = defaultScenar
       goSniffs: 0,
       markGrades: { perfect: 0, good: 0, late: 0 },
       jackpots: { used: 0, smart: 0, wasted: 0 },
-      ...(scentWalk ? { scentWalk: emptyScentWalkCounts() } : {}),
+      ...(scentWalk ? { scentWalk: emptyScentWalkCounts(), timeline: [] } : {}),
     },
     meters: initialMeters(config),
     scentWalk,
@@ -1369,5 +1372,16 @@ export function tick(state: SimState, input: SimInput, dt: number = state.config
 
   addMeterPoints(state, events);
   checkEnd(state, events);
+  if (state.telemetry.timeline) recordTimeline(state.telemetry.timeline, events);
   return events;
+}
+
+/** Appends this tick's Feedback-worthy events to the timeline; a change Check-in replaces its plain Check-in hit. */
+function recordTimeline(timeline: TimelineEntry[], events: readonly SimEvent[]): void {
+  const paired = events.some((e) => e.type === 'change-check-in');
+  for (const e of events) {
+    const kind = feedbackKindOf(e);
+    if (!kind || (kind === 'check-in-hit' && paired)) continue;
+    appendTimeline(timeline, { t: Math.round(e.time * 10) / 10, kind, polarity: FEEDBACK_ACTION_KINDS[kind] });
+  }
 }

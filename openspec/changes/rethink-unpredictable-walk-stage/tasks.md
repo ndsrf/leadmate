@@ -21,8 +21,8 @@
 
 ## 4. Telemetry, Feedback Messages and Debrief
 
-- [ ] 4.1 Add `scentWalk` and the capped `timeline` to the payload, only in scent Stages; verify with `payload.test.ts` for both cases and the 60-entry cap.
-- [ ] 4.2 Add the scent-walk kinds to `src/hud/feedback.ts`, with Spanish and English Hints and short forms; verify with feedback tests for each kind and the i18n completeness test.
+- [x] 4.1 Add `scentWalk` and the capped `timeline` to the payload, only in scent Stages; verify with `payload.test.ts` for both cases and the 60-entry cap.
+- [x] 4.2 Add the scent-walk kinds to `src/hud/feedback.ts`, with Spanish and English Hints and short forms; verify with feedback tests for each kind and the i18n completeness test.
 - [ ] 4.3 Show the timeline, tappable moments and the "done well / try next" summary in the Node Debrief; verify with a component test fed by a fixture payload, and on device.
 
 ## 5. Progression for inserted Stretches
