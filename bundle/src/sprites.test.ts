@@ -4,7 +4,13 @@ import {
   distractorCloseFrame,
   handlerStanceFrame,
   hasCloseFrame,
+  hasHuskyFrame,
+  HUSKY_CLIPS,
+  huskyFrame,
+  pivotOf,
+  resOf,
 } from './sprites';
+import type { WalkClip } from '../../src/hud/pose';
 import type { CaninePosture, ShieldSide } from '../../src/sim/closeExercise';
 
 describe('close exercise sprite loader and frame mapping (Task 2.2)', () => {
@@ -65,5 +71,42 @@ describe('control scheme offers (task 2.1)', () => {
     const { closeControlsOffered } = require('./sprites');
     expect(closeControlsOffered('hand_drill')).toEqual({ gather: true, poste: true, marker: true, shield: false, cue: false });
     expect(closeControlsOffered('leash_drill').shield).toBe(true);
+  });
+});
+
+describe('the walking Dog sprite (readable-dog, task 3.1)', () => {
+  const clips = Object.keys(HUSKY_CLIPS) as WalkClip[];
+  const facings = [0, 45, 90, 135, 180, 225, 270, 315];
+
+  it('covers every Canine Posture walking clip', () => {
+    const want: WalkClip[] = ['idle', 'walk', 'walk_wag', 'trot', 'sniffwalk', 'sniff', 'planted', 'mark', 'lunge', 'look_l', 'look_r'];
+    expect(clips.sort()).toEqual([...want].sort());
+  });
+
+  it('has every clip frame in all 8 facings, with a pivot and a resolution', () => {
+    let total = 0;
+    for (const clip of clips) {
+      for (let step = 0; step < HUSKY_CLIPS[clip]; step++) {
+        for (const deg of facings) {
+          const name = huskyFrame(clip, step, deg);
+          expect(hasHuskyFrame(name)).toBe(true);
+          expect(pivotOf(name).y).toBeGreaterThan(0.5);
+          expect(resOf(name)).toBeGreaterThan(1);
+          total++;
+        }
+      }
+    }
+    expect(total).toBe(240);
+  });
+
+  it('names frames without underscores in the clip, and wraps the step', () => {
+    expect(huskyFrame('look_l', 0, 90)).toBe('husky_lookl0_90');
+    expect(huskyFrame('walk_wag', 5, 45)).toBe(`husky_walkwag${5 % HUSKY_CLIPS.walk_wag}_45`);
+    expect(huskyFrame('idle', 3, 0)).toBe(`husky_idle${3 % HUSKY_CLIPS.idle}_0`);
+  });
+
+  it('leaves no frame outside the clip list in the Dog atlas', () => {
+    const { dogAtlas } = require('./sprites');
+    expect(Object.keys(dogAtlas.frames)).toHaveLength(240);
   });
 });

@@ -233,6 +233,13 @@ describe('Stop availability and the Mission gate', () => {
     expect(stopStatus(node('scooter-crossing'), { ...p, readLessons: [] }, at(9)).lock).toEqual({ kind: 'stops', stops: [lesson('theory-visual-shields'), node('calm-zone-intro')] });
   });
 
+  it('keeps the Mission gate strict for a normal user part-way through a World (no inserted Stretch)', () => {
+    const p = started({ ...finished('home', 'sidewalk'), readLessons: [...finished('home', 'sidewalk').readLessons, 'theory-leave-it', 'howto-cues'], completedNodes: [...finished('home', 'sidewalk').completedNodes, 'leave-it-intro'] }, 'mission-leave-it');
+    expect(stopStatus(mission('mission-leave-it'), p, at(9)).state).toBe('open');
+    for (const s of stopsOf(world('urban')).slice(4)) expect(stopStatus(s, p, at(9)).lock).toEqual({ kind: 'mission', id: 'mission-leave-it' });
+    expect(isWorldComplete(world('urban'), p)).toBe(false);
+  });
+
   it('finds the Mission and the Stretch place of a Stop', () => {
     expect(missionOfStop(node('doorbell-mat'))).toBe('mission-doorbell');
     expect(placeOfLesson('howto-walking')).toEqual({ world: 3, stretch: 1 });

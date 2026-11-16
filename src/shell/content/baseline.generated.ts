@@ -4,8 +4,8 @@ import type { ContentPack } from './validator';
 export const BASELINE_PACK: ContentPack = {
   "pack": {
     "formatVersion": 1,
-    "contentVersion": 3,
-    "minAppVersion": "1.1.0",
+    "contentVersion": 4,
+    "minAppVersion": "1.2.0",
     "languages": [
       "es",
       "en"
@@ -223,6 +223,20 @@ export const BASELINE_PACK: ContentPack = {
           [
             {
               "kind": "lesson",
+              "id": "theory-sniffing-walks"
+            },
+            {
+              "kind": "node",
+              "id": "park-nose-on"
+            },
+            {
+              "kind": "mission",
+              "id": "mission-park-sniff"
+            }
+          ],
+          [
+            {
+              "kind": "lesson",
               "id": "theory-unpredictable-walks"
             },
             {
@@ -232,6 +246,10 @@ export const BASELINE_PACK: ContentPack = {
             {
               "kind": "node",
               "id": "park-unpredictable"
+            },
+            {
+              "kind": "node",
+              "id": "park-keep-fresh"
             },
             {
               "kind": "mission",
@@ -1152,6 +1170,26 @@ export const BASELINE_PACK: ContentPack = {
         "media/theory-slack-u-2.png",
         "media/theory-slack-u-do.png",
         "media/theory-slack-u-dont.png"
+      ]
+    },
+    "theory-sniffing-walks": {
+      "config": {
+        "id": "theory-sniffing-walks",
+        "kind": "theory",
+        "images": [
+          "theory-sniffing-walks-1",
+          "theory-sniffing-walks-2"
+        ],
+        "steps": 4,
+        "takeaways": 4
+      },
+      "text": {
+        "en": "# Let Them Sniff\n\n## heading\nFor your Dog, the walk is a long read of smells\n\n## hook\nYou are on your way to the park and {name} stops at every lamp post and bush. You tug gently, say \"come on\", and keep going, because the walk has a destination. The leash tightens, {name} looks back at the smell, and neither of you enjoys the next block. It feels like a small fight over nothing, repeated all day.\n\n## why\nSmell is how a Dog reads the street: who passed, how long ago, what is worth knowing. Sniffing is also calming, because it lowers Arousal and keeps your Dog thinking instead of reacting. A walk with no sniffing builds frustration, and frustration shows up as pulling. The way out is not to ban smells but to make them part of the deal. When {name} looks at you of its own accord, that is a Check-in. Mark it, then give \"Go Sniff\": the smell becomes the reward, and looking at you becomes the way to earn it.\n\n## steps\n1. Walk with a Slack leash and watch for a Scent Spot ahead: a lamp post, a bush, a corner where {name} slows and the nose drops.\n2. Wait for {name} to look at you, and mark that glance with a soft \"good\". Do not call or pull; the look has to be {name}'s idea.\n3. Say \"Go Sniff\" and stand still, keeping the leash Slack in a U while {name} reads the spot for as long as it likes.\n4. When {name} lifts the head, say \"Let's Go\" and walk on together. Repeat at the next smell, a few times per walk at first.\n\n## example\n### {name} at the lamp post outside the bakery\n{name} slows down near the lamp post by the bakery, nose low. You stop and keep the leash hanging in a U. Nothing happens for a few seconds, then {name} glances up at you. You say \"good\", give a treat beside your leg and say \"Go Sniff\". {name} reads the post for about ten seconds while you wait. When the head comes up you say \"Let's Go\" and walk on. The next lamp post, the glance comes a little sooner.\n\n## compare\n### do\nWait for the look, mark it, then give \"Go Sniff\" and let your Dog finish reading while the leash hangs Slack.\n### dont\nKeep walking while your Dog strains toward the smell on a Taut leash; the pull wins the smell and teaches your Dog that pulling works.\n\n## tip\nTry it today: on your next walk, pick three smells you are happy to wait at. At each one, wait for a look, mark it and give \"Go Sniff\".\n\n## takeaways\n- Sniffing is your Dog's main job on a walk, not a delay.\n- A Check-in before \"Go Sniff\" turns the smell into a reward.\n- Give \"Go Sniff\" with a Slack leash and let your Dog finish.\n- Pulling toward a smell should never be what gets it there.\n\n## images\n### theory-sniffing-walks-1\n- alt: Two steps side by side: first a Dog looks up at its person with the leash hanging in a U, then the person waits while the Dog puts its nose to a lamp post\n- caption: First the look, then the smell\n\n### theory-sniffing-walks-2\n- alt: A park path where a person waits with a Slack leash while the Dog sniffs a bush, with a lamp post further along\n- caption: Smells along the path are part of the walk\n",
+        "es": "# Déjale olfatear\n\n## heading\nPara tu perro, el paseo es una larga lectura de olores\n\n## hook\nVais camino del parque y {name} se detiene en cada farola y cada arbusto. Tiras con suavidad, dices «vamos» y sigues, porque el paseo tiene un destino. La correa se tensa, {name} mira hacia atrás, hacia el olor, y la siguiente manzana no la disfrutáis ninguno de los dos. Es una pequeña pelea por nada, repetida todo el día.\n\n## why\nEl olfato es como un perro lee la calle: quién pasó, hace cuánto, qué merece la pena saber. Olfatear además calma: baja la excitación y mantiene a tu perro pensando en lugar de reaccionando. Un paseo sin olfatear acumula frustración, y la frustración se nota en los tirones. La salida no es prohibir los olores, sino hacerlos parte del trato. Cuando {name} te mira por su cuenta, eso es un check-in. Márcalo y di «Olfatea»: el olor pasa a ser el premio, y mirarte, la forma de conseguirlo.\n\n## steps\n1. Camina con la correa floja y busca un punto de olor más adelante: una farola, un arbusto, una esquina donde {name} frena y baja la nariz.\n2. Espera a que {name} te mire y marca esa mirada con un «bien» suave. No llames ni tires: la mirada tiene que ser idea de {name}.\n3. Di «Olfatea» y quédate sin moverte, con la correa floja en U, mientras {name} lee el sitio todo el tiempo que quiera.\n4. Cuando {name} levante la cabeza, di «Vamos» y seguid juntos. Repite en el siguiente olor, unas pocas veces por paseo al principio.\n\n## example\n### {name} en la farola de la panadería\n{name} frena junto a la farola de la panadería, con la nariz baja. Te paras y dejas la correa colgando en U. Durante unos segundos no pasa nada, y entonces {name} te mira. Dices «bien», le das una golosina junto a tu pierna y dices «Olfatea». {name} lee la farola unos diez segundos mientras esperas. Al levantar la cabeza dices «Vamos» y seguís. En la siguiente farola, la mirada llega un poco antes.\n\n## compare\n### do\nEspera la mirada, márcala y da «Olfatea»; deja que tu perro termine de leer mientras la correa cuelga floja.\n### dont\nSeguir caminando mientras tu perro se estira hacia el olor con la correa tensa; el tirón le lleva al olor y le enseña que tirar funciona.\n\n## tip\nPrueba hoy: en tu próximo paseo, elige tres olores en los que no te importe esperar. En cada uno, espera una mirada, márcala y da «Olfatea».\n\n## takeaways\n- Olfatear es el trabajo principal de tu perro en el paseo, no un retraso.\n- Un check-in antes de «Olfatea» convierte el olor en premio.\n- Da «Olfatea» con la correa floja y deja que termine.\n- Tirar hacia un olor nunca debe ser lo que le lleve hasta él.\n\n## images\n### theory-sniffing-walks-1\n- alt: Dos pasos lado a lado: primero un perro mira hacia su persona con la correa en U, luego la persona espera mientras el perro acerca la nariz a una farola\n- caption: Primero la mirada, después el olor\n\n### theory-sniffing-walks-2\n- alt: Un camino de parque donde una persona espera con la correa floja mientras el perro olfatea un arbusto, con una farola más adelante\n- caption: Los olores del camino forman parte del paseo\n"
+      },
+      "files": [
+        "media/theory-sniffing-walks-1.png",
+        "media/theory-sniffing-walks-2.png"
       ]
     },
     "theory-unpredictable-walks": {
@@ -3493,6 +3531,621 @@ export const BASELINE_PACK: ContentPack = {
         "media/theory-long-leash-1.png"
       ]
     },
+    "park-keep-fresh": {
+      "config": {
+        "id": "park-keep-fresh",
+        "mode": "stage",
+        "prerequisites": [
+          "park-unpredictable"
+        ],
+        "simulation": {
+          "scenario": {
+            "world": 6,
+            "theme": "open_park",
+            "fixedStep": 0.016666666666666666,
+            "leashLength": 3,
+            "leashTolerance": 0.1,
+            "quickSpeed": 2,
+            "walkStrength": 0.6,
+            "handlerStart": {
+              "x": 0,
+              "y": 0
+            },
+            "dogStart": {
+              "x": 1,
+              "y": 0
+            },
+            "waypoint": {
+              "x": 72,
+              "y": 0
+            },
+            "waypoints": [
+              {
+                "x": 12,
+                "y": 6
+              },
+              {
+                "x": 24,
+                "y": -4
+              },
+              {
+                "x": 36,
+                "y": 8
+              },
+              {
+                "x": 48,
+                "y": -4
+              },
+              {
+                "x": 60,
+                "y": 8
+              },
+              {
+                "x": 72,
+                "y": 0
+              }
+            ],
+            "waypointRadius": 2,
+            "walls": [],
+            "scenery": [
+              {
+                "type": "tree",
+                "pos": {
+                  "x": -4,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": -4,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "bench",
+                "pos": {
+                  "x": -0.1,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": -0.1,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "flower_bed",
+                "pos": {
+                  "x": 3.8,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "picnic_table",
+                "pos": {
+                  "x": 3.8,
+                  "y": 19.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "fountain",
+                "pos": {
+                  "x": 7.7,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "conifer",
+                "pos": {
+                  "x": 7.7,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "sign",
+                "pos": {
+                  "x": 11.6,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 11.6,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "pond",
+                "pos": {
+                  "x": 15.5,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "kiosk",
+                "pos": {
+                  "x": 15.5,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "tree",
+                "pos": {
+                  "x": 19.4,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": 19.4,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "bench",
+                "pos": {
+                  "x": 23.3,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 23.3,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "flower_bed",
+                "pos": {
+                  "x": 27.2,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "picnic_table",
+                "pos": {
+                  "x": 27.2,
+                  "y": 19.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "fountain",
+                "pos": {
+                  "x": 31.1,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "conifer",
+                "pos": {
+                  "x": 31.1,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "sign",
+                "pos": {
+                  "x": 35,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 35,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "pond",
+                "pos": {
+                  "x": 38.9,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "kiosk",
+                "pos": {
+                  "x": 38.9,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "tree",
+                "pos": {
+                  "x": 42.8,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": 42.8,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "bench",
+                "pos": {
+                  "x": 46.7,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 46.7,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "flower_bed",
+                "pos": {
+                  "x": 50.6,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "picnic_table",
+                "pos": {
+                  "x": 50.6,
+                  "y": 19.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "fountain",
+                "pos": {
+                  "x": 54.5,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "conifer",
+                "pos": {
+                  "x": 54.5,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "sign",
+                "pos": {
+                  "x": 58.4,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 58.4,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "pond",
+                "pos": {
+                  "x": 62.3,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "kiosk",
+                "pos": {
+                  "x": 62.3,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "tree",
+                "pos": {
+                  "x": 66.2,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": 66.2,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "bench",
+                "pos": {
+                  "x": 70.1,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 70.1,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "flower_bed",
+                "pos": {
+                  "x": 74,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "picnic_table",
+                "pos": {
+                  "x": 74,
+                  "y": 19.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "fountain",
+                "pos": {
+                  "x": 77.9,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "conifer",
+                "pos": {
+                  "x": 77.9,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 7.7,
+                  "y": 6.9
+                },
+                "scent": {
+                  "strength": "normal"
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": 19.9,
+                  "y": -4.1
+                },
+                "scent": {
+                  "strength": "normal"
+                }
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 31.3,
+                  "y": 7.1
+                },
+                "scent": {
+                  "strength": "normal"
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 42.6,
+                  "y": -2.4
+                },
+                "scent": {
+                  "strength": "normal"
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": 53.9,
+                  "y": 5.7
+                },
+                "scent": {
+                  "strength": "normal"
+                }
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 66.9,
+                  "y": 0.2
+                },
+                "scent": {
+                  "strength": "normal"
+                }
+              }
+            ],
+            "cues": [
+              "lets-go"
+            ],
+            "dogGoalSpeed": 1.6,
+            "dogFixationSpeed": 1,
+            "dogReturnSpeed": 1.6,
+            "dogReturnDistance": 1,
+            "wanderMaxAngle": 0.5,
+            "wanderTurnRate": 2,
+            "distractor": {
+              "kind": "other",
+              "speed": 3.8,
+              "triggerRadius": 12,
+              "activateAfterMeters": 1000000000,
+              "startOffset": 28,
+              "path": {
+                "from": {
+                  "x": 28,
+                  "y": -12
+                },
+                "to": {
+                  "x": 28,
+                  "y": 14
+                }
+              }
+            },
+            "moreDistractors": [],
+            "calmSeconds": 3,
+            "rewardWindowSeconds": 1.1,
+            "markBudget": 5,
+            "checkInWindow": 1,
+            "learning": {
+              "attributes": {
+                "reconnectionLatency": 0.2,
+                "reactivityThreshold": 0.2,
+                "followChance": 0.5,
+                "checkInFrequency": 0.2
+              },
+              "triggerProfile": {
+                "child": 2,
+                "bicycle": 2,
+                "dog": 2,
+                "skateboard": 2,
+                "food": 2,
+                "other": 2,
+                "hand": 2
+              },
+              "equipment": "collar",
+              "capacityMultiplier": 1,
+              "posture": 0
+            },
+            "ranges": {
+              "reconnectionSeconds": {
+                "worst": 1.5,
+                "best": 0.3
+              },
+              "reactivityThreshold": {
+                "worst": 15,
+                "best": 60
+              },
+              "checkInMeanInterval": {
+                "worst": 14,
+                "best": 5
+              }
+            },
+            "arousal": {
+              "k": 30,
+              "minDistance": 2,
+              "decayPerSecond": 3,
+              "rigidPullRate": 4,
+              "disengagementDrop": 25,
+              "markerHitDrop": 20,
+              "posteJolt": 15,
+              "smoothStopFactor": 0.3,
+              "slowedSeconds": 0.5
+            },
+            "cue": {
+              "cooldownSeconds": 3,
+              "fixatedFactor": 0.3,
+              "repeatFactor": 0.5,
+              "arousalDrop": 10,
+              "followBoostSeconds": 2,
+              "followBoost": 0.25,
+              "followCap": 0.95
+            },
+            "reaction": {
+              "alertFraction": 0.6,
+              "lungeAccel": 1.5,
+              "lungeMaxSpeed": 4,
+              "alertSlowdown": 0.85
+            },
+            "sintonia": {
+              "enabled": false,
+              "minSpeed": 0.4,
+              "minTurnRate": 0.2,
+              "maxTurnRate": 1.8,
+              "turnWindow": 0.5,
+              "holdSeconds": 2
+            },
+            "goSniff": {
+              "offerSeconds": 3,
+              "durationSeconds": 4,
+              "speed": 0.4,
+              "decayFactor": 3
+            },
+            "turnAngle": 0.7853981633974483,
+            "followSeconds": 1.5,
+            "correctionWaitSeconds": 4,
+            "pullStrength": 0.8,
+            "configVersion": "bundled",
+            "camera": {
+              "closeZoom": 2.2,
+              "farZoom": 1.5,
+              "padding": 90,
+              "smoothing": 3
+            },
+            "endCondition": {
+              "kind": "reach-waypoint"
+            },
+            "meters": [
+              {
+                "id": "nose",
+                "labelKey": "meter.nose",
+                "icon": "nose",
+                "target": 60,
+                "meterPoints": {
+                  "granted-sniff": 10
+                }
+              },
+              {
+                "id": "connection",
+                "labelKey": "meter.connection",
+                "icon": "eye",
+                "target": 120,
+                "meterPoints": {
+                  "fresh-move": 15,
+                  "chain": 30
+                }
+              }
+            ],
+            "scentWalk": {}
+          }
+        },
+        "checkpoint": [
+          {},
+          {},
+          {}
+        ],
+        "exercises": [
+          {
+            "metric": "tension",
+            "key": "node.park-keep-fresh.exercise1"
+          },
+          {
+            "metric": "attention",
+            "key": "node.park-keep-fresh.exercise2"
+          }
+        ],
+        "primerCards": [
+          {
+            "kind": "real-world",
+            "media": {
+              "type": "image",
+              "url": "",
+              "art": "park-keep-fresh-1"
+            }
+          }
+        ]
+      },
+      "text": {
+        "en": "# World 6 · Keep It Fresh\n\n## primer\n### card 1\nRemember: a change is fresh when you have not just made it. Vary turns, pace and stops, mark the look that follows, then walk on with a Slack leash or say \"Go Sniff\".\n- caption: A fresh change, a look, then the reward\n\n## checkpoint\n### tq1\nYou have turned left three times in a row and {name} stopped looking up. What helps?\n- [x] Try something different: a stop, a slow-down or a turn the other way\n- [ ] Turn left again, faster\n- [ ] Say {name}'s name louder at each turn\n- why: Repeating one move makes it predictable. A different change is new again, so {name} has a reason to look.\n\n### tq2\n{name} followed your turn and glanced at you. What is the best next step?\n- [x] Mark the look, then walk on Slack or say \"Go Sniff\"\n- [ ] Turn again at once\n- [ ] Wait until {name} looks a second time\n- why: The mark on the look, then Slack walking or \"Go Sniff\", completes a Chain.\n\n### tq3\nWalking in a straight line on autopilot, you reach a smell. What do you do?\n- [x] Change something first, then let {name} choose you before you give \"Go Sniff\"\n- [ ] Walk past it quickly\n- [ ] Let {name} pull you to it\n- why: Autopilot makes smells win. A change brings {name} back to you, and then the smell is a reward.\n\n## exercises\n- tension: Outside: keep the leash Slack through every turn, pace change and stop.\n- attention: Outside: change something every so often, vary the kind, and mark each look.\n",
+        "es": "# Mundo 6 · Mantenlo fresco\n\n## primer\n### card 1\nRecuerda: un cambio es fresco si no lo acabas de hacer. Varía giros, ritmo y paradas, marca la mirada que sigue y luego sigue con la correa floja o di «Olfatea».\n- caption: Un cambio fresco, una mirada y después el premio\n\n## checkpoint\n### tq1\nHas girado a la izquierda tres veces seguidas y {name} ha dejado de mirarte. ¿Qué ayuda?\n- [x] Probar algo distinto: una parada, frenar o girar al otro lado\n- [ ] Girar otra vez a la izquierda, más rápido\n- [ ] Decir el nombre de {name} más alto en cada giro\n- why: Repetir un movimiento lo hace previsible. Un cambio distinto vuelve a ser nuevo, así que {name} tiene motivos para mirarte.\n\n### tq2\n{name} ha seguido tu giro y te ha mirado. ¿Qué haces ahora?\n- [x] Marcas la mirada y sigues con la correa floja o dices «Olfatea»\n- [ ] Giras otra vez enseguida\n- [ ] Esperas a que {name} mire una segunda vez\n- why: La marca en la mirada, y luego caminar con la correa floja o dar «Olfatea», completa una cadena.\n\n### tq3\nCaminas recto en piloto automático y llegáis a un olor. ¿Qué haces?\n- [x] Cambias algo primero y dejas que {name} te elija antes de dar «Olfatea»\n- [ ] Pasas de largo deprisa\n- [ ] Dejas que {name} te lleve tirando hasta el olor\n- why: En piloto automático ganan los olores. Un cambio trae a {name} de vuelta a ti, y entonces el olor es un premio.\n\n## exercises\n- tension: Fuera: mantén la correa floja en cada giro, cambio de ritmo y parada.\n- attention: Fuera: cambia algo de vez en cuando, varía el tipo y marca cada mirada.\n"
+      },
+      "files": [
+        "media/park-keep-fresh-1.png"
+      ]
+    },
     "park-mix": {
       "config": {
         "id": "park-mix",
@@ -4016,9 +4669,9 @@ export const BASELINE_PACK: ContentPack = {
         "media/theory-park-mix-1.png"
       ]
     },
-    "park-unpredictable": {
+    "park-nose-on": {
       "config": {
-        "id": "park-unpredictable",
+        "id": "park-nose-on",
         "mode": "stage",
         "prerequisites": [
           "park-mix"
@@ -4041,8 +4694,609 @@ export const BASELINE_PACK: ContentPack = {
               "y": 0
             },
             "waypoint": {
-              "x": 76,
+              "x": 70,
               "y": 0
+            },
+            "waypoints": [
+              {
+                "x": 14,
+                "y": 2
+              },
+              {
+                "x": 28,
+                "y": -2
+              },
+              {
+                "x": 42,
+                "y": 2
+              },
+              {
+                "x": 56,
+                "y": -2
+              },
+              {
+                "x": 70,
+                "y": 0
+              }
+            ],
+            "waypointRadius": 2,
+            "walls": [],
+            "scenery": [
+              {
+                "type": "tree",
+                "pos": {
+                  "x": -4,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": -4,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "bench",
+                "pos": {
+                  "x": -0.1,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": -0.1,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "flower_bed",
+                "pos": {
+                  "x": 3.8,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "picnic_table",
+                "pos": {
+                  "x": 3.8,
+                  "y": 19.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "fountain",
+                "pos": {
+                  "x": 7.7,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "conifer",
+                "pos": {
+                  "x": 7.7,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "sign",
+                "pos": {
+                  "x": 11.6,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 11.6,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "pond",
+                "pos": {
+                  "x": 15.5,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "kiosk",
+                "pos": {
+                  "x": 15.5,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "tree",
+                "pos": {
+                  "x": 19.4,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": 19.4,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "bench",
+                "pos": {
+                  "x": 23.3,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 23.3,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "flower_bed",
+                "pos": {
+                  "x": 27.2,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "picnic_table",
+                "pos": {
+                  "x": 27.2,
+                  "y": 19.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "fountain",
+                "pos": {
+                  "x": 31.1,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "conifer",
+                "pos": {
+                  "x": 31.1,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "sign",
+                "pos": {
+                  "x": 35,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 35,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "pond",
+                "pos": {
+                  "x": 38.9,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "kiosk",
+                "pos": {
+                  "x": 38.9,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "tree",
+                "pos": {
+                  "x": 42.8,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": 42.8,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "bench",
+                "pos": {
+                  "x": 46.7,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 46.7,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "flower_bed",
+                "pos": {
+                  "x": 50.6,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "picnic_table",
+                "pos": {
+                  "x": 50.6,
+                  "y": 19.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "fountain",
+                "pos": {
+                  "x": 54.5,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "conifer",
+                "pos": {
+                  "x": 54.5,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "sign",
+                "pos": {
+                  "x": 58.4,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 58.4,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "pond",
+                "pos": {
+                  "x": 62.3,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "kiosk",
+                "pos": {
+                  "x": 62.3,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "tree",
+                "pos": {
+                  "x": 66.2,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": 66.2,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "bench",
+                "pos": {
+                  "x": 70.1,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 70.1,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "flower_bed",
+                "pos": {
+                  "x": 74,
+                  "y": -9.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "picnic_table",
+                "pos": {
+                  "x": 74,
+                  "y": 19.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "fountain",
+                "pos": {
+                  "x": 77.9,
+                  "y": -9.5
+                }
+              },
+              {
+                "type": "conifer",
+                "pos": {
+                  "x": 77.9,
+                  "y": 19.5
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 8.5,
+                  "y": 3.9
+                },
+                "scent": {
+                  "strength": "weak"
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": 19.9,
+                  "y": -2.5
+                },
+                "scent": {
+                  "strength": "normal"
+                }
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 31.4,
+                  "y": 1.8
+                },
+                "scent": {
+                  "strength": "weak"
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 42.9,
+                  "y": -1.1
+                },
+                "scent": {
+                  "strength": "normal"
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": 56,
+                  "y": 0.8
+                },
+                "scent": {
+                  "strength": "weak"
+                }
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 66.5,
+                  "y": -3.2
+                },
+                "scent": {
+                  "strength": "normal"
+                }
+              }
+            ],
+            "cues": [
+              "lets-go"
+            ],
+            "dogGoalSpeed": 1.6,
+            "dogFixationSpeed": 1,
+            "dogReturnSpeed": 1.6,
+            "dogReturnDistance": 1,
+            "wanderMaxAngle": 0.5,
+            "wanderTurnRate": 2,
+            "distractor": {
+              "kind": "other",
+              "speed": 3.8,
+              "triggerRadius": 12,
+              "activateAfterMeters": 1000000000,
+              "startOffset": 28,
+              "path": {
+                "from": {
+                  "x": 28,
+                  "y": -12
+                },
+                "to": {
+                  "x": 28,
+                  "y": 14
+                }
+              }
+            },
+            "moreDistractors": [],
+            "calmSeconds": 3,
+            "rewardWindowSeconds": 1.1,
+            "markBudget": 5,
+            "checkInWindow": 1,
+            "learning": {
+              "attributes": {
+                "reconnectionLatency": 0.2,
+                "reactivityThreshold": 0.2,
+                "followChance": 0.5,
+                "checkInFrequency": 0.2
+              },
+              "triggerProfile": {
+                "child": 2,
+                "bicycle": 2,
+                "dog": 2,
+                "skateboard": 2,
+                "food": 2,
+                "other": 2,
+                "hand": 2
+              },
+              "equipment": "collar",
+              "capacityMultiplier": 1,
+              "posture": 0
+            },
+            "ranges": {
+              "reconnectionSeconds": {
+                "worst": 1.5,
+                "best": 0.3
+              },
+              "reactivityThreshold": {
+                "worst": 15,
+                "best": 60
+              },
+              "checkInMeanInterval": {
+                "worst": 14,
+                "best": 5
+              }
+            },
+            "arousal": {
+              "k": 30,
+              "minDistance": 2,
+              "decayPerSecond": 3,
+              "rigidPullRate": 4,
+              "disengagementDrop": 25,
+              "markerHitDrop": 20,
+              "posteJolt": 15,
+              "smoothStopFactor": 0.3,
+              "slowedSeconds": 0.5
+            },
+            "cue": {
+              "cooldownSeconds": 3,
+              "fixatedFactor": 0.3,
+              "repeatFactor": 0.5,
+              "arousalDrop": 10,
+              "followBoostSeconds": 2,
+              "followBoost": 0.25,
+              "followCap": 0.95
+            },
+            "reaction": {
+              "alertFraction": 0.6,
+              "lungeAccel": 1.5,
+              "lungeMaxSpeed": 4,
+              "alertSlowdown": 0.85
+            },
+            "sintonia": {
+              "enabled": false,
+              "minSpeed": 0.4,
+              "minTurnRate": 0.2,
+              "maxTurnRate": 1.8,
+              "turnWindow": 0.5,
+              "holdSeconds": 2
+            },
+            "goSniff": {
+              "offerSeconds": 3,
+              "durationSeconds": 4,
+              "speed": 0.4,
+              "decayFactor": 3
+            },
+            "turnAngle": 0.7853981633974483,
+            "followSeconds": 1.5,
+            "correctionWaitSeconds": 4,
+            "pullStrength": 0.8,
+            "configVersion": "bundled",
+            "camera": {
+              "closeZoom": 2.2,
+              "farZoom": 1.5,
+              "padding": 90,
+              "smoothing": 3
+            },
+            "endCondition": {
+              "kind": "reach-waypoint"
+            },
+            "meters": [
+              {
+                "id": "nose",
+                "labelKey": "meter.nose",
+                "icon": "nose",
+                "target": 110,
+                "meterPoints": {
+                  "granted-sniff": 20
+                }
+              }
+            ],
+            "scentWalk": {}
+          }
+        },
+        "checkpoint": [
+          {},
+          {},
+          {}
+        ],
+        "exercises": [
+          {
+            "metric": "tension",
+            "key": "node.park-nose-on.exercise1"
+          },
+          {
+            "metric": "attention",
+            "key": "node.park-nose-on.exercise2"
+          }
+        ],
+        "primerCards": [
+          {
+            "kind": "real-world",
+            "media": {
+              "type": "image",
+              "url": "",
+              "art": "park-nose-on-1"
+            }
+          }
+        ]
+      },
+      "text": {
+        "en": "# World 6 · Let Them Sniff\n\n## primer\n### card 1\nRemember: wait for {name} to look at you, mark it, then say \"Go Sniff\" and let {name} read the smell with a Slack leash. Say \"Let's Go\" to set off together again.\n- caption: A look first, then the smell\n\n## checkpoint\n### tq1\n{name} slows down at a bush, nose low, and glances at you. What do you do?\n- [x] Mark the glance, then say \"Go Sniff\" and wait\n- [ ] Say \"Let's Go\" and walk on to keep the pace\n- [ ] Pull gently so {name} does not stop\n- why: The glance is a Check-in. Marking it and giving \"Go Sniff\" makes the smell the reward.\n\n### tq2\nWhile {name} sniffs, where should the leash be?\n- [x] Slack, hanging in a U\n- [ ] Taut, so {name} cannot wander\n- [ ] Wrapped around your hand\n- why: A Slack leash lets {name} read the smell calmly and keeps the walk pleasant for both.\n\n### tq3\nWhat does {name} learn if pulling toward a smell gets there faster?\n- [x] That pulling works\n- [ ] That smells are not important\n- [ ] That you are in charge of every smell\n- why: Smells reached by pulling teach pulling. Smells reached after a look teach looking.\n\n## exercises\n- tension: Outside: pick a smell, wait with a Slack leash and let {name} finish reading before you move.\n- attention: Outside: wait for a look before giving \"Go Sniff\", and mark it with \"good\".\n",
+        "es": "# Mundo 6 · Déjale olfatear\n\n## primer\n### card 1\nRecuerda: espera a que {name} te mire, márcalo, di «Olfatea» y deja que lea el olor con la correa floja. Di «Vamos» para retomar la marcha juntos.\n- caption: Primero la mirada, después el olor\n\n## checkpoint\n### tq1\n{name} frena en un arbusto, con la nariz baja, y te mira. ¿Qué haces?\n- [x] Marcas la mirada, dices «Olfatea» y esperas\n- [ ] Dices «Vamos» y sigues para mantener el ritmo\n- [ ] Tiras con suavidad para que no se pare\n- why: La mirada es un check-in. Marcarla y dar «Olfatea» convierte el olor en el premio.\n\n### tq2\nMientras {name} olfatea, ¿cómo debe estar la correa?\n- [x] Floja, colgando en U\n- [ ] Tensa, para que no se aleje\n- [ ] Enrollada en tu mano\n- why: Una correa floja deja que {name} lea el olor con calma y hace agradable el paseo a los dos.\n\n### tq3\n¿Qué aprende {name} si tirar hacia un olor lo consigue antes?\n- [x] Que tirar funciona\n- [ ] Que los olores no importan\n- [ ] Que tú decides cada olor\n- why: Los olores que se consiguen tirando enseñan a tirar. Los que llegan tras una mirada enseñan a mirar.\n\n## exercises\n- tension: Fuera: elige un olor, espera con la correa floja y deja que {name} termine de leer antes de moverte.\n- attention: Fuera: espera una mirada antes de dar «Olfatea» y márcala con «bien».\n"
+      },
+      "files": [
+        "media/park-nose-on-1.png"
+      ]
+    },
+    "park-unpredictable": {
+      "config": {
+        "id": "park-unpredictable",
+        "mode": "stage",
+        "prerequisites": [
+          "park-nose-on"
+        ],
+        "simulation": {
+          "scenario": {
+            "world": 6,
+            "theme": "open_park",
+            "fixedStep": 0.016666666666666666,
+            "leashLength": 3,
+            "leashTolerance": 0.1,
+            "quickSpeed": 2,
+            "walkStrength": 0.6,
+            "handlerStart": {
+              "x": 0,
+              "y": 0
+            },
+            "dogStart": {
+              "x": 1,
+              "y": 0
+            },
+            "waypoint": {
+              "x": 66,
+              "y": 12
             },
             "waypoints": [
               {
@@ -4392,6 +5646,66 @@ export const BASELINE_PACK: ContentPack = {
                   "x": 77.9,
                   "y": 19.5
                 }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 10,
+                  "y": -2.7
+                },
+                "scent": {
+                  "strength": "normal"
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": 19.9,
+                  "y": 13
+                },
+                "scent": {
+                  "strength": "normal"
+                }
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 29.6,
+                  "y": 0
+                },
+                "scent": {
+                  "strength": "normal"
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 40.2,
+                  "y": 10.8
+                },
+                "scent": {
+                  "strength": "normal"
+                }
+              },
+              {
+                "type": "bush",
+                "pos": {
+                  "x": 50,
+                  "y": 2.5
+                },
+                "scent": {
+                  "strength": "normal"
+                }
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 60.2,
+                  "y": 8.6
+                },
+                "scent": {
+                  "strength": "normal"
+                }
               }
             ],
             "cues": [
@@ -4512,7 +5826,28 @@ export const BASELINE_PACK: ContentPack = {
             },
             "endCondition": {
               "kind": "reach-waypoint"
-            }
+            },
+            "meters": [
+              {
+                "id": "nose",
+                "labelKey": "meter.nose",
+                "icon": "nose",
+                "target": 60,
+                "meterPoints": {
+                  "granted-sniff": 10
+                }
+              },
+              {
+                "id": "connection",
+                "labelKey": "meter.connection",
+                "icon": "eye",
+                "target": 45,
+                "meterPoints": {
+                  "check-in-after-change": 15
+                }
+              }
+            ],
+            "scentWalk": {}
           }
         },
         "checkpoint": [
@@ -6793,6 +8128,50 @@ export const BASELINE_PACK: ContentPack = {
       },
       "files": []
     },
+    "mission-park-sniff": {
+      "config": {
+        "id": "mission-park-sniff",
+        "technique": "let-them-sniff",
+        "reps": 1,
+        "trains": [
+          {
+            "kind": "node",
+            "id": "park-nose-on"
+          }
+        ],
+        "problems": [
+          {
+            "id": "pulls-to-smells",
+            "label": "pulls-to-smells",
+            "practise": {
+              "kind": "node",
+              "id": "park-nose-on"
+            }
+          },
+          {
+            "id": "nolook",
+            "label": "nolook",
+            "practise": {
+              "kind": "node",
+              "id": "park-nose-on"
+            }
+          },
+          {
+            "id": "tight",
+            "label": "tight",
+            "practise": {
+              "kind": "node",
+              "id": "park-nose-on"
+            }
+          }
+        ]
+      },
+      "text": {
+        "en": "# Let Them Sniff\n\n## target\nOn a walk, give \"Go Sniff\" at least three times, each right after {name} looks at you. Check back on a later day to see how it went.\n\n## success\n{name} looks at you before each sniff, and the leash stays Slack while {name} reads the smell.\n\n## problems\n### pulls-to-smells\n- label: {name} pulls toward smells\n- reassure: Many dogs rush at a smell that has always been out of reach. It eases as sniffing becomes part of the walk.\n- cause: Smells have been won by pulling, so pulling still pays.\n- c1: Stop and wait with a Slack leash until the leash hangs, then wait for a look.\n- c2: Mark the look and give \"Go Sniff\" so the smell comes after the glance.\n- easier: One smell on a quiet path, with a long wait.\n- alt: A person waits with a Slack leash while the Dog stands near a bush\n- caption: Wait for the look, then the smell\n\n### nolook\n- label: {name} does not look at me\n- reassure: Glances take time to build. A quiet start is normal.\n- cause: The smell is very strong, or the wait is too short.\n- c1: Choose a weaker smell and wait a little longer.\n- c2: Mark the first glance right away, even a tiny one.\n- easier: A faint smell in a calm corner of the park.\n- alt: A Dog glances up at its person near a lamp post\n- caption: Reward every glance\n\n### tight\n- label: The leash goes Taut at smells\n- reassure: Smells change where {name} wants to go, and the leash shows it first.\n- cause: You moved on before {name} finished, or stood too far from the smell.\n- c1: Step toward the smell so the leash hangs in a U again.\n- c2: Say \"Let's Go\" only when {name} lifts the head.\n- easier: Let {name} sniff close to your feet.\n- alt: A person steps toward a bush so the leash hangs in a U\n- caption: Keep the leash Slack while {name} sniffs\n\n## general\n- reassure: Letting your Dog sniff is a skill that grows over many walks.\n- cause: New routines take a while to settle in for you and {name}.\n- c1: Repeat the exercise on three different days.\n- c2: Review the Let Them Sniff lesson.\n- easier: Five minutes of sniffing in a quiet park.\n- alt: A calm morning park path with a person and a Dog\n- caption: Short, calm practice\n",
+        "es": "# Déjale olfatear\n\n## target\nEn un paseo, da «Olfatea» al menos tres veces, cada una justo después de que {name} te mire. Vuelve otro día para ver cómo fue.\n\n## success\n{name} te mira antes de cada olfateo y la correa se mantiene floja mientras lee el olor.\n\n## problems\n### pulls-to-smells\n- label: {name} tira hacia los olores\n- reassure: Muchos perros se lanzan a un olor que siempre quedó fuera de su alcance. Mejora cuando olfatear pasa a formar parte del paseo.\n- cause: Los olores se han ganado tirando, así que tirar sigue funcionando.\n- c1: Párate y espera con la correa floja hasta que cuelgue, y luego espera una mirada.\n- c2: Marca la mirada y da «Olfatea» para que el olor llegue después de la mirada.\n- easier: Un solo olor en un camino tranquilo, con una espera larga.\n- alt: Una persona espera con la correa floja mientras el perro está junto a un arbusto\n- caption: Espera la mirada y después el olor\n\n### nolook\n- label: {name} no me mira\n- reassure: Las miradas tardan en llegar. Empezar despacio es normal.\n- cause: El olor es muy fuerte, o la espera es demasiado corta.\n- c1: Elige un olor más suave y espera un poco más.\n- c2: Marca la primera mirada al instante, aunque sea mínima.\n- easier: Un olor suave en un rincón tranquilo del parque.\n- alt: Un perro levanta la vista hacia su persona junto a una farola\n- caption: Premia cada mirada\n\n### tight\n- label: La correa se tensa en los olores\n- reassure: Los olores cambian adónde quiere ir {name}, y la correa lo muestra primero.\n- cause: Seguiste antes de que {name} terminara, o te quedaste demasiado lejos del olor.\n- c1: Acércate al olor para que la correa vuelva a colgar en U.\n- c2: Di «Vamos» solo cuando {name} levante la cabeza.\n- easier: Deja que {name} olfatee cerca de tus pies.\n- alt: Una persona se acerca a un arbusto para que la correa cuelgue en U\n- caption: Correa floja mientras {name} olfatea\n\n## general\n- reassure: Dejar olfatear es una habilidad que crece con muchos paseos.\n- cause: Las rutinas nuevas tardan en asentarse, para ti y para {name}.\n- c1: Repite el ejercicio en tres días distintos.\n- c2: Repasa la lección Déjale olfatear.\n- easier: Cinco minutos de olfateo en un parque tranquilo.\n- alt: Un camino del parque por la mañana con una persona y su perro en calma\n- caption: Práctica corta y tranquila\n"
+      },
+      "files": []
+    },
     "mission-park-unpredictable": {
       "config": {
         "id": "mission-park-unpredictable",
@@ -6802,6 +8181,10 @@ export const BASELINE_PACK: ContentPack = {
           {
             "kind": "node",
             "id": "park-unpredictable"
+          },
+          {
+            "kind": "node",
+            "id": "park-keep-fresh"
           }
         ],
         "problems": [

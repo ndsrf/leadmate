@@ -5,10 +5,18 @@ unlockedBy: park
 nodeCount: 16
 stretches:
   - - kind: lesson
+      id: theory-sniffing-walks
+    - kind: node
+      id: park-nose-on
+    - kind: mission
+      id: mission-park-sniff
+  - - kind: lesson
       id: theory-unpredictable-walks
     - kind: lesson
       id: howto-yield-pressure
     - kind: node
       id: park-unpredictable
+    - kind: node
+      id: park-keep-fresh
     - kind: mission
       id: mission-park-unpredictable

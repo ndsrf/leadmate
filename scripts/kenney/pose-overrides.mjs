@@ -4,6 +4,11 @@
 // A job's `clips` maps an output clip name to either
 //   - an array of animation times (the GLB clip has the same name; `still` reads `static`), or
 //   - { clip, times, overrides }: a posed clip, read from the GLB clip `clip`, with its own bone overrides.
+// A posed clip may add `facingScale: { <facing>: factor }`: for those facings its own overrides turn by `factor` times
+// the angle (an exaggerated head turn where the camera sees the Dog side-on). `byFacing` holds the scaled lists and
+// `overridesFor(facing)` picks one; the job's overrides are never scaled.
+// `perFrame: [overrides, ...]` (one list per time) adds overrides to single frames, such as a tail swinging; the clip
+// then becomes one plan entry per time, with its frame `index`.
 // A job's `overrides` apply to every one of its clips, before the clip's own.
 // An override is { bone: '<node name>', rotate: [x, y, z] } in degrees (Euler XYZ, local to the bone),
 // multiplied onto the bone's animated rotation.
@@ -32,12 +37,41 @@ function resolve(overrides = [], where) {
   });
 }
 
+function withFacing(entry) {
+  Object.defineProperty(entry, 'overridesFor', { value: (facing) => entry.byFacing?.[facing] ?? entry.overrides });
+  return entry;
+}
+
 /** The clips a job renders, in order: [{ name, source, times, overrides: [{ bone, quaternion }] }]. */
 export function clipPlan(job) {
+  return clipPlanWhole(job).flatMap((e) => e.perFrame ? e.perFrame : [e]);
+}
+
+function clipPlanWhole(job) {
   const base = resolve(job.overrides, job.id);
   return Object.entries(job.clips).map(([name, spec]) => {
     if (!NAME.test(name)) throw new Error(`${job.id}: clip name ${name} must be lowercase letters only`);
-    if (Array.isArray(spec)) return { name, source: name === 'still' ? 'static' : name, times: spec, overrides: base };
-    return { name, source: spec.clip, times: spec.times, overrides: [...base, ...resolve(spec.overrides, `${job.id} ${name}`)] };
+    if (Array.isArray(spec)) return withFacing({ name, source: name === 'still' ? 'static' : name, times: spec, overrides: base });
+    const own = spec.overrides ?? [];
+    const entry = { name, source: spec.clip, times: spec.times, overrides: [...base, ...resolve(own, `${job.id} ${name}`)] };
+    if (spec.facingScale || spec.facingExtra) {
+      entry.byFacing = {};
+      const facings = new Set([...Object.keys(spec.facingScale ?? {}), ...Object.keys(spec.facingExtra ?? {})]);
+      for (const facing of facings) {
+        const k = spec.facingScale?.[facing] ?? 1;
+        const scaled = own.map((o) => ({ ...o, rotate: o.rotate.map((v) => v * k) }));
+        entry.byFacing[facing] = [...base, ...resolve([...scaled, ...(spec.facingExtra?.[facing] ?? [])], `${job.id} ${name} @${facing}`)];
+      }
+    }
+    if (spec.perFrame) {
+      if (spec.perFrame.length !== spec.times.length) throw new Error(`${job.id} ${name}: perFrame needs one list per time`);
+      entry.perFrame = spec.times.map((t, i) => {
+        const extra = (list) => [...list, ...resolve(spec.perFrame[i], `${job.id} ${name} frame ${i}`)];
+        const one = { name, source: spec.clip, times: [t], index: i, overrides: extra(entry.overrides) };
+        if (entry.byFacing) one.byFacing = Object.fromEntries(Object.entries(entry.byFacing).map(([f, l]) => [f, extra(l)]));
+        return withFacing(one);
+      });
+    }
+    return withFacing(entry);
   });
 }

@@ -30,8 +30,33 @@ export const MARKER_RADIUS = 52;
 export const JOY_RADIUS = 70;
 export const CUE_RADIUS = 34;
 export const SNIFF_RADIUS = 34;
+/** The Jackpot button is smaller than the Marker: a second, rarer reward. */
+export const JACKPOT_RADIUS = 26;
+/** Room kept at the bottom of the screen for the Arousal bar. */
+const AROUSAL_BAR_ROOM = 20;
 /** Widest label under or over a Cue or Go Sniff button: the room up to the neighboring button. */
 export const CUE_LABEL_WIDTH = CUE_RADIUS * 2.4;
+
+/** Dog portrait sizing: 96-120 px from the screen's short side (readable-dog Decision 6). */
+export const PORTRAIT_MIN_SIZE = 96;
+export const PORTRAIT_MAX_SIZE = 120;
+export const PORTRAIT_MARGIN = 12;
+
+export interface Insets {
+  top?: number;
+  right?: number;
+  bottom?: number;
+  left?: number;
+}
+
+export interface PortraitLayout extends Point {
+  size: number;
+}
+
+/** Tells whether `point` falls inside the Dog portrait's touch area. */
+export function isPointInPortrait(point: Point, portrait: PortraitLayout): boolean {
+  return Math.hypot(point.x - portrait.x, point.y - portrait.y) <= portrait.size * 0.55;
+}
 
 export type HudCue = 'lets-go' | 'leave-it';
 
@@ -71,23 +96,58 @@ export interface HudLayout {
   leaveItHome: Point;
   /** The contextual Go Sniff button, beside the Marker. */
   sniffHome: Point;
+  /** The Dog portrait center and size, in the top-right corner away from the back button. */
+  portraitHome: Point;
+  portraitSize: number;
+  portrait: PortraitLayout;
+  /** The Jackpot button, only in a Stage with a Jackpot budget: under Go Sniff, or left of it when the screen is too short. */
+  jackpotHome: Point | null;
 }
 
 /**
  * Where the HUD controls go: joystick under the left thumb, Marker and Cues under the right. With
  * both Cues the "Leave It" button sits to the left of "Let's Go"; a single Cue takes the main slot.
+ * The Dog portrait sits in the top-right corner, sized 96-120 px from the short side, respecting insets.
  */
-export function hudLayout(width: number, height: number, cues: readonly HudCue[] = ['lets-go']): HudLayout {
+export function hudLayout(
+  width: number,
+  height: number,
+  cues: readonly HudCue[] = ['lets-go'],
+  options: { insets?: Insets; jackpot?: boolean } = {},
+): HudLayout {
+  const insets = options.insets ?? {};
+  const jackpot = options.jackpot ?? false;
   const margin = Math.min(120, height * 0.25);
   const markerHome = { x: width - Math.min(120, width * 0.18), y: height - margin };
   const cueHome = { x: markerHome.x, y: markerHome.y - MARKER_RADIUS - CUE_RADIUS - 14 };
   const both = cues.includes('lets-go') && cues.includes('leave-it');
+
+  const shortSide = Math.min(width, height);
+  const size = Math.max(PORTRAIT_MIN_SIZE, Math.min(PORTRAIT_MAX_SIZE, Math.round(shortSide * 0.28)));
+  const insetTop = insets.top ?? 0;
+  const insetRight = insets.right ?? 0;
+  const portraitHome: Point = {
+    x: width - insetRight - PORTRAIT_MARGIN - size / 2,
+    y: insetTop + PORTRAIT_MARGIN + size / 2,
+  };
+
+  const sniffHome = { x: markerHome.x - MARKER_RADIUS - SNIFF_RADIUS - 14, y: markerHome.y };
+  const below = sniffHome.y + SNIFF_RADIUS + 10 + JACKPOT_RADIUS;
+  const fitsBelow = below + JACKPOT_RADIUS <= height - AROUSAL_BAR_ROOM;
   return {
     joyHome: { x: Math.min(130, width * 0.2), y: height - margin },
     markerHome,
     cueHome,
     leaveItHome: both ? { x: cueHome.x - 2 * CUE_RADIUS - 14, y: cueHome.y } : cueHome,
-    sniffHome: { x: markerHome.x - MARKER_RADIUS - SNIFF_RADIUS - 14, y: markerHome.y },
+    sniffHome,
+    jackpotHome: !jackpot ? null : fitsBelow ? { x: sniffHome.x, y: below } : { x: sniffHome.x - SNIFF_RADIUS - JACKPOT_RADIUS - 14, y: sniffHome.y },
+    portraitHome,
+    portraitSize: size,
+    portrait: {
+      x: portraitHome.x,
+      y: portraitHome.y,
+      size,
+    },
   };
 }
 

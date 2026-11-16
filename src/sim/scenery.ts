@@ -1,5 +1,5 @@
-import type { ScenarioConfig } from './config';
-import { closestOnSegment, routeLength, segmentsCross, type SceneryItem, type SceneryTheme, type Wall } from './geometry';
+import type { ScenarioConfig, ScentSpec } from './config';
+import { closestOnSegment, routeLength, SCENT_STRENGTHS, segmentsCross, type SceneryItem, type SceneryTheme, type Wall } from './geometry';
 import { meterProblems } from './meters';
 import { createRng, type Rng } from './rng';
 import { distance, type Vec2 } from './vec';
@@ -227,6 +227,37 @@ export function validateScenario(config: ScenarioConfig): string[] {
 
   if (config.scenery.every((p) => finite(p.pos))) errors.push(...solidProblems(config, route));
   errors.push(...meterProblems(config));
+  errors.push(...scentProblems(config));
+  return errors;
+}
+
+/** What is wrong with a scenario's Scent Spots and Jackpot budget, each naming the spot and the field. */
+export function scentProblems(config: ScenarioConfig): string[] {
+  const errors: string[] = [];
+  const check = (name: string, spec: Partial<ScentSpec>) => {
+    if (!SCENT_STRENGTHS.includes(spec.strength as never)) errors.push(`${name}: strength "${String(spec.strength)}" is not one of ${SCENT_STRENGTHS.join(', ')}`);
+    if (spec.radius !== undefined && !(typeof spec.radius === 'number' && Number.isFinite(spec.radius) && spec.radius > 0)) errors.push(`${name}: radius must be a number above 0`);
+    if (spec.marking !== undefined && typeof spec.marking !== 'boolean') errors.push(`${name}: marking must be true or false`);
+  };
+  const scents = config.scents;
+  if (scents !== undefined && !Array.isArray(scents)) errors.push('scents must be a list');
+  else {
+    (scents ?? []).forEach((spot, i) => {
+      const name = `scent ${i + 1}`;
+      if (!spot || typeof spot !== 'object') {
+        errors.push(`${name}: must be a Scent Spot`);
+        return;
+      }
+      if (spot.pos === undefined) errors.push(`${name}: pos is missing`);
+      else if (!finite(spot.pos)) errors.push(`${name}: pos is not a finite number`);
+      check(name, spot);
+    });
+  }
+  for (const item of config.scenery) {
+    if (item.scent !== undefined) check(`scent on ${item.type} at (${item.pos.x.toFixed(1)}, ${item.pos.y.toFixed(1)})`, item.scent);
+  }
+  const budget = config.jackpotBudget;
+  if (budget !== undefined && !(Number.isInteger(budget) && budget >= 0)) errors.push('jackpotBudget must be a whole number of 0 or more');
   return errors;
 }
 

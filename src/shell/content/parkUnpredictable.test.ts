@@ -19,9 +19,9 @@ const NODE = 'park-unpredictable';
 afterEach(() => setActiveContent(null));
 
 describe('World 6 Stage Node park-unpredictable (beta)', () => {
-  it('the beta pack validates with no errors and needs app 1.1.0 for the Image Duel', () => {
+  it('the beta pack validates with no errors and needs app 1.2.0 (scent walks and the Image Duel)', () => {
     expect(validatePack(pack).errors).toEqual([]);
-    expect(pack.pack.minAppVersion).toBe('1.1.0');
+    expect(pack.pack.minAppVersion).toBe('1.2.0');
   });
 
   it.each(['es', 'en'])('loads in %s with a 3-question Checkpoint: text, one Image Duel, text', (lang) => {
@@ -78,12 +78,13 @@ describe('World 6 Stage Node park-unpredictable (beta)', () => {
     }
   });
 
-  it('World 6 is one Stretch in order, no longer a preview, with more Stretches coming', () => {
+  it('World 6 is two Stretches in order, no longer a preview, with more Stretches coming', () => {
     const resolved = resolvePack(pack, 'es');
     const world = resolved.worlds.find((w) => w.id === 'recall')!;
     expect(world.preview).toBeFalsy();
-    expect(world.stretches).toHaveLength(1);
-    expect(world.stretches[0].map((s) => s.id)).toEqual(['theory-unpredictable-walks', 'howto-yield-pressure', NODE, 'mission-park-unpredictable']);
+    expect(world.stretches).toHaveLength(2);
+    expect(world.stretches[0].map((s) => s.id)).toEqual(['theory-sniffing-walks', 'park-nose-on', 'mission-park-sniff']);
+    expect(world.stretches[1].map((s) => s.id)).toEqual(['theory-unpredictable-walks', 'howto-yield-pressure', NODE, 'park-keep-fresh', 'mission-park-unpredictable']);
     expect(hasMoreComing(world)).toBe(true);
     void findWorld;
   });

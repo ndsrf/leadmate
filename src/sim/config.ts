@@ -1,6 +1,6 @@
 import { defaultRanges, DEFAULT_SNAPSHOT, type AttributeRanges, type DistractorKind, type LearningSnapshot } from './learning';
 import type { FeedbackActionKind } from './feedbackKinds';
-import type { SceneryItem, SceneryTheme, Wall } from './geometry';
+import type { SceneryItem, SceneryTheme, ScentStrength, Wall } from './geometry';
 import { scatterScenery } from './scenery';
 import type { Vec2 } from './vec';
 
@@ -148,6 +148,101 @@ export interface StageMeterConfig {
   meterPoints: Partial<Record<FeedbackActionKind, number>>;
 }
 
+export { SCENT_STRENGTHS, type ScentStrength } from './geometry';
+
+/** What makes a place a Scent Spot; a scenery item may carry one as `scent:` (its position is the item's). */
+export interface ScentSpec {
+  strength: ScentStrength;
+  /** Nose radius in meters: the spot reaches the Dog's nose within this distance. Defaults per strength (`ScentWalkConfig.radius`). */
+  radius?: number;
+  /** A marking post: the Dog stops to mark it instead of only sniffing. */
+  marking?: boolean;
+}
+
+/** A Scent Spot of a scenario (see `scent-drive`). */
+export interface ScentSpotConfig extends ScentSpec {
+  pos: Vec2;
+}
+
+/**
+ * Scent-walk tunables. Every value has a default (`DEFAULT_SCENT_WALK`) and a scenario may override
+ * any of them under `scentWalk:`; they only matter in a Stage with Scent Spots.
+ */
+export interface ScentWalkConfig {
+  /** Pull weight of each strength in `w_scent = strength x (autopilotFloor + (1 - autopilotFloor) x autopilot)`; the Goal Drive weighs 1. */
+  pull: Record<ScentStrength, number>;
+  /** Share of the pull that applies at Autopilot 0. */
+  autopilotFloor: number;
+  /** Default nose radius of each strength, in meters. */
+  radius: Record<ScentStrength, number>;
+  /** The Dog is at a Scent Spot within this distance, in meters. */
+  reachDistance: number;
+  /** The heading Goal aims this far ahead of the Handler, in meters (kept inside Slack). */
+  headingLead: number;
+  autopilot: {
+    /** Rise per second of steady walking. */
+    risePerSecond: number;
+    /** Walking counts as steady while the heading stays within this angle, in radians... */
+    steadyAngle: number;
+    /** ...and the smoothed pace within this share of where it settled... */
+    steadyPace: number;
+    /** ...for at least this many seconds. */
+    steadySeconds: number;
+    /** Drop on a counted change, times that change's Novelty. */
+    dropPerChange: number;
+    /** The follow chance is multiplied by `1 - followDamping x autopilot`. */
+    followDamping: number;
+  };
+  novelty: {
+    /** Novelty lost each time a kind of change is made. */
+    step: number;
+    /** Novelty regained per second while that kind is not used. */
+    recoveryPerSecond: number;
+    /** A change is fresh at or above this Novelty... */
+    fresh: number;
+    /** ...and repeated below this one. */
+    repeated: number;
+    /** Added to the follow chance of a fresh change, before the cap. */
+    freshBonus: number;
+  };
+  pace: {
+    /** The smoothed input strength is its mean over this many seconds. */
+    smoothingSeconds: number;
+    /** A change of the smoothed strength by this share of where it settled is a speed-up or a slow-down. */
+    threshold: number;
+  };
+  /** A turn wider than this, in radians, is a U-turn. */
+  uTurnAngle: number;
+  /** Seeded duration range of a Plant, in seconds. */
+  plantSeconds: { min: number; max: number };
+  /** Seeded duration range of a marking, in seconds. */
+  markingSeconds: { min: number; max: number };
+  /** One-off Arousal points of a Plant dragged or a marking interrupted, before the Equipment Rigid Pull multiplier. */
+  dragArousal: number;
+  chain: {
+    /** Slack walking after the Marker that completes a Chain, in seconds. */
+    walkSeconds: number;
+    /** A Go Sniff this soon after the Marker completes a Chain, in seconds. */
+    sniffSeconds: number;
+  };
+}
+
+export const DEFAULT_SCENT_WALK: ScentWalkConfig = {
+  pull: { weak: 1.5, normal: 3, hot: 5 },
+  autopilotFloor: 0.3,
+  radius: { weak: 3, normal: 4, hot: 5 },
+  reachDistance: 0.6,
+  headingLead: 1.4,
+  autopilot: { risePerSecond: 0.05, steadyAngle: (15 * Math.PI) / 180, steadyPace: 0.2, steadySeconds: 1, dropPerChange: 0.6, followDamping: 0.4 },
+  novelty: { step: 0.45, recoveryPerSecond: 0.025, fresh: 0.7, repeated: 0.4, freshBonus: 0.15 },
+  pace: { smoothingSeconds: 0.5, threshold: 0.35 },
+  uTurnAngle: (135 * Math.PI) / 180,
+  plantSeconds: { min: 3, max: 6 },
+  markingSeconds: { min: 2, max: 4 },
+  dragArousal: 8,
+  chain: { walkSeconds: 2, sniffSeconds: 3 },
+};
+
 /** Every tunable of a Stage. 1 world unit = 1 m. */
 /** Dog coats the bundle can draw (visual only). */
 export const DOG_COAT_NAMES = ['golden', 'black', 'chocolate', 'cream', 'white', 'grey', 'red'] as const;
@@ -222,6 +317,40 @@ export interface ScenarioConfig {
   endCondition: EndCondition;
   /** Stage Meters (at most `MAX_STAGE_METERS` of `meters.ts`); without them the handling score follows ADR 0005. */
   meters?: StageMeterConfig[];
+  /** Scent Spots (see `scentSpotsOf`, which adds those carried by scenery items); a Stage with any is a scent Stage. */
+  scents?: ScentSpotConfig[];
+  /** Overrides of the scent-walk tunables (`DEFAULT_SCENT_WALK`); partial objects merge per group. */
+  scentWalk?: DeepPartial<ScentWalkConfig>;
+  /** Jackpots available in this Stage; the Jackpot button shows only when this is above 0. */
+  jackpotBudget?: number;
+}
+
+type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
+
+/** The scent-walk tunables of a scenario: its overrides over the defaults. */
+export function scentWalkOf(config: Pick<ScenarioConfig, 'scentWalk'>): ScentWalkConfig {
+  const o = config.scentWalk;
+  if (!o) return DEFAULT_SCENT_WALK;
+  const d = DEFAULT_SCENT_WALK;
+  return {
+    ...d,
+    ...(o as Partial<ScentWalkConfig>),
+    pull: { ...d.pull, ...o.pull },
+    radius: { ...d.radius, ...o.radius },
+    autopilot: { ...d.autopilot, ...o.autopilot },
+    novelty: { ...d.novelty, ...o.novelty },
+    pace: { ...d.pace, ...o.pace },
+    plantSeconds: { ...d.plantSeconds, ...o.plantSeconds },
+    markingSeconds: { ...d.markingSeconds, ...o.markingSeconds },
+    chain: { ...d.chain, ...o.chain },
+  };
+}
+
+/** Every Scent Spot of a scenario: the `scents` list, then the scenery items that carry `scent:`, in order. */
+export function scentSpotsOf(config: Pick<ScenarioConfig, 'scents' | 'scenery'>): ScentSpotConfig[] {
+  const listed = config.scents ?? [];
+  const carried = (config.scenery ?? []).filter((item) => item.scent).map((item) => ({ ...item.scent!, pos: item.pos }));
+  return [...listed, ...carried];
 }
 
 export const defaultScenario: ScenarioConfig = {

@@ -9,6 +9,10 @@ export interface Wall {
 export type SceneryTheme = 'indoor_apartment' | 'quiet_suburb' | 'urban_street' | 'open_park';
 
 /** A prop of the scenery set. A prop with `visualShield` blocks line of sight (a parked car). */
+/** How strongly a Scent Spot pulls the Dog's nose. */
+export type ScentStrength = 'weak' | 'normal' | 'hot';
+export const SCENT_STRENGTHS: readonly ScentStrength[] = ['weak', 'normal', 'hot'];
+
 export interface SceneryItem {
   type: string;
   pos: Vec2;
@@ -17,6 +21,8 @@ export interface SceneryItem {
   radius?: number;
   /** Direction of a long prop's footprint, in radians from the x axis; 0 when absent. */
   angle?: number;
+  /** The item is a Scent Spot (a lamp post, a bush, a bin): the scenery `scent:` helper. */
+  scent?: { strength: ScentStrength; radius?: number; marking?: boolean };
 }
 
 export const DEFAULT_SHIELD_RADIUS = 1.2;

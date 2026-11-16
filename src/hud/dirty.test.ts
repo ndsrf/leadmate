@@ -1,4 +1,8 @@
-import { createChangeDetector, quantize } from './dirty';
+import { createChangeDetector, portraitDirtyKey, quantize, wagStep, WAG_HZ } from './dirty';
+import type { DogPose } from './pose';
+import { closeHudLayout } from './layout';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 describe('createChangeDetector', () => {
   it('reports the first key and any different key, not a repeat', () => {
@@ -65,5 +69,79 @@ describe('effect dirty tracking (Task 3.4)', () => {
       if (d.changed(effectKey(false, 0))) quietRedraws++;
     }
     expect(quietRedraws).toBe(0);
+  });
+});
+
+describe('Dog portrait dirty tracking (readable-dog 4.3)', () => {
+  const calm: Pick<DogPose, 'gaze' | 'head' | 'ears' | 'tail'> = {
+    head: 'level',
+    ears: 'neutral',
+    tail: 'neutral',
+    gaze: 'ahead',
+  };
+
+  it('keeps unchanged calm pose clean over time (0 redraws after initial draw)', () => {
+    const d = createChangeDetector();
+    let redraws = 0;
+    // 30 frames over 1 second of calm walking
+    for (let frame = 0; frame < 30; frame++) {
+      const time = frame / 30;
+      if (d.changed(portraitDirtyKey(calm, time))) redraws++;
+    }
+    expect(redraws).toBe(1); // Only the initial draw
+  });
+
+  it('redraws when the Canine Posture state changes', () => {
+    const d = createChangeDetector();
+    d.changed(portraitDirtyKey(calm, 0));
+
+    const alert: typeof calm = { ...calm, head: 'up', ears: 'forward', tail: 'high' };
+    expect(d.changed(portraitDirtyKey(alert, 0.05))).toBe(true);
+    expect(d.changed(portraitDirtyKey(alert, 0.1))).toBe(false);
+
+    const checkIn: typeof calm = { ...calm, gaze: 'handler', ears: 'forward', tail: 'wagging' };
+    expect(d.changed(portraitDirtyKey(checkIn, 0.15))).toBe(true);
+  });
+
+  it('redraws only on a wag step at 4 Hz when tail is wagging', () => {
+    const d = createChangeDetector();
+    const wagging: typeof calm = { ...calm, gaze: 'handler', ears: 'forward', tail: 'wagging' };
+
+    // In 1 second at 30 fps (30 frames), a 4 Hz wag has 4 step transitions
+    let redraws = 0;
+    for (let frame = 0; frame < 30; frame++) {
+      const time = frame / 30;
+      if (d.changed(portraitDirtyKey(wagging, time))) redraws++;
+    }
+    // Initial draw at frame 0, plus 3 subsequent step flips = 4 draws in 1 second
+    expect(redraws).toBe(WAG_HZ);
+  });
+
+  it('never animates wag under reduced motion (0 redraws over time)', () => {
+    const d = createChangeDetector();
+    const wagging: typeof calm = { ...calm, gaze: 'handler', ears: 'forward', tail: 'wagging' };
+
+    let redraws = 0;
+    for (let frame = 0; frame < 30; frame++) {
+      const time = frame / 30;
+      if (d.changed(portraitDirtyKey(wagging, time, { reducedMotion: true }))) redraws++;
+    }
+    expect(redraws).toBe(1); // Only the initial draw
+  });
+
+  it('never shows a Dog portrait in close exercises (readable-dog 4.3)', () => {
+    // 1. Close HUD layout must only contain gather, poste and marker buttons (no portrait)
+    const layout = closeHudLayout(360, 740) as unknown as Record<string, unknown>;
+    expect(layout.portrait).toBeUndefined();
+    expect(layout.portraitHome).toBeUndefined();
+
+    // 2. CloseExerciseScene source code must not import or load the portrait atlas or draw a portrait
+    const closeSceneSrc = readFileSync(join(__dirname, '../../bundle/src/CloseExerciseScene.ts'), 'utf8');
+    expect(closeSceneSrc).not.toContain('assets/portrait');
+    expect(closeSceneSrc).not.toContain('PORTRAIT_ATLAS');
+    expect(closeSceneSrc).not.toContain('portraitLayers');
+    expect(closeSceneSrc).not.toContain('drawPortrait');
+  });
+});
   });
 });

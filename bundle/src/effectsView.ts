@@ -76,12 +76,10 @@ export class EffectsView {
   private lastDogPos: Point = { x: 0, y: 0 };
   private messageBasePos: Point = { x: 0, y: 0 };
 
-  constructor(scene: Phaser.Scene, hudCam: Phaser.Cameras.Scene2D.Camera) {
+  constructor(scene: Phaser.Scene, hudCam: Phaser.Cameras.Scene2D.Camera, reducedMotion = false) {
     this.scene = scene;
     this.hudCam = hudCam;
-    this.reducedMotion =
-      typeof window !== 'undefined' &&
-      Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches);
+    this.reducedMotion = reducedMotion;
     this.tracker = createEffectsTracker(this.reducedMotion);
   }
 

@@ -1,7 +1,7 @@
 import { es } from '../i18n';
 import { applyDetents, keyboardInput, mapCloseKeyboardEvent, screenToWorldDirection } from './input';
 import { project, unproject } from './iso';
-import { CUE_LABEL_WIDTH, CUE_RADIUS, fitFontSize, hudLayout, MARKER_RADIUS, SNIFF_RADIUS, textWidth, visibleCues } from './layout';
+import { CUE_LABEL_WIDTH, CUE_RADIUS, fitFontSize, hudLayout, JACKPOT_RADIUS, JOY_RADIUS, MARKER_RADIUS, SNIFF_RADIUS, textWidth, visibleCues } from './layout';
 
 describe('isometric projection', () => {
   it('round-trips ground points', () => {
@@ -134,6 +134,47 @@ describe('Cue and Go Sniff buttons', () => {
       const longer = es[key] + es[key].slice(0, Math.ceil(es[key].length * 0.4));
       expect(textWidth(longer, fitFontSize(longer, CUE_LABEL_WIDTH, 14))).toBeLessThanOrEqual(CUE_LABEL_WIDTH + 1e-9);
     }
+  });
+});
+
+describe('Jackpot button', () => {
+  const apart = (a: { x: number; y: number }, b: { x: number; y: number }, ra: number, rb: number) => Math.hypot(a.x - b.x, a.y - b.y) >= ra + rb;
+
+  it('is not laid out without a Jackpot budget', () => {
+    expect(hudLayout(320, 568).jackpotHome).toBeNull();
+    expect(hudLayout(320, 568, ['lets-go', 'leave-it'], { jackpot: false }).jackpotHome).toBeNull();
+  });
+
+  it('is smaller than the Marker', () => expect(JACKPOT_RADIUS).toBeLessThan(MARKER_RADIUS));
+
+  it.each([
+    [320, 568],
+    [320, 480],
+    [360, 740],
+    [568, 320],
+    [740, 360],
+    [1280, 720],
+  ])('sits next to the Marker, on screen and clear of every other control at %ix%i', (w, h) => {
+    const l = hudLayout(w, h, ['lets-go', 'leave-it'], { jackpot: true });
+    const j = l.jackpotHome!;
+    expect(j).not.toBeNull();
+    expect(j.x - JACKPOT_RADIUS).toBeGreaterThanOrEqual(0);
+    expect(j.x + JACKPOT_RADIUS).toBeLessThanOrEqual(w);
+    expect(j.y - JACKPOT_RADIUS).toBeGreaterThanOrEqual(0);
+    expect(j.y + JACKPOT_RADIUS).toBeLessThanOrEqual(h - 20); // clear of the Arousal bar
+    expect(j.x).toBeGreaterThan(w * 0.5); // under the right thumb
+    expect(Math.hypot(j.x - l.markerHome.x, j.y - l.markerHome.y)).toBeLessThan(MARKER_RADIUS + 2 * SNIFF_RADIUS + 2 * JACKPOT_RADIUS + 40);
+    expect(apart(j, l.markerHome, JACKPOT_RADIUS, MARKER_RADIUS + 30)).toBe(true); // and its label below
+    expect(apart(j, l.sniffHome, JACKPOT_RADIUS, SNIFF_RADIUS + 9)).toBe(true); // and its time ring
+    expect(apart(j, l.cueHome, JACKPOT_RADIUS, CUE_RADIUS)).toBe(true);
+    expect(apart(j, l.leaveItHome, JACKPOT_RADIUS, CUE_RADIUS)).toBe(true);
+    expect(apart(j, l.joyHome, JACKPOT_RADIUS, JOY_RADIUS)).toBe(true);
+  });
+
+  it('keeps the other controls where they were', () => {
+    const { jackpotHome: _a, ...withJackpot } = hudLayout(320, 568, ['lets-go'], { jackpot: true });
+    const { jackpotHome: _b, ...without } = hudLayout(320, 568, ['lets-go']);
+    expect(withJackpot).toEqual(without);
   });
 });
 

@@ -120,10 +120,27 @@ describe('Dog pose', () => {
     it('shows planted and marking only when the simulation has those modes', () => {
       const s = createState(1, free);
       expect(['planted', 'marking']).not.toContain(dogPose(s).action);
-      (s as { dogMode: string }).dogMode = 'planted';
-      expect(dogPose(s).action).toBe('planted');
-      (s as { dogMode: string }).dogMode = 'marking';
-      expect(dogPose(s).action).toBe('marking');
+    });
+
+    /** Walks a scent Stage until the Dog Plants at a hot Scent Spot (or marks a post) just ahead. */
+    function stayAt(marking: boolean) {
+      const s = createState(3, { ...defaultScenario, distractor: free.distractor, world: 6, scenery: [], scents: [{ pos: { x: 5, y: 0.5 }, strength: marking ? 'normal' : 'hot', marking }] });
+      for (let i = 0; i < 600 && s.dogMode !== (marking ? 'marking' : 'planted'); i++) tick(s, { direction: { x: 1, y: 0 }, strength: 0.6, marker: false });
+      return s;
+    }
+
+    it('shows a Plant: planted, nose down at the spot', () => {
+      const s = stayAt(false);
+      expect(s.dogMode).toBe('planted');
+      expect(dogPose(s)).toMatchObject({ action: 'planted', gaze: 'ground', head: 'down', headDown: true });
+      expect(walkClipFor(dogPose(s))).toBe('planted');
+    });
+
+    it('shows a marking: marking, not sniffing', () => {
+      const s = stayAt(true);
+      expect(s.dogMode).toBe('marking');
+      expect(dogPose(s)).toMatchObject({ action: 'marking', headDown: false });
+      expect(walkClipFor(dogPose(s))).toBe('mark');
     });
 
     it('maps a pose to one walking clip', () => {

@@ -27,7 +27,7 @@ describe('buildPack / content:build', () => {
     expect(result.manifest.channel).toBe('beta');
     expect(result.manifest.contentVersion).toBe(1);
     expect(result.manifest.formatVersion).toBe(1);
-    expect(result.manifest.minAppVersion).toBe('1.1.0');
+    expect(result.manifest.minAppVersion).toBe('1.2.0');
     expect(typeof result.manifest.createdAt).toBe('string');
 
     const fileKeys = Object.keys(result.manifest.files);

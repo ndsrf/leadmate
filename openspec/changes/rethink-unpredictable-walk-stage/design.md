@@ -64,7 +64,63 @@
 
 11. **Inserting "Let them sniff" ahead of an existing Stretch.** Availability stays "every Stop before it done and every earlier Mission passed", with one exception: a Stop the user could reach under the previous trail stays available. This is computed from the user's existing progress (any done Stop or passed Mission in a later Stretch makes that Stretch's reachable Stops stay open) and needs no stored migration.
 
+    Implemented in `isInserted`, `stopLock` and `doneness` of `src/shell/world.ts` (tests: `src/shell/worldInsertion.test.ts`):
+    - A Stretch counts as inserted when its Mission is neither passed nor owed, yet a later Stretch has a completed Node or a started Mission. The Mission gate prevents this otherwise. A Lesson read does not count, because the Theory Library opens any Lesson. So a user who had only read "Unpredictable walks" Lessons finds that Stretch behind the "Let them sniff" Mission, and their read Lessons stay done. Home Stretches keep ADR 0023's rules. A user from before Missions (a completed later Node is a legacy Node) keeps grandfathering.
+    - An inserted Stretch's Mission does not lock the later Stretches (each earlier Stretch is checked on its own, so a Stretch after a passed one stays open too). It is never grandfathered (ADR 0013), even after the user starts it. Its Stops are played in order and are not satisfied by progress in the Stretches after it.
+    - A Mission the user already started is not locked by Stops added before it in its Stretch.
+    - In a World the user completed (`completedWorlds`), a Stop added before a passed Mission counts as satisfied. It shows as open and optional, and the World stays complete.
+    - The next World opens when every Stretch of the World is done except the inserted ones. Their Missions stay to do, but they do not lock a World the user could already reach. For World 6 this means a part-way user who finishes "Unpredictable walks" opens World 7, as on the previous trail.
+    - Checked against 713800d over the shipped Worlds for about 69,000 Stop statuses. The users covered were normal, started, Day Skip, Library-reading, legacy, Home Concern and Personal Plan users (trail and reversed order, with and without Library reads), each step by step along the trail. Only one case differs. When a Personal Plan moves a Stretch the user touched (for example by reading its Lesson from the Library) ahead of World 2 Stretches already finished, its Mission was grandfathered before. Now it stays to do, and World 2 is no longer complete, but World 3 stays unlocked. In that case `mission-poste` goes from done (grandfathered) to locked behind its own Node, `poste-practice`, which is open. No other Stop goes from open or done to locked.
+
 12. **Timeline.** The simulation appends `{t, kind, polarity}` for each Feedback-worthy event to a capped list (60 entries; when full, the oldest right moments are dropped first), exported as `timeline`. The Node Debrief in `src/shell/screens/NodeScreens.tsx` draws it and picks "done well / try next" from `scentWalk` with a fixed priority table.
+
+## Implementation notes (simulation, tasks 1.1-3.2)
+
+Every number below is a default in `DEFAULT_SCENT_WALK` (`src/sim/config.ts`); a scenario overrides any of them under `scentWalk:` (groups merge key by key), so tuning in 6.4 needs no app release. `jackpotBudget` is a top-level scenario field.
+
+| Tunable | Default | Note |
+|---|---|---|
+| `pull` weak / normal / hot | 1.5 / 3 / 5 | Strength weights in Decision 1. Lower values (0.5-2.5) made a weak spot invisible at Autopilot 0. |
+| `autopilotFloor` | 0.3 | The `0.3` of Decision 1. |
+| `radius` weak / normal / hot | 3 / 4 / 5 m | Nose radius when a spot sets none. Food uses the hot radius. |
+| `reachDistance` | 0.6 m | The Dog is "at" a spot (Plant, marking, food, granted sniff). |
+| `headingLead` | 1.4 m | **Differs from Decision 2 (2 m):** at 2 m the Dog settles at the leash limit, so the leash is Taut whenever the Handler stands and no change could count. 1.4 m keeps it Slack (ratio 0.7). |
+| `autopilot.risePerSecond` | 0.05 | 10 s of steady walking gives about 0.4. |
+| `autopilot.steadyAngle` / `steadyPace` | 15° / 20% | Decision 3. |
+| `autopilot.steadySeconds` | 1 s | Added: walking must hold steady this long before Autopilot rises, so a weave never counts as steady. |
+| `autopilot.dropPerChange` / `followDamping` | 0.6 / 0.4 | Decision 3. Autopilot before the drop sets the follow chance. |
+| `novelty.step` / `recoveryPerSecond` | 0.45 / 0.025 per s | **Differ from Decision 5 (0.35 / 0.05):** with those, three right turns within 10 s never reach "repeated" (< 0.4), as `walk-novelty` requires. With 0.45 / 0.025 turns 5 s apart reach 0.35, and a stop at 0 is fresh again after 28 s (the 30 s rule). |
+| `novelty.fresh` / `repeated` / `freshBonus` | 0.7 / 0.4 / 0.15 | Decision 5. |
+| `pace.smoothingSeconds` / `threshold` | 0.5 s / 35% | Decision 4. The smoothed strength is the mean over the window. After a pace change the new pace is measured again once it settles (within 10% of the input), so one change counts once. |
+| `uTurnAngle` | 135° | `walk-novelty`. |
+| `plantSeconds` / `markingSeconds` | 3-6 s / 2-4 s | Seeded with `eventRng` when the stop starts. |
+| `dragArousal` | 8 | One-off Arousal (times the Equipment Rigid Pull multiplier) of a dragged Plant or an interrupted marking, on top of the usual Rigid Pull rate. |
+| `chain.walkSeconds` / `sniffSeconds` | 2 s / 3 s | `walk-novelty` Chain. |
+
+Behaviour decisions:
+
+- **Scent Stage switch.** A scenario is a scent Stage when `scents` or any scenery item's `scent:` declares a spot. Only then does `SimState.scentWalk` exist; every other Stage takes no new random draw and sends no new event (golden payloads of both content channels, `payloadBaselineChannels.json`, stay byte-identical).
+- **Random draws** in a scent Stage, all on `eventRng`, in tick order: a stop change, a pace change, a turn (each one follow draw), the Plant or marking duration, then the existing Check-in and Go Sniff draws.
+- **Plant and marking.** Only hot spots make the Dog Plant; any spot with `marking: true` makes it mark. Rigid Pull ends either at once (dragged / interrupted) and uses the spot up. A followed turn (not a pace change or a stop) ends a Plant as waited. A marked post is used up too, so the Dog does not mark it again on every pass. A Go Sniff during a Plant or a marking ends it (`result: 'granted'`, no Feedback kind) and is a granted sniff at that spot.
+- **Following a stop or a pace change.** On a followed stop the Dog stops too and looks; on a pace change it walks the Handler's way and looks. Neither leaves a Taut correction pending (only turns do).
+- **Go Sniff in a scent Stage** is on offer on Slack with no Go Sniff running, except during a Reward Window and during a Fixation (unless the Dog is fixated on food it has reached). A granted sniff takes the Dog to the spot at its Goal speed, then it noses around at Go Sniff speed. The Handler must keep the spot within Slack, or tension ends the Go Sniff as usual.
+- **Food in a scent Stage.** A stationary `food` Distractor pulls like a hot spot while in play. A Go Sniff with the Dog within `reachDistance` of it eats it (`food-eaten`, the Distractor is used up). "Leave It" on it, fixated or not, puts it out of play (`food-left`).
+- **Scent dragged past.** Reported once per spot, when the leash reaches Rigid Pull while the Dog (walking by its Drive) has that unsniffed spot in nose range.
+- **Jackpot.** `SimInput.jackpot` runs the same judgment as a Marker press but spends a Jackpot (`telemetry.jackpots.used`), never a Mark. Only a hit (`marker-hit` or `check-in-hit`) adds a `jackpot` event, `smart` when a Reward Window was open or a Distractor in play, the food, or an unsniffed hot spot was within its radius at the press, else `wasted`. A press with nothing to reward is a wasted (or Late) Marker press as usual. HUD: `hudLayout(..., jackpot)` puts a 26 px button under Go Sniff, or left of it on a short screen; the bundle draws it with the HUD atlas `icon_star` and a badge of Jackpots left, key J. It has no text label, so no new i18n key.
+- **Events for Feedback, Stage Meters and the timeline** (`FEEDBACK_ACTION_KINDS`, `feedbackKindOf`): right `granted-sniff`, `waited-plant`, `waited-marking`, `check-in-after-change`, `fresh-move`, `chain`, `leave-it-food`, `smart-jackpot`; wrong `scent-dragged-past`, `dragged-plant`, `interrupted-marking`, `food-eaten`, `repeated-move-ignored`, `empty-sniff`, `wasted-jackpot`. In a scent Stage `go-sniff-start` maps to `granted-sniff` or `empty-sniff` (not `go-sniff`), so a meter there uses those ids. "Check-in after a followed change" is its own `change-check-in` event next to the plain `check-in-hit`, so a Node can score either; the Feedback Message layer (4.2) should show one of the two. Events carry positions, spot indices, change kinds, Novelty and results for the timeline (4.1).
+- **Counts for `scentWalk` (4.1)** are kept in `telemetry.scentWalk` (scent Stages only); the Jackpot counts are in `telemetry.jackpots` (any Stage with a budget). `freshMoves` / `repeatedMoves` count every counted change by its freshness, followed or not.
+
+## Content release 1 tuning (task 6.4, automated part)
+
+`node scripts/tune-scent-nodes.mjs` (30 seeds, bot Handlers "good" and "great") plays the three Nodes of release 1. "Good" gives Go Sniff at 4 of the 6 Scent Spots, 1.5 s after the Dog comes into nose range, marks 70% of looks 0.7 s late, and repeats one change every 9 s. "Great" gives Go Sniff at all 6 at once, marks every look within 0.2 s, and cycles the six change kinds every 7 s. A Node passes when 90% of seeds earn the target Stars (2 good, 3 great). The scenarios keep every `scentWalk` default (no overrides were needed); only the Stage Meter targets were tuned. `scripts/gen-scent-nodes.mjs` writes the scenery, Scent Spots and meters from one table.
+
+| Node | Scent Spots (6, on lamp posts, bushes and bins) | Meter targets (Meter Points per action in Decision 10) | Good | Great |
+|---|---|---|---|---|
+| `park-nose-on` | 3 weak, 3 normal | Nose 110 (granted sniff 20) | 727, 2 Stars on 100% | 994, 3 Stars on 100% |
+| `park-unpredictable` | 6 normal | Nose 60 (10), Connection 45 (Check-in after a followed change 15) | 816, 2 Stars on 97% | 1000, 3 Stars on 100% |
+| `park-keep-fresh` | 6 normal | Nose 60 (10), Connection 120 (fresh move followed 15, Chain 30) | 791, 2 Stars on 90% | 1000, 3 Stars on 100% |
+
+Bots only bound the numbers: the Dog's seeded Check-in and follow draws spread a good run from 458 to 833 on the two Connection Nodes. The phone playtest (a person, with the devSeed) must confirm the feel and may move the targets, which live in each Node's scenario and need no app release. The Meter label keys are `meter.nose` and `meter.connection` and the icons `nose` and `eye` (HUD atlas `icon_nose`, `icon_eye`).
 
 ## Risks / Trade-offs
 

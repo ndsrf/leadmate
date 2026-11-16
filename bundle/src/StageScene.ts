@@ -1,12 +1,14 @@
 import Phaser from 'phaser';
 import type { Translate } from '../../src/i18n';
 import { HUD_AROUSAL_NUM, HUD_BORDER, HUD_COLOR, HUD_COLOR_NUM, HUD_DEPTH, HUD_PRIMARY_BUTTON, HUD_TENSION_NUM } from './tokens.generated';
-import { CUE_LABEL_WIDTH, CUE_RADIUS, fitFontSize, hudLayout, JOY_RADIUS, MARKER_RADIUS, SNIFF_RADIUS, visibleCues } from '../../src/hud/layout';
-import { dogPose, gaitPeriod } from '../../src/hud/pose';
+import { CUE_LABEL_WIDTH, CUE_RADIUS, fitFontSize, hudLayout, isPointInPortrait, JACKPOT_RADIUS, JOY_RADIUS, MARKER_RADIUS, SNIFF_RADIUS, visibleCues, type PortraitLayout } from '../../src/hud/layout';
+import { dogPose, gaitPeriod, walkClipFor, type WalkClip } from '../../src/hud/pose';
 import { applyDetents, keyboardInput, screenToWorldDirection, type Keys } from '../../src/hud/input';
 import { project } from '../../src/hud/iso';
 import { smoothZoom, targetZoom } from '../../src/hud/camera';
-import { createChangeDetector, quantize, RING_STEPS } from '../../src/hud/dirty';
+import { createChangeDetector, portraitDirtyKey, quantize, RING_STEPS } from '../../src/hud/dirty';
+import { portraitLayers } from '../../src/hud/portrait';
+import { PORTRAIT_ATLAS, portraitAtlas, portraitAtlasUrl } from './portrait';
 import { HINT_SECONDS, HintTracker } from '../../src/hud/hints';
 import { FeedbackDecider, feedbackTextKey, type FeedbackMessage } from '../../src/hud/feedback';
 import { withDogName } from '../../src/hud/effectsPool';
@@ -18,9 +20,9 @@ import { createOutbox, createSignalGate, type Outbox, type StageControl, type St
 import { add, length, scale, sub, type Vec2 } from '../../src/sim/vec';
 import { TEXTURES, TILE_ORIGIN_Y } from './assets';
 import { drawDecor, drawGroundPatch, drawProp, groundBounds, propLook, wallQuad, WALL_COLORS, WALL_HEIGHT } from './props';
-import { atlas, atlasUrl, ATLAS, DOG_COATS, facingDegrees, pivotOf, propFrame, propScale, resOf } from './sprites';
+import { atlas, atlasOf, atlasUrl, ATLAS, DOG_ATLAS, dogAtlas, dogAtlasUrl, DOG_COATS, facingDegrees, huskyFrame, pivotOf, propFrame, propScale, resOf } from './sprites';
 import { layoutGround, propWalls, routePoints, shapeOf, type GroundPlan } from '../../src/sim/scenery';
-import { EffectsView } from './effectsView';
+import { EffectsView, HUD_ATLAS } from './effectsView';
 
 export interface StageOptions {
   seed: number;
@@ -32,6 +34,8 @@ export interface StageOptions {
   /** The Dog crossed a Reaction Tier threshold; the shell plays a vocalization. */
   onTier?: (tier: ReactionTier, time: number) => void;
   onSignal?: (signal: StageSignal, time: number, detail?: { control?: StageControl; bearing?: number }) => void;
+  /** The OS asks for reduced motion: the Dog's tail stops wagging (the still raised-tail pose). Defaults to the browser's `prefers-reduced-motion`. */
+  reducedMotion?: boolean;
   /** The scene finished creating; the render loop may now sleep when the Stage is paused or ended. */
   onReady?: () => void;
   seenKinds?: readonly string[];
@@ -59,6 +63,9 @@ const TILE_M = 2; // one ground tile is 2 m wide
 const ROAD_HALF: Partial<Record<ScenarioConfig['theme'], number>> = { quiet_suburb: 1.2 };
 /** Themes with a flat floor instead of grass tiles: indoors and the paved city. */
 const FLOORS: Partial<Record<ScenarioConfig['theme'], [number, number]>> = { indoor_apartment: [0xd6c7a8, 0xc8b78f], urban_street: [0x9ca3af, 0x94a3b8] };
+
+/** Animation steps per second of each walking-Dog clip. */
+const DOG_CLIP_FPS: Record<WalkClip, number> = { idle: 1, walk: 8, walk_wag: 8, trot: 12, sniffwalk: 6, sniff: 2, planted: 1, mark: 1.5, lunge: 10, look_l: 4, look_r: 4 };
 
 /** Texture pixels per scene pixel for baked scenery, so it stays sharp under the camera's zoom. */
 const BAKE_RES = 2;
@@ -95,13 +102,31 @@ export class StageScene extends Phaser.Scene {
   private baseZoom = 1;
   private zoom = 0;
   private focused = false;
-  private keys!: Record<keyof Keys | 'marker' | 'marker2' | 'cue' | 'leaveIt' | 'sniff', Phaser.Input.Keyboard.Key>;
+  private keys!: Record<keyof Keys | 'marker' | 'marker2' | 'cue' | 'leaveIt' | 'sniff' | 'jackpot', Phaser.Input.Keyboard.Key>;
+  /** The Jackpot button (only with a Jackpot budget): where it is, its star and the Jackpots left. */
+  private jackpotHome: Vec2 | null = null;
+  private jackpotStar: Phaser.GameObjects.Image | null = null;
+  private jackpotCount!: Phaser.GameObjects.Text;
+  private jackpotPointerDown = false;
+  private jackpotPressed = false;
   private joy: { id: number; base: Vec2; knob: Vec2 } | null = null;
   private joyHome: Vec2 = { x: 120, y: 300 };
   private markerHome: Vec2 = { x: 700, y: 300 };
   private cueHome: Vec2 = { x: 700, y: 180 };
   private leaveItHome: Vec2 = { x: 700, y: 180 };
   private sniffHome: Vec2 = { x: 600, y: 300 };
+  private portraitHome: Vec2 = { x: 700, y: 60 };
+  private portraitSize = 96;
+  private portraitLayout!: PortraitLayout;
+  private portraitDirty = createChangeDetector();
+  private portraitImages!: {
+    tail: Phaser.GameObjects.Image;
+    body: Phaser.GameObjects.Image;
+    head: Phaser.GameObjects.Image;
+    ears: Phaser.GameObjects.Image;
+    eyes: Phaser.GameObjects.Image;
+  };
+  private reduceMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   private cuePointerDown = false;
   private cuePressed: CueType | null = null;
   private leaveItPointerDown = false;
@@ -125,8 +150,11 @@ export class StageScene extends Phaser.Scene {
     super('stage');
   }
 
+  private reducedMotion = false;
+
   init(options: StageOptions): void {
     this.options = options;
+    this.reducedMotion = options.reducedMotion ?? (typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
     this.ended = false;
     this.signalGate = createSignalGate();
     this.accumulator = 0;
@@ -143,6 +171,8 @@ export class StageScene extends Phaser.Scene {
     this.leaveItPointerDown = false;
     this.sniffPointerDown = false;
     this.sniffPressed = false;
+    this.jackpotPointerDown = false;
+    this.jackpotPressed = false;
   }
 
   preload(): void {
@@ -150,7 +180,18 @@ export class StageScene extends Phaser.Scene {
       if (!this.textures.exists(key)) this.load.image(key, url);
     }
     if (!this.textures.exists(ATLAS)) this.load.atlas(ATLAS, atlasUrl, atlas as object);
+    if (!this.textures.exists(DOG_ATLAS)) this.load.atlas(DOG_ATLAS, dogAtlasUrl, dogAtlas as object);
+    if (!this.textures.exists(PORTRAIT_ATLAS)) this.load.atlas(PORTRAIT_ATLAS, portraitAtlasUrl, portraitAtlas as object);
     EffectsView.preload(this);
+  }
+
+  private get jackpotBudget(): number {
+    return this.options.scenario.jackpotBudget ?? 0;
+  }
+
+  private get jackpotsLeft(): number {
+    return this.jackpotBudget - this.sim.telemetry.jackpots.used;
+  }
   }
 
   create(): void {
@@ -161,7 +202,9 @@ export class StageScene extends Phaser.Scene {
     });
     this.buildScenery();
     this.textures.get(ATLAS).setFilter(Phaser.Textures.FilterMode.LINEAR); // the game renders without antialiasing; sprites need smoothing
+    if (this.textures.exists(PORTRAIT_ATLAS)) this.textures.get(PORTRAIT_ATLAS).setFilter(Phaser.Textures.FilterMode.LINEAR);
     this.under = this.add.graphics().setDepth(-5e4);
+    this.textures.get(DOG_ATLAS).setFilter(Phaser.Textures.FilterMode.LINEAR);
     const actor = () => this.add.image(0, 0, ATLAS, 'handler_idle0_0').setVisible(false);
     this.actors = { handler: actor(), dog: actor(), other: actor() };
     this.routeGfx = this.add.graphics(); // before gfx, so it draws under it at the same depth
@@ -170,6 +213,15 @@ export class StageScene extends Phaser.Scene {
     const world = [...this.children.list];
     this.hud = this.add.graphics();
     this.hudDirty.reset();
+    this.portraitDirty.reset();
+    const pLayer = (frame: string) => this.add.image(0, 0, PORTRAIT_ATLAS, frame).setOrigin(0.5, 0.6172);
+    this.portraitImages = {
+      tail: pLayer('portrait_tail_neutral'),
+      body: pLayer('portrait_body'),
+      head: pLayer('portrait_head_level'),
+      ears: pLayer('portrait_ears_neutral'),
+      eyes: pLayer('portrait_eyes_right'),
+    };
     this.cameraDirty.reset();
     this.markerLabel = this.add
       .text(0, 0, this.options.t('hud.marker'), { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '16px', fontStyle: 'bold', backgroundColor: HUD_COLOR.surface, padding: { x: 8, y: 2 } })
@@ -187,6 +239,11 @@ export class StageScene extends Phaser.Scene {
     this.markerCount = this.add
       .text(0, 0, '', { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '15px', fontStyle: 'bold' })
       .setOrigin(0.5);
+    this.jackpotCount = this.add
+      .text(0, 0, '', { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '13px', fontStyle: 'bold' })
+      .setOrigin(0.5)
+      .setVisible(this.jackpotBudget > 0);
+    this.jackpotStar = this.jackpotBudget > 0 ? this.add.image(0, 0, HUD_ATLAS, 'icon_star') : null;
     this.hintText = this.add
       .text(0, 0, '', { fontFamily: 'system-ui, sans-serif', color: HUD_COLOR.ink, fontSize: '16px', backgroundColor: `${HUD_COLOR.surface}f2`, padding: { x: 10, y: 6 }, align: 'center' })
       .setOrigin(0.5, 0)
@@ -194,9 +251,24 @@ export class StageScene extends Phaser.Scene {
     // the HUD has its own unzoomed camera so it stays in screen pixels
     this.hudCam = this.cameras.add(0, 0, this.scale.width, this.scale.height);
     this.hudCam.ignore(world);
-    this.cameras.main.ignore([this.hud, this.markerLabel, this.cueLabel, this.leaveItLabel, this.sniffLabel, this.markerCount, this.hintText]);
+    this.cameras.main.ignore([
+      this.hud,
+      this.markerLabel,
+      this.cueLabel,
+      this.leaveItLabel,
+      this.sniffLabel,
+      this.markerCount,
+      this.jackpotCount,
+      this.hintText,
+      this.portraitImages.tail,
+      this.portraitImages.body,
+      this.portraitImages.head,
+      this.portraitImages.ears,
+      this.portraitImages.eyes,
+      ...(this.jackpotStar ? [this.jackpotStar] : []),
+    ]);
 
-    this.effectsView = new EffectsView(this, this.hudCam);
+    this.effectsView = new EffectsView(this, this.hudCam, this.reducedMotion);
     this.effectsView.create();
 
     const kb = this.input.keyboard!;
@@ -212,12 +284,14 @@ export class StageScene extends Phaser.Scene {
       cue: kb.addKey(K.C),
       leaveIt: kb.addKey(K.L),
       sniff: kb.addKey(K.N),
+      jackpot: kb.addKey(K.J),
     };
     kb.on('keydown-SPACE', () => (this.markerPressed = true));
     kb.on('keydown-M', () => (this.markerPressed = true));
     kb.on('keydown-C', () => (this.cuePressed = 'lets-go'));
     kb.on('keydown-L', () => (this.cuePressed = 'leave-it'));
     kb.on('keydown-N', () => (this.sniffPressed = true));
+    kb.on('keydown-J', () => (this.jackpotPressed = this.jackpotBudget > 0));
 
     this.input.addPointer(2);
     this.input.on('pointerdown', this.onPointerDown, this);
@@ -263,7 +337,29 @@ export class StageScene extends Phaser.Scene {
 
   private layout(): void {
     const { width, height } = this.scale;
-    ({ joyHome: this.joyHome, markerHome: this.markerHome, cueHome: this.cueHome, leaveItHome: this.leaveItHome, sniffHome: this.sniffHome } = hudLayout(width, height, this.options.scenario.cues));
+    ({
+      joyHome: this.joyHome,
+      markerHome: this.markerHome,
+      cueHome: this.cueHome,
+      leaveItHome: this.leaveItHome,
+      sniffHome: this.sniffHome,
+      jackpotHome: this.jackpotHome,
+      portraitHome: this.portraitHome,
+      portraitSize: this.portraitSize,
+      portrait: this.portraitLayout,
+    } = hudLayout(width, height, this.options.scenario.cues, { jackpot: this.jackpotBudget > 0 }));
+    if (this.jackpotHome) {
+      this.jackpotStar?.setPosition(this.jackpotHome.x, this.jackpotHome.y).setDisplaySize(JACKPOT_RADIUS * 1.3, JACKPOT_RADIUS * 1.3);
+      this.jackpotCount.setPosition(this.jackpotHome.x + JACKPOT_RADIUS * 0.75, this.jackpotHome.y - JACKPOT_RADIUS * 0.75);
+    }
+    if (this.portraitImages) {
+      const pScale = this.portraitSize / 256;
+      const pAnchorY = this.portraitHome.y + 30 * pScale;
+      for (const img of Object.values(this.portraitImages)) {
+        img.setPosition(this.portraitHome.x, pAnchorY).setScale(pScale);
+      }
+      this.portraitDirty.reset();
+    }
     const font = fitFontSize(this.options.t('hud.marker'), MARKER_RADIUS * 2.4, 16);
     this.markerLabel.setFontSize(font).setPosition(this.markerHome.x, this.markerHome.y + MARKER_RADIUS + 6);
     // Cue labels sit above their buttons, clear of the Marker below
@@ -454,6 +550,7 @@ export class StageScene extends Phaser.Scene {
   // -- input -----------------------------------------------------------------------------------
 
   private onPointerDown(p: Phaser.Input.Pointer): void {
+    if (this.portraitLayout && isPointInPortrait(p, this.portraitLayout)) return;
     const { width } = this.scale;
     const cues = visibleCues(this.options.scenario.cues);
     if (cues.includes('lets-go') && Math.hypot(p.x - this.cueHome.x, p.y - this.cueHome.y) <= CUE_RADIUS * 1.5) {
@@ -464,6 +561,12 @@ export class StageScene extends Phaser.Scene {
     if (cues.includes('leave-it') && Math.hypot(p.x - this.leaveItHome.x, p.y - this.leaveItHome.y) <= CUE_RADIUS * 1.5) {
       this.cuePressed = 'leave-it';
       this.leaveItPointerDown = true;
+      return;
+    }
+    const j = this.jackpotHome;
+    if (j && Math.hypot(p.x - j.x, p.y - j.y) <= JACKPOT_RADIUS * 1.3) {
+      this.jackpotPressed = true;
+      this.jackpotPointerDown = true;
       return;
     }
     if (this.sniffOnOffer && Math.hypot(p.x - this.sniffHome.x, p.y - this.sniffHome.y) <= SNIFF_RADIUS * 1.5) {
@@ -495,6 +598,7 @@ export class StageScene extends Phaser.Scene {
       this.cuePointerDown = false;
       this.leaveItPointerDown = false;
       this.sniffPointerDown = false;
+      this.jackpotPointerDown = false;
     }
   }
 
@@ -517,7 +621,8 @@ export class StageScene extends Phaser.Scene {
     }
     // the press stays queued until a tick consumes it (a frame can be shorter than one tick)
     const marker = this.markerPressed && this.marksLeft > 0;
-    return { ...move, marker, cue: this.cuePressed !== null, cueType: this.cuePressed ?? undefined, sniff: this.sniffPressed };
+    const jackpot = this.jackpotPressed && this.jackpotsLeft > 0;
+    return { ...move, marker, cue: this.cuePressed !== null, cueType: this.cuePressed ?? undefined, sniff: this.sniffPressed, jackpot };
   }
 
   private get marksLeft(): number {
@@ -535,8 +640,13 @@ export class StageScene extends Phaser.Scene {
       this.markerPressed = false;
       this.cuePressed = null;
       this.sniffPressed = false;
+      this.jackpotPressed = false;
+      if (this.hudDirty.changed('paused')) {
+        this.drawHud();
+        this.drawPortrait();
+      }
     } else {
-      if (input.strength > 0 || input.marker || input.cue || input.sniff) this.signal('first-input', this.sim.time);
+      if (input.strength > 0 || input.marker || input.cue || input.sniff || input.jackpot) this.signal('first-input', this.sim.time);
       if (input.strength > 0) this.signal('control-used', this.sim.time, { control: 'move' });
       // a press counts even with no marks left: the Coach mark is about learning the button
       if (this.markerPressed) this.signal('control-used', this.sim.time, { control: 'mark' });
@@ -544,12 +654,17 @@ export class StageScene extends Phaser.Scene {
       while (this.accumulator >= step && !this.sim.ended) {
         this.simSteps++;
         this.handleEvents(tick(this.sim, input, step));
-        input = { ...input, marker: false, cue: false, sniff: false }; // a press counts for one tick only
+        input = { ...input, marker: false, cue: false, sniff: false, jackpot: false }; // a press counts for one tick only
         this.markerPressed = false;
         this.cuePressed = null;
         this.sniffPressed = false;
+        this.jackpotPressed = false;
         this.accumulator -= step;
       }
+      this.followCamera(delta);
+      this.draw(input);
+      this.drawHud();
+      this.drawPortrait();
     }
     this.effectsView.update(
       this.sim.time,
@@ -559,9 +674,6 @@ export class StageScene extends Phaser.Scene {
       this.sim.meters,
       this.options.t,
     );
-    this.followCamera(delta);
-    this.draw(input);
-    this.drawHud();
   }
 
   /** Each signal goes to the shell once per Stage. */
@@ -793,6 +905,14 @@ export class StageScene extends Phaser.Scene {
     return `${set}_${clip}${Math.floor((this.time.now / 1000) * fps) % count}_${deg}`;
   }
 
+  /** The Dog's walking-sprite frame for a Canine Posture clip: the clip steps at its own rate; under reduced motion the wag stops. */
+  private dogFrame(clip: WalkClip, deg: number): string {
+    const step = Math.floor((this.time.now / 1000) * DOG_CLIP_FPS[clip]);
+    // walk_wag swings the tail on frames 0 and 2; frames 1 and 3 hold it straight up, the still raised-tail pose
+    if (clip === 'walk_wag' && this.reducedMotion) return huskyFrame(clip, 1 + 2 * (step % 2), deg);
+    return huskyFrame(clip, step, deg);
+  }
+
   /** The Handler, the Dog and the Distractor as sprites, with shadows and boards under them. */
   private drawActors(s: SimState, pose: ReturnType<typeof dogPose>, dogFace: Vec2): void {
     const u = this.under;
@@ -801,7 +921,7 @@ export class StageScene extends Phaser.Scene {
     this.fadeWalls(seen);
     const place = (img: Phaser.GameObjects.Image, frame: string, at: Vec2, size = 1) => {
       const pivot = pivotOf(frame);
-      img.setFrame(frame).setOrigin(pivot.x, pivot.y).setPosition(at.x, at.y).setScale(size / resOf(frame)).setDepth(at.y).setVisible(true).clearTint();
+      img.setTexture(atlasOf(frame), frame).setOrigin(pivot.x, pivot.y).setPosition(at.x, at.y).setScale(size / resOf(frame)).setDepth(at.y).setVisible(true).clearTint();
       u.fillStyle(0x000000, 0.22).fillEllipse(at.x, at.y, 30 * size, 15 * size);
     };
 
@@ -813,7 +933,7 @@ export class StageScene extends Phaser.Scene {
     const dm = this.track('dog', s.dog, dogFace);
     // facing: where it is looking while it holds or fixates, otherwise where it goes
     const dogDeg = dm.moving && s.dogMode !== 'fixated' && !pose.headDown ? dm.deg : facingDegrees(dogFace);
-    const dogFrame = pose.headDown ? this.clip('dog', 'eat', 2, dogDeg, 3) : dm.moving ? this.clip('dog', pose.lunging ? 'run' : 'walk', pose.lunging ? 2 : 4, dogDeg, pose.lunging ? 10 : 8) : `dog_idle0_${dogDeg}`;
+    const dogFrame = this.dogFrame(walkClipFor(pose), dogDeg);
     const look = s.config.look;
     place(this.actors.dog, dogFrame, d, (look?.dogScale ?? 1) * (s.config.learning.posture === 0 ? 0.94 : 1));
     this.actors.dog.setTint(DOG_COATS[look?.dogCoat ?? 'golden'] ?? DOG_COATS.golden);
@@ -920,6 +1040,7 @@ export class StageScene extends Phaser.Scene {
       this.cuePointerDown || this.keys.cue.isDown,
       this.leaveItPointerDown || this.keys.leaveIt.isDown,
       this.sniffPointerDown || this.keys.sniff.isDown,
+      this.jackpotHome ? `${this.jackpotsLeft}${this.jackpotPointerDown || this.keys.jackpot.isDown}` : '-',
       this.effectsView.isActive(this.sim.time) ? quantize(this.sim.time, 30) : '-',
     ].join('|');
     if (!this.hudDirty.changed(key)) return;
@@ -976,6 +1097,19 @@ export class StageScene extends Phaser.Scene {
       h.lineStyle(4, HUD_COLOR_NUM.sintonia).beginPath().arc(n.x, n.y, SNIFF_RADIUS + 7, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * timeLeft).strokePath();
     }
 
+    // Jackpot: a smaller paper disc with a gold star beside the Marker, and the Jackpots left as a badge
+    const j = this.jackpotHome;
+    if (j) {
+      const jackpots = this.jackpotsLeft;
+      const on = jackpots > 0;
+      const press = on && (this.jackpotPointerDown || this.keys.jackpot.isDown) ? 3 : 0;
+      this.hudDisc(h, j.x, j.y, JACKPOT_RADIUS, on ? HUD_COLOR_NUM.surface : HUD_COLOR_NUM.disabled, on ? HUD_DEPTH : 0, press, on ? HUD_COLOR_NUM.ink : HUD_COLOR_NUM.disabledText);
+      this.jackpotStar?.setPosition(j.x + press, j.y + press).setAlpha(on ? 1 : 0.4);
+      const badge = { x: j.x + JACKPOT_RADIUS * 0.75, y: j.y - JACKPOT_RADIUS * 0.75 };
+      h.fillStyle(on ? HUD_COLOR_NUM.surface : HUD_COLOR_NUM.disabled).fillCircle(badge.x, badge.y, 11).lineStyle(HUD_BORDER - 0.5, on ? HUD_COLOR_NUM.ink : HUD_COLOR_NUM.disabledText).strokeCircle(badge.x, badge.y, 11);
+      this.jackpotCount.setText(String(Math.max(0, jackpots)));
+    }
+
     // Arousal: a thin bar at the top of the screen, no text
     const barX = (width - barW) / 2;
     h.fillStyle(HUD_COLOR_NUM.surfaceSunken).fillRoundedRect(barX, height - 16, barW, 10, 5).lineStyle(2, HUD_COLOR_NUM.ink).strokeRoundedRect(barX, height - 16, barW, 10, 5);
@@ -983,5 +1117,40 @@ export class StageScene extends Phaser.Scene {
 
     // checkmark icon: the Marker says "right now, good"
     h.lineStyle(8, enabled ? HUD_COLOR_NUM.ink : HUD_COLOR_NUM.disabledText).beginPath().moveTo(m.x - 18, my).lineTo(m.x - 5, my + 14).lineTo(m.x + 20, my - 14).strokePath();
+
+    // Dog portrait backing disc in the HUD layer
+    if (this.portraitHome) {
+      const pr = this.portraitSize / 2;
+      h.fillStyle(HUD_COLOR_NUM.surface, 0.85).fillCircle(this.portraitHome.x, this.portraitHome.y, pr);
+      h.lineStyle(HUD_BORDER, HUD_COLOR_NUM.ink, 0.6).strokeCircle(this.portraitHome.x, this.portraitHome.y, pr);
+    }
+  }
+
+  /**
+   * Redraws the Dog portrait only when the Canine Posture changes or on a wag step (Decision 6).
+   */
+  private drawPortrait(): void {
+    if (!this.portraitImages || !this.sim) return;
+    const s = this.sim;
+    const pose = dogPose(s);
+    const coat = s.config.look?.dogCoat ?? 'golden';
+    const key = portraitDirtyKey(pose, s.time, { reducedMotion: this.reduceMotion, coat });
+    if (!this.portraitDirty.changed(key)) return;
+
+    const wag = pose.tail === 'wagging' && !this.reduceMotion ? Math.floor(s.time * 4) % 2 : 0;
+    const layers = portraitLayers(pose, wag, { reducedMotion: this.reduceMotion });
+
+    this.portraitImages.tail.setFrame(layers.tail);
+    this.portraitImages.body.setFrame(layers.body);
+    this.portraitImages.head.setFrame(layers.head);
+    this.portraitImages.ears.setFrame(layers.ears);
+    this.portraitImages.eyes.setFrame(layers.eyes);
+
+    const tint = DOG_COATS[coat] ?? DOG_COATS.golden;
+    this.portraitImages.tail.setTint(tint);
+    this.portraitImages.body.setTint(tint);
+    this.portraitImages.head.setTint(tint);
+    this.portraitImages.ears.setTint(tint);
+    this.portraitImages.eyes.setTint(tint);
   }
 }
