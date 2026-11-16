@@ -2499,6 +2499,1418 @@
   "handlingScore": 0,
   "configVersion": "bundled"
  },
+ "stable/park-plant-mark#1": {
+  "durationSeconds": 63.1,
+  "slackPercentage": 4,
+  "tautPercentage": 63,
+  "pullPercentage": 33,
+  "markerHits": 0,
+  "markerMisses": 0,
+  "reactiveMarkers": 3,
+  "missedOpportunities": 0,
+  "checkInHits": 1,
+  "followMarks": 0,
+  "posteSuccesses": 0,
+  "harshStops": 0,
+  "peakArousalScore": 50,
+  "calmEncounters": {},
+  "marksUsed": 5,
+  "markBudget": 5,
+  "seed": 1,
+  "sintoniaTimeSeconds": 0,
+  "goSniffs": 1,
+  "meters": [
+   {
+    "id": "nose",
+    "value": 0,
+    "target": 100
+   },
+   {
+    "id": "connection",
+    "value": 10,
+    "target": 65
+   }
+  ],
+  "scentWalk": {
+   "sniffsGranted": 0,
+   "sniffsEmpty": 1,
+   "scentsDraggedPast": 5,
+   "plantsWaited": 0,
+   "plantsDragged": 0,
+   "markingsWaited": 0,
+   "markingsInterrupted": 1,
+   "foodEaten": 0,
+   "foodLeft": 0,
+   "freshMoves": 0,
+   "repeatedMoves": 0,
+   "repeatedMovesIgnored": 0,
+   "chains": 0,
+   "jackpotsSmart": 0,
+   "jackpotsWasted": 0
+  },
+  "timeline": [
+   {
+    "t": 48.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 52,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 53.9,
+    "kind": "reactive-marker",
+    "polarity": "wrong"
+   },
+   {
+    "t": 57.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 57.4,
+    "kind": "interrupted-marking",
+    "polarity": "wrong"
+   },
+   {
+    "t": 57.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   }
+  ],
+  "handlingScore": 77,
+  "configVersion": "bundled"
+ },
+ "stable/park-plant-mark#7": {
+  "durationSeconds": 62.7,
+  "slackPercentage": 4,
+  "tautPercentage": 63,
+  "pullPercentage": 33,
+  "markerHits": 0,
+  "markerMisses": 0,
+  "reactiveMarkers": 2,
+  "missedOpportunities": 0,
+  "checkInHits": 1,
+  "followMarks": 0,
+  "posteSuccesses": 0,
+  "harshStops": 0,
+  "peakArousalScore": 52,
+  "calmEncounters": {},
+  "marksUsed": 3,
+  "markBudget": 5,
+  "seed": 7,
+  "sintoniaTimeSeconds": 0,
+  "goSniffs": 1,
+  "meters": [
+   {
+    "id": "nose",
+    "value": 0,
+    "target": 100
+   },
+   {
+    "id": "connection",
+    "value": 10,
+    "target": 65
+   }
+  ],
+  "scentWalk": {
+   "sniffsGranted": 0,
+   "sniffsEmpty": 1,
+   "scentsDraggedPast": 5,
+   "plantsWaited": 0,
+   "plantsDragged": 0,
+   "markingsWaited": 0,
+   "markingsInterrupted": 1,
+   "foodEaten": 0,
+   "foodLeft": 0,
+   "freshMoves": 0,
+   "repeatedMoves": 0,
+   "repeatedMovesIgnored": 0,
+   "chains": 0,
+   "jackpotsSmart": 0,
+   "jackpotsWasted": 0
+  },
+  "timeline": [
+   {
+    "t": 47.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 47.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 47.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 57.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 57.1,
+    "kind": "interrupted-marking",
+    "polarity": "wrong"
+   }
+  ],
+  "handlingScore": 77,
+  "configVersion": "bundled"
+ },
+ "stable/park-not-that-one#1": {
+  "durationSeconds": 46.2,
+  "slackPercentage": 3,
+  "tautPercentage": 89,
+  "pullPercentage": 8,
+  "markerHits": 1,
+  "markerMisses": 0,
+  "reactiveMarkers": 1,
+  "missedOpportunities": 0,
+  "checkInHits": 0,
+  "followMarks": 0,
+  "posteSuccesses": 0,
+  "harshStops": 0,
+  "peakArousalScore": 100,
+  "calmEncounters": {
+   "food": 1
+  },
+  "marksUsed": 2,
+  "markBudget": 5,
+  "seed": 1,
+  "sintoniaTimeSeconds": 0,
+  "goSniffs": 1,
+  "markerAccuracyMs": 267,
+  "meters": [
+   {
+    "id": "nose",
+    "value": 25,
+    "target": 70
+   },
+   {
+    "id": "connection",
+    "value": 0,
+    "target": 60
+   }
+  ],
+  "scentWalk": {
+   "sniffsGranted": 0,
+   "sniffsEmpty": 1,
+   "scentsDraggedPast": 1,
+   "plantsWaited": 0,
+   "plantsDragged": 0,
+   "markingsWaited": 0,
+   "markingsInterrupted": 0,
+   "foodEaten": 0,
+   "foodLeft": 1,
+   "freshMoves": 0,
+   "repeatedMoves": 0,
+   "repeatedMovesIgnored": 0,
+   "chains": 0,
+   "jackpotsSmart": 0,
+   "jackpotsWasted": 0
+  },
+  "timeline": [
+   {
+    "t": 0,
+    "kind": "empty-sniff",
+    "polarity": "wrong"
+   },
+   {
+    "t": 1.7,
+    "kind": "go-sniff-cut-short",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.2,
+    "kind": "scent-dragged-past",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 7.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 7.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 7.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 7.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 7.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 7.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 7.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 7.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 8.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 8.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 8.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 8.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 8.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 8.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 8.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 8.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 8.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 9.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 9.1,
+    "kind": "reactive-marker",
+    "polarity": "wrong"
+   },
+   {
+    "t": 9.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 9.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 9.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 9.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 9.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 12.2,
+    "kind": "disengagement",
+    "polarity": "right"
+   },
+   {
+    "t": 12.2,
+    "kind": "leave-it-food",
+    "polarity": "right"
+   },
+   {
+    "t": 12.4,
+    "kind": "marker-hit",
+    "polarity": "right"
+   },
+   {
+    "t": 12.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 12.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 12.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 12.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 12.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 12.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 13,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 13,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 13.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 13.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 13.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 13.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   }
+  ],
+  "handlingScore": 179,
+  "configVersion": "bundled"
+ },
+ "stable/park-not-that-one#7": {
+  "durationSeconds": 50.6,
+  "slackPercentage": 8,
+  "tautPercentage": 76,
+  "pullPercentage": 16,
+  "markerHits": 1,
+  "markerMisses": 1,
+  "reactiveMarkers": 0,
+  "missedOpportunities": 0,
+  "checkInHits": 1,
+  "followMarks": 0,
+  "posteSuccesses": 0,
+  "harshStops": 0,
+  "peakArousalScore": 25,
+  "calmEncounters": {
+   "food": 1
+  },
+  "marksUsed": 4,
+  "markBudget": 5,
+  "seed": 7,
+  "sintoniaTimeSeconds": 0,
+  "goSniffs": 2,
+  "markerAccuracyMs": 283,
+  "meters": [
+   {
+    "id": "nose",
+    "value": 60,
+    "target": 70
+   },
+   {
+    "id": "connection",
+    "value": 10,
+    "target": 60
+   }
+  ],
+  "scentWalk": {
+   "sniffsGranted": 1,
+   "sniffsEmpty": 1,
+   "scentsDraggedPast": 2,
+   "plantsWaited": 0,
+   "plantsDragged": 0,
+   "markingsWaited": 0,
+   "markingsInterrupted": 0,
+   "foodEaten": 0,
+   "foodLeft": 2,
+   "freshMoves": 0,
+   "repeatedMoves": 0,
+   "repeatedMovesIgnored": 0,
+   "chains": 0,
+   "jackpotsSmart": 0,
+   "jackpotsWasted": 0
+  },
+  "timeline": [
+   {
+    "t": 33.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 34,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 34.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 34.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 34.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 34.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 34.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 34.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 34.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 34.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 35,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 35.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 35.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 35.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 35.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 35.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 35.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 35.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 35.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 36,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 36.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 36.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 36.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 36.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 36.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 36.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 36.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 37,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 37.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 37.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 37.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 37.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 37.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 39.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 39.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 39.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 39.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 40,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 40.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 40.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 40.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 40.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 40.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   }
+  ],
+  "handlingScore": 512,
+  "configVersion": "bundled"
+ },
  "beta/walk-distraction#1": {
   "durationSeconds": 48.1,
   "slackPercentage": 11,
@@ -4997,6 +6409,1418 @@
    }
   ],
   "handlingScore": 0,
+  "configVersion": "bundled"
+ },
+ "beta/park-plant-mark#1": {
+  "durationSeconds": 63.1,
+  "slackPercentage": 4,
+  "tautPercentage": 63,
+  "pullPercentage": 33,
+  "markerHits": 0,
+  "markerMisses": 0,
+  "reactiveMarkers": 3,
+  "missedOpportunities": 0,
+  "checkInHits": 1,
+  "followMarks": 0,
+  "posteSuccesses": 0,
+  "harshStops": 0,
+  "peakArousalScore": 50,
+  "calmEncounters": {},
+  "marksUsed": 5,
+  "markBudget": 5,
+  "seed": 1,
+  "sintoniaTimeSeconds": 0,
+  "goSniffs": 1,
+  "meters": [
+   {
+    "id": "nose",
+    "value": 0,
+    "target": 100
+   },
+   {
+    "id": "connection",
+    "value": 10,
+    "target": 65
+   }
+  ],
+  "scentWalk": {
+   "sniffsGranted": 0,
+   "sniffsEmpty": 1,
+   "scentsDraggedPast": 5,
+   "plantsWaited": 0,
+   "plantsDragged": 0,
+   "markingsWaited": 0,
+   "markingsInterrupted": 1,
+   "foodEaten": 0,
+   "foodLeft": 0,
+   "freshMoves": 0,
+   "repeatedMoves": 0,
+   "repeatedMovesIgnored": 0,
+   "chains": 0,
+   "jackpotsSmart": 0,
+   "jackpotsWasted": 0
+  },
+  "timeline": [
+   {
+    "t": 48.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 52,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 53.9,
+    "kind": "reactive-marker",
+    "polarity": "wrong"
+   },
+   {
+    "t": 57.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 57.4,
+    "kind": "interrupted-marking",
+    "polarity": "wrong"
+   },
+   {
+    "t": 57.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   }
+  ],
+  "handlingScore": 77,
+  "configVersion": "bundled"
+ },
+ "beta/park-plant-mark#7": {
+  "durationSeconds": 62.7,
+  "slackPercentage": 4,
+  "tautPercentage": 63,
+  "pullPercentage": 33,
+  "markerHits": 0,
+  "markerMisses": 0,
+  "reactiveMarkers": 2,
+  "missedOpportunities": 0,
+  "checkInHits": 1,
+  "followMarks": 0,
+  "posteSuccesses": 0,
+  "harshStops": 0,
+  "peakArousalScore": 52,
+  "calmEncounters": {},
+  "marksUsed": 3,
+  "markBudget": 5,
+  "seed": 7,
+  "sintoniaTimeSeconds": 0,
+  "goSniffs": 1,
+  "meters": [
+   {
+    "id": "nose",
+    "value": 0,
+    "target": 100
+   },
+   {
+    "id": "connection",
+    "value": 10,
+    "target": 65
+   }
+  ],
+  "scentWalk": {
+   "sniffsGranted": 0,
+   "sniffsEmpty": 1,
+   "scentsDraggedPast": 5,
+   "plantsWaited": 0,
+   "plantsDragged": 0,
+   "markingsWaited": 0,
+   "markingsInterrupted": 1,
+   "foodEaten": 0,
+   "foodLeft": 0,
+   "freshMoves": 0,
+   "repeatedMoves": 0,
+   "repeatedMovesIgnored": 0,
+   "chains": 0,
+   "jackpotsSmart": 0,
+   "jackpotsWasted": 0
+  },
+  "timeline": [
+   {
+    "t": 47.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 47.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 47.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 48.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 49.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 50.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 51.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 57.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 57.1,
+    "kind": "interrupted-marking",
+    "polarity": "wrong"
+   }
+  ],
+  "handlingScore": 77,
+  "configVersion": "bundled"
+ },
+ "beta/park-not-that-one#1": {
+  "durationSeconds": 46.2,
+  "slackPercentage": 3,
+  "tautPercentage": 89,
+  "pullPercentage": 8,
+  "markerHits": 1,
+  "markerMisses": 0,
+  "reactiveMarkers": 1,
+  "missedOpportunities": 0,
+  "checkInHits": 0,
+  "followMarks": 0,
+  "posteSuccesses": 0,
+  "harshStops": 0,
+  "peakArousalScore": 100,
+  "calmEncounters": {
+   "food": 1
+  },
+  "marksUsed": 2,
+  "markBudget": 5,
+  "seed": 1,
+  "sintoniaTimeSeconds": 0,
+  "goSniffs": 1,
+  "markerAccuracyMs": 267,
+  "meters": [
+   {
+    "id": "nose",
+    "value": 25,
+    "target": 70
+   },
+   {
+    "id": "connection",
+    "value": 0,
+    "target": 60
+   }
+  ],
+  "scentWalk": {
+   "sniffsGranted": 0,
+   "sniffsEmpty": 1,
+   "scentsDraggedPast": 1,
+   "plantsWaited": 0,
+   "plantsDragged": 0,
+   "markingsWaited": 0,
+   "markingsInterrupted": 0,
+   "foodEaten": 0,
+   "foodLeft": 1,
+   "freshMoves": 0,
+   "repeatedMoves": 0,
+   "repeatedMovesIgnored": 0,
+   "chains": 0,
+   "jackpotsSmart": 0,
+   "jackpotsWasted": 0
+  },
+  "timeline": [
+   {
+    "t": 0,
+    "kind": "empty-sniff",
+    "polarity": "wrong"
+   },
+   {
+    "t": 1.7,
+    "kind": "go-sniff-cut-short",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.2,
+    "kind": "scent-dragged-past",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 6.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 7.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 7.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 7.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 7.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 7.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 7.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 7.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 7.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 8.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 8.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 8.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 8.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 8.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 8.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 8.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 8.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 8.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 9.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 9.1,
+    "kind": "reactive-marker",
+    "polarity": "wrong"
+   },
+   {
+    "t": 9.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 9.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 9.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 9.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 9.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 12.2,
+    "kind": "disengagement",
+    "polarity": "right"
+   },
+   {
+    "t": 12.2,
+    "kind": "leave-it-food",
+    "polarity": "right"
+   },
+   {
+    "t": 12.4,
+    "kind": "marker-hit",
+    "polarity": "right"
+   },
+   {
+    "t": 12.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 12.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 12.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 12.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 12.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 12.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 13,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 13,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 13.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 13.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 13.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 13.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   }
+  ],
+  "handlingScore": 179,
+  "configVersion": "bundled"
+ },
+ "beta/park-not-that-one#7": {
+  "durationSeconds": 50.6,
+  "slackPercentage": 8,
+  "tautPercentage": 76,
+  "pullPercentage": 16,
+  "markerHits": 1,
+  "markerMisses": 1,
+  "reactiveMarkers": 0,
+  "missedOpportunities": 0,
+  "checkInHits": 1,
+  "followMarks": 0,
+  "posteSuccesses": 0,
+  "harshStops": 0,
+  "peakArousalScore": 25,
+  "calmEncounters": {
+   "food": 1
+  },
+  "marksUsed": 4,
+  "markBudget": 5,
+  "seed": 7,
+  "sintoniaTimeSeconds": 0,
+  "goSniffs": 2,
+  "markerAccuracyMs": 283,
+  "meters": [
+   {
+    "id": "nose",
+    "value": 60,
+    "target": 70
+   },
+   {
+    "id": "connection",
+    "value": 10,
+    "target": 60
+   }
+  ],
+  "scentWalk": {
+   "sniffsGranted": 1,
+   "sniffsEmpty": 1,
+   "scentsDraggedPast": 2,
+   "plantsWaited": 0,
+   "plantsDragged": 0,
+   "markingsWaited": 0,
+   "markingsInterrupted": 0,
+   "foodEaten": 0,
+   "foodLeft": 2,
+   "freshMoves": 0,
+   "repeatedMoves": 0,
+   "repeatedMovesIgnored": 0,
+   "chains": 0,
+   "jackpotsSmart": 0,
+   "jackpotsWasted": 0
+  },
+  "timeline": [
+   {
+    "t": 33.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 33.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 34,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 34.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 34.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 34.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 34.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 34.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 34.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 34.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 34.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 35,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 35.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 35.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 35.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 35.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 35.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 35.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 35.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 35.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 36,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 36.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 36.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 36.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 36.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 36.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 36.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 36.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 37,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 37.1,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 37.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 37.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 37.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 37.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 39.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 39.7,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 39.8,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 39.9,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 40,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 40.2,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 40.3,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 40.4,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 40.5,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   },
+   {
+    "t": 40.6,
+    "kind": "rigid-pull",
+    "polarity": "wrong"
+   }
+  ],
+  "handlingScore": 512,
   "configVersion": "bundled"
  }
 }

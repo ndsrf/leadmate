@@ -20,3 +20,13 @@ stretches:
       id: park-keep-fresh
     - kind: mission
       id: mission-park-unpredictable
+  - - kind: lesson
+      id: theory-sniffing-on-your-terms
+    - kind: lesson
+      id: howto-jackpot
+    - kind: node
+      id: park-plant-mark
+    - kind: node
+      id: park-not-that-one
+    - kind: mission
+      id: mission-park-sniff-terms

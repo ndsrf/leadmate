@@ -8,7 +8,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 export const ROOT = join(here, '../../../..');
 export const KIT = join(here, 'kit.svg');
 /** The most all Lesson pictures together may weigh. */
-export const BUDGET = 6 * 1024 * 1024;
+export const BUDGET = 7 * 1024 * 1024; // raised from 6 MB for World 6 release 2 (4 more pictures, +0.32 MB)
 
 /** Every colour of the design system: each hex value anywhere in tokens.json, upper case, 6 digits. */
 export function palette() {

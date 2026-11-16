@@ -299,7 +299,7 @@ Tip
   });
 
   it('Scenario: dev on Stable stages a newer pack and activates it at the next launch', async () => {
-    await hostDevBetaPack(5, 'Stable Lesson Title', 'stable');
+    await hostDevBetaPack(6, 'Stable Lesson Title', 'stable');
 
     const first = await initContentRuntime({
       isDev: true,
@@ -310,7 +310,7 @@ Tip
       updater,
     });
     // Not applied in this session
-    expect(first.contentVersion).not.toBe(5);
+    expect(first.contentVersion).not.toBe(6);
     await updater.checkAndDownloadUpdate({ channel: 'stable', currentAppVersion: '1.0.0', contentBase: DEV_SERVER_URL, immediateActivate: false });
 
     const second = await initContentRuntime({
@@ -321,7 +321,7 @@ Tip
       kvStorage,
       updater,
     });
-    expect(second.contentVersion).toBe(5);
+    expect(second.contentVersion).toBe(6);
     expect(second.resolved.catalog['trail.test-lesson.title']).toBe('Stable Lesson Title');
   });
 });
