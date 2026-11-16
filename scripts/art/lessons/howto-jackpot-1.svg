@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.howto-jackpot.image.1.caption" data-alt="trail.howto-jackpot.image.1.alt">
+  <!-- concept, two steps: 1 a hard moment, the Dog looks up at the Person beside food; 2 the Person gives the star treat -->
+  <use href="#sky"/>
+  <use href="#ground-grass"/>
+  <path d="M320 26V280" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="12 10" stroke-linecap="round"/>
+  <g transform="translate(40 300) scale(0.82)">
+    <use href="#person-still"/>
+    <use href="#dog-checkin" transform="translate(200 0)"/>
+    <use href="#leash-still-u"/>
+  </g>
+  <use href="#food" transform="translate(286 296)"/>
+  <use href="#step-1" transform="translate(150 40) scale(1.3)"/>
+  <g transform="translate(350 300) scale(0.82)">
+    <use href="#person-still"/>
+    <use href="#dog-checkin" transform="translate(200 0)"/>
+    <use href="#leash-still-u"/>
+  </g>
+  <use href="#star" transform="translate(528 170) scale(1.8)"/>
+  <use href="#treat" transform="translate(410 214)"/>
+  <use href="#step-2" transform="translate(462 40) scale(1.3)"/>
+</svg>

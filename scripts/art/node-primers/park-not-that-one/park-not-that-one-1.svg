@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+  <!-- primer, not that one: food on the ground by the path; the Dog looks up at the Person instead and a star treat waits in the Person's reach -->
+  <use href="#backdrop"/>
+  <use href="#tree" transform="translate(48 292)"/>
+  <use href="#ground-park"/>
+  <use href="#food" transform="translate(470 306) scale(1.2)"/>
+  <use href="#lamp" transform="translate(580 292) scale(0.9)"/>
+  <g transform="translate(110 312) scale(1.1)">
+    <use href="#person-still"/>
+    <use href="#dog-checkin" transform="translate(200 0)"/>
+    <use href="#leash-still-u"/>
+  </g>
+  <use href="#star" transform="translate(300 90) scale(1.4)"/>
+</svg>

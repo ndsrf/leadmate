@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+  <!-- primer, hot spots and marking posts: the Person stands still on a park path while the Dog stops firm at a strong smell by a lamp post -->
+  <use href="#backdrop"/>
+  <use href="#tree" transform="translate(48 292)"/>
+  <use href="#ground-park"/>
+  <use href="#lamp" transform="translate(500 292) scale(0.9)"/>
+  <use href="#bush" transform="translate(580 304)"/>
+  <use href="#tuft" transform="translate(240 290)"/>
+  <g transform="translate(110 312) scale(1.1)">
+    <use href="#person-still"/>
+    <use href="#dog-sniff" transform="translate(200 0)"/>
+    <use href="#leash-still-u"/>
+    <use href="#sniff-lines" transform="translate(272 -26)"/>
+  </g>
+  <use href="#clock" transform="translate(300 90) scale(1.2)"/>
+</svg>

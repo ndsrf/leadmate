@@ -78,13 +78,14 @@ describe('World 6 Stage Node park-unpredictable (beta)', () => {
     }
   });
 
-  it('World 6 is two Stretches in order, no longer a preview, with more Stretches coming', () => {
+  it('World 6 is three Stretches in order, no longer a preview, with more Stretches coming', () => {
     const resolved = resolvePack(pack, 'es');
     const world = resolved.worlds.find((w) => w.id === 'recall')!;
     expect(world.preview).toBeFalsy();
-    expect(world.stretches).toHaveLength(2);
+    expect(world.stretches).toHaveLength(3);
     expect(world.stretches[0].map((s) => s.id)).toEqual(['theory-sniffing-walks', 'park-nose-on', 'mission-park-sniff']);
     expect(world.stretches[1].map((s) => s.id)).toEqual(['theory-unpredictable-walks', 'howto-yield-pressure', NODE, 'park-keep-fresh', 'mission-park-unpredictable']);
+    expect(world.stretches[2].map((s) => s.id)).toEqual(['theory-sniffing-on-your-terms', 'howto-jackpot', 'park-plant-mark', 'park-not-that-one', 'mission-park-sniff-terms']);
     expect(hasMoreComing(world)).toBe(true);
     void findWorld;
   });

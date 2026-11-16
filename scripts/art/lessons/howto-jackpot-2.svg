@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.howto-jackpot.image.2.caption" data-alt="trail.howto-jackpot.image.2.alt">
+  <!-- scene: an easy moment on an empty path, the Dog walks beside the Person; the star is kept in reserve (a clock and pause: not now) -->
+  <use href="#backdrop"/>
+  <use href="#tree" transform="translate(40 292)"/>
+  <use href="#ground-park"/>
+  <g transform="translate(96 312) scale(1.05)">
+    <use href="#person-walk"/>
+    <use href="#dog-walk-calm" transform="translate(200 0)"/>
+    <use href="#leash-u"/>
+  </g>
+  <use href="#star" transform="translate(470 110) scale(1.4)"/>
+  <use href="#pause" transform="translate(560 110)"/>
+</svg>
