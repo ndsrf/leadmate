@@ -48,7 +48,7 @@
 ## 7. Integration checks
 
 - [ ] 7.1 Run the app (Expo web or device) through the funnel to the Diagnostic: play a round in Spanish and in English, check feedback sounds and haptics follow the Settings toggles, check reduced motion, play one round with TalkBack or VoiceOver on, check a swipe from near the screen edge does not trigger the back gesture, replay once, Continue to the diagnostic card (reworded label) and plan; note the results in the PR
-- [ ] 7.2 Verify `openspec validate add-read-the-dog-game --strict` passes and every scenario in the three delta specs is covered by a test above or by the manual check in 7.1
+- [x] 7.2 Verify `openspec validate add-read-the-dog-game --strict` passes and every scenario in the three delta specs is covered by a test above or by the manual check in 7.1
 
 ## Workflow follow-up
 
