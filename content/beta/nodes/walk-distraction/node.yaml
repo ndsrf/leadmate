@@ -13,7 +13,7 @@ simulation:
       aim: stay-calm
       scenario:
         waypoint: { x: 25, y: 0 }
-        distractor: { kind: skateboard, speed: 3.5, activateAfterMeters: 5, startOffset: 16, triggerRadius: 14 }
+        distractor: { kind: skateboard, speed: 2, activateAfterMeters: 4, startOffset: 25, triggerRadius: 10 }
     - id: skate-poste
       aim: mark-disengagement
       scenario:
