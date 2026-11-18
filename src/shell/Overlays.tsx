@@ -1,6 +1,7 @@
 import { Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
+import { BACK_BUTTON } from '../hud/layout';
 import { ARROW_LENGTH, closeCoachMarks, coachMarks, edgeArrow, type CoachMark } from '../hud/coach';
 import type { Translate } from '../i18n';
 import { GameButton, LightRegion, Panel } from './ui/components';
@@ -56,9 +57,9 @@ export function SimulatorBackButton({ onPress, label = 'Atrás' }: { onPress: ()
           accessibilityLabel={label}
           aria-label={label}
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: 22,
+            width: BACK_BUTTON.width,
+            height: BACK_BUTTON.height,
+            borderRadius: BACK_BUTTON.width / 2,
             backgroundColor: lightColor.surface,
             borderWidth: 2,
             borderColor: lightColor.outline,
@@ -234,7 +235,7 @@ export function EncounterResultOverlay({ t, title, paws, hint, onRetry, onNext }
 export function SeriesProgressStrip({ t, index, total, kept }: { t: Translate; index: number; total: number; kept: number[] }) {
   const insets = useSafeAreaInsets();
   const top = Math.max(insets?.top ?? 0, 12);
-  const left = Math.max(insets?.left ?? 0, 12) + 44 + 10;
+  const left = Math.max(insets?.left ?? 0, 12) + BACK_BUTTON.width + 10;
   const label = fill(t('encounter.progress'), { n: index, total });
   return (
     <LightRegion pointerEvents="none" className="absolute inset-0">

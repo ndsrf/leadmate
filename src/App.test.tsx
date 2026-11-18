@@ -2057,6 +2057,7 @@ describe('App - Encounter Series flow', () => {
 
   it('Exit on the third Encounter opens a skipped Debrief listing the kept Paws', async () => {
     await startSeries();
+    const before = JSON.parse(mockStore.get(RECORD_KEY)!);
     for (let i = 0; i < 2; i++) {
       await sendFromView({ type: 'debrief', payload: good(1) });
       act(() => card().onNext());
@@ -2068,6 +2069,14 @@ describe('App - Encounter Series flow', () => {
     expect(result.skipped).toBe(true);
     expect(result.payload.handlingScore).toBe(500);
     expect(result.payload.encounters.map((e: { paws: number }) => e.paws)).toEqual([3, 3, 0, 0]);
+    // a skipped Series earns 1 Star and leaves the Dog's learning untouched (App tests stub `onDebrief`, so the real one is applied to the Debrief's run)
+    const run = latest('DebriefScreen').run;
+    const { onDebrief } = jest.requireActual('./shell/nodes/node');
+    const applied = onDebrief(before, run, new Date());
+    expect(applied.stars[run.node.id]).toBe(1);
+    expect(applied.attributes).toEqual(before.attributes);
+    expect(applied.weights).toEqual(before.weights);
+    expect(latest('DebriefScreen').best).toBe(1);
   });
 
   it('Exit after every Encounter has a kept attempt finishes normally', async () => {
