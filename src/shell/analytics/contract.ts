@@ -10,6 +10,7 @@
  * - Privacy: only declared properties of kinds int, bool, enum, or id are permitted.
  *   - Free text is forbidden.
  *   - `id` properties must be lowercase, alphanumeric/symbols (. : - _), <=64 chars, and never UUID-shaped.
+ *   - `id` values must be content/catalog ids (e.g. node_id, lesson_id, world_id, stop_id), never user-entered text.
  *   - Undeclared or invalid properties cause the event to be dropped (returns null).
  */
 
