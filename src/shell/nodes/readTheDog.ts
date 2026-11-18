@@ -98,6 +98,7 @@ export interface RoundState {
   right: Record<RtdClass, number>;
   wrong: Record<RtdClass, number>;
   missed: Record<RtdClass, number>;
+  signalsToWatch: RtdSignal[];
   last: RtdEvent | null;
 }
 
@@ -191,6 +192,7 @@ export function newRound(
     right: emptyCounts(),
     wrong: emptyCounts(),
     missed: emptyCounts(),
+    signalsToWatch: [],
     last: null,
   };
 }
@@ -266,6 +268,11 @@ export function stepRound(
     const right = { ...state.right };
     const wrong = { ...state.wrong };
     const rightTimes = [...state.rightTimes];
+    const signalsToWatch = isRight
+      ? state.signalsToWatch
+      : state.signalsToWatch.includes(signal)
+        ? state.signalsToWatch
+        : [...state.signalsToWatch, signal];
 
     if (isRight) {
       combo += 1;
@@ -339,6 +346,7 @@ export function stepRound(
         rightTimes,
         right,
         wrong,
+        signalsToWatch,
         last,
       };
     }
@@ -362,6 +370,7 @@ export function stepRound(
       rightTimes,
       right,
       wrong,
+      signalsToWatch,
       last,
     };
   }
@@ -382,6 +391,9 @@ export function stepRound(
     let level = currentLevel;
     const missed = { ...state.missed };
     missed[signalClass] += 1;
+    const signalsToWatch = state.signalsToWatch.includes(signal)
+      ? state.signalsToWatch
+      : [...state.signalsToWatch, signal];
 
     weights[signal] = Math.min(
       READ_THE_DOG.maxWeight,
@@ -414,6 +426,7 @@ export function stepRound(
         rightStreak: badStreak >= READ_THE_DOG.downAfter ? 0 : rightStreak,
         badStreak: badStreak >= READ_THE_DOG.downAfter ? 0 : badStreak,
         missed,
+        signalsToWatch,
         last,
       };
     }
@@ -429,6 +442,7 @@ export function stepRound(
       rightStreak: badStreak >= READ_THE_DOG.downAfter ? 0 : rightStreak,
       badStreak: badStreak >= READ_THE_DOG.downAfter ? 0 : badStreak,
       missed,
+      signalsToWatch,
       last,
     };
   }
