@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from 'react';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import type { KeyValueStore, DogRecord } from '../dogRecord';
@@ -39,6 +40,17 @@ let activeState: AnalyticsState | null = null;
 let isInitialized = false;
 let isEnabling = false;
 let eventBuffer: BufferedTrackEvent[] = [];
+const stateListeners = new Set<(state: AnalyticsState) => void>();
+
+function notifyStateListeners(state: AnalyticsState): void {
+  for (const listener of stateListeners) {
+    try {
+      listener(state);
+    } catch {
+      // Ignore listener errors
+    }
+  }
+}
 
 function isJest(): boolean {
   return (
@@ -80,6 +92,7 @@ export function resetAnalyticsForTesting(): void {
   isInitialized = false;
   isEnabling = false;
   eventBuffer = [];
+  stateListeners.clear();
 }
 
 export function getAnalyticsState(): AnalyticsState | null {
@@ -162,6 +175,7 @@ export async function initAnalytics(
 
   activeState = state;
   isInitialized = true;
+  notifyStateListeners(state);
 
   const enabled = isEnabled(state);
   const service = getAnalytics();
@@ -235,6 +249,7 @@ export async function setAnalyticsEnabled(enabled: boolean): Promise<void> {
     } else {
       activeState.choice = enabled ? 'on' : 'off';
     }
+    notifyStateListeners(activeState);
 
     const service = getAnalytics();
     if (enabled) {
@@ -267,16 +282,24 @@ export function useAnalyticsSetting(): {
   enabled: boolean;
   setEnabled: (next: boolean) => Promise<void>;
 } {
-  const React = require('react');
   const state = getAnalyticsState();
-  const [enabled, setEnabledLocal] = React.useState(() => isEnabled(state ?? { choice: null }));
+  const [enabled, setEnabledLocal] = useState(() => isEnabled(state ?? { choice: null }));
 
-  React.useEffect(() => {
+  useEffect(() => {
     const current = getAnalyticsState();
-    setEnabledLocal(isEnabled(current ?? { choice: null }));
+    if (current) {
+      setEnabledLocal(isEnabled(current));
+    }
+    const listener = (nextState: AnalyticsState) => {
+      setEnabledLocal(isEnabled(nextState));
+    };
+    stateListeners.add(listener);
+    return () => {
+      stateListeners.delete(listener);
+    };
   }, []);
 
-  const setEnabled = React.useCallback(async (next: boolean) => {
+  const setEnabled = useCallback(async (next: boolean) => {
     setEnabledLocal(next);
     await setAnalyticsEnabled(next);
   }, []);

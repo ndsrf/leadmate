@@ -2,12 +2,18 @@ jest.mock('react-native', () => ({
   Platform: { OS: 'ios' },
 }));
 
+import React, { useEffect } from 'react';
+import { create, act } from 'react-test-renderer';
+
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
 import {
   getAnalytics,
   initAnalytics,
   track,
   setAnalyticsEnabled,
   updateAnalyticsFlags,
+  useAnalyticsSetting,
   getAnalyticsState,
   resetAnalyticsForTesting,
   setAnalyticsServiceForTesting,
@@ -276,5 +282,48 @@ describe('Analytics Wiring and Track (Task 3.4)', () => {
 
     expect(capturedEvents).toHaveLength(1);
     expect(capturedEvents[0].name).toBe('funnel_step_viewed');
+  });
+
+  it('useAnalyticsSetting re-reads state after initAnalytics resolves when mounted before init', async () => {
+    function TestConsumer({ onChange }: { onChange: (val: boolean) => void }) {
+      const { enabled } = useAnalyticsSetting();
+      useEffect(() => {
+        onChange(enabled);
+      }, [enabled, onChange]);
+      return null;
+    }
+
+    const store = createMockStore({
+      [ANALYTICS_STATE_KEY]: JSON.stringify({
+        installId: 'stored-id',
+        installedAt: '2026-01-01T00:00:00.000Z',
+        choice: 'off',
+        funnelDoneOnce: false,
+        funnelOpen: false,
+        upgradedInstall: false,
+      }),
+    });
+
+    let currentEnabled: boolean | null = null;
+    await act(async () => {
+      create(
+        React.createElement(TestConsumer, {
+          onChange: (val: boolean) => {
+            currentEnabled = val;
+          },
+        })
+      );
+    });
+
+    // Before initAnalytics resolves, choice is null -> defaults to true
+    expect(currentEnabled).toBe(true);
+
+    // Now initAnalytics resolves with stored choice: 'off'
+    await act(async () => {
+      await initAnalytics(store);
+    });
+
+    // Hook must re-read state after initAnalytics resolves
+    expect(currentEnabled).toBe(false);
   });
 });
