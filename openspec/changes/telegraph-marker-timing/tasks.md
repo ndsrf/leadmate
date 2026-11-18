@@ -2,10 +2,10 @@
 
 ## 1. Timing assist model (pure, test-first)
 
-- [ ] 1.1 Write failing tests in `src/hud/markerAssist.test.ts` for `applyOutcome`: three successes step Full→Ring→Late→Off, two failures step back up, runs reset on a level change (also when the clamp holds the level), a success clears the failure run, a failure clears the success run, neutral outcomes neither count nor break a run, clamping at Full and Off. Verify: `npx jest src/hud/markerAssist` fails for the right reason.
-- [ ] 1.2 Implement `AssistLevel`, `AssistState`, `DEFAULT_ASSIST`, the tunable constants `ASSIST_STEP_DOWN_RUN = 3` and `ASSIST_STEP_UP_RUN = 2`, and `applyOutcome` in `src/hud/markerAssist.ts`. Verify: the 1.1 tests pass.
-- [ ] 1.3 Add tests and then `effectiveLevel(state, { alwaysFull, guidedFirstStage })` (Full when either flag is set, otherwise the stored level). Verify: tests pass.
-- [ ] 1.4 Add tests and then `assistOutcomeOf(event, ctx)`: hits of any grade count as success; `marker-miss` and `marker-late` as failure, except `marker-miss` with the Mark budget spent, which is neutral; `marker-reactive` as failure only while the calm period is under way (fixated with `calmElapsed > 0`), at every level; everything else including `missed-opportunity` and `marker-wasted` as neutral. Verify: tests pass.
+- [x] 1.1 Write failing tests in `src/hud/markerAssist.test.ts` for `applyOutcome`: three successes step Full→Ring→Late→Off, two failures step back up, runs reset on a level change (also when the clamp holds the level), a success clears the failure run, a failure clears the success run, neutral outcomes neither count nor break a run, clamping at Full and Off. Verify: `npx jest src/hud/markerAssist` fails for the right reason.
+- [x] 1.2 Implement `AssistLevel`, `AssistState`, `DEFAULT_ASSIST`, the tunable constants `ASSIST_STEP_DOWN_RUN = 3` and `ASSIST_STEP_UP_RUN = 2`, and `applyOutcome` in `src/hud/markerAssist.ts`. Verify: the 1.1 tests pass.
+- [x] 1.3 Add tests and then `effectiveLevel(state, { alwaysFull, guidedFirstStage })` (Full when either flag is set, otherwise the stored level). Verify: tests pass.
+- [x] 1.4 Add tests and then `assistOutcomeOf(event, ctx)`: hits of any grade count as success; `marker-miss` and `marker-late` as failure, except `marker-miss` with the Mark budget spent, which is neutral; `marker-reactive` as failure only while the calm period is under way (fixated with `calmElapsed > 0`), at every level; everything else including `missed-opportunity` and `marker-wasted` as neutral. Verify: tests pass.
 
 ## 2. Telegraph model (pure, test-first)
 
