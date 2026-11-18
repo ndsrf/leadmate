@@ -46,6 +46,8 @@ export interface SimulationDebriefPayload {
   markGrades?: { perfect: number; good: number; late: number };
   /** Walking Stages: Highest Reaction Tier the Dog reached during the Stage. */
   peakReactionTier?: ReactionTier;
+  /** Only in an Encounter Series: each Encounter's kept Paws and attempts. */
+  encounters?: { id: string; paws: number; attempts: number; seed?: number }[];
   /** Only in a Stage with Stage Meters: each meter's final Meter Points and target; it then sets the handling score (ADR 0029). */
   meters?: MeterValue[];
   /** Only in a scent Stage: what the walk did around Scent Spots, food and changes. */
