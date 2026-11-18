@@ -35,10 +35,10 @@
 
 ## 6. Bundle drawing and wiring
 
-- [ ] 6.1 In `StageScene`, build the telegraph model each tick from the sim state, sample the effective level at Fixation start and at the start of each Check-in arc, feed events through `assistOutcomeOf`/`applyOutcome` (skipped when `alwaysTimingHelp` is on or in the Taste Stage), send `marker-assist` on change, `telegraph-tick` for crossed beats at Full, and the sampled level as `assist` on the `first-fixation` signal. Verify: build the bundle (`npm run` bundle build script) with no type errors.
+- [x] 6.1 In `StageScene`, build the telegraph model each tick from the sim state, sample the effective level at Fixation start and at the start of each Check-in arc, feed events through `assistOutcomeOf`/`applyOutcome` (skipped when `alwaysTimingHelp` is on or in the Taste Stage), send `marker-assist` on change, `telegraph-tick` for crossed beats at Full, and the sampled level as `assist` on the `first-fixation` signal. Verify: build the bundle (`npm run` bundle build script) with no type errors.
 - [ ] 6.2 Draw the approach ring, snap, landed and Good looks, and the Check-in arc, with redraws gated by the quantized progress via `src/hud/dirty.ts`. Draw the reduced-motion fill-ring variant and the steady highlight when `reducedMotion` is set. Verify: run the app (web) and see each look at each assist level, with and without reduced motion, and that a pause freezes them.
 - [ ] 6.3 Draw the Full-assist Marker highlight outside the button radius during the Perfect span of a landed Reward Window or a landed Check-in look, leaving the hit area and the Marker Coach mark unchanged. Verify: `src/hud/layout.test.ts` still passes and a press during the highlight registers on the same tick.
-- [ ] 6.4 Add a determinism test: the same seed and inputs with the telegraph at each level, with `alwaysTimingHelp`, and not computed give identical debrief payloads, and `payloadBaseline.test.ts` stays green. Verify: `npx jest src/sim src/hud` passes.
+- [x] 6.4 Add a determinism test: the same seed and inputs with the telegraph at each level, with `alwaysTimingHelp`, and not computed give identical debrief payloads, and `payloadBaseline.test.ts` stays green. Verify: `npx jest src/sim src/hud` passes.
 
 ## 7. Poste practice ring
 

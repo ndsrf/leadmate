@@ -24,6 +24,10 @@ import { drawDecor, drawGroundPatch, drawProp, groundBounds, propLook, wallQuad,
 import { atlas, atlasOf, atlasUrl, ATLAS, DOG_ATLAS, dogAtlas, dogAtlasUrl, DOG_COATS, facingDegrees, huskyFrame, pivotOf, propFrame, propScale, resOf } from './sprites';
 import { layoutGround, propWalls, routePoints, shapeOf, type GroundPlan } from '../../src/sim/scenery';
 import { EffectsView, HUD_ATLAS } from './effectsView';
+import { DEFAULT_ASSIST, type AssistLevel, type AssistState } from '../../src/hud/markerAssist';
+import { TelegraphController } from '../../src/hud/telegraphController';
+import { ARC_RISE, arcLook, ringLook } from '../../src/hud/telegraphLook';
+import { drawArc, drawMarkerHighlight, drawRing } from './telegraphView';
 
 export interface StageOptions {
   seed: number;
@@ -34,7 +38,15 @@ export interface StageOptions {
   onCue?: (cue: CueType) => void;
   /** The Dog crossed a Reaction Tier threshold; the shell plays a vocalization. */
   onTier?: (tier: ReactionTier, time: number) => void;
-  onSignal?: (signal: StageSignal, time: number, detail?: { control?: StageControl; bearing?: number }) => void;
+  onSignal?: (signal: StageSignal, time: number, detail?: { control?: StageControl; bearing?: number; assist?: AssistLevel }) => void;
+  /** The Dog record's Timing assist, "always show timing help", and the guided first Stage (telegraph-marker-timing). */
+  markerAssist?: AssistState;
+  alwaysTimingHelp?: boolean;
+  guidedFirstStage?: boolean;
+  /** A count-in beat (1 to 3) of the Approach ring at Full assist; the shell plays the tick. */
+  onTelegraphTick?: (beat: 1 | 2 | 3) => void;
+  /** The Timing assist changed; the shell records it in the Dog record. */
+  onAssistChange?: (state: AssistState) => void;
   /** The OS asks for reduced motion: the Dog's tail stops wagging (the still raised-tail pose). Defaults to the browser's `prefers-reduced-motion`. */
   reducedMotion?: boolean;
   /** The scene finished creating; the render loop may now sleep when the Stage is paused or ended. */
@@ -47,6 +59,7 @@ export interface StageOptions {
     polarity: FeedbackPolarity;
     combo: number;
     firstTime: boolean;
+    perfectRun?: number;
   }) => void;
 }
 
@@ -152,6 +165,12 @@ export class StageScene extends Phaser.Scene {
   private signalGate = createSignalGate();
   private decider!: FeedbackDecider;
   private effectsView!: EffectsView;
+  /** The telegraph (Approach ring, Check-in arc, Timing assist); null in the Taste Stage, which shows none. */
+  private telegraph: TelegraphController | null = null;
+  private ringGfx!: Phaser.GameObjects.Graphics;
+  private arcGfx!: Phaser.GameObjects.Graphics;
+  private ringDirty = createChangeDetector();
+  private arcDirty = createChangeDetector();
   private outbox: Outbox = createOutbox(typeof window !== 'undefined' ? window as never : {});
 
   constructor() {
@@ -169,6 +188,9 @@ export class StageScene extends Phaser.Scene {
     const seenKinds = options.seenKinds ?? lastStartMessage?.seenKinds ?? [];
     const isTasteStage = options.isTasteStage ?? lastStartMessage?.isTasteStage ?? false;
     this.decider = new FeedbackDecider({ seenKinds, isTasteStage });
+    this.telegraph = isTasteStage
+      ? null
+      : new TelegraphController({ assist: options.markerAssist ?? DEFAULT_ASSIST, alwaysTimingHelp: options.alwaysTimingHelp, guidedFirstStage: options.guidedFirstStage });
     this.zoom = 0;
     this.focused = false;
     this.joy = null;
@@ -214,6 +236,10 @@ export class StageScene extends Phaser.Scene {
     this.textures.get(DOG_ATLAS).setFilter(Phaser.Textures.FilterMode.LINEAR);
     const actor = () => this.add.image(0, 0, ATLAS, 'handler_idle0_0').setVisible(false);
     this.actors = { handler: actor(), dog: actor(), other: actor() };
+    this.ringGfx = this.add.graphics().setDepth(-5e4 + 1); // on the ground, under the Dog
+    this.arcGfx = this.add.graphics();
+    this.ringDirty.reset();
+    this.arcDirty.reset();
     this.routeGfx = this.add.graphics(); // before gfx, so it draws under it at the same depth
     this.routeDirty.reset();
     this.gfx = this.add.graphics();
@@ -660,7 +686,10 @@ export class StageScene extends Phaser.Scene {
       this.accumulator += Math.min(delta, 100) / 1000;
       while (this.accumulator >= step && !this.sim.ended) {
         this.simSteps++;
-        this.handleEvents(tick(this.sim, input, step));
+        const pre = { dogMode: this.sim.dogMode as string, calmElapsed: this.sim.calmElapsed };
+        const events = tick(this.sim, input, step);
+        this.stepTelegraph(events, pre);
+        this.handleEvents(events);
         input = { ...input, marker: false, cue: false, sniff: false, jackpot: false }; // a press counts for one tick only
         this.markerPressed = false;
         this.cuePressed = null;
@@ -670,6 +699,7 @@ export class StageScene extends Phaser.Scene {
       }
       this.followCamera(delta);
       this.draw(input);
+      this.drawTelegraph();
       this.drawHud();
       this.drawPortrait();
     }
@@ -683,8 +713,43 @@ export class StageScene extends Phaser.Scene {
     );
   }
 
+  /** Feeds the telegraph one sim tick: count-in beats go to the shell and a changed Timing assist is recorded. */
+  private stepTelegraph(events: SimEvent[], pre: { dogMode: string; calmElapsed: number }): void {
+    if (!this.telegraph) return;
+    const s = this.sim;
+    const frame = this.telegraph.step(
+      { time: s.time, dogMode: s.dogMode, calmElapsed: s.calmElapsed, calmSeconds: s.config.calmSeconds, rewardWindow: s.rewardWindow, nextCheckInAt: s.nextCheckInAt, dogLookUntil: s.dogLookUntil, lookStartedAt: s.lookStartedAt, lookCause: s.lookCause },
+      events,
+      { pre, marksUsed: s.telemetry.marksUsed, markBudget: s.config.markBudget },
+    );
+    for (const beat of frame.beats) this.options.onTelegraphTick?.(beat);
+    if (frame.assistChanged) this.options.onAssistChange?.(frame.assistChanged);
+  }
+
+  /** Draws the ring and the arc, redrawing only when their quantized look changes. */
+  private drawTelegraph(): void {
+    const frame = this.telegraph?.frame;
+    if (!frame) return;
+    const dog = project(this.sim.dog);
+    const ring = ringLook(frame.ring, { reducedMotion: this.reducedMotion, landedAge: frame.landedAge, goodLeft: frame.goodLeft, snapAge: frame.snapAge, snapFromProgress: frame.snapFromProgress });
+    const ringKey = ring ? `${ring.key}|${Math.round(dog.x)},${Math.round(dog.y)}` : '-';
+    if (this.ringDirty.changed(ringKey)) drawRing(this.ringGfx, dog.x, dog.y, ring);
+    const arc = arcLook(frame.checkInArc);
+    const arcKey = arc ? `${arc.key}|${Math.round(dog.x)},${Math.round(dog.y)}` : '-';
+    if (this.arcDirty.changed(arcKey)) {
+      drawArc(this.arcGfx, dog.x, dog.y - ARC_RISE, arc);
+      this.arcGfx.setDepth(dog.y + 2);
+    }
+  }
+
+  /** The Marker highlight pulse step (0 when steady); the HUD key includes it so the highlight redraws only per step. */
+  private get highlightPulse(): number {
+    if (!this.telegraph?.frame?.highlight) return -1;
+    return this.reducedMotion ? 0 : Math.round(0.5 + 0.5 * Math.sin(this.sim.time * 10)) ;
+  }
+
   /** Each signal goes to the shell once per Stage. */
-  private signal(signal: StageSignal, time: number, detail?: { control?: StageControl; bearing?: number }): void {
+  private signal(signal: StageSignal, time: number, detail?: { control?: StageControl; bearing?: number; assist?: AssistLevel }): void {
     if (!this.signalGate(signal, detail?.control)) return;
     this.options.onSignal?.(signal, time, detail);
   }
@@ -719,6 +784,7 @@ export class StageScene extends Phaser.Scene {
           polarity: msg.polarity,
           combo: msg.combo,
           firstTime: msg.firstTime,
+          ...(msg.perfectRun !== undefined ? { perfectRun: msg.perfectRun } : {}),
         } as const;
         if (this.options.onFeedback) {
           this.options.onFeedback(payload);
@@ -762,7 +828,7 @@ export class StageScene extends Phaser.Scene {
       else if (e.type === 'reaction-tier-change') this.options.onTier?.(e.tier, e.time);
       else if (e.type === 'tension-change' && e.tension === 'taut') this.signal('first-taut', e.time);
       else if (e.type === 'tension-change' && e.tension === 'rigid') this.signal('leash-limit', e.time);
-      else if (e.type === 'fixation-start') this.signal('first-fixation', e.time);
+      else if (e.type === 'fixation-start') this.signal('first-fixation', e.time, this.telegraph ? { assist: this.telegraph.level } : undefined);
       else if (e.type === 'dog-approaching') this.signal('dog-approaching', e.time, { bearing: this.bearingOf(e.position) });
       else if (e.type === 'stage-end' && !this.ended) {
         this.ended = true;
@@ -1056,6 +1122,7 @@ export class StageScene extends Phaser.Scene {
       this.sniffPointerDown || this.keys.sniff.isDown,
       this.jackpotHome ? `${this.jackpotsLeft}${this.jackpotPointerDown || this.keys.jackpot.isDown}` : '-',
       this.effectsView.isActive(this.sim.time) ? quantize(this.sim.time, 30) : '-',
+      this.highlightPulse,
     ].join('|');
     if (!this.hudDirty.changed(key)) return;
     h.clear();
@@ -1128,6 +1195,9 @@ export class StageScene extends Phaser.Scene {
     const barX = (width - barW) / 2;
     h.fillStyle(HUD_COLOR_NUM.surfaceSunken).fillRoundedRect(barX, height - 16, barW, 10, 5).lineStyle(2, HUD_COLOR_NUM.ink).strokeRoundedRect(barX, height - 16, barW, 10, 5);
     if (level > 0) h.fillStyle(level < 0.5 ? HUD_AROUSAL_NUM.calm : level < 0.75 ? HUD_AROUSAL_NUM.alert : HUD_AROUSAL_NUM.reactive).fillRoundedRect(barX + 1, height - 15, Math.max(8, (barW - 2) * level), 8, 4);
+
+    // Full assist: an outline ring outside the button during the Perfect span; the hit area is unchanged
+    if (this.highlightPulse >= 0) drawMarkerHighlight(h, m.x, m.y, MARKER_RADIUS, this.highlightPulse);
 
     // checkmark icon: the Marker says "right now, good"
     h.lineStyle(8, enabled ? HUD_COLOR_NUM.ink : HUD_COLOR_NUM.disabledText).beginPath().moveTo(m.x - 18, my).lineTo(m.x - 5, my + 14).lineTo(m.x + 20, my - 14).strokePath();
