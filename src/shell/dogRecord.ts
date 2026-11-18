@@ -25,6 +25,7 @@ import { activityAt, addActivity, readActivityLog, type ActivityEvent } from './
 import type { PuzzleSummary } from './puzzle/types';
 import { addDiaryEntry, DIARY_OUTCOMES, isDateString, localDateString, markActive, NO_STREAK, type DiaryOutcome, type StreakRecord, type WalkDiaryEntry } from './streak';
 import { checkIn, fixFor, readMissions, readSeenFixes, skipDay, NEW_MISSION, type MissionDef, type MissionState, type SeenFix } from './missions/mission';
+import { DEFAULT_ASSIST, type AssistState } from '../hud/markerAssist';
 
 /** The answers to "how does the Dog cope with being left alone". */
 export const ALONE_ANSWERS = ['ok', 'sometimes', 'bad', 'unknown'] as const;
@@ -120,6 +121,8 @@ export interface DogRecord {
   activityLog: ActivityEvent[];
   /** Verified subscription entitlements from store billing, cached for offline continuity. */
   billing?: BillingRecordState;
+  /** Timing assist state (level, successRun, failRun); missing or invalid reads as Full with empty runs. */
+  markerAssist?: AssistState;
 }
 
 export interface BillingRecordState {
@@ -198,6 +201,7 @@ export function newDogRecord(): DogRecord {
     seenFixes: [],
     legacyNodes: [],
     activityLog: [],
+    markerAssist: { ...DEFAULT_ASSIST },
   };
 }
 
@@ -365,6 +369,18 @@ export function moveHomeStretchesToWorldTwo(record: DogRecord, version: unknown)
   return rest;
 }
 
+function readMarkerAssist(raw: unknown): AssistState {
+  if (!raw || typeof raw !== 'object') return { ...DEFAULT_ASSIST };
+  const r = raw as Partial<AssistState>;
+  const level = r.level;
+  if (level !== 'full' && level !== 'ring' && level !== 'late' && level !== 'off') {
+    return { ...DEFAULT_ASSIST };
+  }
+  const successRun = typeof r.successRun === 'number' && Number.isFinite(r.successRun) && r.successRun >= 0 ? Math.floor(r.successRun) : 0;
+  const failRun = typeof r.failRun === 'number' && Number.isFinite(r.failRun) && r.failRun >= 0 ? Math.floor(r.failRun) : 0;
+  return { level, successRun, failRun };
+}
+
 export function migrateRecord(raw: unknown): DogRecord {
   const base = newDogRecord();
   if (!raw || typeof raw !== 'object') return base;
@@ -423,6 +439,7 @@ export function migrateRecord(raw: unknown): DogRecord {
     ...(Array.isArray(r.completedWorlds) ? { completedWorlds: strings(r.completedWorlds) } : {}),
     activityLog: readActivityLog(r.activityLog),
     ...(billing ? { billing } : {}),
+    markerAssist: readMarkerAssist(r.markerAssist),
   }, r.version, localDateString(new Date())), r.version);
   return Array.isArray(r.completedWorlds) ? withCompletedWorlds(migrated) : backfillCompletedWorlds(migrated);
 }

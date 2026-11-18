@@ -109,3 +109,48 @@ describe('feedback bundle message', () => {
     }
   });
 });
+
+describe('telegraph bridge messages', () => {
+  const state = { level: 'ring', successRun: 1, failRun: 0 };
+
+  it('round-trips telegraph-tick, marker-assist and a first-fixation signal with an assist level', () => {
+    for (const m of [
+      { type: 'telegraph-tick', beat: 2 },
+      { type: 'marker-assist', state },
+      { type: 'stage-signal', signal: 'first-fixation', time: 4, assist: 'full' },
+    ]) {
+      expect(BUNDLE_MESSAGE_TYPES).toContain(m.type);
+      expect(decode<BundleMessage>(encode(m as BundleMessage), BUNDLE_MESSAGE_TYPES)).toEqual(m);
+    }
+  });
+
+  it('rejects malformed telegraph-tick, marker-assist and assist shapes', () => {
+    for (const bad of [
+      { type: 'telegraph-tick', beat: 0 },
+      { type: 'telegraph-tick', beat: 4 },
+      { type: 'telegraph-tick', beat: '1' },
+      { type: 'marker-assist' },
+      { type: 'marker-assist', state: { ...state, level: 'max' } },
+      { type: 'marker-assist', state: { ...state, successRun: -1 } },
+      { type: 'marker-assist', state: { ...state, failRun: 1.5 } },
+      { type: 'stage-signal', signal: 'first-fixation', time: 1, assist: 'huge' },
+    ]) {
+      expect(decode<BundleMessage>(bad, BUNDLE_MESSAGE_TYPES)).toBeNull();
+    }
+  });
+
+  it('accepts and validates the optional perfectRun on feedback', () => {
+    const ok = { type: 'feedback', kind: 'marker-hit', tier: 'medium', polarity: 'right', combo: 1, firstTime: false };
+    expect(decode<BundleMessage>({ ...ok, perfectRun: 3 }, BUNDLE_MESSAGE_TYPES)).toEqual({ ...ok, perfectRun: 3 });
+    for (const bad of [0, -1, 1.5, '2']) expect(decode<BundleMessage>({ ...ok, perfectRun: bad }, BUNDLE_MESSAGE_TYPES)).toBeNull();
+  });
+
+  it('validates the start fields markerAssist, alwaysTimingHelp and guidedFirstStage', () => {
+    const start = { type: 'start', markerAssist: state, alwaysTimingHelp: true, guidedFirstStage: false };
+    expect(decode<ShellMessage>(encode(start as ShellMessage), SHELL_MESSAGE_TYPES)).toEqual(start);
+    expect(decode<ShellMessage>({ type: 'start', seed: 1 }, SHELL_MESSAGE_TYPES)).toEqual({ type: 'start', seed: 1 });
+    for (const bad of [{ markerAssist: { level: 'x', successRun: 0, failRun: 0 } }, { alwaysTimingHelp: 'yes' }, { guidedFirstStage: 1 }]) {
+      expect(decode<ShellMessage>({ type: 'start', ...bad }, SHELL_MESSAGE_TYPES)).toBeNull();
+    }
+  });
+});

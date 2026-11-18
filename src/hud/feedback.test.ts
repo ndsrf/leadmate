@@ -351,3 +351,88 @@ describe('scent-walk kinds', () => {
     }
   });
 });
+
+describe('perfectRun (task 3.1)', () => {
+  it('increments on Perfect hits regardless of time between them', () => {
+    const d = new FeedbackDecider();
+    const m1 = step(d, 0, hit(0, 'perfect'));
+    expect(m1?.perfectRun).toBe(1);
+
+    // 20 seconds later
+    const m2 = step(d, 20, hit(20, 'perfect'));
+    expect(m2?.perfectRun).toBe(2);
+
+    // Another 30 seconds later with check-in hit
+    const m3 = step(d, 50, checkIn(50, 'perfect'));
+    expect(m3?.perfectRun).toBe(3);
+  });
+
+  it('starts at 0 in a new decider', () => {
+    const d = new FeedbackDecider();
+    const m = step(d, 0, hit(0, 'perfect'));
+    expect(m?.perfectRun).toBe(1);
+  });
+
+  it('resets on Good Marker hit', () => {
+    const d = new FeedbackDecider();
+    step(d, 0, hit(0, 'perfect'));
+    step(d, 1, hit(1, 'perfect'));
+
+    const good = step(d, 2, hit(2, 'good'));
+    expect(good?.perfectRun).toBeUndefined();
+
+    const nextPerfect = step(d, 3, hit(3, 'perfect'));
+    expect(nextPerfect?.perfectRun).toBe(1);
+  });
+
+  it('resets on marker-miss, marker-late, marker-reactive, and marker-wasted', () => {
+    for (const wrongEvent of [
+      { type: 'marker-miss', time: 10 } as SimEvent,
+      { type: 'marker-late', time: 10 } as SimEvent,
+      reactive(10),
+      { type: 'marker-wasted', time: 10 } as SimEvent,
+    ]) {
+      const d = new FeedbackDecider();
+      step(d, 0, hit(0, 'perfect'));
+      step(d, 1, hit(1, 'perfect'));
+
+      step(d, 10, wrongEvent);
+
+      const next = step(d, 20, hit(20, 'perfect'));
+      expect(next?.perfectRun).toBe(1);
+    }
+  });
+
+  it('is not touched by missed-opportunity', () => {
+    const d = new FeedbackDecider();
+    step(d, 0, hit(0, 'perfect'));
+    step(d, 1, hit(1, 'perfect'));
+
+    step(d, 10, { type: 'missed-opportunity', time: 10 });
+
+    const next = step(d, 20, hit(20, 'perfect'));
+    expect(next?.perfectRun).toBe(3);
+  });
+
+  it('carries perfectRun on change-check-in when graded Perfect', () => {
+    const d = new FeedbackDecider();
+    const m = step(
+      d,
+      0,
+      checkIn(0, 'perfect'),
+      { type: 'change-check-in', time: 0, change: 'left-turn', grade: 'perfect' } as SimEvent
+    );
+    expect(m?.kind).toBe('check-in-after-change');
+    expect(m?.perfectRun).toBe(1);
+
+    const m2 = step(
+      d,
+      10,
+      checkIn(10, 'perfect'),
+      { type: 'change-check-in', time: 10, change: 'right-turn', grade: 'perfect' } as SimEvent
+    );
+    expect(m2?.kind).toBe('check-in-after-change');
+    expect(m2?.perfectRun).toBe(2);
+  });
+});
+

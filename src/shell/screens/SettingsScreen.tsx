@@ -428,6 +428,11 @@ export function SettingsScreen({
               <Text className="shrink text-body text-ink">{t('settings.feedback.haptics')}</Text>
               <Toggle label={t('settings.feedback.haptics')} value={ui.settings.haptics} onChange={(haptics) => ui.change({ haptics })} />
             </View>
+            <View className="mt-2 flex-row items-center justify-between">
+              <Text className="shrink text-body text-ink">{t('settings.feedback.alwaysTimingHelp')}</Text>
+              <Toggle label={t('settings.feedback.alwaysTimingHelp')} value={ui.settings.alwaysTimingHelp} onChange={(alwaysTimingHelp) => ui.change({ alwaysTimingHelp })} />
+            </View>
+            <Text className="mt-1 text-caption text-inkMuted">{t('settings.feedback.alwaysTimingHelp.help')}</Text>
             <Text className="mt-2 text-caption text-inkMuted">{t('settings.feedback.help')}</Text>
           </Section>
 

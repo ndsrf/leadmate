@@ -8,6 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Fredoka_600SemiBold } from '@expo-google-fonts/fredoka';
 import { createTranslator, detectDeviceLanguage, getCatalog } from './src/i18n';
 import { feedback } from './src/shell/ui/feedback';
+import { recordMarkerAssist, telegraphStartFields } from './src/shell/markerAssistWiring';
 import { installFeedback } from './src/shell/ui/feedbackBackends';
 import { useUiSettings } from './src/shell/ui/useUiSettings';
 import { DevPerfOverlay } from './src/shell/ui/DevPerfOverlay';
@@ -251,6 +252,8 @@ export default function App() {
   // System follows the phone (or browser); one that reports no preference gets Light
   const systemScheme = useColorScheme();
   const scheme: ColorScheme = ui.settings.appearance === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : ui.settings.appearance;
+  const uiSettingsRef = useRef(ui.settings);
+  uiSettingsRef.current = ui.settings;
   const sim = useRef<SimViewHandle>(null);
   const { record, update, replace } = useDog(dogStore);
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -536,6 +539,8 @@ export default function App() {
         seenKinds,
         isTasteStage,
         reducedMotion,
+        // the telegraph (walking Stages only; close exercises start through startCloseExercise and send none)
+        ...telegraphStartFields(current, uiSettingsRef.current, routeRef.current.name),
       };
       setPaused(false);
       setHint(null);
@@ -891,12 +896,18 @@ export default function App() {
           }
         } else {
           // the taste shows no Hints and records none
-          const shown = recordRef.current && !inTaste ? hintFor(message.signal, recordRef.current.seenHints) : null;
+          const shown = recordRef.current && !inTaste ? hintFor(message.signal, recordRef.current.seenHints, message.assist) : null;
           if (shown) {
             setHint(shown);
             update((r) => markHintSeen(r, shown));
           }
         }
+      } else if (message.type === 'telegraph-tick') {
+        feedback.telegraphTick();
+      } else if (message.type === 'marker-assist') {
+        // recorded Stages only, the same gate as firstTime Hints
+        const state = message.state;
+        if (routeRef.current.name !== 'taste') update((r) => recordMarkerAssist(r, state, routeRef.current.name));
       } else if (message.type === 'feedback') {
         const inTaste = routeRef.current.name === 'taste';
         feedback.stage(message);

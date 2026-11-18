@@ -24,6 +24,19 @@ describe('resolve', () => {
     expect(resolve(local, remote).equipment).toBe('collar');
   });
 
+  it('takes markerAssist whole from the copy with the later updatedAt', () => {
+    const local = rec({
+      ...at('2026-05-02T00:00:00.000Z'),
+      markerAssist: { level: 'off', successRun: 0, failRun: 0 },
+    });
+    const remote = rec({
+      ...at('2026-05-03T00:00:00.000Z'),
+      markerAssist: { level: 'ring', successRun: 2, failRun: 0 },
+    });
+    expect(resolve(local, remote).markerAssist).toEqual({ level: 'ring', successRun: 2, failRun: 0 });
+    expect(resolve(remote, local).markerAssist).toEqual({ level: 'ring', successRun: 2, failRun: 0 });
+  });
+
   it('unions Walk Diary entries by date and Node', () => {
     const a = { date: '2026-05-01', nodeId: 'poste-practice', outcome: 'completed' } as const;
     const b = { date: '2026-05-02', nodeId: 'walk-distraction', outcome: 'struggled' } as const;

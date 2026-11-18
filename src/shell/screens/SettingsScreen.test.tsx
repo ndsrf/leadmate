@@ -252,6 +252,8 @@ describe('Settings: Area tabs navigation and section partitioning', () => {
     // Visible on Preferencias tab
     expect(html).toContain(es['settings.checkpoint']);
     expect(html).toContain(es['settings.feedback']);
+    expect(html).toContain(es['settings.feedback.alwaysTimingHelp']);
+    expect(html).toContain(es['settings.feedback.alwaysTimingHelp.help']);
     expect(html).toContain(es['settings.appearance']);
     expect(html).toContain(es['settings.language']);
     expect(html).toContain(es['settings.language.es']);
@@ -454,6 +456,31 @@ describe('Settings: Language selection in preferences', () => {
     expect(pressed[es['settings.close']]).toBeDefined();
     pressed[es['settings.close']]();
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('renders alwaysTimingHelp switch on Preferencias tab with accessible attributes', () => {
+    const change = jest.fn();
+    const html = renderToStaticMarkup(
+      <SettingsScreen
+        t={t}
+        language="es"
+        record={newDogRecord()}
+        update={() => {}}
+        onClose={() => {}}
+        account={makeAccount()}
+        onLogIn={() => {}}
+        ui={{ settings: { ...DEFAULT_UI_SETTINGS, alwaysTimingHelp: false }, change }}
+        onReset={() => {}}
+        initialTab="preferences"
+      />,
+    );
+
+    expect(html).toContain(es['settings.feedback.alwaysTimingHelp']);
+    expect(html).toContain(es['settings.feedback.alwaysTimingHelp.help']);
+
+    const switchButtons = html.split('<button').filter((b: string) => b.includes('role="switch"'));
+    const timingSwitch = switchButtons.find((b: string) => b.includes(es['settings.feedback.alwaysTimingHelp']));
+    expect(timingSwitch).toBeDefined();
   });
 });
 

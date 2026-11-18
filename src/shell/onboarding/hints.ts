@@ -1,9 +1,10 @@
 import type { TextKey } from '../../i18n';
 import type { FeedbackActionKind } from '../../sim/feedbackKinds';
 import type { StageControl, StageSignal } from '../../sim/messages';
+import type { AssistLevel } from '../../hud/markerAssist';
 import type { DogRecord } from '../dogRecord';
 
-export const HINT_IDS = ['leash-colors', 'marker', 'poste', 'dog-approaching', 'coach-move', 'coach-mark', 'coach-gather', 'coach-poste', 'coach-close-mark'] as const;
+export const HINT_IDS = ['leash-colors', 'marker', 'marker-rhythm', 'poste', 'dog-approaching', 'coach-move', 'coach-mark', 'coach-gather', 'coach-poste', 'coach-close-mark'] as const;
 export type HintId = (typeof HINT_IDS)[number];
 
 const HINT_FOR_SIGNAL: Partial<Record<StageSignal, HintId>> = {
@@ -16,6 +17,7 @@ const HINT_FOR_SIGNAL: Partial<Record<StageSignal, HintId>> = {
 export const HINT_TEXT: Record<HintId, TextKey> = {
   'leash-colors': 'onboarding.hint.leashColors',
   marker: 'onboarding.hint.marker',
+  'marker-rhythm': 'onboarding.hint.markerRhythm',
   poste: 'onboarding.hint.poste',
   'dog-approaching': 'coach.dog.warning',
   'coach-move': 'coach.controls.move',
@@ -45,7 +47,17 @@ export function closeMarksOn(
 }
 
 /** The hint a Stage signal calls for, or null when that hint was already seen. */
-export function hintFor(signal: StageSignal, seenHints: readonly string[]): HintId | null {
+export function hintFor(
+  signal: StageSignal,
+  seenHints: readonly string[],
+  assist?: AssistLevel,
+): HintId | null {
+  if (signal === 'first-fixation') {
+    if (assist === 'full' && !seenHints.includes('marker-rhythm')) {
+      return 'marker-rhythm';
+    }
+    return seenHints.includes('marker') ? null : 'marker';
+  }
   const id = HINT_FOR_SIGNAL[signal];
   return id === undefined || seenHints.includes(id) ? null : id;
 }
@@ -56,6 +68,12 @@ export function hintsRemain(seenHints: readonly string[]): boolean {
 }
 
 export function markHintSeen(record: DogRecord, id: HintId): DogRecord {
+  if (id === 'marker-rhythm') {
+    const next = new Set(record.seenHints);
+    next.add('marker-rhythm');
+    next.add('marker');
+    return { ...record, seenHints: [...next] };
+  }
   return record.seenHints.includes(id) ? record : { ...record, seenHints: [...record.seenHints, id] };
 }
 
