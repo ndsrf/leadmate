@@ -2,7 +2,7 @@
 
 ## 1. Dependency and SDK spike
 
-- [ ] 1.1 Add `posthog-react-native` (and any peer it needs for Expo, such as `expo-file-system`/`expo-application` if required) pinned to an exact version; verify `npx expo install --check` reports no mismatch and `npm run typecheck` passes
+- [x] 1.1 Add `posthog-react-native` (and any peer it needs for Expo, such as `expo-file-system`/`expo-application` if required) pinned to an exact version; verify `npx expo install --check` reports no mismatch and `npm run typecheck` passes
 - [ ] 1.2 Spike on an Android dev build: capture 3 events offline, kill the app, reopen online, and confirm in the PostHog dev project that all 3 arrive with their original timestamps; record the result and the exact option names for EU host, no GeoIP, no person profiles, no lifecycle/autocapture, distinct-id bootstrap, opt-out and queue clearing as a comment block at the top of `src/shell/analytics/posthog.ts` (if events do not survive the kill, switch task 3.3 to the own-queue fallback from design decision 4)
 
 ## 2. Event contract (pure, test-first)
