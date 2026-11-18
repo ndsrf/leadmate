@@ -1498,38 +1498,32 @@ export default function App() {
           onAnswer={(option) => {
             const qIndex = introRun.question;
             const secondsToAnswer = Math.max(0, Math.floor((Date.now() - checkpointShownAt.current) / 1000));
-            setIntroRun((r) => {
-              if (!r) return null;
-              const nextRun = advance(r, { type: 'answer', option });
-              const res = nextRun.checkpoint[qIndex];
-              if (res) {
-                track('checkpoint_answered', {
-                  node_id: 'intro-node',
-                  question_index: qIndex,
-                  result: res,
-                  seconds_to_answer: secondsToAnswer,
-                });
-              }
-              return nextRun;
-            });
+            const nextRun = advance(introRun, { type: 'answer', option });
+            const res = nextRun.checkpoint[qIndex];
+            if (res) {
+              track('checkpoint_answered', {
+                node_id: 'intro-node',
+                question_index: qIndex,
+                result: res,
+                seconds_to_answer: secondsToAnswer,
+              });
+            }
+            setIntroRun(nextRun);
           }}
           onTimeout={() => {
             const qIndex = introRun.question;
             const secondsToAnswer = Math.max(0, Math.floor((Date.now() - checkpointShownAt.current) / 1000));
-            setIntroRun((r) => {
-              if (!r) return null;
-              const nextRun = advance(r, { type: 'timeout' });
-              const res = nextRun.checkpoint[qIndex];
-              if (res) {
-                track('checkpoint_answered', {
-                  node_id: 'intro-node',
-                  question_index: qIndex,
-                  result: res,
-                  seconds_to_answer: secondsToAnswer,
-                });
-              }
-              return nextRun;
-            });
+            const nextRun = advance(introRun, { type: 'timeout' });
+            const res = nextRun.checkpoint[qIndex];
+            if (res) {
+              track('checkpoint_answered', {
+                node_id: 'intro-node',
+                question_index: qIndex,
+                result: res,
+                seconds_to_answer: secondsToAnswer,
+              });
+            }
+            setIntroRun(nextRun);
           }}
         />
       );
