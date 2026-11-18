@@ -61,7 +61,7 @@
 
 ## 10. Integration check
 
-- [ ] 10.1 Run `npm test` and `npm run typecheck`; both pass
+- [x] 10.1 Run `npm test` and `npm run typecheck`; both pass
 - [ ] 10.2 On an Android device build with the dev key, play welcome → first Stage → paywall → open a Lesson → play a Node, then turn analytics off and play another Stage. Verify in PostHog Live events that the expected events arrived in order with `schema_version` 1, that none contain the Dog's name, and that nothing arrived after the switch was turned off
 - [ ] 10.3 Repeat 10.2 with the phone in airplane mode until the end, then reconnect; verify the queued events arrive with their original times
 
