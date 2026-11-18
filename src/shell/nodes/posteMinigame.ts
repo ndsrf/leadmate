@@ -69,3 +69,37 @@ export function posteMinigameMetrics(state: PosteMinigameState): { poste: number
   const total = Math.max(1, state.totalSeconds);
   return { poste: settled / Math.max(1, state.outcomes.length), tension: 1 - Math.min(1, state.rigidSeconds / total) };
 }
+
+export interface PosteRingProgress {
+  progress: number;
+  phase: 'open' | 'closing' | 'landed';
+  snap: boolean;
+}
+
+/**
+ * Computes approach ring progress and phase for the Poste practice minigame.
+ * Closes in proportion to held / holdToSettle, lands on settled, and snaps open on released.
+ */
+export function posteRingProgress(
+  state: PosteMinigameState,
+  lastOutcome?: RoundOutcome | null,
+): PosteRingProgress {
+  if (state.held > 0) {
+    const progress = Math.min(1, Math.max(0, state.held / POSTE_MINIGAME.holdToSettle));
+    return {
+      progress,
+      phase: progress >= 1 ? 'landed' : 'closing',
+      snap: false,
+    };
+  }
+
+  const outcome = lastOutcome ?? (state.outcomes.length > 0 ? state.outcomes[state.outcomes.length - 1] : null);
+  if (outcome === 'settled') {
+    return { progress: 1, phase: 'landed', snap: false };
+  }
+  if (outcome === 'released') {
+    return { progress: 0, phase: 'open', snap: true };
+  }
+  return { progress: 0, phase: 'open', snap: false };
+}
+

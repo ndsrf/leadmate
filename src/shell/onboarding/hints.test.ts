@@ -35,10 +35,37 @@ describe('hints', () => {
   });
 
   it('counts the warning and both Coach marks among the hints left to show', () => {
-    const rest = ['leash-colors', 'marker', 'poste'];
+    const rest = ['leash-colors', 'marker', 'marker-rhythm', 'poste'];
     expect(hintsRemain(rest)).toBe(true);
     expect(hintsRemain([...rest, 'dog-approaching', 'coach-move'])).toBe(true);
     expect(hintsRemain([...rest, 'dog-approaching', 'coach-move', 'coach-mark', 'coach-gather', 'coach-poste', 'coach-close-mark'])).toBe(false);
+  });
+
+  it('selects rhythm Hint at Full assist when unseen, otherwise follows marker rule', () => {
+    // New user at Full assist
+    expect(hintFor('first-fixation', [], 'full')).toBe('marker-rhythm');
+
+    // Existing dog that saw marker before this change, now at Full assist
+    expect(hintFor('first-fixation', ['marker'], 'full')).toBe('marker-rhythm');
+
+    // Rhythm hint already seen at Full assist
+    expect(hintFor('first-fixation', ['marker-rhythm', 'marker'], 'full')).toBeNull();
+
+    // Assist below Full (e.g. ring) when rhythm hint unseen: shows marker hint
+    expect(hintFor('first-fixation', [], 'ring')).toBe('marker');
+
+    // Assist below Full when marker already seen
+    expect(hintFor('first-fixation', ['marker'], 'ring')).toBeNull();
+    expect(hintFor('first-fixation', ['marker'], 'late')).toBeNull();
+    expect(hintFor('first-fixation', ['marker'], 'off')).toBeNull();
+  });
+
+  it('records both marker-rhythm and marker when marker-rhythm is marked seen', () => {
+    let r = newDogRecord();
+    expect(r.seenHints).toEqual([]);
+    r = markHintSeen(r, 'marker-rhythm');
+    expect(r.seenHints).toContain('marker-rhythm');
+    expect(r.seenHints).toContain('marker');
   });
 
   it('never turns a control-used signal into a hint', () => {

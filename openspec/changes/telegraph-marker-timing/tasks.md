@@ -26,12 +26,12 @@
 
 ## 5. Shell persistence, Hint and settings
 
-- [ ] 5.1 Add `markerAssist` to `DogRecord`, `newDogRecord` and `migrateRecord`, so missing or invalid values read as Full with empty runs, with no `RECORD_VERSION` bump. Add tests in `src/shell/dogRecord.test.ts`, including that a reset record has Full, and in `src/shell/sync/merge.test.ts` that `resolve` takes `markerAssist` from the later copy whole. Verify: tests pass.
-- [ ] 5.2 Add `alwaysTimingHelp` (default false) to `UiSettings` and `readUiSettings`, with tests, including that a progress reset keeps it (`src/shell/reset.test.ts`). Verify: tests pass.
+- [x] 5.1 Add `markerAssist` to `DogRecord`, `newDogRecord` and `migrateRecord`, so missing or invalid values read as Full with empty runs, with no `RECORD_VERSION` bump. Add tests in `src/shell/dogRecord.test.ts`, including that a reset record has Full, and in `src/shell/sync/merge.test.ts` that `resolve` takes `markerAssist` from the later copy whole. Verify: tests pass.
+- [x] 5.2 Add `alwaysTimingHelp` (default false) to `UiSettings` and `readUiSettings`, with tests, including that a progress reset keeps it (`src/shell/reset.test.ts`). Verify: tests pass.
 - [ ] 5.3 In `App.tsx` `startStage`, send `markerAssist`, `alwaysTimingHelp` and `guidedFirstStage` (`route.name === 'first-stage'`) in the `start` message; close exercises send none. In `onMessage`, on `marker-assist`, write the record only when `route.name !== 'taste'`, the same gate as `firstTime` Hints. Add tests for the recorded, Daily and Taste cases (extract a pure helper if `App.tsx` is not testable directly). Verify: tests pass.
-- [ ] 5.4 Add the `marker-rhythm` `HintId` and `onboarding.hint.markerRhythm` (es and en, no `{name}`). Make `hintFor('first-fixation', seenHints, assist)` return `marker-rhythm` when `assist === 'full'` and it is unseen, otherwise the old `marker` rule; recording `marker-rhythm` also records `marker`. Extend `src/shell/onboarding/hints.test.ts`, and the i18n parity/catalog tests. Verify: tests pass.
+- [x] 5.4 Add the `marker-rhythm` `HintId` and `onboarding.hint.markerRhythm` (es and en, no `{name}`). Make `hintFor('first-fixation', seenHints, assist)` return `marker-rhythm` when `assist === 'full'` and it is unseen, otherwise the old `marker` rule; recording `marker-rhythm` also records `marker`. Extend `src/shell/onboarding/hints.test.ts`, and the i18n parity/catalog tests. Verify: tests pass.
 - [x] 5.5 Play `telegraph-tick` in `src/shell/ui/feedback.ts` as the `tick` sound at -5 semitones and lower volume with no haptic, subject to the sound setting. Apply the `perfectRun` pitch to the sound of the message that carries it. Add tests with the fake backends. Verify: `npx jest src/shell/ui/feedback` passes.
-- [ ] 5.6 Add the "always show timing help" switch, its label and help text (es and en) to the interface feedback section of the "Preferencias" tab in `SettingsScreen.tsx`, with an accessible label and state. Extend `SettingsScreen.test.tsx`. Verify: tests pass and the snapshot is updated deliberately.
+- [x] 5.6 Add the "always show timing help" switch, its label and help text (es and en) to the interface feedback section of the "Preferencias" tab in `SettingsScreen.tsx`, with an accessible label and state. Extend `SettingsScreen.test.tsx`. Verify: tests pass and the snapshot is updated deliberately.
 
 ## 6. Bundle drawing and wiring
 
@@ -42,7 +42,7 @@
 
 ## 7. Poste practice ring
 
-- [ ] 7.1 Add tests and then `posteRingProgress` (held / holdToSettle, landed on `settled`, snap on `released`) next to `src/shell/nodes/posteMinigame.ts`. Verify: tests pass.
+- [x] 7.1 Add tests and then `posteRingProgress` (held / holdToSettle, landed on `settled`, snap on `released`) next to `src/shell/nodes/posteMinigame.ts`. Verify: tests pass.
 - [ ] 7.2 Draw the ring in `PosteMinigameView` around the Dog, with the reduced-motion form through the motion gate, without reading or writing the assist. Verify: run the Poste practice Node and see the ring close on hold and snap open on release.
 
 ## 8. Integration checks
