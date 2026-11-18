@@ -2,7 +2,8 @@ import type { DistractorKind } from '../../sim/learning';
 import { skippedSimulationPayload, type SimulationDebriefPayload } from '../../sim/payload';
 import type { ReactionTier } from '../../sim/sim';
 
-export type EncounterAim = 'keep-slack' | 'stay-calm' | 'mark-disengagement' | 'check-in';
+import type { EncounterAim } from '../content/schema';
+export type { EncounterAim };
 
 export type PawReason = 'aim' | 'reactive' | 'pull' | 'reactive-marker' | 'late' | 'perfect';
 

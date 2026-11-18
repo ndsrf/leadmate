@@ -274,6 +274,34 @@ En el simulador, observa la distancia al estímulo.
     expect(node.exercises?.tension).toBe('Mantén la correa destensada');
     expect(node.debrief?.calm).toContain('Muy bien');
   });
+
+  it('parses node encounters with subsections per encounter id', () => {
+    const md = `
+# Paseo con distracciones
+
+## encounters
+### loose-start
+Correa floja
+
+### skate-far
+Míralo venir
+
+### skate-poste
+Poste y marca
+
+### turn-look
+Gira y te mira
+`;
+
+    const node = parseNodeMarkdown(md);
+    expect(node.title).toBe('Paseo con distracciones');
+    expect(node.encounters).toEqual({
+      'loose-start': 'Correa floja',
+      'skate-far': 'Míralo venir',
+      'skate-poste': 'Poste y marca',
+      'turn-look': 'Gira y te mira',
+    });
+  });
 });
 
 describe('parseMissionMarkdown', () => {

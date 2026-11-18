@@ -258,6 +258,63 @@ describe('resolvePack', () => {
     expect(SUPPORTED_LANGUAGES).toEqual(['es', 'en']);
   });
 
+  it('resolves an encounter series with Spanish fallback for encounters without English title', () => {
+    const fixture = makeFixturePack();
+    fixture.nodes['series-node'] = {
+      config: {
+        id: 'series-node',
+        mode: 'stage',
+        prerequisites: [],
+        simulation: {
+          encounters: [
+            { id: 'loose-start', aim: 'keep-slack', scenario: { waypoint: { x: 20, y: 0 } } },
+            { id: 'skate-far', aim: 'stay-calm', scenario: { waypoint: { x: 25, y: 0 } } },
+            { id: 'skate-poste', aim: 'mark-disengagement', scenario: { endCondition: { kind: 'time-limit', seconds: 18 } } },
+            { id: 'turn-look', aim: 'check-in', scenario: { endCondition: { kind: 'time-limit', seconds: 15 } } },
+          ],
+        },
+      },
+      text: {
+        es: {
+          title: 'Serie de encuentros',
+          encounters: {
+            'loose-start': 'Correa floja',
+            'skate-far': 'Míralo venir',
+            'skate-poste': 'Poste y marca',
+            'turn-look': 'Gira y te mira',
+          },
+        },
+        en: {
+          title: 'Encounter Series',
+          encounters: {
+            'loose-start': 'Loose Leash',
+            'skate-far': 'Watch It Come',
+            // skate-poste omitted in English
+            'turn-look': 'Turn and Look',
+          },
+        },
+      },
+    };
+
+    const resolvedEs = resolvePack(fixture, 'es');
+    const nodeEs = resolvedEs.nodes.find((n) => n.id === 'series-node')!;
+    expect(nodeEs.simulation.encounters).toHaveLength(4);
+    expect(nodeEs.simulation.encounters![0].id).toBe('loose-start');
+    expect(nodeEs.simulation.encounters![0].aim).toBe('keep-slack');
+    expect(resolvedEs.catalog[nodeEs.simulation.encounters![0].title]).toBe('Correa floja');
+    expect(resolvedEs.catalog[nodeEs.simulation.encounters![1].title]).toBe('Míralo venir');
+    expect(resolvedEs.catalog[nodeEs.simulation.encounters![2].title]).toBe('Poste y marca');
+    expect(resolvedEs.catalog[nodeEs.simulation.encounters![3].title]).toBe('Gira y te mira');
+
+    const resolvedEn = resolvePack(fixture, 'en');
+    const nodeEn = resolvedEn.nodes.find((n) => n.id === 'series-node')!;
+    expect(nodeEn.simulation.encounters).toHaveLength(4);
+    expect(resolvedEn.catalog[nodeEn.simulation.encounters![0].title]).toBe('Loose Leash');
+    expect(resolvedEn.catalog[nodeEn.simulation.encounters![1].title]).toBe('Watch It Come');
+    expect(resolvedEn.catalog[nodeEn.simulation.encounters![2].title]).toBe('Poste y marca');
+    expect(resolvedEn.catalog[nodeEn.simulation.encounters![3].title]).toBe('Turn and Look');
+  });
+
   describe('Shop and Recommendation resolution', () => {
     function makeShopFixturePack(): ContentPack {
       const pack = makeFixturePack();
