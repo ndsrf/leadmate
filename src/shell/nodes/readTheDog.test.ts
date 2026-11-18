@@ -260,6 +260,112 @@ describe('readTheDog - 1.5 Combo and score', () => {
   });
 });
 
+describe('readTheDog - 1.6 adaptive level', () => {
+  it('raises level after 3 right in a row, resets streaks on level change (4 right from 0 is level 1)', () => {
+    let state = newRound(555);
+    expect(state.level).toBe(0);
+
+    // 1st right
+    state = stepRound(state, 0.1, SIGNALS[state.signal!].cls);
+    state = stepRound(state, 0.4);
+    expect(state.level).toBe(0);
+    expect(state.rightStreak).toBe(1);
+
+    // 2nd right
+    state = stepRound(state, 0.1, SIGNALS[state.signal!].cls);
+    state = stepRound(state, 0.4);
+    expect(state.level).toBe(0);
+    expect(state.rightStreak).toBe(2);
+
+    // 3rd right -> triggers level up to 1! Streaks reset.
+    state = stepRound(state, 0.1, SIGNALS[state.signal!].cls);
+    state = stepRound(state, 0.4);
+    expect(state.level).toBe(1);
+    expect(state.rightStreak).toBe(0);
+    expect(state.badStreak).toBe(0);
+
+    // 4th right from level 0 -> now rightStreak is 1 at level 1
+    state = stepRound(state, 0.1, SIGNALS[state.signal!].cls);
+    state = stepRound(state, 0.4);
+    expect(state.level).toBe(1);
+    expect(state.rightStreak).toBe(1);
+  });
+
+  it('lowers level after 2 wrong or missed in a row', () => {
+    // Start at level 2
+    let state = newRound(555, { level: 2, weights: { ...newRound(555).weights } });
+    expect(state.level).toBe(2);
+
+    // 1st wrong
+    const wrong1: RtdClass = SIGNALS[state.signal!].cls === 'calm' ? 'alert' : 'calm';
+    state = stepRound(state, 0.1, wrong1);
+    state = stepRound(state, 1.3);
+    expect(state.level).toBe(2);
+    expect(state.badStreak).toBe(1);
+
+    // 2nd wrong (via miss)
+    const timeout = state.timer;
+    state = stepRound(state, timeout + 0.05);
+    state = stepRound(state, 1.3);
+    expect(state.level).toBe(1);
+    expect(state.badStreak).toBe(0);
+    expect(state.rightStreak).toBe(0);
+  });
+
+  it('clamps level to ladder bounds [0, 5]', () => {
+    let state = newRound(555, { level: 5, weights: { ...newRound(555).weights } });
+    // 3 right at level 5
+    for (let i = 0; i < 3; i++) {
+      state = stepRound(state, 0.1, SIGNALS[state.signal!].cls);
+      state = stepRound(state, 0.4);
+    }
+    expect(state.level).toBe(5);
+
+    state = newRound(555, { level: 0, weights: { ...newRound(555).weights } });
+    // 2 wrong at level 0
+    for (let i = 0; i < 2; i++) {
+      const wrong: RtdClass = SIGNALS[state.signal!].cls === 'calm' ? 'alert' : 'calm';
+      state = stepRound(state, 0.1, wrong);
+      state = stepRound(state, 1.3);
+    }
+    expect(state.level).toBe(0);
+  });
+
+  it('draws subtle signals only from subtleFromLevel (level 2)', () => {
+    // Check 50 draws at level 0 and 1
+    for (let seed = 1; seed <= 50; seed++) {
+      const r0 = newRound(seed, { level: 0, weights: { ...newRound(seed).weights } });
+      expect(SIGNALS[r0.signal!].subtle).toBe(false);
+
+      const r1 = newRound(seed, { level: 1, weights: { ...newRound(seed).weights } });
+      expect(SIGNALS[r1.signal!].subtle).toBe(false);
+    }
+
+    // At level 2, subtle signals can appear
+    let foundSubtle = false;
+    for (let seed = 1; seed <= 50; seed++) {
+      const r2 = newRound(seed, { level: 2, weights: { ...newRound(seed).weights } });
+      if (SIGNALS[r2.signal!].subtle) {
+        foundSubtle = true;
+        break;
+      }
+    }
+    expect(foundSubtle).toBe(true);
+  });
+
+  it('fixedLevel option pins the level', () => {
+    let state = newRound(123, null, { fixedLevel: 0 });
+    expect(state.level).toBe(0);
+    // Answer 6 right in a row
+    for (let i = 0; i < 6; i++) {
+      state = stepRound(state, 0.1, SIGNALS[state.signal!].cls, { fixedLevel: 0 });
+      state = stepRound(state, 0.4, null, { fixedLevel: 0 });
+    }
+    expect(state.level).toBe(0);
+  });
+});
+
+
 
 
 
