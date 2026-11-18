@@ -426,7 +426,9 @@ export default function App() {
       } else {
         playTracker.current.pause();
         lessonTimer.current?.pause();
-        lastBackgroundAt.current = new Date();
+        if (!lastBackgroundAt.current) {
+          lastBackgroundAt.current = new Date();
+        }
       }
     });
     return () => sub.remove();

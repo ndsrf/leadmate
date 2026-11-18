@@ -1335,6 +1335,40 @@ describe('App - Stage view lifecycle', () => {
       });
     });
 
+    it('keeps the first lastBackgroundAt until active (transitions inactive then background on iOS)', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.runAllTicks();
+      });
+
+      // Clear initial session_started
+      analytics.clear();
+
+      // App transitions to inactive (e.g. app switcher on iOS)
+      act(() => {
+        mockAppStateListeners.forEach((cb) => cb('inactive'));
+      });
+
+      // 10 seconds later, app transitions to background
+      act(() => {
+        jest.advanceTimersByTime(10 * 1000);
+        mockAppStateListeners.forEach((cb) => cb('background'));
+      });
+
+      // Exactly 30 minutes from the initial 'inactive' transition (i.e. 30m - 10s after 'background')
+      act(() => {
+        jest.advanceTimersByTime((30 * 60 - 10) * 1000);
+        mockAppStateListeners.forEach((cb) => cb('active'));
+      });
+
+      const sessionEvents = analytics.events.filter((e) => e.name === 'session_started');
+      expect(sessionEvents).toHaveLength(1);
+      expect(sessionEvents[0].properties.first_session).toBe(false);
+    });
+
     it('advancing welcome -> language sends both steps once each', async () => {
       const analytics = getAnalytics() as MockAnalyticsService;
       await act(async () => {
