@@ -22,7 +22,7 @@
 
 ## 4. Bridge contract
 
-- [ ] 4.1 Extend `src/sim/messages.ts`: the `start` fields `markerAssist`, `alwaysTimingHelp` and `guidedFirstStage`; the bundle messages `telegraph-tick` (`beat` 1 to 3) and `marker-assist` (`state`); optional `perfectRun` on `feedback`; optional `assist` on `stage-signal` (for `first-fixation`); `decode` validation for each. Add tests that reject malformed shapes. Verify: `npx jest src/sim/messages` passes and no file under `src/sim/` other than `messages.ts` and its test changed.
+- [x] 4.1 Extend `src/sim/messages.ts`: the `start` fields `markerAssist`, `alwaysTimingHelp` and `guidedFirstStage`; the bundle messages `telegraph-tick` (`beat` 1 to 3) and `marker-assist` (`state`); optional `perfectRun` on `feedback`; optional `assist` on `stage-signal` (for `first-fixation`); `decode` validation for each. Add tests that reject malformed shapes. Verify: `npx jest src/sim/messages` passes and no file under `src/sim/` other than `messages.ts` and its test changed.
 
 ## 5. Shell persistence, Hint and settings
 
