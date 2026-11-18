@@ -116,7 +116,10 @@ describe('assistOutcomeOf', () => {
     expect(assistOutcomeOf({ type: 'marker-hit', grade: 'good', time: 0, accuracyMs: 400 })).toBe('success');
     expect(assistOutcomeOf({ type: 'check-in-hit', grade: 'perfect', time: 0 })).toBe('success');
     expect(assistOutcomeOf({ type: 'check-in-hit', grade: 'good', time: 0 })).toBe('success');
-    expect(assistOutcomeOf({ type: 'change-check-in', grade: 'perfect', time: 0, change: 'left-turn' })).toBe('success');
+  });
+
+  it('treats change-check-in as neutral: it is paired with check-in-hit on one press', () => {
+    expect(assistOutcomeOf({ type: 'change-check-in', grade: 'perfect', time: 0, change: 'left-turn' })).toBe('neutral');
   });
 
   it('counts marker-miss and marker-late as failure when budget is not spent', () => {

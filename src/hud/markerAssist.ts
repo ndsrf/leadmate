@@ -8,6 +8,8 @@
  * Runs reset on level change, including when clamped.
  */
 
+import type { SimEvent } from '../sim/sim';
+
 export type AssistLevel = 'full' | 'ring' | 'late' | 'off';
 
 export interface AssistState {
@@ -99,14 +101,16 @@ export interface AssistEventContext {
 }
 
 export function assistOutcomeOf(
-  event: { type: string; [key: string]: any },
+  event: SimEvent,
   ctx?: AssistEventContext
 ): AssistOutcome {
   switch (event.type) {
     case 'marker-hit':
     case 'check-in-hit':
-    case 'change-check-in':
       return 'success';
+    // always paired with check-in-hit on one press: counting both would double the success
+    case 'change-check-in':
+      return 'neutral';
     case 'marker-miss': {
       const budgetSpent =
         Boolean(ctx?.markBudgetSpent) ||
