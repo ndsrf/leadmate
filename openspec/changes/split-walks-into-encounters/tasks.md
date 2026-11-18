@@ -8,8 +8,8 @@
 
 ## 2. Paw rule (pure, test-first)
 
-- [x] 2.1 Add `EncounterAim` and the Paw constants (`KEEP_SLACK_MAX_PULL = 25`, `CLEAN_MAX_PULL = 10`) in `src/shell/nodes/encounters.ts`, and write a table test `encounters.test.ts` covering every scenario of the "Encounter Aims", "One to three Paws" and "Clean result" requirements (each Aim met/not met; 3 Paws only when never Reactive, pull ≤ 10, no reactive or Late press, and a Perfect mark, Marker or Check-in, for mark Aims). Verify the tests fail.
-- [x] 2.2 Implement `pawsFor(aim, payload) -> { paws, next }`, where `next` is the first unmet condition in the order Aim, reactive, pull, reactive marker, late, perfect; verify 2.1 passes, including a same-payload-same-Paws check.
+- [ ] 2.1 Add `EncounterAim` and the Paw constants (`KEEP_SLACK_MAX_PULL = 25`, `CLEAN_MAX_PULL = 10`) in `src/shell/nodes/encounters.ts`, and write a table test `encounters.test.ts` covering every scenario of the "Encounter Aims", "One to three Paws" and "Clean result" requirements (each Aim met/not met; 3 Paws only when never Reactive, pull ≤ 10, no reactive or Late press, and a Perfect mark, Marker or Check-in, for mark Aims). Verify the tests fail.
+- [ ] 2.2 Implement `pawsFor(aim, payload) -> { paws, next }`, where `next` is the first unmet condition in the order Aim, reactive (skipped for `mark-disengagement`), pull, reactive marker, late, perfect; verify 2.1 passes, including a same-payload-same-Paws check.
 
 ## 3. Series progression and combined payload (pure, test-first)
 
