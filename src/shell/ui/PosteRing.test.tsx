@@ -6,7 +6,7 @@ jest.mock('react-native-svg', () => {
   const el = (name: string) => (props: any) => React.createElement(name, { ...props, children: props.children });
   return { __esModule: true, default: el('svg'), Ellipse: el('ellipse'), Path: el('path'), Circle: el('circle') };
 });
-jest.mock('./theme', () => ({ lightColor: { ink: '#1', accent: '#2', surfaceSunken: '#3' } }));
+jest.mock('./theme', () => ({ usePalette: () => ({ ink: '#1', accent: '#2', surfaceSunken: '#3' }) }));
 
 import { PosteRing } from './PosteRing';
 

@@ -49,7 +49,7 @@
 
 - [ ] 8.1 In the guided first Stage, check that the telegraph is at Full whatever the stored level, the rhythm Hint shows once in place of the Marker Hint, the three ticks play, the Marker highlights on landing alongside the Coach mark, and the record's `markerAssist` updates. Verify: manual run on web or device after a progress reset.
 - [ ] 8.2 Check that the Taste Stage, a close leash exercise and a non-Poste Minigame show no telegraph and leave `markerAssist` unchanged. Verify: manual run.
-- [ ] 8.3 Run the full suite and the type check. Verify: `npm test` and `npx tsc --noEmit` pass.
+- [x] 8.3 Run the full suite and the type check. Verify: `npm test` and `npx tsc --noEmit` pass.
 
 ## Workflow follow-up
 

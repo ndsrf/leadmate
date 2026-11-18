@@ -1,7 +1,7 @@
 import Svg, { Circle, Ellipse, Path } from 'react-native-svg';
 import { posteRingDrawing, POSTE_RING_CENTER } from '../nodes/posteRingLook';
 import type { PosteRingProgress } from '../nodes/posteMinigame';
-import { lightColor } from './theme';
+import { usePalette } from './theme';
 
 const SCENE = { w: 320, h: 190 } as const;
 
@@ -17,6 +17,7 @@ function arcPath(cx: number, cy: number, rx: number, ry: number, fill: number): 
  * open on a release. With reduced motion it is a fixed ring whose arc fills. Drawn over the scene, ink outline under accent.
  */
 export function PosteRing({ ring, reducedMotion, snapAge, snapFromProgress, landedAge }: { ring: PosteRingProgress; reducedMotion: boolean; snapAge?: number; snapFromProgress?: number; landedAge?: number }) {
+  const color = usePalette();
   const d = posteRingDrawing(ring, { reducedMotion, snapAge, snapFromProgress, landedAge });
   if (!d) return null;
   const { look, rx, ry } = d;
@@ -25,19 +26,19 @@ export function PosteRing({ ring, reducedMotion, snapAge, snapFromProgress, land
     <Svg style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' }} pointerEvents="none" viewBox={`0 0 ${SCENE.w} ${SCENE.h}`} accessible={false}>
       {look.ghost ? (
         <>
-          <Ellipse cx={x} cy={y} rx={look.ghost.radius * 0.62} ry={look.ghost.radius * 0.31} stroke={lightColor.ink} strokeWidth={5} opacity={look.ghost.alpha} fill="none" />
-          <Ellipse cx={x} cy={y} rx={look.ghost.radius * 0.62} ry={look.ghost.radius * 0.31} stroke={lightColor.accent} strokeWidth={3} opacity={look.ghost.alpha} fill="none" />
+          <Ellipse cx={x} cy={y} rx={look.ghost.radius * 0.62} ry={look.ghost.radius * 0.31} stroke={color.ink} strokeWidth={5} opacity={look.ghost.alpha} fill="none" />
+          <Ellipse cx={x} cy={y} rx={look.ghost.radius * 0.62} ry={look.ghost.radius * 0.31} stroke={color.accent} strokeWidth={3} opacity={look.ghost.alpha} fill="none" />
         </>
       ) : null}
       {look.disc ? (
-        <Ellipse cx={x} cy={y} rx={rx} ry={ry} fill={lightColor.accent} stroke={lightColor.ink} strokeWidth={3} />
+        <Ellipse cx={x} cy={y} rx={rx} ry={ry} fill={color.accent} stroke={color.ink} strokeWidth={3} />
       ) : (
         <>
-          {look.fill < 1 ? <Ellipse cx={x} cy={y} rx={rx} ry={ry} stroke={lightColor.surfaceSunken} strokeWidth={4} fill="none" opacity={look.alpha} /> : null}
+          {look.fill < 1 ? <Ellipse cx={x} cy={y} rx={rx} ry={ry} stroke={color.surfaceSunken} strokeWidth={4} fill="none" opacity={look.alpha} /> : null}
           {look.fill > 0 ? (
             <>
-              <Path d={look.fill >= 1 ? `M ${x - rx} ${y} a ${rx} ${ry} 0 1 0 ${2 * rx} 0 a ${rx} ${ry} 0 1 0 ${-2 * rx} 0` : arcPath(x, y, rx, ry, look.fill)} stroke={lightColor.ink} strokeWidth={6} strokeLinecap="round" fill="none" opacity={look.alpha} />
-              <Path d={look.fill >= 1 ? `M ${x - rx} ${y} a ${rx} ${ry} 0 1 0 ${2 * rx} 0 a ${rx} ${ry} 0 1 0 ${-2 * rx} 0` : arcPath(x, y, rx, ry, look.fill)} stroke={lightColor.accent} strokeWidth={3.5} strokeLinecap="round" fill="none" opacity={look.alpha} />
+              <Path d={look.fill >= 1 ? `M ${x - rx} ${y} a ${rx} ${ry} 0 1 0 ${2 * rx} 0 a ${rx} ${ry} 0 1 0 ${-2 * rx} 0` : arcPath(x, y, rx, ry, look.fill)} stroke={color.ink} strokeWidth={6} strokeLinecap="round" fill="none" opacity={look.alpha} />
+              <Path d={look.fill >= 1 ? `M ${x - rx} ${y} a ${rx} ${ry} 0 1 0 ${2 * rx} 0 a ${rx} ${ry} 0 1 0 ${-2 * rx} 0` : arcPath(x, y, rx, ry, look.fill)} stroke={color.accent} strokeWidth={3.5} strokeLinecap="round" fill="none" opacity={look.alpha} />
             </>
           ) : null}
         </>
