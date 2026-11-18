@@ -22,8 +22,8 @@
 
 ## 4. Settings switch
 
-- [ ] 4.1 Add `settings.analytics`, `settings.analytics.toggle` and `settings.analytics.help` to `src/i18n/es.ts` and `src/i18n/en.ts` (the help line says the data is anonymous, never includes the Dog's name or email, and helps improve the game); verify `src/i18n/i18n.test.ts` and `catalog-usage.test.ts` pass
-- [ ] 4.2 Add a `useAnalyticsSetting()` hook over `AnalyticsState` and an `AnalyticsSection` on the Preferencias tab of `src/shell/screens/SettingsScreen.tsx`, after Language, using the existing `Toggle`; extend `SettingsScreen.test.tsx` so that it is shown on Preferencias and not on the other tabs, defaults to on, pressing it calls `setAnalyticsEnabled(false)` and shows off at once, and it has an accessible label and state; verify tests pass
+- [x] 4.1 Add `settings.analytics`, `settings.analytics.toggle` and `settings.analytics.help` to `src/i18n/es.ts` and `src/i18n/en.ts` (the help line says the data is anonymous, never includes the Dog's name or email, and helps improve the game); verify `src/i18n/i18n.test.ts` and `catalog-usage.test.ts` pass
+- [x] 4.2 Add a `useAnalyticsSetting()` hook over `AnalyticsState` and an `AnalyticsSection` on the Preferencias tab of `src/shell/screens/SettingsScreen.tsx`, after Language, using the existing `Toggle`; extend `SettingsScreen.test.tsx` so that it is shown on Preferencias and not on the other tabs, defaults to on, pressing it calls `setAnalyticsEnabled(false)` and shows off at once, and it has an accessible label and state; verify tests pass
 
 ## 5. Sessions and funnel steps
 

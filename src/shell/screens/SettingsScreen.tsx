@@ -28,6 +28,7 @@ import { isBetaUnlocked, loadContentChannel, setBetaUnlocked, type ContentChanne
 import { getActiveContent } from '../content/runtime';
 import { switchChannel } from '../content/channelSwitcher';
 import { saveStoredLanguage } from '../storage';
+import { useAnalyticsSetting } from '../analytics';
 import { theme } from '../ui/theme';
 
 export const CHECKPOINT_OPTIONS: { value: CheckpointSeconds; key: 'settings.checkpoint.20' | 'settings.checkpoint.15' | 'settings.checkpoint.10' | 'settings.checkpoint.off' }[] = [
@@ -74,6 +75,25 @@ export function AppearanceSection({ t, ui }: { t: Translate; ui: { settings: UiS
         ))}
       </View>
       <Text className="mt-2 text-caption text-inkMuted">{t('settings.appearance.help')}</Text>
+    </Section>
+  );
+}
+
+export function AnalyticsSection({ t }: { t: Translate }) {
+  const { enabled, setEnabled } = useAnalyticsSetting();
+  return (
+    <Section title={t('settings.analytics')}>
+      <View className="mt-2 flex-row items-center justify-between">
+        <Text className="shrink text-body text-ink">{t('settings.analytics.toggle')}</Text>
+        <Toggle
+          label={t('settings.analytics.toggle')}
+          value={enabled}
+          onChange={(next) => {
+            setEnabled(next);
+          }}
+        />
+      </View>
+      <Text className="mt-2 text-caption text-inkMuted">{t('settings.analytics.help')}</Text>
     </Section>
   );
 }
@@ -428,6 +448,8 @@ export function SettingsScreen({
             </View>
             <Text className="mt-2 text-caption text-inkMuted">{t('settings.language.help')}</Text>
           </Section>
+
+          <AnalyticsSection t={t} />
 
           <Section title={t('settings.voicePack')}>
             <View className="flex-row flex-wrap">

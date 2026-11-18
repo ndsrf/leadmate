@@ -60,7 +60,9 @@ import { DEFAULT_UI_SETTINGS } from '../ui/uiSettings';
 import { newDogRecord, type DogRecord } from '../dogRecord';
 import { NEW_SYNC_STATE } from '../sync/state';
 import type { Account } from '../sync/useAccount';
-import { AppearanceSection, CHECKPOINT_OPTIONS, SETTINGS_TABS, SettingsScreen } from './SettingsScreen';
+import { AnalyticsSection, AppearanceSection, CHECKPOINT_OPTIONS, SETTINGS_TABS, SettingsScreen } from './SettingsScreen';
+import { Toggle } from '../ui/components';
+import { resetAnalyticsForTesting, getAnalyticsState } from '../analytics';
 
 describe('Settings: Appearance', () => {
   const t = createTranslator(es);
@@ -454,3 +456,91 @@ describe('Settings: Language selection in preferences', () => {
     expect(onClose).toHaveBeenCalled();
   });
 });
+
+describe('Settings: Usage analytics switch (Task 4.2)', () => {
+  const t = createTranslator(es);
+
+  beforeEach(() => {
+    resetAnalyticsForTesting();
+  });
+
+  it('is shown on Preferencias tab and not on Perro or Cuenta tabs', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(
+        <SettingsScreen
+          t={t}
+          language="es"
+          record={newDogRecord()}
+          update={() => {}}
+          onClose={() => {}}
+          account={makeAccount()}
+          onLogIn={() => {}}
+          ui={{ settings: DEFAULT_UI_SETTINGS, change: () => {} }}
+          onReset={() => {}}
+          initialTab="dog"
+        />,
+      );
+    });
+
+    // Perro tab active: AnalyticsSection is not rendered
+    expect(renderer!.root.findAllByType(AnalyticsSection)).toHaveLength(0);
+
+    // Switch to Preferencias tab
+    const prefTab = renderer!.root.findByProps({ testID: 'settings-tab-preferences' });
+    await act(async () => {
+      prefTab.props.onPress();
+    });
+    expect(renderer!.root.findAllByType(AnalyticsSection)).toHaveLength(1);
+
+    // Switch to Cuenta tab
+    const accountTab = renderer!.root.findByProps({ testID: 'settings-tab-account' });
+    await act(async () => {
+      accountTab.props.onPress();
+    });
+    expect(renderer!.root.findAllByType(AnalyticsSection)).toHaveLength(0);
+  });
+
+  it('defaults to on, pressing it calls setAnalyticsEnabled(false) and shows off at once, with accessible label and state', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(
+        <SettingsScreen
+          t={t}
+          language="es"
+          record={newDogRecord()}
+          update={() => {}}
+          onClose={() => {}}
+          account={makeAccount()}
+          onLogIn={() => {}}
+          ui={{ settings: DEFAULT_UI_SETTINGS, change: () => {} }}
+          onReset={() => {}}
+          initialTab="preferences"
+        />,
+      );
+    });
+
+    const analyticsSection = renderer!.root.findByType(AnalyticsSection);
+    const toggle = analyticsSection.findByType(Toggle);
+
+    // Defaults to on
+    expect(toggle.props.value).toBe(true);
+    expect(toggle.props.label).toBe(es['settings.analytics.toggle']);
+
+    // Check accessible role, label, and checked state on the switch Pressable
+    const switchPressable = toggle.findByProps({ accessibilityRole: 'switch' });
+    expect(switchPressable.props.accessibilityLabel).toBe(es['settings.analytics.toggle']);
+    expect(switchPressable.props.accessibilityState).toEqual({ checked: true });
+
+    // Press to toggle off
+    await act(async () => {
+      toggle.props.onChange(false);
+    });
+
+    // Shows off at once
+    expect(toggle.props.value).toBe(false);
+    expect(switchPressable.props.accessibilityState).toEqual({ checked: false });
+    expect(getAnalyticsState()?.choice).toBe('off');
+  });
+});
+

@@ -211,12 +211,19 @@ export function track(name: string, props: Record<string, unknown> = {}): void {
 export async function setAnalyticsEnabled(enabled: boolean): Promise<void> {
   try {
     if (!activeState) {
-      return;
+      activeState = {
+        installId: 'in-memory-fallback',
+        installedAt: new Date().toISOString(),
+        choice: enabled ? 'on' : 'off',
+        funnelDoneOnce: false,
+        funnelOpen: false,
+        upgradedInstall: false,
+      };
+    } else {
+      activeState.choice = enabled ? 'on' : 'off';
     }
 
-    activeState.choice = enabled ? 'on' : 'off';
-
-    if (activeStore) {
+    if (activeStore && activeState) {
       await saveAnalyticsState(activeStore, activeState);
     }
 
@@ -229,6 +236,27 @@ export async function setAnalyticsEnabled(enabled: boolean): Promise<void> {
   } catch {
     // Swallow every error
   }
+}
+
+export function useAnalyticsSetting(): {
+  enabled: boolean;
+  setEnabled: (next: boolean) => Promise<void>;
+} {
+  const React = require('react');
+  const state = getAnalyticsState();
+  const [enabled, setEnabledLocal] = React.useState(() => isEnabled(state ?? { choice: null }));
+
+  React.useEffect(() => {
+    const current = getAnalyticsState();
+    setEnabledLocal(isEnabled(current ?? { choice: null }));
+  }, []);
+
+  const setEnabled = React.useCallback(async (next: boolean) => {
+    setEnabledLocal(next);
+    await setAnalyticsEnabled(next);
+  }, []);
+
+  return { enabled, setEnabled };
 }
 
 export async function updateAnalyticsFlags(
