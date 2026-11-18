@@ -21,7 +21,7 @@ const getAnimatedG = () => (animatedG ??= makeAnimatedG());
 const WAG_DEG = 16;
 const WAG_MS = 280;
 /** The loose wag stops at this angle under reduced motion: a still, curved tail. */
-const STILL_WAG_DEG = -12;
+const STILL_WAG_DEG = -28;
 
 /** The breed's tail swinging about the rump while the wag shows; an endless loop only while the gate is open. */
 function WagTail({ s, rump, pal }: { s: BreedShape; rump: { x: number; y: number }; pal: CoatPalette }) {
@@ -187,10 +187,13 @@ function Mouth({ s, snout, mode }: { s: BreedShape; snout: { x: number; y: numbe
         </G>
       );
     case 'tight':
+      // a light line inside an ink one: it reads on a black muzzle as well as a pale one
       return (
         <G>
-          <Path d={`M${x0 - 2} ${y} L${x1 + 2} ${y}`} stroke={lightColor.ink} strokeWidth={2.4} strokeLinecap="round" />
-          <Path d={`M${x0 - 4} ${y - 3} L${x0 - 2} ${y + 1}`} stroke={lightColor.ink} strokeWidth={1.6} strokeLinecap="round" />
+          <Path d={`M${x0 - 2} ${y} L${x1 + 2} ${y}`} stroke={lightColor.ink} strokeWidth={4.6} strokeLinecap="round" />
+          <Path d={`M${x0 - 2} ${y} L${x1 + 2} ${y}`} stroke={lightColor.surface} strokeWidth={2} strokeLinecap="round" />
+          <Path d={`M${x0 - 4} ${y - 3} L${x0 - 2} ${y + 1}`} stroke={lightColor.ink} strokeWidth={3.4} strokeLinecap="round" />
+          <Path d={`M${x0 - 4} ${y - 3} L${x0 - 2} ${y + 1}`} stroke={lightColor.surface} strokeWidth={1.4} strokeLinecap="round" />
         </G>
       );
     default:

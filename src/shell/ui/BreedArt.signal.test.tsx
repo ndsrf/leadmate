@@ -33,6 +33,7 @@ import { BREEDS } from '../onboarding/breeds';
 import { BREED_SHAPES, BREED_VIEW, extentOf, fitScale } from './breedShapes';
 import { BreedArt, hacklesPath } from './BreedArt';
 import { COAT_PALETTE } from './canine';
+import { lightColor } from './theme';
 import { RTD_ART } from './rtdArt';
 
 const DOG_COATS = Object.keys(COAT_PALETTE) as DogCoat[];
@@ -92,6 +93,16 @@ describe('BreedArt signal', () => {
     const html = draw('labrador', 'golden', 'loose_wag');
     expect(mockCalls.shared).toBe(0);
     expect(mockCalls.repeat).toBe(0);
-    expect(html).toContain('rotate(-12');
+    expect(html).toContain('rotate(-28');
+    // clearly more than the soft and loose pose, whose tail is the breed's own
+    expect(draw('labrador', 'golden', 'soft_loose')).not.toContain('rotate(-28');
+  });
+
+  it('draws the tight mouth with a light line so it reads on a black coat too', () => {
+    const light = lightColor.surface;
+    const count = (h: string) => h.split(`stroke="${light}"`).length - 1;
+    for (const coat of ['black', 'golden'] as const) {
+      expect(count(draw('chihuahua', coat, 'stiff_closed_mouth'))).toBeGreaterThan(count(draw('chihuahua', coat, 'soft_loose')));
+    }
   });
 });
