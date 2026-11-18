@@ -103,6 +103,8 @@ import {
   type StartStageInfo,
   LessonTimer,
   type LessonSource,
+  stopsNewlyDone,
+  type StopCompletedProps,
 } from './src/shell/analytics';
 import { daysSince, shouldStartSession } from './src/shell/analytics/session';
 import { FunnelTracker } from './src/shell/analytics/funnel';
@@ -806,13 +808,19 @@ export default function App() {
     }
     let diff: Celebration[] = [];
     let afterRecord: any = null;
+    let newlyDone: StopCompletedProps[] = [];
     update((r) => {
       const now = new Date();
       const after = onDebrief(r, f.run, now);
       afterRecord = after;
       diff = celebrationsFor(progressAt(r, now), progressAt(after, now), { kind: 'node', nodeId: f.run.node.id });
+      const worlds = worldsFor(after.onboarding?.plan ?? [], after);
+      newlyDone = stopsNewlyDone(r, after, worlds, now);
       return after;
     });
+    for (const stop of newlyDone) {
+      track('stop_completed', stop);
+    }
     setCelebrations({ id: debriefId, list: diff });
 
     const activeShop = getActiveContent()?.resolved?.shop;
@@ -1077,11 +1085,15 @@ export default function App() {
     if (!mission) return;
     const now = new Date();
     let diff: Celebration[] = [];
+    let newlyDone: StopCompletedProps[] = [];
     update((r) => {
       const after = passMissionDirectly(r, id, now);
       diff = celebrationsFor(progressAt(r, now), progressAt(after, now), { kind: 'mission', missionId: id });
+      const worlds = worldsFor(after.onboarding?.plan ?? [], after);
+      newlyDone = stopsNewlyDone(r, after, worlds, now);
       return after;
     });
+    for (const stop of newlyDone) track('stop_completed', stop);
     setCelebrations({ id: `mission:${id}`, list: diff });
     setFlow({ name: 'mission', id, view: 'passed' });
   };
@@ -1096,11 +1108,15 @@ export default function App() {
     }
     const now = new Date();
     let diff: Celebration[] = [];
+    let newlyDone: StopCompletedProps[] = [];
     update((r) => {
       const after = applyMissionCheckIn(r, mission, outcome, problemId, now);
       diff = celebrationsFor(progressAt(r, now), progressAt(after, now), { kind: 'mission', missionId: id });
+      const worlds = worldsFor(after.onboarding?.plan ?? [], after);
+      newlyDone = stopsNewlyDone(r, after, worlds, now);
       return after;
     });
+    for (const stop of newlyDone) track('stop_completed', stop);
 
     if (outcome === 'struggled' && problemId !== undefined) {
       const activeShop = getActiveContent()?.resolved?.shop;
@@ -1136,7 +1152,14 @@ export default function App() {
       setFlow({ name: 'paywall', then: { kind: 'skip', missionId: id } });
       return;
     }
-    update((rec) => applyDaySkip(rec, id, now));
+    let newlyDone: StopCompletedProps[] = [];
+    update((rec) => {
+      const after = applyDaySkip(rec, id, now);
+      const worlds = worldsFor(after.onboarding?.plan ?? [], after);
+      newlyDone = stopsNewlyDone(rec, after, worlds, now);
+      return after;
+    });
+    for (const stop of newlyDone) track('stop_completed', stop);
     mapScroll.current = undefined;
     goHome();
   };
@@ -1144,11 +1167,15 @@ export default function App() {
   const moveOnMission = (id: string) => {
     let diff: Celebration[] = [];
     const now = new Date();
+    let newlyDone: StopCompletedProps[] = [];
     update((r) => {
       const after = updateMission(r, id, (m) => moveOn(m, now));
       diff = celebrationsFor(progressAt(r, now), progressAt(after, now), { kind: 'mission', missionId: id });
+      const worlds = worldsFor(after.onboarding?.plan ?? [], after);
+      newlyDone = stopsNewlyDone(r, after, worlds, now);
       return after;
     });
+    for (const stop of newlyDone) track('stop_completed', stop);
     setCelebrations({ id: `mission:${id}`, list: diff });
     setFlow({ name: 'mission', id, view: 'passed' });
   };
@@ -1522,7 +1549,15 @@ export default function App() {
           }}
           onDone={() => {
             const isSkipped = Boolean(introRun.result && 'skipped' in introRun.result && introRun.result.skipped);
-            update((r) => completeFirstStage(r, payload, new Date(), isSkipped));
+            const now = new Date();
+            let newlyDone: StopCompletedProps[] = [];
+            update((r) => {
+              const after = completeFirstStage(r, payload, now, isSkipped);
+              const worlds = worldsFor(after.onboarding?.plan ?? [], after);
+              newlyDone = stopsNewlyDone(r, after, worlds, now);
+              return after;
+            });
+            for (const stop of newlyDone) track('stop_completed', stop);
             accountRef.current.countStage();
             if (accountRef.current.configured && !accountRef.current.signedIn) {
               setFlow({ name: 'register' });
@@ -1711,7 +1746,15 @@ export default function App() {
               const doneProps = lessonTimer.current?.close('done');
               if (doneProps) track('lesson_done', doneProps);
               lessonTimer.current = null;
-              update((r) => markLessonRead(r, lesson.id, new Date()));
+              const now = new Date();
+              let newlyDone: StopCompletedProps[] = [];
+              update((r) => {
+                const after = markLessonRead(r, lesson.id, now);
+                const worlds = worldsFor(after.onboarding?.plan ?? [], after);
+                newlyDone = stopsNewlyDone(r, after, worlds, now);
+                return after;
+              });
+              for (const stop of newlyDone) track('stop_completed', stop);
               // reading the Lesson of a biting Home Behaviour (it has no exercise) opens its Mission brief
               const next = f.returnTo === 'map' ? homeMissionAfter({ kind: 'lesson', id: lesson.id }, record) : null;
               if (next) setFlow({ name: 'mission', id: next, view: 'brief' });

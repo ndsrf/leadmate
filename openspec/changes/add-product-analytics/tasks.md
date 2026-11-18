@@ -48,9 +48,9 @@
 
 ## 8. Stop completion
 
-- [ ] 8.1 Write `stops.test.ts` first, then implement `stops.ts` (`stopsNewlyDone(before, after, worlds, now)` using `stopStatus` and `placeOf`, 0-based trail index; a replay of a done Node, an identical record, a Mission that is only started, a Day Skip that leaves the Mission owed and a Satellite Stop return nothing; passing an Owed Mission returns it); verify tests pass
-- [ ] 8.2 Call `stopsNewlyDone` in the completion `update` closures in `App.tsx`: the Node Debrief effect, Lesson "Done" (`markLessonRead`), the Mission pass, check-in and day-skip paths, and `completeFirstStage`. Send `stop_completed` after the update and never from sync, login or reset paths. Verify with an `App.test.tsx` case that the first completion of a Node sends one `stop_completed` and a replay sends none
-- [ ] 8.3 Add an end-to-end privacy test in `App.test.tsx` with `MockAnalyticsService`: a Dog named `Luna`, account email `luna@example.com`, a Dog id and an account id play the Funnel, a Lesson, a Checkpoint, a Stage and a Minigame; assert none of those values, nor the install id, appears in any captured event's properties; verify it passes
+- [x] 8.1 Write `stops.test.ts` first, then implement `stops.ts` (`stopsNewlyDone(before, after, worlds, now)` using `stopStatus` and `placeOf`, 0-based trail index; a replay of a done Node, an identical record, a Mission that is only started, a Day Skip that leaves the Mission owed and a Satellite Stop return nothing; passing an Owed Mission returns it); verify tests pass
+- [x] 8.2 Call `stopsNewlyDone` in the completion `update` closures in `App.tsx`: the Node Debrief effect, Lesson "Done" (`markLessonRead`), the Mission pass, check-in and day-skip paths, and `completeFirstStage`. Send `stop_completed` after the update and never from sync, login or reset paths. Verify with an `App.test.tsx` case that the first completion of a Node sends one `stop_completed` and a replay sends none
+- [x] 8.3 Add an end-to-end privacy test in `App.test.tsx` with `MockAnalyticsService`: a Dog named `Luna`, account email `luna@example.com`, a Dog id and an account id play the Funnel, a Lesson, a Checkpoint, a Stage and a Minigame; assert none of those values, nor the install id, appears in any captured event's properties; verify it passes
 
 ## 9. Privacy documentation and rollout
 

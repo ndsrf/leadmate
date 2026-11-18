@@ -17,6 +17,7 @@ const mockSim = { mounts: 0, unmounts: 0, live: 0, posts: [] as any[], props: nu
 const mockAppStateListeners: ((state: string) => void)[] = [];
 const mockBackHandlerListeners: (() => boolean | undefined | null)[] = [];
 const mockStore = new Map<string, string>();
+let mockOnDebrief: ((r: any, run: any, now: any) => any) | null = null;
 
 function mockStub(name: string) {
   const R = require('react');
@@ -168,7 +169,10 @@ jest.mock('./shell/sync/useAccount', () => {
 // the same seed every time, so "the next Stage starts with the same seed" can be asserted
 jest.mock('./sim/rng', () => ({ ...jest.requireActual('./sim/rng'), newSeed: () => 4242 }));
 // the Debrief's record update needs a real Stage payload; the lifecycle under test does not
-jest.mock('./shell/nodes/node', () => ({ ...jest.requireActual('./shell/nodes/node'), onDebrief: (r: unknown) => r }));
+jest.mock('./shell/nodes/node', () => ({
+  ...jest.requireActual('./shell/nodes/node'),
+  onDebrief: (r: any, run: any, now: any) => (mockOnDebrief ? mockOnDebrief(r, run, now) : r),
+}));
 jest.mock('./shell/SimView', () => {
   const R = require('react');
   const SimView = R.forwardRef((props: any, ref: any) => {
@@ -239,7 +243,7 @@ import { getActiveContent, setActiveContent } from './shell/content/runtime';
 import type { ResolvedShop } from './shell/content/resolver';
 import { SHOP_STATE_STORAGE_KEY, DEFAULT_SHOP_STATE } from './shell/shop';
 import { POOR_SCORE_BELOW } from './shell/stars';
-import { getAnalytics, resetAnalyticsForTesting, MockAnalyticsService } from './shell/analytics';
+import { getAnalytics, resetAnalyticsForTesting, MockAnalyticsService, ANALYTICS_STATE_KEY } from './shell/analytics';
 
 const LOAD_TIMEOUT_MS = 20000;
 const latest = (name: string) => mockProps[name];
@@ -305,6 +309,7 @@ beforeEach(() => {
   Object.assign(mockSim, { mounts: 0, unmounts: 0, live: 0, posts: [], props: null });
   mockAppStateListeners.length = 0;
   mockBackHandlerListeners.length = 0;
+  mockOnDebrief = null;
 });
 
 afterEach(() => {
@@ -1472,6 +1477,207 @@ describe('App - Stage view lifecycle', () => {
         result: 'correct',
       });
       expect(typeof answered[0].properties.seconds_to_answer).toBe('number');
+    });
+
+    it('first completion of a Node sends one stop_completed and a replay sends none', async () => {
+      mockOnDebrief = (r, run) => ({
+        ...r,
+        completedNodes: r.completedNodes.includes(run.node.id) ? r.completedNodes : [...r.completedNodes, run.node.id],
+      });
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await openMap();
+      analytics.clear();
+
+      // First run to debrief
+      openStop(WALK_DISTRACTION.id);
+      throughPrimerAndCheckpoint();
+      await sendFromView({ type: 'ready' });
+      await sendFromView({ type: 'debrief', payload: { handlingScore: 85 } });
+      expect(latest('DebriefScreen')).toBeDefined();
+
+      const stopCompleted = analytics.events.filter((e) => e.name === 'stop_completed');
+      expect(stopCompleted.length).toBe(1);
+      expect(stopCompleted[0].properties).toMatchObject({
+        world_id: 'sidewalk',
+        stop_id: WALK_DISTRACTION.id,
+        stop_kind: 'node',
+        stop_index: 2,
+      });
+
+      // Exit debrief
+      await act(async () => {
+        await latest('DebriefScreen').onDone();
+      });
+      if (interstitialResolver) {
+        await act(async () => {
+          interstitialResolver?.();
+        });
+      }
+      if (latest('MissionCheckScreen')) {
+        act(() => latest('MissionCheckScreen').onClose());
+      } else if (latest('MissionBriefScreen')) {
+        act(() => latest('MissionBriefScreen').onClose());
+      }
+      expect(latest('WorldMapScreen')).toBeDefined();
+
+      analytics.clear();
+
+      // Replay the same node to debrief
+      openStop(WALK_DISTRACTION.id);
+      throughPrimerAndCheckpoint();
+      await sendFromView({ type: 'ready' });
+      await sendFromView({ type: 'debrief', payload: { handlingScore: 90 } });
+      expect(latest('DebriefScreen')).toBeDefined();
+
+      // Replay should NOT emit stop_completed
+      const replayCompleted = analytics.events.filter((e) => e.name === 'stop_completed');
+      expect(replayCompleted.length).toBe(0);
+    });
+
+    it('e2e privacy: sensitive fields (Dog name, email, ids) never appear in any captured event properties', async () => {
+      mockOnDebrief = (r, run) => ({
+        ...r,
+        completedNodes: r.completedNodes.includes(run.node.id) ? r.completedNodes : [...r.completedNodes, run.node.id],
+      });
+      const analytics = getAnalytics() as MockAnalyticsService;
+      analytics.clear();
+
+      const dogName = 'Luna';
+      const email = 'luna@example.com';
+      const dogId = 'c4b8b6e2-63b7-4c7b-9c3f-8c3b7a7c1234';
+      const accountId = 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d';
+      const installId = '77777777-8888-4444-9999-000000000000';
+
+      // Seed analytics state with known installId
+      mockStore.set(
+        ANALYTICS_STATE_KEY,
+        JSON.stringify({
+          installId,
+          installedAt: '2026-11-18T10:00:00.000Z',
+          choice: 'on',
+          funnelDoneOnce: false,
+          funnelOpen: false,
+          upgradedInstall: false,
+        })
+      );
+
+      // Seed sync state with dogId
+      mockStore.set(
+        'leadmate.sync',
+        JSON.stringify({
+          dogId,
+          lastSyncedAt: '2026-11-18T10:00:00.000Z',
+          lastReminderDate: null,
+          paused: null,
+          stagesCompleted: 5,
+        })
+      );
+
+      // Render app for fresh funnel
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+        jest.runAllTicks();
+      });
+
+      // 1. Play Funnel: welcome -> language
+      expect(latest('SplashScreen')).toBeDefined();
+      act(() => latest('SplashScreen').actions.onStart());
+      expect(latest('LanguageScreen')).toBeDefined();
+      act(() => latest('LanguageScreen').onDone('es'));
+
+      // Unmount welcome app and open map with Dog named Luna
+      act(() => renderer?.unmount());
+      const mapRecord = {
+        ...newDogRecord(),
+        name: dogName,
+        onboarding: { ...NEW_ONBOARDING, step: 'done' as const },
+        version: RECORD_VERSION,
+      };
+      mockStore.set(RECORD_KEY, JSON.stringify(mapRecord));
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+      expect(latest('WorldMapScreen')).toBeDefined();
+
+      // 2. Play a Lesson: open, scroll progress, done
+      act(() => latest('WorldMapScreen').onOpenStop({ kind: 'lesson', id: 'body-language' }));
+      expect(latest('LessonScreen')).toBeDefined();
+      act(() => latest('LessonScreen').onProgress?.(80));
+      act(() => latest('LessonScreen').onDone());
+
+      // 3. Play a Checkpoint & 4. Play a Stage
+      openStop(WALK_DISTRACTION.id);
+      expect(latest('PrimerScreen')).toBeDefined();
+      for (let i = 0; i < 20 && latest('PrimerScreen'); i++) act(() => latest('PrimerScreen').onNext());
+      expect(latest('CheckpointScreen')).toBeDefined();
+      act(() => latest('CheckpointScreen').onAnswer(0));
+      for (let i = 0; i < 20 && latest('CheckpointScreen'); i++) act(() => latest('CheckpointScreen').onAnswer(0));
+      await sendFromView({ type: 'ready' });
+      await sendFromView({ type: 'debrief', payload: { handlingScore: 88 } });
+      expect(latest('DebriefScreen')).toBeDefined();
+      await act(async () => {
+        await latest('DebriefScreen').onDone();
+      });
+      if (interstitialResolver) {
+        await act(async () => {
+          interstitialResolver?.();
+        });
+      }
+      if (latest('MissionCheckScreen')) {
+        act(() => latest('MissionCheckScreen').onClose());
+      } else if (latest('MissionBriefScreen')) {
+        act(() => latest('MissionBriefScreen').onClose());
+      }
+      expect(latest('WorldMapScreen')).toBeDefined();
+
+      // 5. Play a Minigame
+      openStop(BARKDOKU_INTRO_NODE.id);
+      throughPrimerAndCheckpoint();
+      expect(latest('BarkdokuView')).toBeDefined();
+      act(() => latest('BarkdokuView').onFinish({ timing: 1 }, 85));
+      expect(latest('DebriefScreen')).toBeDefined();
+      await act(async () => {
+        await latest('DebriefScreen').onDone();
+      });
+      if (interstitialResolver) {
+        await act(async () => {
+          interstitialResolver?.();
+        });
+      }
+      if (latest('MissionCheckScreen')) {
+        act(() => latest('MissionCheckScreen').onClose());
+      } else if (latest('MissionBriefScreen')) {
+        act(() => latest('MissionBriefScreen').onClose());
+      }
+
+      // Assert that we have captured events covering funnel, lesson, checkpoint, stage, minigame
+      expect(analytics.events.length).toBeGreaterThan(5);
+      const eventNames = new Set(analytics.events.map((e) => e.name));
+      expect(eventNames.has('funnel_step_viewed')).toBe(true);
+      expect(eventNames.has('session_started')).toBe(true);
+      expect(eventNames.has('lesson_opened')).toBe(true);
+      expect(eventNames.has('lesson_done')).toBe(true);
+      expect(eventNames.has('checkpoint_answered')).toBe(true);
+      expect(eventNames.has('stage_started')).toBe(true);
+      expect(eventNames.has('stage_ended')).toBe(true);
+      expect(eventNames.has('minigame_started')).toBe(true);
+      expect(eventNames.has('minigame_ended')).toBe(true);
+      expect(eventNames.has('stop_completed')).toBe(true);
+
+      // Assert none of the sensitive values nor the installId appear in ANY event properties
+      const bannedValues = [dogName, email, dogId, accountId, installId];
+      for (const event of analytics.events) {
+        const propsStr = JSON.stringify(event.properties);
+        for (const banned of bannedValues) {
+          expect(propsStr).not.toContain(banned);
+        }
+      }
     });
   });
 });
