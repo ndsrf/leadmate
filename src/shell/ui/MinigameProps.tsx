@@ -349,7 +349,7 @@ export function TensionGauge({ t, tension }: { t: Translate; tension: number }) 
 export type ActionIcon = ReadDogAction | 'hand';
 
 /** The one big control of the Poste practice: raised like every game button, with an icon, and it sinks while held. */
-export function MinigameButton({ label, icon, onPressIn, onPressOut }: { label: string; icon: ActionIcon; onPressIn?: () => void; onPressOut?: () => void }) {
+export function MinigameButton({ label, icon, onPressIn, onPressOut, compact = false }: { label: string; icon: ActionIcon; onPressIn?: () => void; onPressOut?: () => void; /** A shorter button (still above the 44-point target) for screens that must fit three at 320 by 640. */ compact?: boolean }) {
   const color = usePalette();
   return (
     <Pressable onPressIn={onPressIn} onPressOut={onPressOut} accessibilityRole="button" accessibilityLabel={label}>
@@ -357,7 +357,7 @@ export function MinigameButton({ label, icon, onPressIn, onPressOut }: { label: 
         const s = buttonStyle(color, 'primary', { pressed });
         return (
           <Raised fill={s.fill} edge={s.edge} radius={theme.radius.lg} offset={theme.depth.md.x} shift={pressed ? theme.depth.md.x - theme.depth.pressed.x : 0} pressable
-            faceStyle={{ minHeight: 88, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: theme.space[4], paddingHorizontal: theme.space[4] }}>
+            faceStyle={{ minHeight: compact ? 56 : 88, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: theme.space[4], paddingHorizontal: theme.space[4] }}>
             <ButtonIcon icon={icon} tint={s.label} />
             <Text className="font-display text-title" style={{ color: s.label, flexShrink: 1, textAlign: 'center' }}>
               {label}
@@ -493,7 +493,7 @@ const RTD_DOG_H = (RTD_DOG_W * 110) / 160;
 /** Height of the band above the Dog that Feedback Messages are drawn in, in scene units. */
 export const RTD_BAND_H = RTD_GROUND_Y - (RTD_DOG_H * 100) / 110;
 /** A caption keeps this much room even when empty, so the layout never jumps when the line appears. */
-export const RTD_CAPTION_MIN_H = 56;
+export const RTD_CAPTION_MIN_H = 44;
 
 /**
  * The Read the Dog scene: the user's breed and coat on a meadow showing a Body Signal, a band above the Dog for the Feedback

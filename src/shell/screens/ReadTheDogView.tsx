@@ -286,7 +286,7 @@ export function ReadTheDogView({
       >
         {t('readTheDog.title')}
       </Text>
-      <Text className="mb-3 text-bodyL text-inkMuted">{t('readTheDog.help')}</Text>
+      {!started && <Text className="mb-3 text-bodyL text-inkMuted">{t('readTheDog.help')}</Text>}
 
       {started && !isDone && (
         <View className="mb-2">
@@ -394,18 +394,21 @@ export function ReadTheDogView({
           </View>
         </View>
       ) : (
-        <View className="mt-4 flex-col gap-2">
+        <View className="mt-1 flex-col gap-2">
           <MinigameButton
+            compact
             label={t('readTheDog.answer.calm')}
             icon="wait"
             onPressIn={() => handleAnswer('calm')}
           />
           <MinigameButton
+            compact
             label={t('readTheDog.answer.alert')}
             icon="cue"
             onPressIn={() => handleAnswer('alert')}
           />
           <MinigameButton
+            compact
             label={t('readTheDog.answer.about_to_react')}
             icon="send-away"
             onPressIn={() => handleAnswer('about_to_react')}
