@@ -203,13 +203,38 @@ function getStartStageInfo(
       attempt: currentRoute.flow.attempt + 1,
     };
   }
-  if (currentRoute.name === 'flow' && currentRoute.flow.name === 'node') {
+  const activeNodeFlow =
+    currentFlow?.name === 'node'
+      ? currentFlow
+      : currentRoute.name === 'flow' && currentRoute.flow.name === 'node'
+      ? currentRoute.flow
+      : null;
+
+  if (activeNodeFlow) {
+    const node = activeNodeFlow.run.node;
+    const encounters = node.simulation.encounters;
+    let encounter_id: string | undefined;
+    let encounter_attempt: number | undefined;
+
+    if (encounters && encounters.length > 0) {
+      const series = activeNodeFlow.run.series;
+      const index = series ? series.index : 0;
+      const enc = encounters[index];
+      if (enc) {
+        encounter_id = enc.id;
+        const attempts = series?.attempts[index];
+        encounter_attempt = (attempts ? attempts.length : 0) + 1;
+      }
+    }
+
     return {
       type: 'stage',
       stage_kind: 'node',
-      stage_id: currentRoute.flow.run.node.id,
+      stage_id: node.id,
       mode,
-      attempt: currentRoute.flow.attempt + 1,
+      attempt: activeNodeFlow.attempt + 1,
+      ...(encounter_id !== undefined ? { encounter_id } : {}),
+      ...(encounter_attempt !== undefined ? { encounter_attempt } : {}),
     };
   }
   return {
@@ -966,9 +991,18 @@ export default function App() {
         if (recordRef.current) playResolvedCue(resolveCue(recordRef.current, language));
       } else if (message.type === 'debrief') {
         const payload: SimulationDebriefPayload = message.payload;
-        const endRes = playTracker.current.end('finished', new Date(), payload.handlingScore);
-        if (endRes) track(endRes.name, endRes.props);
         const f = flowRef.current;
+        let paws: number | undefined;
+        if (f?.name === 'node' && f.run.node.simulation.encounters?.length) {
+          const encounters = f.run.node.simulation.encounters;
+          const index = f.run.series?.index ?? 0;
+          const enc = encounters[index];
+          if (enc) {
+            paws = pawsFor(enc.aim, payload).paws;
+          }
+        }
+        const endRes = playTracker.current.end('finished', new Date(), payload.handlingScore, paws);
+        if (endRes) track(endRes.name, endRes.props);
         if (f?.name === 'daily' && f.result === null) {
           // the score and the Streak are kept; what the Dog has learned and the campaign are not touched
           const before = recordRef.current!;

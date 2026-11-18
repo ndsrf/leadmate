@@ -318,4 +318,165 @@ describe('PlayTracker (Task 6.1)', () => {
       attempt: 1,
     });
   });
+
+  describe('Encounter Stage tracking (Task 8.1)', () => {
+    it('starts an Encounter Stage and ends it with encounter_id, encounter_attempt and paws', () => {
+      const tracker = new PlayTracker();
+      const t0 = 10000;
+
+      const start = tracker.start(
+        {
+          type: 'stage',
+          stage_kind: 'node',
+          stage_id: 'walk-distraction',
+          mode: 'stage',
+          attempt: 1,
+          encounter_id: 'loose-start',
+          encounter_attempt: 1,
+        },
+        t0
+      );
+
+      expect(start).toEqual({
+        name: 'stage_started',
+        props: {
+          stage_kind: 'node',
+          stage_id: 'walk-distraction',
+          mode: 'stage',
+          attempt: 1,
+          encounter_id: 'loose-start',
+          encounter_attempt: 1,
+        },
+      });
+
+      const end = tracker.end('finished', t0 + 12000, 90, 3);
+      expect(end).toEqual({
+        name: 'stage_ended',
+        props: {
+          stage_kind: 'node',
+          stage_id: 'walk-distraction',
+          mode: 'stage',
+          attempt: 1,
+          encounter_id: 'loose-start',
+          encounter_attempt: 1,
+          outcome: 'finished',
+          duration_seconds: 12,
+          handling_score: 90,
+          paws: 3,
+        },
+      });
+    });
+
+    it('pairs a retry with Encounter attempts 1 and 2 and the same Node attempt', () => {
+      const tracker = new PlayTracker();
+      const t0 = 10000;
+
+      // Attempt 1
+      tracker.start(
+        {
+          type: 'stage',
+          stage_kind: 'node',
+          stage_id: 'walk-distraction',
+          mode: 'stage',
+          attempt: 2,
+          encounter_id: 'skate-far',
+          encounter_attempt: 1,
+        },
+        t0
+      );
+      const end1 = tracker.end('finished', t0 + 10000, 60, 1);
+      expect(end1?.props).toMatchObject({
+        stage_id: 'walk-distraction',
+        attempt: 2,
+        encounter_id: 'skate-far',
+        encounter_attempt: 1,
+        paws: 1,
+      });
+
+      // Attempt 2 (retry)
+      const start2 = tracker.start(
+        {
+          type: 'stage',
+          stage_kind: 'node',
+          stage_id: 'walk-distraction',
+          mode: 'stage',
+          attempt: 2,
+          encounter_id: 'skate-far',
+          encounter_attempt: 2,
+        },
+        t0 + 15000
+      );
+      expect(start2.props).toMatchObject({
+        stage_id: 'walk-distraction',
+        attempt: 2,
+        encounter_id: 'skate-far',
+        encounter_attempt: 2,
+      });
+
+      const end2 = tracker.end('finished', t0 + 25000, 95, 3);
+      expect(end2?.props).toMatchObject({
+        stage_id: 'walk-distraction',
+        attempt: 2,
+        encounter_id: 'skate-far',
+        encounter_attempt: 2,
+        paws: 3,
+      });
+    });
+
+    it('emits skipped outcome for a running Encounter with no paws or handling score', () => {
+      const tracker = new PlayTracker();
+      const t0 = 10000;
+
+      tracker.start(
+        {
+          type: 'stage',
+          stage_kind: 'node',
+          stage_id: 'walk-distraction',
+          mode: 'stage',
+          attempt: 1,
+          encounter_id: 'turn-look',
+          encounter_attempt: 1,
+        },
+        t0
+      );
+
+      const end = tracker.end('skipped', t0 + 5000);
+      expect(end).toEqual({
+        name: 'stage_ended',
+        props: {
+          stage_kind: 'node',
+          stage_id: 'walk-distraction',
+          mode: 'stage',
+          attempt: 1,
+          encounter_id: 'turn-look',
+          encounter_attempt: 1,
+          outcome: 'skipped',
+          duration_seconds: 5,
+        },
+      });
+      expect((end?.props as any).paws).toBeUndefined();
+      expect((end?.props as any).handling_score).toBeUndefined();
+    });
+
+    it('a non-Series Stage emits no encounter properties', () => {
+      const tracker = new PlayTracker();
+      const start = tracker.start(
+        {
+          type: 'stage',
+          stage_kind: 'node',
+          stage_id: 'walk-distraction',
+          mode: 'stage',
+          attempt: 1,
+        },
+        1000
+      );
+      expect((start.props as any).encounter_id).toBeUndefined();
+      expect((start.props as any).encounter_attempt).toBeUndefined();
+
+      const end = tracker.end('finished', 5000, 80);
+      expect((end?.props as any).encounter_id).toBeUndefined();
+      expect((end?.props as any).encounter_attempt).toBeUndefined();
+      expect((end?.props as any).paws).toBeUndefined();
+    });
+  });
 });

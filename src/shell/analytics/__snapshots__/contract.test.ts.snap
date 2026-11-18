@@ -162,6 +162,16 @@ exports[`Contract Snapshot (Task 2.3) matches the contract snapshot of all event
       },
       {
         "kind": "int",
+        "name": "encounter_attempt",
+        "optional": true,
+      },
+      {
+        "kind": "id",
+        "name": "encounter_id",
+        "optional": true,
+      },
+      {
+        "kind": "int",
         "name": "handling_score",
         "optional": true,
       },
@@ -174,6 +184,11 @@ exports[`Contract Snapshot (Task 2.3) matches the contract snapshot of all event
         "kind": "enum(finished|skipped|left)",
         "name": "outcome",
         "optional": false,
+      },
+      {
+        "kind": "int",
+        "name": "paws",
+        "optional": true,
       },
       {
         "kind": "id",
@@ -194,6 +209,16 @@ exports[`Contract Snapshot (Task 2.3) matches the contract snapshot of all event
         "kind": "int",
         "name": "attempt",
         "optional": false,
+      },
+      {
+        "kind": "int",
+        "name": "encounter_attempt",
+        "optional": true,
+      },
+      {
+        "kind": "id",
+        "name": "encounter_id",
+        "optional": true,
       },
       {
         "kind": "enum(stage|close_exercise)",

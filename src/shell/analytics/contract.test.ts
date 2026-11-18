@@ -170,6 +170,79 @@ describe('Analytics Event Contract (Task 2.1)', () => {
     expect(event).not.toBeNull();
     expect(event?.properties.seconds_since_install).toBe(0);
   });
+
+  describe('Encounter Stage properties (Task 8.1)', () => {
+    it('accepts optional encounter_id and encounter_attempt on stage_started', () => {
+      const event = buildEvent(
+        'stage_started',
+        {
+          stage_kind: 'node',
+          stage_id: 'walk-distraction',
+          mode: 'stage',
+          attempt: 1,
+          encounter_id: 'loose-start',
+          encounter_attempt: 2,
+        },
+        baseCommon
+      );
+      expect(event).not.toBeNull();
+      expect(event?.properties.encounter_id).toBe('loose-start');
+      expect(event?.properties.encounter_attempt).toBe(2);
+    });
+
+    it('accepts optional encounter_id, encounter_attempt and paws on stage_ended', () => {
+      const event = buildEvent(
+        'stage_ended',
+        {
+          stage_kind: 'node',
+          stage_id: 'walk-distraction',
+          mode: 'stage',
+          attempt: 1,
+          outcome: 'finished',
+          duration_seconds: 14,
+          encounter_id: 'turn-look',
+          encounter_attempt: 1,
+          paws: 3,
+        },
+        baseCommon
+      );
+      expect(event).not.toBeNull();
+      expect(event?.properties.encounter_id).toBe('turn-look');
+      expect(event?.properties.encounter_attempt).toBe(1);
+      expect(event?.properties.paws).toBe(3);
+    });
+
+    it('rejects invalid encounter_id or non-int paws/encounter_attempt', () => {
+      const badId = buildEvent(
+        'stage_started',
+        {
+          stage_kind: 'node',
+          stage_id: 'walk-distraction',
+          mode: 'stage',
+          attempt: 1,
+          encounter_id: 'Bad_Caps',
+          encounter_attempt: 1,
+        },
+        baseCommon
+      );
+      expect(badId).toBeNull();
+
+      const badPaws = buildEvent(
+        'stage_ended',
+        {
+          stage_kind: 'node',
+          stage_id: 'walk-distraction',
+          mode: 'stage',
+          attempt: 1,
+          outcome: 'finished',
+          duration_seconds: 10,
+          paws: NaN,
+        },
+        baseCommon
+      );
+      expect(badPaws).toBeNull();
+    });
+  });
 });
 
 describe('Contract Snapshot (Task 2.3)', () => {

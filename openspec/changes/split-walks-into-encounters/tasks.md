@@ -45,7 +45,7 @@
 
 ## 8. Analytics hook (after `add-product-analytics` lands)
 
-- [ ] 8.1 Add optional `encounter_id`, `encounter_attempt` and (on `stage_ended`) `paws` properties to the Encounter Stage start/end events, keeping `attempt` as the Node attempt and pairing start and end by Encounter id and attempt, respecting opt-out; verify with the analytics module's event tests that a retry emits two `stage_ended` events with Encounter attempts 1 and 2 and the same Node `attempt`, that Exit mid-Series emits `outcome` skipped for the running Encounter only, and that opted-out installs emit none.
+- [x] 8.1 Add optional `encounter_id`, `encounter_attempt` and (on `stage_ended`) `paws` properties to the Encounter Stage start/end events, keeping `attempt` as the Node attempt and pairing start and end by Encounter id and attempt, respecting opt-out; verify with the analytics module's event tests that a retry emits two `stage_ended` events with Encounter attempts 1 and 2 and the same Node `attempt`, that Exit mid-Series emits `outcome` skipped for the running Encounter only, and that opted-out installs emit none.
 
 ## 9. Integration checks
 

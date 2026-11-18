@@ -72,6 +72,8 @@ export const EVENTS: Record<string, EventDeclaration> = {
     stage_id: { kind: { kind: 'id' } },
     mode: { kind: { kind: 'enum', values: ['stage', 'close_exercise'] } },
     attempt: { kind: { kind: 'int' } },
+    encounter_id: { kind: { kind: 'id' }, optional: true },
+    encounter_attempt: { kind: { kind: 'int' }, optional: true },
   },
   stage_ended: {
     stage_kind: { kind: { kind: 'enum', values: ['taste', 'first', 'node', 'daily', 'warmup'] } },
@@ -81,6 +83,9 @@ export const EVENTS: Record<string, EventDeclaration> = {
     outcome: { kind: { kind: 'enum', values: ['finished', 'skipped', 'left'] } },
     duration_seconds: { kind: { kind: 'int' } },
     handling_score: { kind: { kind: 'int' }, optional: true },
+    encounter_id: { kind: { kind: 'id' }, optional: true },
+    encounter_attempt: { kind: { kind: 'int' }, optional: true },
+    paws: { kind: { kind: 'int' }, optional: true },
   },
   minigame_started: {
     node_id: { kind: { kind: 'id' } },

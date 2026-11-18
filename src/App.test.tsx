@@ -2144,4 +2144,152 @@ describe('App - Encounter Series flow', () => {
     expect(card()).toBeUndefined();
     expect(latest('DebriefScreen')).toBeDefined();
   });
+
+  describe('Encounter Series analytics (Task 8.1)', () => {
+    it('a retry emits two stage_ended events with Encounter attempts 1 and 2 and the same Node attempt', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      analytics.clear();
+
+      await startSeries();
+
+      // First encounter start: attempt 1, encounter_attempt 1
+      const start1 = analytics.events.filter((e) => e.name === 'stage_started');
+      expect(start1).toHaveLength(1);
+      expect(start1[0].properties).toMatchObject({
+        stage_kind: 'node',
+        stage_id: WALK_DISTRACTION.id,
+        mode: 'stage',
+        attempt: 1,
+        encounter_id: 'enc-0',
+        encounter_attempt: 1,
+      });
+
+      // Finish attempt 1 with 1 paw
+      await sendFromView({ type: 'debrief', payload: poor(101) });
+      const end1 = analytics.events.filter((e) => e.name === 'stage_ended');
+      expect(end1).toHaveLength(1);
+      expect(end1[0].properties).toMatchObject({
+        stage_kind: 'node',
+        stage_id: WALK_DISTRACTION.id,
+        mode: 'stage',
+        attempt: 1,
+        encounter_id: 'enc-0',
+        encounter_attempt: 1,
+        outcome: 'finished',
+        paws: 1,
+      });
+
+      // Retry: same node attempt 1, encounter_attempt 2
+      act(() => card().onRetry());
+      const start2 = analytics.events.filter((e) => e.name === 'stage_started');
+      expect(start2).toHaveLength(2);
+      expect(start2[1].properties).toMatchObject({
+        stage_kind: 'node',
+        stage_id: WALK_DISTRACTION.id,
+        mode: 'stage',
+        attempt: 1,
+        encounter_id: 'enc-0',
+        encounter_attempt: 2,
+      });
+
+      // Finish attempt 2 with 3 paws
+      await sendFromView({ type: 'debrief', payload: good(101) });
+      const end2 = analytics.events.filter((e) => e.name === 'stage_ended');
+      expect(end2).toHaveLength(2);
+      expect(end2[1].properties).toMatchObject({
+        stage_kind: 'node',
+        stage_id: WALK_DISTRACTION.id,
+        mode: 'stage',
+        attempt: 1,
+        encounter_id: 'enc-0',
+        encounter_attempt: 2,
+        outcome: 'finished',
+        paws: 3,
+      });
+    });
+
+    it('Exit mid-Series emits outcome skipped for the running Encounter only', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await startSeries();
+      analytics.clear();
+
+      // Finish Encounter 0
+      await sendFromView({ type: 'debrief', payload: good(1) });
+      expect(card().paws).toBe(3);
+
+      // Start Encounter 1
+      act(() => card().onNext());
+
+      // Encounter 1 is running; user opens Pause menu and exits
+      act(() => mockSim.props.onMessage({ type: 'paused' }));
+      expect(latest('ResumeOverlay')).toBeDefined();
+      act(() => latest('ResumeOverlay').onExit());
+
+      const endedEvents = analytics.events.filter((e) => e.name === 'stage_ended');
+      // Encounter 0 finished, Encounter 1 skipped. No events for enc-2 or enc-3.
+      expect(endedEvents).toHaveLength(2);
+      expect(endedEvents[0].properties).toMatchObject({
+        encounter_id: 'enc-0',
+        encounter_attempt: 1,
+        outcome: 'finished',
+        paws: 3,
+      });
+      expect(endedEvents[1].properties).toMatchObject({
+        encounter_id: 'enc-1',
+        encounter_attempt: 1,
+        outcome: 'skipped',
+      });
+      expect(endedEvents[1].properties.paws).toBeUndefined();
+    });
+
+    it('opted-out installs emit none', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      mockStore.set(
+        ANALYTICS_STATE_KEY,
+        JSON.stringify({
+          installId: 'opted-out-id',
+          installedAt: '2026-01-01T00:00:00.000Z',
+          choice: 'off',
+          funnelDoneOnce: true,
+          funnelOpen: false,
+          upgradedInstall: false,
+        })
+      );
+
+      await startSeries();
+      analytics.clear();
+
+      await sendFromView({ type: 'debrief', payload: poor(1) });
+      act(() => card().onRetry());
+      await sendFromView({ type: 'debrief', payload: good(1) });
+      act(() => card().onNext());
+
+      const stageEvents = analytics.events.filter(
+        (e) => e.name === 'stage_started' || e.name === 'stage_ended'
+      );
+      expect(stageEvents).toHaveLength(0);
+    });
+
+    it('a non-Series Stage emits no encounter properties', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await openMap();
+      analytics.clear();
+
+      openStop(WALK_DISTRACTION.id);
+      throughPrimerAndCheckpoint();
+      await sendFromView({ type: 'ready' });
+      await sendFromView({ type: 'debrief', payload: good(1) });
+
+      const started = analytics.events.filter((e) => e.name === 'stage_started');
+      expect(started).toHaveLength(1);
+      expect(started[0].properties.encounter_id).toBeUndefined();
+      expect(started[0].properties.encounter_attempt).toBeUndefined();
+
+      const ended = analytics.events.filter((e) => e.name === 'stage_ended');
+      expect(ended).toHaveLength(1);
+      expect(ended[0].properties.encounter_id).toBeUndefined();
+      expect(ended[0].properties.encounter_attempt).toBeUndefined();
+      expect(ended[0].properties.paws).toBeUndefined();
+    });
+  });
 });
