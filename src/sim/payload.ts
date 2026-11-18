@@ -1,6 +1,6 @@
 import type { DistractorKind } from './learning';
 import { meterScore, type MeterValue } from './meters';
-import type { SimState } from './sim';
+import type { ReactionTier, SimState } from './sim';
 import type { ScentWalkCounts, TimelineEntry } from './scentWalk';
 
 /** What the simulation reports to the shell when a Stage ends. */
@@ -44,6 +44,8 @@ export interface SimulationDebriefPayload {
   handDrillOutcome?: 'calm' | 'not_calm';
   /** Walking Stages: Marker timing grades of Marker hits and Check-in hits, and Late Marker presses. */
   markGrades?: { perfect: number; good: number; late: number };
+  /** Walking Stages: Highest Reaction Tier the Dog reached during the Stage. */
+  peakReactionTier?: ReactionTier;
   /** Only in a Stage with Stage Meters: each meter's final Meter Points and target; it then sets the handling score (ADR 0029). */
   meters?: MeterValue[];
   /** Only in a scent Stage: what the walk did around Scent Spots, food and changes. */
@@ -121,6 +123,7 @@ export function buildPayload(state: SimState): SimulationDebriefPayload {
     sintoniaTimeSeconds: Math.round(t.sintoniaTime * 10) / 10,
     goSniffs: t.goSniffs,
     markGrades: { ...t.markGrades },
+    peakReactionTier: t.peakTier,
   };
   if (hits.length > 0) {
     base.markerAccuracyMs = Math.round(hits.reduce((a, b) => a + b, 0) / hits.length);

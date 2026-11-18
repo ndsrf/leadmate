@@ -1,7 +1,8 @@
 import { defaultScenario, type ScenarioConfig } from './config';
-import { runScripted } from './harness';
+import { routeWalker, runScripted } from './harness';
 import { BUNDLE_MESSAGE_TYPES, SHELL_MESSAGE_TYPES, createOutbox, decode, encode, type BundleMessage, type ShellMessage } from './messages';
 import { buildPayload, handlingScore, SCORE_WEIGHTS, skippedSimulationPayload, type SimulationDebriefPayload } from './payload';
+import { buildCloseExercisePayload, createCloseExerciseState } from './closeExercise';
 import { appendTimeline, TIMELINE_CAP, type TimelineEntry } from './scentWalk';
 import { createState, noInput, tick, type SimInput, type SimState } from './sim';
 
@@ -34,7 +35,7 @@ describe('SimulationDebriefPayload', () => {
         'durationSeconds', 'slackPercentage', 'tautPercentage', 'pullPercentage', 'markerAccuracyMs',
         'markerHits', 'markerMisses', 'reactiveMarkers', 'missedOpportunities', 'checkInHits',
         'followMarks', 'posteSuccesses', 'harshStops', 'peakArousalScore', 'calmEncounters',
-        'marksUsed', 'markBudget', 'seed', 'sintoniaTimeSeconds', 'goSniffs', 'markGrades', 'handlingScore', 'configVersion',
+        'marksUsed', 'markBudget', 'seed', 'sintoniaTimeSeconds', 'goSniffs', 'markGrades', 'peakReactionTier', 'handlingScore', 'configVersion',
       ].sort(),
     );
     expect(payload.slackPercentage + payload.tautPercentage + payload.pullPercentage).toBeGreaterThanOrEqual(99);
@@ -309,5 +310,45 @@ describe('scent-walk payload', () => {
     const allWrong: TimelineEntry[] = Array.from({ length: 60 }, (_, i) => ({ t: i, kind: 'empty-sniff', polarity: 'wrong' }));
     appendTimeline(allWrong, { t: 60, kind: 'empty-sniff', polarity: 'wrong' });
     expect(allWrong[0].t).toBe(1);
+  });
+});
+
+describe('peakReactionTier in the payload', () => {
+  it('reports peakReactionTier: "reactive" when a nearby Distractor drives the Dog to Reactive and back', () => {
+    const c = scenario({ distractor: nearbyDistractor, endCondition: { kind: 'time-limit', seconds: 15 } });
+    const { payload } = runScripted(5, () => ({ direction: { x: 0, y: 1 }, strength: 0.6, marker: false }), c);
+    expect(payload.peakReactionTier).toBe('reactive');
+  });
+
+  it('reports "calm" when Distractor activates past the route end', () => {
+    const c = scenario({
+      waypoint: { x: 20, y: 0 },
+      distractor: { ...defaultScenario.distractor, activateAfterMeters: 1000 },
+    });
+    const walk = routeWalker(c);
+    const { payload } = runScripted(1, (s) => ({ ...walk(s), marker: false }), c);
+    expect(payload.peakReactionTier).toBe('calm');
+  });
+
+  it('gives the same value for the same seed, inputs and snapshot', () => {
+    const c = scenario({ distractor: nearbyDistractor, endCondition: { kind: 'time-limit', seconds: 15 } });
+    const p1 = runScripted(7, () => ({ direction: { x: 0, y: 1 }, strength: 0.6, marker: false }), c).payload;
+    const p2 = runScripted(7, () => ({ direction: { x: 0, y: 1 }, strength: 0.6, marker: false }), c).payload;
+    expect(p1.peakReactionTier).toBeDefined();
+    expect(p1.peakReactionTier).toBe(p2.peakReactionTier);
+  });
+
+  it('has no peakReactionTier in a close exercise payload or skippedSimulationPayload', () => {
+    const closePayload = buildCloseExercisePayload(createCloseExerciseState());
+    expect('peakReactionTier' in closePayload).toBe(false);
+    expect(closePayload.peakReactionTier).toBeUndefined();
+
+    const skipped = skippedSimulationPayload(1);
+    expect('peakReactionTier' in skipped).toBe(false);
+    expect(skipped.peakReactionTier).toBeUndefined();
+
+    const skippedClose = skippedSimulationPayload(1, 'close_exercise');
+    expect('peakReactionTier' in skippedClose).toBe(false);
+    expect(skippedClose.peakReactionTier).toBeUndefined();
   });
 });

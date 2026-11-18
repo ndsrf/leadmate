@@ -15,7 +15,7 @@ import { activeDistractor, isDogLooking, type SimInput, type SimState } from './
  */
 const FIXTURE = path.join(__dirname, '__fixtures__', 'payloadBaseline.json');
 /** Fields added after the baseline was captured; everything else must match byte for byte. */
-const ADDITIVE_FIELDS = ['markGrades'];
+const ADDITIVE_FIELDS = ['markGrades', 'peakReactionTier'];
 
 /**
  * Walks the route, stands for a fixated Dog and Cues it, and presses the Marker around windows in

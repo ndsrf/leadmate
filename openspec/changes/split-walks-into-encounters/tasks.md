@@ -2,9 +2,9 @@
 
 ## 1. Peak Reaction Tier in the sim payload
 
-- [ ] 1.1 Write failing tests in `src/sim/payload.test.ts`: a time-limited Stage where a nearby Distractor drives the Dog to Reactive and back reports `peakReactionTier: 'reactive'`; a Stage whose Distractor activates past the route end reports `'calm'`; same seed, inputs and snapshot give the same value; a close exercise payload and `skippedSimulationPayload` have no `peakReactionTier`. Verify they fail.
-- [ ] 1.2 Track the peak tier in sim telemetry where `reaction-tier-change` is emitted (`src/sim/sim.ts`) and add optional `peakReactionTier` to `SimulationDebriefPayload` / `buildPayload` (`src/sim/payload.ts`), set for walking Stages only; verify 1.1 passes and `npx jest src/sim` is green.
-- [ ] 1.3 Update the payload baseline (`payloadBaseline.test.ts`, `src/shell/testPayload.ts` and any payload fixtures) for the new field, and check that Daily Stage handling scores in the baselines are unchanged; verify `npx jest` and `npx tsc --noEmit` pass.
+- [x] 1.1 Write failing tests in `src/sim/payload.test.ts`: a time-limited Stage where a nearby Distractor drives the Dog to Reactive and back reports `peakReactionTier: 'reactive'`; a Stage whose Distractor activates past the route end reports `'calm'`; same seed, inputs and snapshot give the same value; a close exercise payload and `skippedSimulationPayload` have no `peakReactionTier`. Verify they fail.
+- [x] 1.2 Track the peak tier in sim telemetry where `reaction-tier-change` is emitted (`src/sim/sim.ts`) and add optional `peakReactionTier` to `SimulationDebriefPayload` / `buildPayload` (`src/sim/payload.ts`), set for walking Stages only; verify 1.1 passes and `npx jest src/sim` is green.
+- [x] 1.3 Update the payload baseline (`payloadBaseline.test.ts`, `src/shell/testPayload.ts` and any payload fixtures) for the new field, and check that Daily Stage handling scores in the baselines are unchanged; verify `npx jest` and `npx tsc --noEmit` pass.
 
 ## 2. Paw rule (pure, test-first)
 
