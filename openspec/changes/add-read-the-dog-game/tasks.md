@@ -27,7 +27,7 @@
 
 ## 4. Catalog text
 
-- [ ] 4.1 Add `readTheDog.*` keys to `src/i18n/es.ts` and `src/i18n/en.ts`: help, start, the three answer labels and accessibility hints, timer text, Combo, score, one signal line per signal with `{name}`, one body description per signal (`readTheDog.describe.<signal>`) that never names the class, result title, share right, signals to watch, replay, continue; reword `plan.latency` in both languages to the reaction time once the signal was spotted (design Decision 8); verify the catalog completeness/parity tests pass
+- [x] 4.1 Add `readTheDog.*` keys to `src/i18n/es.ts` and `src/i18n/en.ts`: help, start, the three answer labels and accessibility hints, timer text, Combo, score, one signal line per signal with `{name}`, one body description per signal (`readTheDog.describe.<signal>`) that never names the class, result title, share right, signals to watch, replay, continue; reword `plan.latency` in both languages to the reaction time once the signal was spotted (design Decision 8); verify the catalog completeness/parity tests pass
 - [ ] 4.2 Pre-ship gate (does not block sections 1-6; must be done before the release containing 6.2): canine-behaviour review of the signal table and every signal line and description, in both languages (soft, non-shaming wording, correct reading of each signal); fold any table or text correction back into 1.1 and 4.1; record the reviewer's sign-off in the PR
 
 ## 5. Shell scene and screen
