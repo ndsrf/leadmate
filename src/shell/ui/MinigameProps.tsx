@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Pressable, Text, View, type LayoutChangeEvent } from 'react-native';
 import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import Svg, { Circle, Ellipse, G, Line, Path, Rect } from 'react-native-svg';
@@ -238,7 +238,7 @@ const DOG_LEFT = 168;
  * The Poste scene: the Handler on the left holds the Leash, the Dog strains towards the lamp post on the
  * right. The Handler leans back and the Leash runs straight under tension, and sags when it eases.
  */
-export function LeashScene({ t, posture, tension, coat }: { t: Translate; posture: CaninePosture; tension: number; coat: DogCoat }) {
+export function LeashScene({ t, posture, tension, coat, overlay }: { t: Translate; posture: CaninePosture; tension: number; coat: DogCoat; /** Drawn over the scene, e.g. the Poste practice ring. */ overlay?: ReactNode }) {
   const [width, setWidth] = useState(0);
   const left = DOG_LEFT + (posture === 'straining' ? 8 : 0);
   const top = 148 - GROUND_Y;
@@ -278,6 +278,7 @@ export function LeashScene({ t, posture, tension, coat }: { t: Translate; postur
       <Svg style={fill} pointerEvents="none" viewBox={`0 0 ${SCENE.w} ${SCENE.h}`} accessibilityLabel={t(taut ? 'minigame.leashTaut' : 'minigame.leashSlack')}>
         <Path d={leashPath(tension, hand, collar, 46)} stroke={taut ? lightColor.danger : lightColor.inkMuted} strokeWidth={3.5} strokeLinecap="round" fill="none" />
       </Svg>
+      {overlay}
     </Stage>
   );
 }
