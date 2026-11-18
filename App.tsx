@@ -101,6 +101,8 @@ import {
   PlayTracker,
   type StageMode,
   type StartStageInfo,
+  LessonTimer,
+  type LessonSource,
 } from './src/shell/analytics';
 import { daysSince, shouldStartSession } from './src/shell/analytics/session';
 import { FunnelTracker } from './src/shell/analytics/funnel';
@@ -132,7 +134,7 @@ type Flow =
   | { name: 'library' }
   | { name: 'diary' }
   /** A Lesson from the Library, or from its Stop on the map; Done and Back return there. */
-  | { name: 'lesson'; id: string; returnTo: 'map' | 'library'; autoPlayVideo?: boolean }
+  | { name: 'lesson'; id: string; returnTo: 'map' | 'library'; autoPlayVideo?: boolean; source?: LessonSource }
   /** A Mission Stop's screens; a Fix opened from "Tus ajustes" returns to the Library. */
   | { name: 'mission'; id: string; view: MissionView; fixId?: string; returnTo?: 'map' | 'library' }
   /** The paywall from the map, or from a Plus-only action (`then`) that "Empezar prueba" completes. */
@@ -369,6 +371,8 @@ export default function App() {
   const [setupPart, setSetupPart] = useState<SetupPart | null>(null);
   const funnelTracker = useRef(new FunnelTracker());
   const playTracker = useRef(new PlayTracker());
+  const lessonTimer = useRef<LessonTimer | null>(null);
+  const checkpointShownAt = useRef<number>(Date.now());
   const lastBackgroundAt = useRef<Date | null>(null);
 
   useEffect(() => {
@@ -405,6 +409,7 @@ export default function App() {
     const sub = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'active') {
         playTracker.current.resume();
+        lessonTimer.current?.resume();
         if (shouldStartSession(lastBackgroundAt.current, new Date())) {
           const state = getAnalyticsState();
           if (state) {
@@ -418,6 +423,7 @@ export default function App() {
         lastBackgroundAt.current = null;
       } else {
         playTracker.current.pause();
+        lessonTimer.current?.pause();
         lastBackgroundAt.current = new Date();
       }
     });
@@ -573,6 +579,22 @@ export default function App() {
   const act = useCallback((action: NodeAction) => {
     const f = flowRef.current;
     if (f?.name !== 'node') return;
+    if (f.run.step === 'checkpoint' && (action.type === 'answer' || action.type === 'timeout')) {
+      const qIndex = f.run.question;
+      const secondsToAnswer = Math.max(0, Math.floor((Date.now() - checkpointShownAt.current) / 1000));
+      const nextRun = advance(f.run, action);
+      const res = nextRun.checkpoint[qIndex];
+      if (res) {
+        track('checkpoint_answered', {
+          node_id: f.run.node.id,
+          question_index: qIndex,
+          result: res,
+          seconds_to_answer: secondsToAnswer,
+        });
+      }
+      setFlow({ ...f, run: nextRun });
+      return;
+    }
     setFlow({ ...f, run: advance(f.run, action) });
   }, []);
 
@@ -707,6 +729,42 @@ export default function App() {
     }
     previousPlayKey.current = playKey;
   }, [playKey]);
+
+  const checkpointKey =
+    route.name === 'first-stage' && introRun?.step === 'checkpoint'
+      ? `intro:${introRun.question}`
+      : route.name === 'flow' && route.flow.name === 'node' && route.flow.run.step === 'checkpoint'
+      ? `${route.flow.run.node.id}:${route.flow.run.question}`
+      : null;
+
+  useEffect(() => {
+    if (checkpointKey !== null) {
+      checkpointShownAt.current = Date.now();
+    }
+  }, [checkpointKey]);
+
+  const activeLessonId = route.name === 'flow' && route.flow.name === 'lesson' ? route.flow.id : null;
+  const previousLessonId = useRef<string | null>(null);
+  useEffect(() => {
+    if (previousLessonId.current !== null && previousLessonId.current !== activeLessonId) {
+      if (lessonTimer.current?.isOpen) {
+        const backProps = lessonTimer.current.close('back');
+        if (backProps) track('lesson_done', backProps);
+        lessonTimer.current = null;
+      }
+    }
+    if (activeLessonId !== null && activeLessonId !== previousLessonId.current) {
+      const source: LessonSource =
+        (route.name === 'flow' && route.flow.name === 'lesson' && route.flow.source)
+          ? route.flow.source
+          : (route.name === 'flow' && route.flow.name === 'lesson' && route.flow.returnTo === 'library')
+          ? 'library'
+          : 'trail';
+      track('lesson_opened', { lesson_id: activeLessonId, source });
+      lessonTimer.current = new LessonTimer({ lessonId: activeLessonId, source });
+    }
+    previousLessonId.current = activeLessonId;
+  }, [activeLessonId, route]);
 
   // the Stage view exists only while a Stage is being prepared or played; every shell screen runs without a browser engine behind it
   const viewWanted = stageViewWanted({ route: route as Parameters<typeof stageViewWanted>[0]['route'], introStep: introRun?.step ?? null });
@@ -977,7 +1035,7 @@ export default function App() {
   /** Opens a Stop by kind: a Lesson Stop returns to the map, a Node starts, a Mission opens on its check, brief, wait or check-in. */
   const openStop = (stop: Stop) => {
     setSettingsOpen(false);
-    if (stop.kind === 'lesson') setFlow({ name: 'lesson', id: stop.id, returnTo: 'map' });
+    if (stop.kind === 'lesson') setFlow({ name: 'lesson', id: stop.id, returnTo: 'map', source: 'trail' });
     else if (stop.kind === 'node') {
       const node = findNode(stop.id);
       if (node) startNodeRun(node);
@@ -1408,8 +1466,42 @@ export default function App() {
           t={t}
           run={introRun}
           setting={record?.checkpointSeconds ?? 0}
-          onAnswer={(option) => setIntroRun((r) => (r ? advance(r, { type: 'answer', option }) : null))}
-          onTimeout={() => setIntroRun((r) => (r ? advance(r, { type: 'timeout' }) : null))}
+          onAnswer={(option) => {
+            const qIndex = introRun.question;
+            const secondsToAnswer = Math.max(0, Math.floor((Date.now() - checkpointShownAt.current) / 1000));
+            setIntroRun((r) => {
+              if (!r) return null;
+              const nextRun = advance(r, { type: 'answer', option });
+              const res = nextRun.checkpoint[qIndex];
+              if (res) {
+                track('checkpoint_answered', {
+                  node_id: 'intro-node',
+                  question_index: qIndex,
+                  result: res,
+                  seconds_to_answer: secondsToAnswer,
+                });
+              }
+              return nextRun;
+            });
+          }}
+          onTimeout={() => {
+            const qIndex = introRun.question;
+            const secondsToAnswer = Math.max(0, Math.floor((Date.now() - checkpointShownAt.current) / 1000));
+            setIntroRun((r) => {
+              if (!r) return null;
+              const nextRun = advance(r, { type: 'timeout' });
+              const res = nextRun.checkpoint[qIndex];
+              if (res) {
+                track('checkpoint_answered', {
+                  node_id: 'intro-node',
+                  question_index: qIndex,
+                  result: res,
+                  seconds_to_answer: secondsToAnswer,
+                });
+              }
+              return nextRun;
+            });
+          }}
         />
       );
     } else if (introRun?.step === 'simulation') {
@@ -1573,7 +1665,7 @@ export default function App() {
           readIds={record.readLessons}
           day={lessonDay(record, new Date())}
           seenFixes={record.seenFixes}
-          onOpen={(lesson) => setFlow({ name: 'lesson', id: lesson.id, returnTo: 'library' })}
+          onOpen={(lesson) => setFlow({ name: 'lesson', id: lesson.id, returnTo: 'library', source: 'library' })}
           onOpenFix={(entry) => setFlow({ name: 'mission', id: entry.mission.id, view: 'fix', fixId: entry.fix.id, returnTo: 'library' })}
           onBack={withBack(goHome)}
         />,
@@ -1597,7 +1689,13 @@ export default function App() {
       const now = new Date();
       const plus = isPlus(record, now);
       const state = trialState(record, now);
-      const back = withBack(() => (f.returnTo === 'map' ? goHome() : setFlow({ name: 'library' })));
+      const back = withBack(() => {
+        const backProps = lessonTimer.current?.close('back');
+        if (backProps) track('lesson_done', backProps);
+        lessonTimer.current = null;
+        if (f.returnTo === 'map') goHome();
+        else setFlow({ name: 'library' });
+      });
       screen = mapWith(
         lesson ? (
           <LessonScreen
@@ -1607,8 +1705,12 @@ export default function App() {
             isPlus={plus}
             trialState={state}
             autoPlayVideo={f.autoPlayVideo}
+            onProgress={(percent) => lessonTimer.current?.updateProgress(percent)}
             onUnlockVideo={() => setFlow({ name: 'paywall', then: { kind: 'video', lessonId: lesson.id, returnTo: f.returnTo } })}
             onDone={() => {
+              const doneProps = lessonTimer.current?.close('done');
+              if (doneProps) track('lesson_done', doneProps);
+              lessonTimer.current = null;
               update((r) => markLessonRead(r, lesson.id, new Date()));
               // reading the Lesson of a biting Home Behaviour (it has no exercise) opens its Mission brief
               const next = f.returnTo === 'map' ? homeMissionAfter({ kind: 'lesson', id: lesson.id }, record) : null;
@@ -1723,7 +1825,7 @@ export default function App() {
         }
         if ('kind' in action && action.kind === 'video') {
           const returnTo = action.returnTo ?? 'map';
-          setFlow({ name: 'lesson', id: action.lessonId, returnTo, autoPlayVideo: unlocked });
+          setFlow({ name: 'lesson', id: action.lessonId, returnTo, autoPlayVideo: unlocked, source: 'video_unlock' });
           return;
         }
         if ('kind' in action && action.kind === 'barkdoku') {

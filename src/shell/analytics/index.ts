@@ -19,6 +19,7 @@ export * from './types';
 export * from './mock';
 export * from './posthog';
 export * from './stages';
+export * from './lessons';
 
 interface BufferedTrackEvent {
   name: string;

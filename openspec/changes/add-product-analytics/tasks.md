@@ -41,10 +41,10 @@
 
 ## 7. Lessons and Checkpoints
 
-- [ ] 7.1 Write `lessons.test.ts` first, then implement `lessons.ts` (`LessonTimer`: foreground seconds with pause/resume, furthest progress kept when scrolling back up, `close(closedBy)` once only); verify tests pass
-- [ ] 7.2 Add an optional `onProgress(percent)` prop to `LessonScreen` fed from its existing `readingProgress` handler; extend `LessonScreens.test.tsx` to check it is called on scroll; verify tests pass
-- [ ] 7.3 Wire `lesson_opened` (`source`: trail from the World Map Stop, library from the Theory Library, video_unlock from the paywall's `then: { kind: 'video' }`) when the lesson flow is entered and `lesson_done` (`closed_by` done or back) when it is left in `App.tsx`; verify with an `App.test.tsx` case that opening a Lesson from the map and pressing Done sends both events with `source` trail and `closed_by` done
-- [ ] 7.4 Wire `checkpoint_answered` for Node runs (in `act`, for `answer`/`timeout` while `run.step === 'checkpoint'`) and for the guided first Stage's `introRun`, timing from when `run.question` was shown and reading the result from the run after `advance`; verify with a `NodeScreens`/`App.test.tsx` case that a correct answer sends `result` correct with the Node id and `question_index` 0
+- [x] 7.1 Write `lessons.test.ts` first, then implement `lessons.ts` (`LessonTimer`: foreground seconds with pause/resume, furthest progress kept when scrolling back up, `close(closedBy)` once only); verify tests pass
+- [x] 7.2 Add an optional `onProgress(percent)` prop to `LessonScreen` fed from its existing `readingProgress` handler; extend `LessonScreens.test.tsx` to check it is called on scroll; verify tests pass
+- [x] 7.3 Wire `lesson_opened` (`source`: trail from the World Map Stop, library from the Theory Library, video_unlock from the paywall's `then: { kind: 'video' }`) when the lesson flow is entered and `lesson_done` (`closed_by` done or back) when it is left in `App.tsx`; verify with an `App.test.tsx` case that opening a Lesson from the map and pressing Done sends both events with `source` trail and `closed_by` done
+- [x] 7.4 Wire `checkpoint_answered` for Node runs (in `act`, for `answer`/`timeout` while `run.step === 'checkpoint'`) and for the guided first Stage's `introRun`, timing from when `run.question` was shown and reading the result from the run after `advance`; verify with a `NodeScreens`/`App.test.tsx` case that a correct answer sends `result` correct with the Node id and `question_index` 0
 
 ## 8. Stop completion
 

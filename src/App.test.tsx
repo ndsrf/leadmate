@@ -1421,5 +1421,57 @@ describe('App - Stage view lifecycle', () => {
       });
       expect(ended[0].properties.handling_score).toBeUndefined();
     });
+
+    it('opening a Lesson from the map and pressing Done sends both events with source trail and closed_by done', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await openMap();
+      analytics.clear();
+
+      act(() => latest('WorldMapScreen').onOpenStop({ kind: 'lesson', id: 'body-language' }));
+      expect(latest('LessonScreen')).toBeDefined();
+
+      const opened = analytics.events.filter((e) => e.name === 'lesson_opened');
+      expect(opened.length).toBe(1);
+      expect(opened[0].properties).toMatchObject({
+        lesson_id: 'body-language',
+        source: 'trail',
+      });
+
+      // User scrolls and taps Done
+      act(() => latest('LessonScreen').onProgress?.(75));
+      act(() => latest('LessonScreen').onDone());
+
+      const done = analytics.events.filter((e) => e.name === 'lesson_done');
+      expect(done.length).toBe(1);
+      expect(done[0].properties).toMatchObject({
+        lesson_id: 'body-language',
+        closed_by: 'done',
+        scrolled_percent: 75,
+      });
+      expect(typeof done[0].properties.seconds_on_screen).toBe('number');
+    });
+
+    it('answering a Checkpoint sends checkpoint_answered with result correct, node_id, and question_index 0', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await openMap();
+      analytics.clear();
+
+      openStop(WALK_DISTRACTION.id);
+      for (let i = 0; i < 20 && latest('PrimerScreen'); i++) {
+        act(() => latest('PrimerScreen').onNext());
+      }
+      expect(latest('CheckpointScreen')).toBeDefined();
+
+      act(() => latest('CheckpointScreen').onAnswer(0));
+
+      const answered = analytics.events.filter((e) => e.name === 'checkpoint_answered');
+      expect(answered.length).toBe(1);
+      expect(answered[0].properties).toMatchObject({
+        node_id: WALK_DISTRACTION.id,
+        question_index: 0,
+        result: 'correct',
+      });
+      expect(typeof answered[0].properties.seconds_to_answer).toBe('number');
+    });
   });
 });
