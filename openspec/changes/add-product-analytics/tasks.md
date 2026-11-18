@@ -7,10 +7,10 @@
 
 ## 2. Event contract (pure, test-first)
 
-- [ ] 2.1 Write `src/shell/analytics/contract.test.ts` first: unknown event → `null`; undeclared property → `null`; missing required property → `null`; `id` kind rejects spaces, upper case, `@`, >64 chars and UUID-shaped values; `int` rejects `NaN`/`Infinity` and rounds; every built event carries `schema_version` 1 and the common properties; verify the tests fail
-- [ ] 2.2 Implement `src/shell/analytics/contract.ts` (`SCHEMA_VERSION`, property kinds `int`/`bool`/`enum`/`id`, `EVENTS` registry for `funnel_step_viewed`, `session_started`, `stage_started`, `stage_ended`, `minigame_started`, `minigame_ended`, `lesson_opened`, `lesson_done`, `checkpoint_answered`, `stop_completed` with the properties in the `product-analytics` spec, `FUNNEL_STEPS`, `buildEvent`), with a header comment stating the versioning and naming rules; verify 2.1 passes
-- [ ] 2.3 Add a contract snapshot test that lists every event name with its property names and kinds, so any change to the contract shows in review and forces a decision on `schema_version`; verify it passes
-- [ ] 2.4 Add a contract-level privacy test: `buildEvent` drops every declared `id` property set to `Luna`, `luna@example.com` or a UUID, and no event declares a property kind that accepts free text; verify it passes (the end-to-end privacy check is 8.3)
+- [x] 2.1 Write `src/shell/analytics/contract.test.ts` first: unknown event → `null`; undeclared property → `null`; missing required property → `null`; `id` kind rejects spaces, upper case, `@`, >64 chars and UUID-shaped values; `int` rejects `NaN`/`Infinity` and rounds; every built event carries `schema_version` 1 and the common properties; verify the tests fail
+- [x] 2.2 Implement `src/shell/analytics/contract.ts` (`SCHEMA_VERSION`, property kinds `int`/`bool`/`enum`/`id`, `EVENTS` registry for `funnel_step_viewed`, `session_started`, `stage_started`, `stage_ended`, `minigame_started`, `minigame_ended`, `lesson_opened`, `lesson_done`, `checkpoint_answered`, `stop_completed` with the properties in the `product-analytics` spec, `FUNNEL_STEPS`, `buildEvent`), with a header comment stating the versioning and naming rules; verify 2.1 passes
+- [x] 2.3 Add a contract snapshot test that lists every event name with its property names and kinds, so any change to the contract shows in review and forces a decision on `schema_version`; verify it passes
+- [x] 2.4 Add a contract-level privacy test: `buildEvent` drops every declared `id` property set to `Luna`, `luna@example.com` or a UUID, and no event declares a property kind that accepts free text; verify it passes (the end-to-end privacy check is 8.3)
 
 ## 3. Install state, service and opt-out
 
