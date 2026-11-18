@@ -27,11 +27,11 @@
 
 ## 5. Sessions and funnel steps
 
-- [ ] 5.1 Write `session.test.ts` first, then implement `session.ts` (`shouldStartSession` at a 30 min threshold, `daysSince`, `secondsSince`); verify tests cover 5 min (no) and 45 min (yes)
-- [ ] 5.2 Wire `initAnalytics` and `session_started` (`first_session`, `days_since_install`, `upgraded_install`) at app start in `App.tsx`, and the `AppState` background/foreground check; verify with an `App.test.tsx` case using `MockAnalyticsService` that one `session_started` is captured on mount
-- [ ] 5.3 Write `funnel.test.ts` first, then implement `funnel.ts` (`funnelStepOf` covering every value in `FUNNEL_STEPS`, including taste briefing, stage and payoff, `setup_<part>`, `first_<introStep>` with simulation → `first_walk`, `register_prompt`, `account`, `paywall`, `map` only while `funnelOpen` is true, and `null` elsewhere; plus the dedupe that only reports a changed step and the `funnelOpen`/`funnelDoneOnce` transitions); tests cover a second Funnel run after a reset sending `map` with `repeat` true, and an upgraded install already at `done` sending no `map`; verify tests pass
-- [ ] 5.4 Add an optional `onPart(part)` prop to `SetupScreen` that reports the visible setup part; extend `SetupScreen.test.tsx` to check it fires on each part change; verify tests pass
-- [ ] 5.5 Wire `funnel_step_viewed` in `App.tsx` from `funnelStepOf` (with `repeat` = `funnelDoneOnce`, saving `funnelOpen: true` on any other step and `funnelOpen: false`, `funnelDoneOnce: true` when `map` is sent); verify with an `App.test.tsx` case that advancing welcome → language sends both steps once each
+- [x] 5.1 Write `session.test.ts` first, then implement `session.ts` (`shouldStartSession` at a 30 min threshold, `daysSince`, `secondsSince`); verify tests cover 5 min (no) and 45 min (yes)
+- [x] 5.2 Wire `initAnalytics` and `session_started` (`first_session`, `days_since_install`, `upgraded_install`) at app start in `App.tsx`, and the `AppState` background/foreground check; verify with an `App.test.tsx` case using `MockAnalyticsService` that one `session_started` is captured on mount
+- [x] 5.3 Write `funnel.test.ts` first, then implement `funnel.ts` (`funnelStepOf` covering every value in `FUNNEL_STEPS`, including taste briefing, stage and payoff, `setup_<part>`, `first_<introStep>` with simulation → `first_walk`, `register_prompt`, `account`, `paywall`, `map` only while `funnelOpen` is true, and `null` elsewhere; plus the dedupe that only reports a changed step and the `funnelOpen`/`funnelDoneOnce` transitions); tests cover a second Funnel run after a reset sending `map` with `repeat` true, and an upgraded install already at `done` sending no `map`; verify tests pass
+- [x] 5.4 Add an optional `onPart(part)` prop to `SetupScreen` that reports the visible setup part; extend `SetupScreen.test.tsx` to check it fires on each part change; verify tests pass
+- [x] 5.5 Wire `funnel_step_viewed` in `App.tsx` from `funnelStepOf` (with `repeat` = `funnelDoneOnce`, saving `funnelOpen: true` on any other step and `funnelOpen: false`, `funnelDoneOnce: true` when `map` is sent); verify with an `App.test.tsx` case that advancing welcome → language sends both steps once each
 
 ## 6. Stages
 

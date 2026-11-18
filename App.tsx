@@ -90,6 +90,18 @@ import { AccountBanner, AuthScreen, ChooseDogScreen, RegisterPrompt } from './sr
 import { resolveCue, type Language } from './src/shell/voice';
 import { backAction, isReadyToLeaveSplash, trialModalOwnsBack, onStageViewFailure, routeFor, stageViewWanted, type BackActionParams, type Route } from './src/shell/navigation';
 import { resetProgress } from './src/shell/reset';
+import {
+  initAnalytics,
+  track,
+  getAnalyticsState,
+  updateAnalyticsRecord,
+  updateAnalyticsFlags,
+  ANALYTICS_STATE_KEY,
+  readAnalyticsState,
+} from './src/shell/analytics';
+import { daysSince, shouldStartSession } from './src/shell/analytics/session';
+import { FunnelTracker } from './src/shell/analytics/funnel';
+import type { SetupPart } from './src/shell/onboarding/setup';
 import { ShopScreen, type ShopLevel } from './src/shell/screens/ShopScreen';
 import { ShopPopup } from './src/shell/screens/ShopPopup';
 import {
@@ -291,6 +303,61 @@ export default function App() {
   const recordRef = useRef(record);
   recordRef.current = record;
   const vocalizer = useRef(createVocalizer(playDogSound));
+
+  const [setupPart, setSetupPart] = useState<SetupPart | null>(null);
+  const funnelTracker = useRef(new FunnelTracker());
+  const lastBackgroundAt = useRef<Date | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const raw = await dogStore.getItem(ANALYTICS_STATE_KEY);
+        const isFirst = !raw || !readAnalyticsState(raw);
+        const state = await initAnalytics(dogStore, recordRef.current);
+        if (!alive) return;
+        funnelTracker.current.syncState({
+          funnelDoneOnce: state.funnelDoneOnce,
+          funnelOpen: state.funnelOpen,
+        });
+        track('session_started', {
+          days_since_install: daysSince(state.installedAt),
+          first_session: isFirst,
+          upgraded_install: state.upgradedInstall,
+        });
+      } catch {
+        // swallow
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    updateAnalyticsRecord(record);
+  }, [record]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        if (shouldStartSession(lastBackgroundAt.current, new Date())) {
+          const state = getAnalyticsState();
+          if (state) {
+            track('session_started', {
+              days_since_install: daysSince(state.installedAt),
+              first_session: false,
+              upgraded_install: state.upgradedInstall,
+            });
+          }
+        }
+        lastBackgroundAt.current = null;
+      } else {
+        lastBackgroundAt.current = new Date();
+      }
+    });
+    return () => sub.remove();
+  }, []);
   const pendingStart = useRef<ShellMessage | null>(null);
   const bundleReady = useRef(false);
   // the Stage view is created on demand (see stageViewWanted): one silent remount is allowed before play
@@ -490,6 +557,30 @@ export default function App() {
       setIntroRun(null);
     }
   }, [route.name]);
+
+  useEffect(() => {
+    const change = funnelTracker.current.stepChange({
+      route,
+      setupPart,
+      tasteBriefed,
+      tastePayoff,
+      introStep: introRun?.step,
+      flowName: flow?.name,
+      isFunnelAuth: flow?.name === 'auth' && (flow.returnTo === 'map' || record?.onboarding.step !== 'done'),
+    });
+    if (change) {
+      track('funnel_step_viewed', {
+        step: change.step,
+        repeat: change.repeat,
+      });
+      if (change.openChangedTo !== undefined || change.doneOnceChangedTo !== undefined) {
+        void updateAnalyticsFlags({
+          funnelOpen: change.openChangedTo,
+          funnelDoneOnce: change.doneOnceChangedTo,
+        });
+      }
+    }
+  }, [route, setupPart, tasteBriefed, tastePayoff, introRun?.step, flow?.name, record?.onboarding.step]);
 
   // the Stage view exists only while a Stage is being prepared or played; every shell screen runs without a browser engine behind it
   const viewWanted = stageViewWanted({ route: route as Parameters<typeof stageViewWanted>[0]['route'], introStep: introRun?.step ?? null });
@@ -911,6 +1002,7 @@ export default function App() {
     resetting.current = true;
     try {
       const fresh = await resetProgress(dogStore, current);
+      funnelTracker.current.resetLastStep();
       account.resetSync();
       rusty.current = null;
       setWarmup('none');
@@ -1159,7 +1251,7 @@ export default function App() {
         );
       else if (route.step === 'dog') screen = <DogLookScreen t={t} record={record} onDone={(name, coat, breed, ageBand) => update((r) => saveNameAndLook(r, name, coat, breed, ageBand))} />;
       else if (route.step === 'concern') screen = <ConcernScreen t={t} record={record} onDone={(concerns) => update((r) => saveMainConcerns(r, concerns))} />;
-      else if (route.step === 'setup') screen = <SetupScreen t={t} record={record} update={update} />;
+      else if (route.step === 'setup') screen = <SetupScreen t={t} record={record} update={update} onPart={setSetupPart} />;
       else if (route.step === 'diagnostic')
         screen = <DiagnosticView key="diagnostic" t={t} record={record} seed={newSeed()} onFinish={(latency) => update((r) => recordDiagnostic(r, latency))} />;
       else if (route.step === 'plan')

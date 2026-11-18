@@ -82,6 +82,10 @@ jest.mock('react-native', () => ({
     },
     exitApp: () => {},
   },
+  Platform: {
+    OS: 'ios',
+    select: (obj: any) => obj.ios ?? obj.default,
+  },
   useColorScheme: () => 'light',
 }));
 jest.mock('react-native-svg', () => {
@@ -235,6 +239,7 @@ import { getActiveContent, setActiveContent } from './shell/content/runtime';
 import type { ResolvedShop } from './shell/content/resolver';
 import { SHOP_STATE_STORAGE_KEY, DEFAULT_SHOP_STATE } from './shell/shop';
 import { POOR_SCORE_BELOW } from './shell/stars';
+import { getAnalytics, resetAnalyticsForTesting, MockAnalyticsService } from './shell/analytics';
 
 const LOAD_TIMEOUT_MS = 20000;
 const latest = (name: string) => mockProps[name];
@@ -282,6 +287,7 @@ beforeAll(() => {
 
 const baseIntl = global.Intl;
 beforeEach(() => {
+  resetAnalyticsForTesting();
   jest.useFakeTimers();
   setActiveContent(null);
   global.Intl = {
@@ -1302,6 +1308,52 @@ describe('App - Stage view lifecycle', () => {
       } finally {
         setActiveContent(baseContent);
       }
+    });
+  });
+
+  describe('App - Product Analytics (Sessions and Funnel)', () => {
+    it('captures one session_started on mount with MockAnalyticsService', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.runAllTicks();
+      });
+
+      const sessionEvents = analytics.events.filter((e) => e.name === 'session_started');
+      expect(sessionEvents.length).toBe(1);
+      expect(sessionEvents[0].properties).toMatchObject({
+        first_session: true,
+        days_since_install: 0,
+        upgraded_install: false,
+      });
+    });
+
+    it('advancing welcome -> language sends both steps once each', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+        jest.runAllTicks();
+      });
+
+      expect(latest('SplashScreen')).toBeDefined();
+
+      // Welcome step viewed
+      let funnelEvents = analytics.events.filter((e) => e.name === 'funnel_step_viewed');
+      expect(funnelEvents.map((e) => e.properties.step)).toEqual(['welcome']);
+
+      // Advance to language
+      act(() => latest('SplashScreen').actions.onStart());
+      expect(latest('LanguageScreen')).toBeDefined();
+
+      funnelEvents = analytics.events.filter((e) => e.name === 'funnel_step_viewed');
+      expect(funnelEvents.map((e) => e.properties.step)).toEqual(['welcome', 'language']);
+      expect(funnelEvents[0].properties.repeat).toBe(false);
+      expect(funnelEvents[1].properties.repeat).toBe(false);
     });
   });
 });
