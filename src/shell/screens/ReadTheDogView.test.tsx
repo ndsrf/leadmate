@@ -287,4 +287,52 @@ describe('ReadTheDogView (5.3, 5.4, 6.1)', () => {
     // Round 1 was all misses, so latency was 1.5!
     expect(onFinish).toHaveBeenCalledWith(1.5);
   });
+
+  describe('6.3: a view mounted again (app reopened or left) starts a fresh round', () => {
+    const labels = (r: ReactTestRenderer.ReactTestRenderer) => r.root.findAllByType('button' as any).map((b) => b.props.accessibilityLabel);
+    const mount = async (onFinish: jest.Mock) => {
+      let r!: ReactTestRenderer.ReactTestRenderer;
+      await act(async () => {
+        r = ReactTestRenderer.create(<ReadTheDogView t={t} record={record} seed={4242} onFinish={onFinish} />);
+      });
+      return r;
+    };
+    const freshStart = (r: ReactTestRenderer.ReactTestRenderer) => {
+      const l = labels(r);
+      expect(l).toContain(t('readTheDog.start'));
+      expect(l).not.toContain(t('readTheDog.answer.calm'));
+      expect(l).not.toContain(t('readTheDog.result.continue'));
+      expect(l).not.toContain(t('readTheDog.result.replay'));
+    };
+
+    it('after a close mid-round, the new view shows the start screen and has reported nothing', async () => {
+      const onFinish = jest.fn();
+      const first = await mount(onFinish);
+      await act(async () => {
+        first.root.findAllByType('button' as any).find((b) => b.props.accessibilityLabel === t('readTheDog.start'))!.props.onPress();
+        jest.advanceTimersByTime(3000);
+      });
+      expect(labels(first)).toContain(t('readTheDog.answer.calm'));
+      act(() => first.unmount());
+      const second = await mount(onFinish);
+      freshStart(second);
+      expect(onFinish).not.toHaveBeenCalled();
+    });
+
+    it('after a close on the result before Continue, the new view shows the start screen and has reported nothing', async () => {
+      const onFinish = jest.fn();
+      const first = await mount(onFinish);
+      await act(async () => {
+        first.root.findAllByType('button' as any).find((b) => b.props.accessibilityLabel === t('readTheDog.start'))!.props.onPress();
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(25000);
+      });
+      expect(labels(first)).toContain(t('readTheDog.result.continue'));
+      act(() => first.unmount());
+      const second = await mount(onFinish);
+      freshStart(second);
+      expect(onFinish).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -860,6 +860,15 @@ describe('App - Stage view lifecycle', () => {
       expect(saved.attributes.reconnectionLatency).toBe(seedFromLatency(0.44));
     });
 
+    /** The reopened view is one new mount with a seed, no carry and nothing reported yet; the view itself starts at its start screen (ReadTheDogView.test.tsx, 6.3). */
+    function expectFreshRound() {
+      expect(mockMounted['ReadTheDogView']).toBe(1);
+      const props = latest('ReadTheDogView');
+      expect(typeof props.seed).toBe('number');
+      expect(props.carry).toBeUndefined();
+      expect(typeof props.onFinish).toBe('function');
+    }
+
     it('restores diagnostic step with no latency recorded and starts a fresh round when closed mid-round', async () => {
       const record = { ...newDogRecord(), onboarding: { ...NEW_ONBOARDING, step: 'diagnostic' as const }, version: RECORD_VERSION };
       mockStore.set(RECORD_KEY, JSON.stringify(record));
@@ -888,9 +897,11 @@ describe('App - Stage view lifecycle', () => {
         jest.advanceTimersByTime(2500);
       });
 
-      // Restored diagnostic step
-      expect(latest('ReadTheDogView')).toBeDefined();
-      expect(saved.onboarding.diagnosticLatency).toBeNull();
+      // Restored diagnostic step, with a freshly mounted view (new seed, no carry) and still no latency stored
+      expectFreshRound();
+      const reopened = JSON.parse(mockStore.get(RECORD_KEY)!);
+      expect(reopened.onboarding.step).toBe('diagnostic');
+      expect(reopened.onboarding.diagnosticLatency).toBeNull();
     });
 
     it('restores diagnostic step with no latency recorded and starts a fresh round when closed on result before Continue', async () => {
@@ -904,6 +915,7 @@ describe('App - Stage view lifecycle', () => {
       });
 
       expect(latest('ReadTheDogView')).toBeDefined();
+      const firstSeed = latest('ReadTheDogView').seed;
 
       // On result card before Continue: onFinish has not been called
       // Close app
@@ -921,7 +933,9 @@ describe('App - Stage view lifecycle', () => {
         jest.advanceTimersByTime(2500);
       });
 
-      expect(latest('ReadTheDogView')).toBeDefined();
+      expectFreshRound();
+      expect(JSON.parse(mockStore.get(RECORD_KEY)!).onboarding.diagnosticLatency).toBeNull();
+      expect(typeof firstSeed).toBe('number');
     });
 
     it('leaves with System Back, restoring diagnostic step with no latency recorded on next launch', async () => {
@@ -956,7 +970,8 @@ describe('App - Stage view lifecycle', () => {
         jest.advanceTimersByTime(2500);
       });
 
-      expect(latest('ReadTheDogView')).toBeDefined();
+      expectFreshRound();
+      expect(JSON.parse(mockStore.get(RECORD_KEY)!).onboarding.diagnosticLatency).toBeNull();
     });
   });
 
