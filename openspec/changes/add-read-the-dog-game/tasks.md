@@ -2,7 +2,7 @@
 
 ## 1. Signal table and engine (pure, test-first)
 
-- [ ] 1.1 In `src/shell/nodes/readTheDog.test.ts` write failing tests for the signal table: nine signals, classes and subtle flags exactly as in design Decision 2, every class has an obvious signal; then add `RtdSignal`, `RtdClass` (`'calm' | 'alert' | 'about_to_react'`) and `SIGNALS` in `src/shell/nodes/readTheDog.ts` and verify `npx jest readTheDog` passes
+- [x] 1.1 In `src/shell/nodes/readTheDog.test.ts` write failing tests for the signal table: nine signals, classes and subtle flags exactly as in design Decision 2, every class has an obvious signal; then add `RtdSignal`, `RtdClass` (`'calm' | 'alert' | 'about_to_react'`) and `SIGNALS` in `src/shell/nodes/readTheDog.ts` and verify `npx jest readTheDog` passes
 - [ ] 1.2 Test then implement `READ_THE_DOG` constants (design Decision 3, with `missSeconds` taken from `DIAGNOSTIC.timeout`) and `timerFor(level, opts)`: level 0 is 2.4 s, levels never under 1.0 s, timers strictly decrease with level, the screen-reader option gives `screenReaderTimer` (6 s) at every level; verify the tests pass
 - [ ] 1.3 Test then implement `newRound(seed, carry?)` and the time/phase part of `stepRound`: round ends at 24 s, a pause of `pauseSeconds` after a right answer and `wrongPauseSeconds` after a wrong or missed one ignores answers, an unanswered signal at round end counts as neither right nor missed, a timed-out signal counts as missed; verify the tests pass
 - [ ] 1.4 Test then implement answering: a right class closes the signal as right, a wrong class as wrong with no retry, a second answer on a closed signal is ignored, `last` event `seq` rises once per event; verify the tests pass
