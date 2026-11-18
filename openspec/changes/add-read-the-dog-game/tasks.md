@@ -20,9 +20,9 @@
 
 ## 3. Body-language art on the breed Dog
 
-- [ ] 3.1 Test then implement the pure parts spec `src/shell/ui/rtdArt.ts` (body, ears, eyes, mouth, tail, hackles per signal); test that every pair of signals differs in at least one part and that `looking` still maps to the old Diagnostic look; verify `npx jest rtdArt` passes
-- [ ] 3.2 Extend `BreedArt` with an optional `signal` prop driving the parts (ear pin and perk per ear kind, whale-eye crescent, tongue flick, tight mouth, low/loose/stiff tail, play-bow body transform, hackles ridge from `geometryOf`), keeping `looking` working; verify existing `BreedArt`/`breedShapes` tests still pass, a new render test draws every breed for every signal without throwing, and a coat sweep draws hackles up in every coat with the ridge present
-- [ ] 3.3 Gate the loose-wag motion behind `useMotion().reduced` with a still curved tail as the alternative; add the wag to `endlessAnimations.allowlist.ts`; verify with a render test under reduced motion that no animated value is created and the endless-animation allowlist test passes
+- [x] 3.1 Test then implement the pure parts spec `src/shell/ui/rtdArt.ts` (body, ears, eyes, mouth, tail, hackles per signal); test that every pair of signals differs in at least one part and that `looking` still maps to the old Diagnostic look; verify `npx jest rtdArt` passes
+- [x] 3.2 Extend `BreedArt` with an optional `signal` prop driving the parts (ear pin and perk per ear kind, whale-eye crescent, tongue flick, tight mouth, low/loose/stiff tail, play-bow body transform, hackles ridge from `geometryOf`), keeping `looking` working; verify existing `BreedArt`/`breedShapes` tests still pass, a new render test draws every breed for every signal without throwing, and a coat sweep draws hackles up in every coat with the ridge present
+- [x] 3.3 Gate the loose-wag motion behind `useMotion().reduced` with a still curved tail as the alternative; add the wag to `endlessAnimations.allowlist.ts`; verify with a render test under reduced motion that no animated value is created and the endless-animation allowlist test passes
 - [ ] 3.4 Visual check at 320 points wide of the smallest breeds (Chihuahua, Yorkshire) and one large breed for every signal, in light and in a dark-coat palette; enlarge the scene Dog for a breed where a subtle part is unreadable; record screenshots in the PR
 
 ## 4. Catalog text

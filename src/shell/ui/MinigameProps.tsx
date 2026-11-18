@@ -6,6 +6,8 @@ import type { Translate } from '../../i18n';
 import type { DogCoat } from '../../sim/config';
 import type { BreedId } from '../onboarding/breeds';
 import { BreedArt } from './BreedArt';
+import { FeedbackBurst, type FeedbackBurstProps } from './FeedbackBurst';
+import type { RtdSignal } from '../nodes/readTheDog';
 import { CanineMinigameAvatar } from './CanineMinigameAvatar';
 import { atDoor, livingRoomSpot, COLLAR_POINT, DOG_VIEW, HANDLER_LEAN_DEG, HANDLER_PALETTE, HANDLER_PIVOT, handlerHand, leashPath, postureSpec, tensionTone, type CaninePosture } from './canine';
 import type { ReadDogAction } from '../nodes/readDog';
@@ -525,4 +527,43 @@ export function PawRow({ t, filled, total }: { t: Translate; filled: number; tot
       ))}
     </View>
   );
+}
+
+export interface ReadTheDogSceneProps {
+  breed: BreedId;
+  coat: DogCoat;
+  /** The Body Signal on show, or null between signals (the Dog stands neutral). */
+  signal: RtdSignal | null;
+  /** Screen-reader description of the pose (`readTheDog.describe.<signal>`, never names the class); undefined means decorative. */
+  label?: string;
+  /** The line after an answer or a miss; null before an answer, so the scene never gives the class away. */
+  caption: string | null;
+  /** The Feedback Message to draw in the band above the Dog; null for none. */
+  burst: FeedbackBurstProps | null;
+}
+
+/** STUB (final props): meadow, breed Dog with `signal`, caption and a Feedback band above the Dog. Real drawing lands with task 5.1. */
+export function ReadTheDogScene({ breed, coat, signal, label, caption, burst }: ReadTheDogSceneProps) {
+  return (
+    <Stage>
+      <View accessible={false} style={{ position: 'absolute', left: pctX(66), top: pctY(40), width: pctX(MEADOW_DOG_W) }}>
+        <BreedArt breed={breed} coat={coat} width={MEADOW_DOG_W} signal={signal ?? undefined} {...(label !== undefined ? { label } : {})} />
+      </View>
+      {burst !== null && <FeedbackBurst {...burst} />}
+      {caption !== null && <Text>{caption}</Text>}
+    </Stage>
+  );
+}
+
+export interface RtdTimerBarProps {
+  /** Seconds left for the signal on show, and its full timer; the bar is left/total. */
+  left: number;
+  total: number;
+  /** Text alternative ("2 s left"), also the accessible label; already translated. */
+  label: string;
+}
+
+/** STUB (final props): the signal timer bar, a progressbar with a text alternative. Real drawing lands with task 5.1. */
+export function RtdTimerBar({ left, total, label }: RtdTimerBarProps) {
+  return <View accessible accessibilityRole="progressbar" accessibilityLabel={label} accessibilityValue={{ min: 0, max: 100, now: Math.round((Math.max(0, left) / total) * 100) }} />;
 }
