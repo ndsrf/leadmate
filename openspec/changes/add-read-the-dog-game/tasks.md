@@ -15,8 +15,8 @@
 
 ## 2. Feedback and input helpers (pure, test-first)
 
-- [ ] 2.1 Test then implement `rtdFeedback(event, combo, signal)` in `readTheDog.ts`: small for right, medium for right on a subtle signal or Combo of 3 or more, big at every multiple of `bigEvery` (5, 10, ...) and not at Combo 3 (unlike the Stage `BIG_COMBO`), wrong for wrong and missed, `textKey` is `readTheDog.signal.<signal>`; verify the tests pass
-- [ ] 2.2 Test then implement `swipeClass(dx, dy)`: left Calm, up Alert, right About to react, under 40 points or downwards is no answer, dominant axis decides; verify the tests pass
+- [x] 2.1 Test then implement `rtdFeedback(event, combo, signal)` in `readTheDog.ts`: small for right, medium for right on a subtle signal or Combo of 3 or more, big at every multiple of `bigEvery` (5, 10, ...) and not at Combo 3 (unlike the Stage `BIG_COMBO`), wrong for wrong and missed, `textKey` is `readTheDog.signal.<signal>`; verify the tests pass
+- [x] 2.2 Test then implement `swipeClass(dx, dy)`: left Calm, up Alert, right About to react, under 40 points or downwards is no answer, dominant axis decides; verify the tests pass
 
 ## 3. Body-language art on the breed Dog
 

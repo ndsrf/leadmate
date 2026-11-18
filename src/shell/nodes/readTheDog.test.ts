@@ -13,6 +13,8 @@ import {
   roundLatency,
   carryOf,
   replaySeed,
+  rtdFeedback,
+  swipeClass,
 } from './readTheDog';
 
 describe('readTheDog - 1.1 signal table', () => {
@@ -635,6 +637,83 @@ describe('readTheDog - 1.10 roundResult, carryOf, replaySeed and no DogRecord mu
     expect(source).not.toContain('reconnectionLatency');
   });
 });
+
+describe('readTheDog - 2.1 rtdFeedback', () => {
+  it('returns small for right on obvious with low combo, medium for subtle or combo >= 3, big at multiples of 5, wrong for wrong/missed', () => {
+    // Obvious signal (soft_loose) with combo 1 -> small
+    const fb1 = rtdFeedback('correct', 1, 'soft_loose');
+    expect(fb1).toEqual({
+      tier: 'small',
+      polarity: 'right',
+      combo: 1,
+      textKey: 'readTheDog.signal.soft_loose',
+    });
+
+    // Obvious signal with combo 2 -> small
+    expect(rtdFeedback('correct', 2, 'soft_loose').tier).toBe('small');
+
+    // Subtle signal (whale_eye) with combo 1 -> medium
+    expect(rtdFeedback('correct', 1, 'whale_eye').tier).toBe('medium');
+
+    // Obvious signal with combo 3 -> medium (unlike Stage BIG_COMBO = 3)
+    expect(rtdFeedback('correct', 3, 'soft_loose').tier).toBe('medium');
+
+    // Obvious signal with combo 4 -> medium
+    expect(rtdFeedback('correct', 4, 'soft_loose').tier).toBe('medium');
+
+    // Combo 5 (multiple of 5) -> big
+    const fb5 = rtdFeedback('correct', 5, 'soft_loose');
+    expect(fb5.tier).toBe('big');
+    expect(fb5.combo).toBe(5);
+
+    // Combo 10 -> big
+    expect(rtdFeedback('correct', 10, 'whale_eye').tier).toBe('big');
+
+    // Wrong answer -> wrong
+    const fbWrong = rtdFeedback('wrong', 0, 'ears_up_still');
+    expect(fbWrong).toEqual({
+      tier: 'wrong',
+      polarity: 'wrong',
+      combo: 0,
+      textKey: 'readTheDog.signal.ears_up_still',
+    });
+
+    // Missed answer -> wrong
+    const fbMiss = rtdFeedback('missed', 0, 'play_bow');
+    expect(fbMiss).toEqual({
+      tier: 'wrong',
+      polarity: 'wrong',
+      combo: 0,
+      textKey: 'readTheDog.signal.play_bow',
+    });
+  });
+});
+
+describe('readTheDog - 2.2 swipeClass', () => {
+  it('detects left as Calm, up as Alert, right as About to react with dominant axis and 40pt threshold', () => {
+    // Under 40 points -> null
+    expect(swipeClass(0, 0)).toBeNull();
+    expect(swipeClass(39, 0)).toBeNull();
+    expect(swipeClass(-39, 30)).toBeNull();
+    expect(swipeClass(20, -39)).toBeNull();
+
+    // Horizontal dominant
+    expect(swipeClass(-50, 10)).toBe('calm'); // Left
+    expect(swipeClass(50, 10)).toBe('about_to_react'); // Right
+    expect(swipeClass(-40, -30)).toBe('calm');
+    expect(swipeClass(40, -30)).toBe('about_to_react');
+
+    // Vertical dominant
+    expect(swipeClass(10, -50)).toBe('alert'); // Up
+    expect(swipeClass(-30, -40)).toBe('alert');
+
+    // Downwards -> null (no answer)
+    expect(swipeClass(0, 50)).toBeNull();
+    expect(swipeClass(10, 50)).toBeNull();
+    expect(swipeClass(-10, 40)).toBeNull();
+  });
+});
+
 
 
 

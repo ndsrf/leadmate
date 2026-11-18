@@ -504,5 +504,63 @@ export function replaySeed(seed: number, n: number): number {
   return (h ^ (h >>> 16)) >>> 0;
 }
 
+export type FeedbackTier = 'small' | 'medium' | 'big' | 'wrong';
+export type FeedbackPolarity = 'right' | 'wrong';
+
+export interface RtdFeedback {
+  tier: FeedbackTier;
+  polarity: FeedbackPolarity;
+  combo: number;
+  textKey: string;
+}
+
+export function rtdFeedback(
+  event: 'correct' | 'wrong' | 'missed' | RtdEvent,
+  combo: number,
+  signal: RtdSignal,
+): RtdFeedback {
+  const kind = typeof event === 'string' ? event : event.kind;
+  const isRight = kind === 'correct';
+  const textKey = `readTheDog.signal.${signal}`;
+
+  if (!isRight) {
+    return {
+      tier: 'wrong',
+      polarity: 'wrong',
+      combo: 0,
+      textKey,
+    };
+  }
+
+  const isBig = combo > 0 && combo % READ_THE_DOG.bigEvery === 0;
+  const isMedium = !isBig && (SIGNALS[signal].subtle || combo >= 3);
+  const tier: FeedbackTier = isBig ? 'big' : isMedium ? 'medium' : 'small';
+
+  return {
+    tier,
+    polarity: 'right',
+    combo,
+    textKey,
+  };
+}
+
+export function swipeClass(dx: number, dy: number): RtdClass | null {
+  const absX = Math.abs(dx);
+  const absY = Math.abs(dy);
+
+  if (absX < 40 && absY < 40) {
+    return null;
+  }
+
+  if (absX >= absY) {
+    if (absX < 40) return null;
+    return dx < 0 ? 'calm' : 'about_to_react';
+  } else {
+    if (absY < 40) return null;
+    return dy < 0 ? 'alert' : null;
+  }
+}
+
+
 
 
