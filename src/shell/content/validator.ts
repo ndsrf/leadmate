@@ -15,6 +15,7 @@ import {
 import {
   compareAppVersions,
   duelImageFile,
+  ENCOUNTERS_MIN_APP_VERSION,
   IMAGE_DUEL_MIN_APP_VERSION,
   isContentId,
   isDuelQuestionYaml,
@@ -23,6 +24,7 @@ import {
   isRelativeMediaPath,
   isSemver,
   isYouTubeId,
+  SUPPORTED_ENCOUNTER_AIMS,
   SUPPORTED_METRICS,
   SUPPORTED_MINIGAMES,
   validateCategoryYaml,
@@ -181,6 +183,7 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
   const lessonIds = new Set<string>();
   const nodeIds = new Set<string>();
   const duelNodes: string[] = []; // Nodes holding an Image Duel question
+  const seriesNodes: string[] = []; // Nodes holding an Encounter Series
   const missionIds = new Set<string>();
   const categoryIds = new Set<string>();
   const subcategoryIds = new Set<string>();
@@ -388,6 +391,140 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
           });
         }
       }
+
+      if (cfg.simulation.encounters) {
+        seriesNodes.push(id);
+        const encounters = cfg.simulation.encounters;
+
+        if (cfg.mode !== 'stage') {
+          errors.push({
+            file,
+            field: 'simulation.encounters',
+            message: `Node "${id}": Encounter Series is only supported for walking Nodes (mode "stage"), got "${cfg.mode}"`,
+          });
+        }
+
+        if (cfg.simulation.scenario || cfg.simulation.scenarioName) {
+          errors.push({
+            file,
+            field: 'simulation.encounters',
+            message: `Node "${id}": Encounter Series and single scenario are mutually exclusive`,
+          });
+        }
+
+        if (!Array.isArray(encounters) || encounters.length < 3 || encounters.length > 5) {
+          errors.push({
+            file,
+            field: 'simulation.encounters',
+            message: `Node "${id}": Encounter Series must contain 3 to 5 Encounters, got ${Array.isArray(encounters) ? encounters.length : 0}`,
+          });
+        }
+
+        if (Array.isArray(encounters)) {
+          const seenEncounterIds = new Set<string>();
+
+          encounters.forEach((enc, encIdx) => {
+            const encFieldPrefix = `simulation.encounters[${encIdx}]`;
+
+            if (!enc.id || !isContentId(enc.id)) {
+              errors.push({
+                file,
+                field: `${encFieldPrefix}.id`,
+                message: `Node "${id}": Encounter has invalid ID "${String(enc?.id)}" (expected lowercase kebab-case)`,
+              });
+            } else if (seenEncounterIds.has(enc.id)) {
+              errors.push({
+                file,
+                field: `${encFieldPrefix}.id`,
+                message: `Node "${id}": Duplicate Encounter ID "${enc.id}"`,
+              });
+            } else {
+              seenEncounterIds.add(enc.id);
+            }
+
+            const encIdStr = enc?.id ?? `#${encIdx + 1}`;
+
+            if (!SUPPORTED_ENCOUNTER_AIMS.includes(enc.aim as any)) {
+              errors.push({
+                file,
+                field: `${encFieldPrefix}.aim`,
+                message: `Node "${id}": Encounter "${encIdStr}" has unknown Aim "${String(enc?.aim)}". Supported Aims are: ${SUPPORTED_ENCOUNTER_AIMS.join(', ')}`,
+              });
+            }
+
+            const sc = enc.scenario ?? {};
+
+            if (sc.endCondition?.kind === 'time-limit') {
+              const seconds = sc.endCondition.seconds;
+              if (typeof seconds !== 'number' || seconds < 10 || seconds > 20) {
+                errors.push({
+                  file,
+                  field: `${encFieldPrefix}.scenario.endCondition.seconds`,
+                  message: `Node "${id}": Encounter "${encIdStr}" time limit must be 10 to 20 seconds, got ${seconds}`,
+                });
+              }
+            }
+
+            if ((enc.aim === 'keep-slack' || enc.aim === 'stay-calm') && sc.endCondition && sc.endCondition.kind !== 'reach-waypoint') {
+              errors.push({
+                file,
+                field: `${encFieldPrefix}.scenario.endCondition`,
+                message: `Node "${id}": Encounter "${encIdStr}" with aim "${enc.aim}" must be waypoint-ended (got ${sc.endCondition.kind})`,
+              });
+            }
+
+            if (sc.meters && sc.meters.length > 0) {
+              errors.push({
+                file,
+                field: `${encFieldPrefix}.scenario.meters`,
+                message: `Node "${id}": Encounter "${encIdStr}" cannot declare Stage Meters`,
+              });
+            }
+
+            if (sc.jackpotBudget !== undefined && sc.jackpotBudget > 0) {
+              errors.push({
+                file,
+                field: `${encFieldPrefix}.scenario.jackpotBudget`,
+                message: `Node "${id}": Encounter "${encIdStr}" cannot declare Jackpots`,
+              });
+            }
+
+            if (sc.scents && sc.scents.length > 0) {
+              errors.push({
+                file,
+                field: `${encFieldPrefix}.scenario.scents`,
+                message: `Node "${id}": Encounter "${encIdStr}" cannot declare Scent Spots`,
+              });
+            }
+
+            if (Array.isArray(sc.scenery) && sc.scenery.some((s: any) => s.scent)) {
+              errors.push({
+                file,
+                field: `${encFieldPrefix}.scenario.scenery`,
+                message: `Node "${id}": Encounter "${encIdStr}" cannot declare Scent Spots (carried by scenery)`,
+              });
+            }
+
+            try {
+              const simErrors = validateScenario({ ...defaultScenario, ...sc } as any);
+              for (const sErr of simErrors) {
+                errors.push({
+                  file,
+                  field: `${encFieldPrefix}.scenario`,
+                  message: `Node "${id}": Encounter "${encIdStr}" scenario validation error: ${sErr}`,
+                  hint: 'Adjust scenario configuration to meet physical constraints',
+                });
+              }
+            } catch (err: unknown) {
+              errors.push({
+                file,
+                field: `${encFieldPrefix}.scenario`,
+                message: `Node "${id}": Encounter "${encIdStr}" scenario failed validation: ${err instanceof Error ? err.message : String(err)}`,
+              });
+            }
+          });
+        }
+      }
     }
 
     // Text: Spanish required
@@ -403,6 +540,18 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
         const parsedNode = typeof textRecord['es'] === 'string' ? parseNodeMarkdown(textRecord['es']) : textRecord['es'];
         if (!parsedNode.title) {
           errors.push({ file: `nodes/${id}/es.md`, field: 'title', message: `Node "${id}" missing title in Spanish`, hint: 'Add # Title' });
+        }
+        if (cfg.simulation?.encounters && Array.isArray(cfg.simulation.encounters)) {
+          for (const enc of cfg.simulation.encounters) {
+            if (enc.id && (!parsedNode.encounters?.[enc.id] || !parsedNode.encounters[enc.id].trim())) {
+              errors.push({
+                file: `nodes/${id}/es.md`,
+                field: `encounters.${enc.id}`,
+                message: `Node "${id}": Encounter "${enc.id}" is missing required Spanish title`,
+                hint: `Add "### ${enc.id}" under "## encounters" in nodes/${id}/es.md`,
+              });
+            }
+          }
         }
       } catch (err: unknown) {
         errors.push({
@@ -426,6 +575,17 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
         field: 'minAppVersion',
         message: `Node "${nodeId}" uses an Image Duel question, which needs minAppVersion ${IMAGE_DUEL_MIN_APP_VERSION} or later (pack declares ${pack.pack.minAppVersion})`,
         hint: `Set minAppVersion: ${IMAGE_DUEL_MIN_APP_VERSION} in pack.yaml so older apps keep their bundled content`,
+      });
+    }
+  }
+
+  if (seriesNodes.length > 0 && isSemver(pack.pack?.minAppVersion) && compareAppVersions(pack.pack.minAppVersion, ENCOUNTERS_MIN_APP_VERSION) < 0) {
+    for (const nodeId of seriesNodes) {
+      errors.push({
+        file: 'pack.yaml',
+        field: 'minAppVersion',
+        message: `Node "${nodeId}" uses an Encounter Series, which needs minAppVersion ${ENCOUNTERS_MIN_APP_VERSION} or later (pack declares ${pack.pack.minAppVersion})`,
+        hint: `Set minAppVersion: ${ENCOUNTERS_MIN_APP_VERSION} in pack.yaml so older apps keep their bundled content`,
       });
     }
   }
