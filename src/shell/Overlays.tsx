@@ -4,6 +4,7 @@ import Svg, { Path } from 'react-native-svg';
 import { ARROW_LENGTH, closeCoachMarks, coachMarks, edgeArrow, type CoachMark } from '../hud/coach';
 import type { Translate } from '../i18n';
 import { GameButton, LightRegion, Panel } from './ui/components';
+import { EncounterPaws } from './ui/EncounterPaws';
 import type { ButtonVariant } from './ui/styles';
 // The overlays over a running Stage stay Light whatever the Appearance; `Button` and `Row` are shared UI chrome.
 import { lightColor, usePalette } from './ui/theme';
@@ -190,6 +191,72 @@ export function DogWarningOverlay({ text, bearing }: { text: string; bearing: nu
     <LightRegion pointerEvents="none" className="absolute inset-0">
       <HintOverlay text={text} />
       {arrow && <Arrow tip={arrow.position} angle={arrow.angle} fill={lightColor.danger} />}
+    </LightRegion>
+  );
+}
+
+/** `{n}`-style catalog text with its values filled in. */
+const fill = (text: string, values: Record<string, string | number>) => Object.entries(values).reduce((acc, [k, v]) => acc.split(`{${k}}`).join(String(v)), text);
+
+/**
+ * The result card of an ended Encounter attempt, over the ended Stage ("Encounters — Paw result card" board):
+ * title, 1 to 3 Paws, one line on what the next Paw needs (or "done perfectly" at 3), Retry and Next.
+ * Next is always enabled, whatever the Paws.
+ */
+export function EncounterResultOverlay({ t, title, paws, hint, onRetry, onNext }: { t: Translate; title: string; paws: 1 | 2 | 3; hint: string | null; onRetry: () => void; onNext: () => void }) {
+  const pawsLabel = fill(t('encounter.paws'), { n: paws });
+  return (
+    <Backdrop>
+      <View testID="encounter-result" className="items-center gap-3">
+        <Text className="text-center font-display text-title text-ink">{title}</Text>
+        <EncounterPaws paws={paws} label={pawsLabel} testID="encounter-paws" />
+        <Text className="text-center text-label text-inkMuted">{pawsLabel}</Text>
+        <Text testID="encounter-hint" className="text-center text-body text-ink">
+          {paws === 3 ? t('encounter.perfect') : hint ?? ''}
+        </Text>
+        <View className="w-full flex-row gap-3">
+          <View className="flex-1">
+            <Button label={t('encounter.retry')} tone="secondary" onPress={onRetry} testID="encounter-retry" />
+          </View>
+          <View className="flex-1">
+            <Button label={t('encounter.next')} onPress={onNext} testID="encounter-next" />
+          </View>
+        </View>
+      </View>
+    </Backdrop>
+  );
+}
+
+/**
+ * The Series progress strip in the Stage chrome, right of the back button: "Encounter n of total" and the kept Paws of the
+ * Encounters already played (a gold Paw and its count); the rest are hollow dots. It never takes a touch.
+ */
+export function SeriesProgressStrip({ t, index, total, kept }: { t: Translate; index: number; total: number; kept: number[] }) {
+  const insets = useSafeAreaInsets();
+  const top = Math.max(insets?.top ?? 0, 12);
+  const left = Math.max(insets?.left ?? 0, 12) + 44 + 10;
+  const label = fill(t('encounter.progress'), { n: index, total });
+  return (
+    <LightRegion pointerEvents="none" className="absolute inset-0">
+      <View
+        testID="series-strip"
+        accessible
+        accessibilityLabel={label}
+        className="flex-row items-center rounded-full bg-surface px-3"
+        style={{ position: 'absolute', top, left, minHeight: 44, gap: 8, borderWidth: 2.5, borderColor: lightColor.outline }}
+      >
+        <Text className="font-display text-body text-ink">{label}</Text>
+        {Array.from({ length: total }, (_, i) =>
+          kept[i] !== undefined ? (
+            <View key={i} testID="series-kept" accessible accessibilityLabel={fill(t('encounter.paws'), { n: kept[i] })} className="flex-row items-center" style={{ gap: 2 }}>
+              <EncounterPaws paws={1} size={16} />
+              <Text className="font-display text-label text-ink">{kept[i]}</Text>
+            </View>
+          ) : (
+            <View key={i} testID="series-pending" style={{ width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: lightColor.outline }} />
+          ),
+        )}
+      </View>
     </LightRegion>
   );
 }
