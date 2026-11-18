@@ -195,5 +195,71 @@ describe('readTheDog - 1.4 answering', () => {
   });
 });
 
+describe('readTheDog - 1.5 Combo and score', () => {
+  it('builds combo, preserves bestCombo on break, score grows with timer left and combo, wrong/missed never subtract', () => {
+    let state = newRound(101);
+
+    // Answer 1: fast answer with almost full timer left (timeLeft ~ 2.3s out of 2.4s)
+    state = stepRound(state, 0.1);
+    const cls1 = SIGNALS[state.signal!].cls;
+    state = stepRound(state, 0.05, cls1);
+    expect(state.combo).toBe(1);
+    expect(state.bestCombo).toBe(1);
+    const score1 = state.score;
+    // Expected: round(100 * (0.5 + 0.5 * (2.25 / 2.4)) * (1 + 0.1 * 0))
+    // 100 * (0.5 + 0.5 * 0.9375) * 1.0 = round(96.875) = 97
+    expect(score1).toBeGreaterThan(90);
+
+    // Advance through pause
+    state = stepRound(state, 0.4);
+
+    // Answer 2: slower answer (let 1.5s pass out of 2.4s timer, timeLeft ~ 0.9s)
+    state = stepRound(state, 1.5);
+    const cls2 = SIGNALS[state.signal!].cls;
+    state = stepRound(state, 0.05, cls2);
+    expect(state.combo).toBe(2);
+    expect(state.bestCombo).toBe(2);
+    const score2 = state.score;
+    const added2 = score2 - score1;
+    // For combo 2, multiplier is 1.1. But time ratio is 0.85/2.4 = 0.354.
+    // round(100 * (0.5 + 0.5 * 0.354) * 1.1) = round(100 * 0.677 * 1.1) = 74
+
+    // Advance through pause
+    state = stepRound(state, 0.4);
+
+    // Answer 3: fast answer at combo 3
+    state = stepRound(state, 0.1);
+    const cls3 = SIGNALS[state.signal!].cls;
+    state = stepRound(state, 0.05, cls3);
+    expect(state.combo).toBe(3);
+    expect(state.bestCombo).toBe(3);
+    const score3 = state.score;
+    const added3 = score3 - score2;
+    // At combo 3, fast answer gives more than added2:
+    expect(added3).toBeGreaterThan(added2);
+
+    // Advance through pause
+    state = stepRound(state, 0.4);
+
+    // Break combo with wrong answer
+    const wrongCls: RtdClass = SIGNALS[state.signal!].cls === 'calm' ? 'alert' : 'calm';
+    state = stepRound(state, 0.1, wrongCls);
+    expect(state.combo).toBe(0);
+    expect(state.bestCombo).toBe(3);
+    expect(state.score).toBe(score3); // wrong never subtracts
+
+    // Advance through pause
+    state = stepRound(state, 1.3);
+
+    // Break again with timeout (miss)
+    const timeout = state.timer;
+    state = stepRound(state, timeout + 0.05);
+    expect(state.combo).toBe(0);
+    expect(state.bestCombo).toBe(3);
+    expect(state.score).toBe(score3); // miss never subtracts
+  });
+});
+
+
 
 
