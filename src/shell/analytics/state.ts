@@ -83,6 +83,7 @@ export async function loadAnalyticsState(
   now: Date | number = new Date(),
   record?: DogRecord | null
 ): Promise<AnalyticsState> {
+  let readFailed = false;
   try {
     const raw = await store.getItem(ANALYTICS_STATE_KEY);
     const existing = readAnalyticsState(raw);
@@ -90,7 +91,8 @@ export async function loadAnalyticsState(
       return existing;
     }
   } catch {
-    // Storage read failure: proceed to create and return fresh in-memory state
+    // Storage read failure: proceed to create and return fresh in-memory state without writing back
+    readFailed = true;
   }
 
   const installId = newId();
@@ -111,10 +113,12 @@ export async function loadAnalyticsState(
     upgradedInstall,
   };
 
-  try {
-    await store.setItem(ANALYTICS_STATE_KEY, JSON.stringify(fresh));
-  } catch {
-    // Storage write failure: return in-memory state without throwing
+  if (!readFailed) {
+    try {
+      await store.setItem(ANALYTICS_STATE_KEY, JSON.stringify(fresh));
+    } catch {
+      // Storage write failure: return in-memory state without throwing
+    }
   }
 
   return fresh;

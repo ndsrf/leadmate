@@ -162,6 +162,41 @@ describe('Analytics State (Task 3.1)', () => {
       const state = await loadAnalyticsState(throwingStore, () => 'fallback-id', new Date());
       expect(state.installId).toBe('fallback-id');
     });
+
+    it('does not overwrite storage when getItem throws once, and subsequent load still reads choice off', async () => {
+      const existing: AnalyticsState = {
+        installId: 'existing-id',
+        installedAt: '2026-01-01T00:00:00.000Z',
+        choice: 'off',
+        funnelDoneOnce: true,
+        funnelOpen: false,
+        upgradedInstall: false,
+      };
+      let shouldThrow = true;
+      const store = createMockStore({
+        [ANALYTICS_STATE_KEY]: JSON.stringify(existing),
+      });
+      const originalGetItem = store.getItem.bind(store);
+      store.getItem = async (key: string) => {
+        if (shouldThrow) {
+          throw new Error('transient read failure');
+        }
+        return originalGetItem(key);
+      };
+
+      const setItemSpy = jest.spyOn(store, 'setItem');
+
+      // First load: getItem throws
+      const fallbackState = await loadAnalyticsState(store, () => 'fallback-id', new Date());
+      expect(fallbackState.installId).toBe('fallback-id');
+      expect(setItemSpy).not.toHaveBeenCalled();
+
+      // Second load: getItem succeeds
+      shouldThrow = false;
+      const secondState = await loadAnalyticsState(store, () => 'another-id', new Date());
+      expect(secondState.installId).toBe('existing-id');
+      expect(secondState.choice).toBe('off');
+    });
   });
 
   describe('saveAnalyticsState', () => {
