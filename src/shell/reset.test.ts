@@ -364,3 +364,25 @@ describe('reset and the hand drill (task 3.3)', () => {
     expect(reset.onboarding.step).toBe('welcome');
   });
 });
+
+describe('reset and analytics state (add-product-analytics 3.2)', () => {
+  it('leaves leadmate.analytics unchanged across resetProgress', async () => {
+    const analyticsState = {
+      installId: 'test-install-id-1234',
+      installedAt: '2026-05-01T12:00:00.000Z',
+      choice: 'off',
+      funnelDoneOnce: true,
+      funnelOpen: false,
+      upgradedInstall: false,
+    };
+    const store = createMemoryStore({
+      'leadmate.analytics': JSON.stringify(analyticsState),
+    });
+    const old = { ...newDogRecord(), name: 'Luna', updatedAt: '2026-06-15T10:00:00.000Z' };
+
+    await resetProgress(store, old);
+
+    expect(store.storage['leadmate.analytics']).toBe(JSON.stringify(analyticsState));
+  });
+});
+

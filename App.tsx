@@ -90,6 +90,25 @@ import { AccountBanner, AuthScreen, ChooseDogScreen, RegisterPrompt } from './sr
 import { resolveCue, type Language } from './src/shell/voice';
 import { backAction, isReadyToLeaveSplash, trialModalOwnsBack, onStageViewFailure, routeFor, stageViewWanted, type BackActionParams, type Route } from './src/shell/navigation';
 import { resetProgress } from './src/shell/reset';
+import {
+  initAnalytics,
+  track,
+  getAnalyticsState,
+  updateAnalyticsRecord,
+  updateAnalyticsFlags,
+  ANALYTICS_STATE_KEY,
+  readAnalyticsState,
+  PlayTracker,
+  type StageMode,
+  type StartStageInfo,
+  LessonTimer,
+  type LessonSource,
+  stopsNewlyDone,
+  type StopCompletedProps,
+} from './src/shell/analytics';
+import { daysSince, shouldStartSession } from './src/shell/analytics/session';
+import { FunnelTracker } from './src/shell/analytics/funnel';
+import type { SetupPart } from './src/shell/onboarding/setup';
 import { ShopScreen, type ShopLevel } from './src/shell/screens/ShopScreen';
 import { ShopPopup } from './src/shell/screens/ShopPopup';
 import {
@@ -117,7 +136,7 @@ type Flow =
   | { name: 'library' }
   | { name: 'diary' }
   /** A Lesson from the Library, or from its Stop on the map; Done and Back return there. */
-  | { name: 'lesson'; id: string; returnTo: 'map' | 'library'; autoPlayVideo?: boolean }
+  | { name: 'lesson'; id: string; returnTo: 'map' | 'library'; autoPlayVideo?: boolean; source?: LessonSource }
   /** A Mission Stop's screens; a Fix opened from "Tus ajustes" returns to the Library. */
   | { name: 'mission'; id: string; view: MissionView; fixId?: string; returnTo?: 'map' | 'library' }
   /** The paywall from the map, or from a Plus-only action (`then`) that "Empezar prueba" completes. */
@@ -138,6 +157,65 @@ function isCloseExerciseFlow(route: Route<Flow>): boolean {
 /** True in a close exercise that offers the hand drill's controls, the one whose controls get Coach marks. */
 function isHandDrillFlow(route: Route<Flow>): boolean {
   return route.name === 'flow' && route.flow.name === 'node' && route.flow.run.node.mode === 'close_exercise' && route.flow.run.node.simulation.closeScenario?.controls === 'hand_drill';
+}
+
+function getStartStageInfo(
+  currentRoute: Route<Flow>,
+  currentFlow: Flow | null,
+  mode: StageMode = 'stage'
+): StartStageInfo {
+  if (currentRoute.name === 'taste') {
+    return {
+      type: 'stage',
+      stage_kind: 'taste',
+      stage_id: 'taste',
+      mode,
+      attempt: 1,
+    };
+  }
+  if (currentRoute.name === 'first-stage') {
+    return {
+      type: 'stage',
+      stage_kind: 'first',
+      stage_id: 'intro-node',
+      mode,
+      attempt: 1,
+    };
+  }
+  if (currentRoute.name === 'flow' && currentRoute.flow.name === 'warmup') {
+    return {
+      type: 'stage',
+      stage_kind: 'warmup',
+      stage_id: 'warmup',
+      mode,
+      attempt: 1,
+    };
+  }
+  if (currentRoute.name === 'flow' && currentRoute.flow.name === 'daily') {
+    return {
+      type: 'stage',
+      stage_kind: 'daily',
+      stage_id: `daily:${todayString()}`,
+      mode,
+      attempt: currentRoute.flow.attempt + 1,
+    };
+  }
+  if (currentRoute.name === 'flow' && currentRoute.flow.name === 'node') {
+    return {
+      type: 'stage',
+      stage_kind: 'node',
+      stage_id: currentRoute.flow.run.node.id,
+      mode,
+      attempt: currentRoute.flow.attempt + 1,
+    };
+  }
+  return {
+    type: 'stage',
+    stage_kind: 'node',
+    stage_id: 'node',
+    mode,
+    attempt: 1,
+  };
 }
 
 const LOAD_TIMEOUT_MS = 20000;
@@ -291,6 +369,78 @@ export default function App() {
   const recordRef = useRef(record);
   recordRef.current = record;
   const vocalizer = useRef(createVocalizer(playDogSound));
+
+  const [setupPart, setSetupPart] = useState<SetupPart | null>(null);
+  const funnelTracker = useRef(new FunnelTracker());
+  const playTracker = useRef(new PlayTracker());
+  const lessonTimer = useRef<LessonTimer | null>(null);
+  const checkpointShownAt = useRef<number>(Date.now());
+  const lastBackgroundAt = useRef<Date | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const raw = await dogStore.getItem(ANALYTICS_STATE_KEY);
+        const isFirst = !raw || !readAnalyticsState(raw);
+        const state = await initAnalytics(dogStore, recordRef.current);
+        if (!alive) return;
+        funnelTracker.current.syncState({
+          funnelDoneOnce: state.funnelDoneOnce,
+          funnelOpen: state.funnelOpen,
+        });
+        track('session_started', {
+          days_since_install: daysSince(state.installedAt),
+          first_session: isFirst,
+          upgraded_install: state.upgradedInstall,
+        });
+      } catch {
+        // swallow
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    updateAnalyticsRecord(record);
+  }, [record]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        playTracker.current.resume();
+        lessonTimer.current?.resume();
+        if (shouldStartSession(lastBackgroundAt.current, new Date())) {
+          const state = getAnalyticsState();
+          if (state) {
+            track('session_started', {
+              days_since_install: daysSince(state.installedAt),
+              first_session: false,
+              upgraded_install: state.upgradedInstall,
+            });
+          }
+        }
+        lastBackgroundAt.current = null;
+      } else {
+        playTracker.current.pause();
+        lessonTimer.current?.pause();
+        if (!lastBackgroundAt.current) {
+          lastBackgroundAt.current = new Date();
+        }
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
+  useEffect(() => {
+    if (paused) {
+      playTracker.current.pause();
+    } else {
+      playTracker.current.resume();
+    }
+  }, [paused]);
   const pendingStart = useRef<ShellMessage | null>(null);
   const bundleReady = useRef(false);
   // the Stage view is created on demand (see stageViewWanted): one silent remount is allowed before play
@@ -393,6 +543,10 @@ export default function App() {
       setControlsUsed({});
       setStageRun((n) => n + 1);
       feedback.preloadStage();
+      const startInfo = getStartStageInfo(routeRef.current, flowRef.current, 'stage');
+      const startRes = playTracker.current.start(startInfo);
+      if (startRes.ended) track(startRes.ended.name, startRes.ended.props);
+      track(startRes.name, startRes.props);
       if (bundleReady.current) send(message);
       else pendingStart.current = message;
     },
@@ -416,6 +570,10 @@ export default function App() {
       setDogWarning(null);
       setControlsUsed({});
       setStageRun((n) => n + 1);
+      const startInfo = getStartStageInfo(routeRef.current, flowRef.current, 'close_exercise');
+      const startRes = playTracker.current.start(startInfo);
+      if (startRes.ended) track(startRes.ended.name, startRes.ended.props);
+      track(startRes.name, startRes.props);
       if (bundleReady.current) send(message);
       else pendingStart.current = message;
     },
@@ -425,6 +583,22 @@ export default function App() {
   const act = useCallback((action: NodeAction) => {
     const f = flowRef.current;
     if (f?.name !== 'node') return;
+    if (f.run.step === 'checkpoint' && (action.type === 'answer' || action.type === 'timeout')) {
+      const qIndex = f.run.question;
+      const secondsToAnswer = Math.max(0, Math.floor((Date.now() - checkpointShownAt.current) / 1000));
+      const nextRun = advance(f.run, action);
+      const res = nextRun.checkpoint[qIndex];
+      if (res) {
+        track('checkpoint_answered', {
+          node_id: f.run.node.id,
+          question_index: qIndex,
+          result: res,
+          seconds_to_answer: secondsToAnswer,
+        });
+      }
+      setFlow({ ...f, run: nextRun });
+      return;
+    }
     setFlow({ ...f, run: advance(f.run, action) });
   }, []);
 
@@ -469,6 +643,8 @@ export default function App() {
   const tastePayoffTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showTastePayoff = useCallback(() => {
     if (tastePayoffTimer.current) return;
+    const endRes = playTracker.current.end('finished', new Date());
+    if (endRes) track(endRes.name, endRes.props);
     send({ type: 'focus' });
     tastePayoffTimer.current = setTimeout(() => setTastePayoff(true), TASTE_LINGER_MS);
   }, [send]);
@@ -490,6 +666,109 @@ export default function App() {
       setIntroRun(null);
     }
   }, [route.name]);
+
+  useEffect(() => {
+    const change = funnelTracker.current.stepChange({
+      route,
+      setupPart,
+      tasteBriefed,
+      tastePayoff,
+      introStep: introRun?.step,
+      flowName: flow?.name,
+      isFunnelAuth: flow?.name === 'auth' && (flow.returnTo === 'map' || record?.onboarding.step !== 'done'),
+    });
+    if (change) {
+      track('funnel_step_viewed', {
+        step: change.step,
+        repeat: change.repeat,
+      });
+      if (change.openChangedTo !== undefined || change.doneOnceChangedTo !== undefined) {
+        void updateAnalyticsFlags({
+          funnelOpen: change.openChangedTo,
+          funnelDoneOnce: change.doneOnceChangedTo,
+        });
+      }
+    }
+  }, [route, setupPart, tasteBriefed, tastePayoff, introRun?.step, flow?.name, record?.onboarding.step]);
+
+  const minigameSimulationKey =
+    route.name === 'flow' &&
+    route.flow.name === 'node' &&
+    route.flow.run.step === 'simulation' &&
+    route.flow.run.node.mode === 'minigame'
+      ? `${route.flow.run.node.id}:${route.flow.attempt}`
+      : null;
+  useEffect(() => {
+    if (minigameSimulationKey === null || flowRef.current?.name !== 'node') return;
+    const f = flowRef.current;
+    const startRes = playTracker.current.start({
+      type: 'minigame',
+      node_id: f.run.node.id,
+      attempt: f.attempt + 1,
+    });
+    if (startRes.ended) track(startRes.ended.name, startRes.ended.props);
+    track(startRes.name, startRes.props);
+  }, [minigameSimulationKey]);
+
+  const playKey =
+    (route.name === 'taste' && tasteBriefed)
+      ? 'taste:1'
+      : (route.name === 'first-stage' && introRun?.step === 'simulation')
+      ? 'first:1'
+      : (route.name === 'flow' && route.flow.name === 'warmup')
+      ? 'warmup:1'
+      : (route.name === 'flow' && route.flow.name === 'daily' && route.flow.result === null)
+      ? `daily:${route.flow.attempt}`
+      : (route.name === 'flow' && route.flow.name === 'node' && route.flow.run.step === 'simulation')
+      ? `${route.flow.run.node.id}:${route.flow.attempt}`
+      : null;
+
+  const previousPlayKey = useRef<string | null>(null);
+  useEffect(() => {
+    if (previousPlayKey.current !== null && previousPlayKey.current !== playKey) {
+      if (playTracker.current.isOpen) {
+        const left = playTracker.current.end('left');
+        if (left) track(left.name, left.props);
+      }
+    }
+    previousPlayKey.current = playKey;
+  }, [playKey]);
+
+  const checkpointKey =
+    route.name === 'first-stage' && introRun?.step === 'checkpoint'
+      ? `intro:${introRun.question}`
+      : route.name === 'flow' && route.flow.name === 'node' && route.flow.run.step === 'checkpoint'
+      ? `${route.flow.run.node.id}:${route.flow.run.question}`
+      : null;
+
+  useEffect(() => {
+    if (checkpointKey !== null) {
+      checkpointShownAt.current = Date.now();
+    }
+  }, [checkpointKey]);
+
+  const activeLessonId = route.name === 'flow' && route.flow.name === 'lesson' ? route.flow.id : null;
+  const previousLessonId = useRef<string | null>(null);
+  useEffect(() => {
+    if (previousLessonId.current !== null && previousLessonId.current !== activeLessonId) {
+      if (lessonTimer.current?.isOpen) {
+        const backProps = lessonTimer.current.close('back');
+        if (backProps) track('lesson_done', backProps);
+        lessonTimer.current = null;
+      }
+    }
+    if (activeLessonId !== null && activeLessonId !== previousLessonId.current) {
+      const source: LessonSource =
+        (route.name === 'flow' && route.flow.name === 'lesson' && route.flow.source)
+          ? route.flow.source
+          : (route.name === 'flow' && route.flow.name === 'lesson' && route.flow.returnTo === 'library')
+          ? 'library'
+          : 'trail';
+      track('lesson_opened', { lesson_id: activeLessonId, source });
+      lessonTimer.current = new LessonTimer({ lessonId: activeLessonId, source });
+    }
+    previousLessonId.current = activeLessonId;
+  }, [activeLessonId, route]);
 
   // the Stage view exists only while a Stage is being prepared or played; every shell screen runs without a browser engine behind it
   const viewWanted = stageViewWanted({ route: route as Parameters<typeof stageViewWanted>[0]['route'], introStep: introRun?.step ?? null });
@@ -531,13 +810,19 @@ export default function App() {
     }
     let diff: Celebration[] = [];
     let afterRecord: any = null;
+    let newlyDone: StopCompletedProps[] = [];
     update((r) => {
       const now = new Date();
       const after = onDebrief(r, f.run, now);
       afterRecord = after;
       diff = celebrationsFor(progressAt(r, now), progressAt(after, now), { kind: 'node', nodeId: f.run.node.id });
+      const worlds = worldsFor(after.onboarding?.plan ?? [], after);
+      newlyDone = stopsNewlyDone(r, after, worlds, now);
       return after;
     });
+    for (const stop of newlyDone) {
+      track('stop_completed', stop);
+    }
     setCelebrations({ id: debriefId, list: diff });
 
     const activeShop = getActiveContent()?.resolved?.shop;
@@ -629,6 +914,8 @@ export default function App() {
         if (recordRef.current) playResolvedCue(resolveCue(recordRef.current, language));
       } else if (message.type === 'debrief') {
         const payload: SimulationDebriefPayload = message.payload;
+        const endRes = playTracker.current.end('finished', new Date(), payload.handlingScore);
+        if (endRes) track(endRes.name, endRes.props);
         const f = flowRef.current;
         if (f?.name === 'daily' && f.result === null) {
           // the score and the Streak are kept; what the Dog has learned and the campaign are not touched
@@ -758,7 +1045,7 @@ export default function App() {
   /** Opens a Stop by kind: a Lesson Stop returns to the map, a Node starts, a Mission opens on its check, brief, wait or check-in. */
   const openStop = (stop: Stop) => {
     setSettingsOpen(false);
-    if (stop.kind === 'lesson') setFlow({ name: 'lesson', id: stop.id, returnTo: 'map' });
+    if (stop.kind === 'lesson') setFlow({ name: 'lesson', id: stop.id, returnTo: 'map', source: 'trail' });
     else if (stop.kind === 'node') {
       const node = findNode(stop.id);
       if (node) startNodeRun(node);
@@ -800,11 +1087,15 @@ export default function App() {
     if (!mission) return;
     const now = new Date();
     let diff: Celebration[] = [];
+    let newlyDone: StopCompletedProps[] = [];
     update((r) => {
       const after = passMissionDirectly(r, id, now);
       diff = celebrationsFor(progressAt(r, now), progressAt(after, now), { kind: 'mission', missionId: id });
+      const worlds = worldsFor(after.onboarding?.plan ?? [], after);
+      newlyDone = stopsNewlyDone(r, after, worlds, now);
       return after;
     });
+    for (const stop of newlyDone) track('stop_completed', stop);
     setCelebrations({ id: `mission:${id}`, list: diff });
     setFlow({ name: 'mission', id, view: 'passed' });
   };
@@ -819,11 +1110,15 @@ export default function App() {
     }
     const now = new Date();
     let diff: Celebration[] = [];
+    let newlyDone: StopCompletedProps[] = [];
     update((r) => {
       const after = applyMissionCheckIn(r, mission, outcome, problemId, now);
       diff = celebrationsFor(progressAt(r, now), progressAt(after, now), { kind: 'mission', missionId: id });
+      const worlds = worldsFor(after.onboarding?.plan ?? [], after);
+      newlyDone = stopsNewlyDone(r, after, worlds, now);
       return after;
     });
+    for (const stop of newlyDone) track('stop_completed', stop);
 
     if (outcome === 'struggled' && problemId !== undefined) {
       const activeShop = getActiveContent()?.resolved?.shop;
@@ -859,7 +1154,14 @@ export default function App() {
       setFlow({ name: 'paywall', then: { kind: 'skip', missionId: id } });
       return;
     }
-    update((rec) => applyDaySkip(rec, id, now));
+    let newlyDone: StopCompletedProps[] = [];
+    update((rec) => {
+      const after = applyDaySkip(rec, id, now);
+      const worlds = worldsFor(after.onboarding?.plan ?? [], after);
+      newlyDone = stopsNewlyDone(rec, after, worlds, now);
+      return after;
+    });
+    for (const stop of newlyDone) track('stop_completed', stop);
     mapScroll.current = undefined;
     goHome();
   };
@@ -867,11 +1169,15 @@ export default function App() {
   const moveOnMission = (id: string) => {
     let diff: Celebration[] = [];
     const now = new Date();
+    let newlyDone: StopCompletedProps[] = [];
     update((r) => {
       const after = updateMission(r, id, (m) => moveOn(m, now));
       diff = celebrationsFor(progressAt(r, now), progressAt(after, now), { kind: 'mission', missionId: id });
+      const worlds = worldsFor(after.onboarding?.plan ?? [], after);
+      newlyDone = stopsNewlyDone(r, after, worlds, now);
       return after;
     });
+    for (const stop of newlyDone) track('stop_completed', stop);
     setCelebrations({ id: `mission:${id}`, list: diff });
     setFlow({ name: 'mission', id, view: 'passed' });
   };
@@ -911,6 +1217,7 @@ export default function App() {
     resetting.current = true;
     try {
       const fresh = await resetProgress(dogStore, current);
+      funnelTracker.current.resetLastStep();
       account.resetSync();
       rusty.current = null;
       setWarmup('none');
@@ -1159,7 +1466,7 @@ export default function App() {
         );
       else if (route.step === 'dog') screen = <DogLookScreen t={t} record={record} onDone={(name, coat, breed, ageBand) => update((r) => saveNameAndLook(r, name, coat, breed, ageBand))} />;
       else if (route.step === 'concern') screen = <ConcernScreen t={t} record={record} onDone={(concerns) => update((r) => saveMainConcerns(r, concerns))} />;
-      else if (route.step === 'setup') screen = <SetupScreen t={t} record={record} update={update} />;
+      else if (route.step === 'setup') screen = <SetupScreen t={t} record={record} update={update} onPart={setSetupPart} />;
       else if (route.step === 'diagnostic')
         screen = <DiagnosticView key="diagnostic" t={t} record={record} seed={newSeed()} onFinish={(latency) => update((r) => recordDiagnostic(r, latency))} />;
       else if (route.step === 'plan')
@@ -1188,8 +1495,36 @@ export default function App() {
           t={t}
           run={introRun}
           setting={record?.checkpointSeconds ?? 0}
-          onAnswer={(option) => setIntroRun((r) => (r ? advance(r, { type: 'answer', option }) : null))}
-          onTimeout={() => setIntroRun((r) => (r ? advance(r, { type: 'timeout' }) : null))}
+          onAnswer={(option) => {
+            const qIndex = introRun.question;
+            const secondsToAnswer = Math.max(0, Math.floor((Date.now() - checkpointShownAt.current) / 1000));
+            const nextRun = advance(introRun, { type: 'answer', option });
+            const res = nextRun.checkpoint[qIndex];
+            if (res) {
+              track('checkpoint_answered', {
+                node_id: 'intro-node',
+                question_index: qIndex,
+                result: res,
+                seconds_to_answer: secondsToAnswer,
+              });
+            }
+            setIntroRun(nextRun);
+          }}
+          onTimeout={() => {
+            const qIndex = introRun.question;
+            const secondsToAnswer = Math.max(0, Math.floor((Date.now() - checkpointShownAt.current) / 1000));
+            const nextRun = advance(introRun, { type: 'timeout' });
+            const res = nextRun.checkpoint[qIndex];
+            if (res) {
+              track('checkpoint_answered', {
+                node_id: 'intro-node',
+                question_index: qIndex,
+                result: res,
+                seconds_to_answer: secondsToAnswer,
+              });
+            }
+            setIntroRun(nextRun);
+          }}
         />
       );
     } else if (introRun?.step === 'simulation') {
@@ -1210,7 +1545,15 @@ export default function App() {
           }}
           onDone={() => {
             const isSkipped = Boolean(introRun.result && 'skipped' in introRun.result && introRun.result.skipped);
-            update((r) => completeFirstStage(r, payload, new Date(), isSkipped));
+            const now = new Date();
+            let newlyDone: StopCompletedProps[] = [];
+            update((r) => {
+              const after = completeFirstStage(r, payload, now, isSkipped);
+              const worlds = worldsFor(after.onboarding?.plan ?? [], after);
+              newlyDone = stopsNewlyDone(r, after, worlds, now);
+              return after;
+            });
+            for (const stop of newlyDone) track('stop_completed', stop);
             accountRef.current.countStage();
             if (accountRef.current.configured && !accountRef.current.signedIn) {
               setFlow({ name: 'register' });
@@ -1353,7 +1696,7 @@ export default function App() {
           readIds={record.readLessons}
           day={lessonDay(record, new Date())}
           seenFixes={record.seenFixes}
-          onOpen={(lesson) => setFlow({ name: 'lesson', id: lesson.id, returnTo: 'library' })}
+          onOpen={(lesson) => setFlow({ name: 'lesson', id: lesson.id, returnTo: 'library', source: 'library' })}
           onOpenFix={(entry) => setFlow({ name: 'mission', id: entry.mission.id, view: 'fix', fixId: entry.fix.id, returnTo: 'library' })}
           onBack={withBack(goHome)}
         />,
@@ -1377,7 +1720,13 @@ export default function App() {
       const now = new Date();
       const plus = isPlus(record, now);
       const state = trialState(record, now);
-      const back = withBack(() => (f.returnTo === 'map' ? goHome() : setFlow({ name: 'library' })));
+      const back = withBack(() => {
+        const backProps = lessonTimer.current?.close('back');
+        if (backProps) track('lesson_done', backProps);
+        lessonTimer.current = null;
+        if (f.returnTo === 'map') goHome();
+        else setFlow({ name: 'library' });
+      });
       screen = mapWith(
         lesson ? (
           <LessonScreen
@@ -1387,9 +1736,21 @@ export default function App() {
             isPlus={plus}
             trialState={state}
             autoPlayVideo={f.autoPlayVideo}
+            onProgress={(percent) => lessonTimer.current?.updateProgress(percent)}
             onUnlockVideo={() => setFlow({ name: 'paywall', then: { kind: 'video', lessonId: lesson.id, returnTo: f.returnTo } })}
             onDone={() => {
-              update((r) => markLessonRead(r, lesson.id, new Date()));
+              const doneProps = lessonTimer.current?.close('done');
+              if (doneProps) track('lesson_done', doneProps);
+              lessonTimer.current = null;
+              const now = new Date();
+              let newlyDone: StopCompletedProps[] = [];
+              update((r) => {
+                const after = markLessonRead(r, lesson.id, now);
+                const worlds = worldsFor(after.onboarding?.plan ?? [], after);
+                newlyDone = stopsNewlyDone(r, after, worlds, now);
+                return after;
+              });
+              for (const stop of newlyDone) track('stop_completed', stop);
               // reading the Lesson of a biting Home Behaviour (it has no exercise) opens its Mission brief
               const next = f.returnTo === 'map' ? homeMissionAfter({ kind: 'lesson', id: lesson.id }, record) : null;
               if (next) setFlow({ name: 'mission', id: next, view: 'brief' });
@@ -1503,7 +1864,7 @@ export default function App() {
         }
         if ('kind' in action && action.kind === 'video') {
           const returnTo = action.returnTo ?? 'map';
-          setFlow({ name: 'lesson', id: action.lessonId, returnTo, autoPlayVideo: unlocked });
+          setFlow({ name: 'lesson', id: action.lessonId, returnTo, autoPlayVideo: unlocked, source: 'video_unlock' });
           return;
         }
         if ('kind' in action && action.kind === 'barkdoku') {
@@ -1647,8 +2008,11 @@ export default function App() {
       else if (run.step === 'checkpoint')
         screen = <CheckpointScreen t={t} run={run} setting={record.checkpointSeconds} onAnswer={(option) => act({ type: 'answer', option })} onTimeout={() => act({ type: 'timeout' })} />;
       else if (run.step === 'simulation' && run.node.mode === 'minigame') {
-        const finish = (metrics: Partial<Record<Metric, number>>, handlingScore?: number, puzzle?: PuzzleSummary) =>
+        const finish = (metrics: Partial<Record<Metric, number>>, handlingScore?: number, puzzle?: PuzzleSummary) => {
+          const endRes = playTracker.current.end('finished', new Date(), handlingScore);
+          if (endRes) track(endRes.name, endRes.props);
           act({ type: 'finish', result: { kind: 'minigame', metrics, handlingScore, ...(puzzle ? { puzzle } : {}) } });
+        };
         const minigame = run.node.simulation.minigame;
         const seed = f.attempt + 1 + (dateSeed(todayString()) % 1000);
         const playCue = () => playResolvedCue(resolveCue(record, language));
@@ -1752,6 +2116,8 @@ export default function App() {
               t={t}
               onResume={resume}
               onExit={() => {
+                const endRes = playTracker.current.end('skipped', new Date());
+                if (endRes) track(endRes.name, endRes.props);
                 setPaused(false);
                 if (route.name === 'taste') {
                   showTastePayoff();

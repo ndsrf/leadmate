@@ -156,6 +156,7 @@ export function LessonScreen({
   onUnlockVideo,
   autoPlayVideo,
   onShop,
+  onProgress,
 }: {
   t: Translate;
   lesson: LessonDef;
@@ -168,12 +169,15 @@ export function LessonScreen({
   onUnlockVideo?: () => void;
   autoPlayVideo?: boolean;
   onShop?: (target: { level: 'home' | 'category' | 'subcategory' | 'product'; id?: string }) => void;
+  onProgress?: (percent: number) => void;
 }) {
   const [progress, setProgress] = useState(0);
   const gating: VideoGatingProps = videoGating ?? { isPlus, trialState, onUnlock: onUnlockVideo, autoPlay: autoPlayVideo };
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-    setProgress(readingProgress(contentOffset.y, contentSize.height, layoutMeasurement.height));
+    const next = readingProgress(contentOffset.y, contentSize.height, layoutMeasurement.height);
+    setProgress(next);
+    onProgress?.(next);
   };
   const place = lessonPlaceLabel(lesson, t);
   const header = (

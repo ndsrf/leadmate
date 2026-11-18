@@ -1,0 +1,241 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Contract Snapshot (Task 2.3) matches the contract snapshot of all event names, property names and kinds 1`] = `
+[
+  {
+    "event": "checkpoint_answered",
+    "properties": [
+      {
+        "kind": "id",
+        "name": "node_id",
+        "optional": false,
+      },
+      {
+        "kind": "int",
+        "name": "question_index",
+        "optional": false,
+      },
+      {
+        "kind": "enum(correct|wrong|missed)",
+        "name": "result",
+        "optional": false,
+      },
+      {
+        "kind": "int",
+        "name": "seconds_to_answer",
+        "optional": false,
+      },
+    ],
+  },
+  {
+    "event": "funnel_step_viewed",
+    "properties": [
+      {
+        "kind": "bool",
+        "name": "repeat",
+        "optional": false,
+      },
+      {
+        "kind": "enum(welcome|language|dog|concern|taste_briefing|taste_stage|taste_payoff|setup_equipment|setup_weights|setup_about|setup_home|setup_questions|diagnostic|plan|method|first_primer|first_checkpoint|first_walk|first_debrief|register_prompt|account|paywall|map)",
+        "name": "step",
+        "optional": false,
+      },
+    ],
+  },
+  {
+    "event": "lesson_done",
+    "properties": [
+      {
+        "kind": "enum(done|back)",
+        "name": "closed_by",
+        "optional": false,
+      },
+      {
+        "kind": "id",
+        "name": "lesson_id",
+        "optional": false,
+      },
+      {
+        "kind": "int",
+        "name": "scrolled_percent",
+        "optional": false,
+      },
+      {
+        "kind": "int",
+        "name": "seconds_on_screen",
+        "optional": false,
+      },
+    ],
+  },
+  {
+    "event": "lesson_opened",
+    "properties": [
+      {
+        "kind": "id",
+        "name": "lesson_id",
+        "optional": false,
+      },
+      {
+        "kind": "enum(trail|library|video_unlock)",
+        "name": "source",
+        "optional": false,
+      },
+    ],
+  },
+  {
+    "event": "minigame_ended",
+    "properties": [
+      {
+        "kind": "int",
+        "name": "attempt",
+        "optional": false,
+      },
+      {
+        "kind": "int",
+        "name": "duration_seconds",
+        "optional": false,
+      },
+      {
+        "kind": "int",
+        "name": "handling_score",
+        "optional": true,
+      },
+      {
+        "kind": "id",
+        "name": "node_id",
+        "optional": false,
+      },
+      {
+        "kind": "enum(finished|left)",
+        "name": "outcome",
+        "optional": false,
+      },
+    ],
+  },
+  {
+    "event": "minigame_started",
+    "properties": [
+      {
+        "kind": "int",
+        "name": "attempt",
+        "optional": false,
+      },
+      {
+        "kind": "id",
+        "name": "node_id",
+        "optional": false,
+      },
+    ],
+  },
+  {
+    "event": "session_started",
+    "properties": [
+      {
+        "kind": "int",
+        "name": "days_since_install",
+        "optional": false,
+      },
+      {
+        "kind": "bool",
+        "name": "first_session",
+        "optional": false,
+      },
+      {
+        "kind": "bool",
+        "name": "upgraded_install",
+        "optional": false,
+      },
+    ],
+  },
+  {
+    "event": "stage_ended",
+    "properties": [
+      {
+        "kind": "int",
+        "name": "attempt",
+        "optional": false,
+      },
+      {
+        "kind": "int",
+        "name": "duration_seconds",
+        "optional": false,
+      },
+      {
+        "kind": "int",
+        "name": "handling_score",
+        "optional": true,
+      },
+      {
+        "kind": "enum(stage|close_exercise)",
+        "name": "mode",
+        "optional": false,
+      },
+      {
+        "kind": "enum(finished|skipped|left)",
+        "name": "outcome",
+        "optional": false,
+      },
+      {
+        "kind": "id",
+        "name": "stage_id",
+        "optional": false,
+      },
+      {
+        "kind": "enum(taste|first|node|daily|warmup)",
+        "name": "stage_kind",
+        "optional": false,
+      },
+    ],
+  },
+  {
+    "event": "stage_started",
+    "properties": [
+      {
+        "kind": "int",
+        "name": "attempt",
+        "optional": false,
+      },
+      {
+        "kind": "enum(stage|close_exercise)",
+        "name": "mode",
+        "optional": false,
+      },
+      {
+        "kind": "id",
+        "name": "stage_id",
+        "optional": false,
+      },
+      {
+        "kind": "enum(taste|first|node|daily|warmup)",
+        "name": "stage_kind",
+        "optional": false,
+      },
+    ],
+  },
+  {
+    "event": "stop_completed",
+    "properties": [
+      {
+        "kind": "id",
+        "name": "stop_id",
+        "optional": false,
+      },
+      {
+        "kind": "int",
+        "name": "stop_index",
+        "optional": false,
+      },
+      {
+        "kind": "enum(lesson|node|mission)",
+        "name": "stop_kind",
+        "optional": false,
+      },
+      {
+        "kind": "id",
+        "name": "world_id",
+        "optional": false,
+      },
+    ],
+  },
+]
+`;
