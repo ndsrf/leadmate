@@ -58,8 +58,8 @@
 
 ## 11. Domain docs
 
-- [ ] 11.1 Add the Encounter, Encounter Series, Aim and Paw entries to `GLOSSARY.md` and widen the Node definition to "one or more Stages", as proposed in the grilling report.
-- [ ] 11.2 Save the proposed ADR on Series scoring as `docs/adr/0033-encounter-series-score-from-paws.md`.
+- [x] 11.1 Add the Encounter, Encounter Series, Aim and Paw entries to `GLOSSARY.md` and widen the Node definition to "one or more Stages", as proposed in the grilling report.
+- [x] 11.2 Save the proposed ADR on Series scoring as `docs/adr/0033-encounter-series-score-from-paws.md`.
 
 ## Workflow follow-up
 
