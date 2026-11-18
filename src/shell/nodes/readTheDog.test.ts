@@ -1,4 +1,5 @@
 import { DIAGNOSTIC } from '../onboarding/diagnostic';
+import { latencyBand } from '../onboarding/latency';
 import {
   SIGNALS,
   RtdClass,
@@ -496,6 +497,74 @@ describe('readTheDog - 1.8 determinism', () => {
     expect(run1.result).toEqual(run2.result);
   });
 });
+
+describe('readTheDog - 1.9 roundLatency', () => {
+  it('calculates median of adjusted right times and misses; wrong and open excluded; empty/wrong/missed give 1.5', () => {
+    // Empty
+    expect(roundLatency({ rightTimes: [], missed: { calm: 0, alert: 0, about_to_react: 0 } })).toBe(1.5);
+
+    // Only wrong answers (no right answers, no misses)
+    expect(roundLatency({ rightTimes: [], missed: { calm: 0, alert: 0, about_to_react: 0 } })).toBe(1.5);
+
+    // All missed
+    expect(roundLatency({ rightTimes: [], missed: { calm: 2, alert: 1, about_to_react: 0 } })).toBe(1.5);
+
+    // Right answers: 0.65s (adj 0.20), 0.75s (adj 0.30), 0.85s (adj 0.40) -> median 0.30
+    expect(
+      roundLatency({
+        rightTimes: [0.65, 0.75, 0.85],
+        missed: { calm: 0, alert: 0, about_to_react: 0 },
+      }),
+    ).toBeCloseTo(0.3, 5);
+
+    // Right answer clamping to 0: time 0.30s (< allowance 0.45s) -> adj 0
+    expect(
+      roundLatency({
+        rightTimes: [0.3],
+        missed: { calm: 0, alert: 0, about_to_react: 0 },
+      }),
+    ).toBe(0);
+
+    // Right answer plus miss: [0.75 (adj 0.30), miss (1.5)] -> median 0.90
+    expect(
+      roundLatency({
+        rightTimes: [0.75],
+        missed: { calm: 1, alert: 0, about_to_react: 0 },
+      }),
+    ).toBeCloseTo(0.9, 5);
+  });
+
+  it('pins representative rounds to quick, steady and slow latency bands', () => {
+    // Quick (< 0.35 s): fast right answers at 0.70 s -> adj 0.25 s
+    const quickLat = roundLatency({
+      rightTimes: [0.7, 0.7, 0.7],
+      missed: { calm: 0, alert: 0, about_to_react: 0 },
+    });
+    expect(latencyBand(quickLat)).toBe('quick');
+
+    // Steady (0.35 s to 0.55 s): right answers at 0.90 s -> adj 0.45 s
+    const steadyLat = roundLatency({
+      rightTimes: [0.9, 0.9, 0.9],
+      missed: { calm: 0, alert: 0, about_to_react: 0 },
+    });
+    expect(latencyBand(steadyLat)).toBe('steady');
+
+    // Slow (>= 0.55 s): right answers at 1.10 s -> adj 0.65 s, or with misses
+    const slowLat = roundLatency({
+      rightTimes: [1.1, 1.1, 1.1],
+      missed: { calm: 0, alert: 0, about_to_react: 0 },
+    });
+    expect(latencyBand(slowLat)).toBe('slow');
+
+    // Misses push into slow
+    const missSlowLat = roundLatency({
+      rightTimes: [0.7],
+      missed: { calm: 2, alert: 0, about_to_react: 0 },
+    });
+    expect(latencyBand(missSlowLat)).toBe('slow');
+  });
+});
+
 
 
 
