@@ -127,12 +127,12 @@ describe('pawsFor table tests', () => {
         expectedNext: null,
       },
       {
-        desc: 'mark-disengagement clean: markerHits >= 1, perfect >= 1, pull <= 10, not reactive, no reactive markers, no late',
+        desc: 'mark-disengagement clean: markerHits >= 1, perfect >= 1, pull <= 10, dog reached reactive, no reactive markers, no late -> 3 Paws',
         aim: 'mark-disengagement',
         payload: payloadWith({
           markerHits: 1,
           pullPercentage: 4,
-          peakReactionTier: 'calm',
+          peakReactionTier: 'reactive',
           reactiveMarkers: 0,
           markGrades: { perfect: 1, good: 0, late: 0 },
         }),
@@ -153,14 +153,14 @@ describe('pawsFor table tests', () => {
         expectedNext: null,
       },
       // 2 Paws scenarios with priority of unmet conditions:
-      // 1: reactive (for mark aims where aim is met despite reactive)
+      // 1: reactive (skipped for mark-disengagement; reactive still spoils check-in, keep-slack, stay-calm)
       {
-        desc: 'mark aim met, but Dog reached reactive -> next: reactive',
-        aim: 'mark-disengagement',
+        desc: 'check-in aim met, but Dog reached reactive -> next: reactive',
+        aim: 'check-in',
         payload: payloadWith({
-          markerHits: 1,
+          checkInHits: 1,
           peakReactionTier: 'reactive',
-          pullPercentage: 5,
+          pullPercentage: 4,
           reactiveMarkers: 0,
           markGrades: { perfect: 1, good: 0, late: 0 },
         }),

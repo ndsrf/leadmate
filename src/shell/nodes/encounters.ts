@@ -227,8 +227,8 @@ export function pawsFor(aim: EncounterAim, payload: SimulationDebriefPayload): P
     return { paws: 1, next: 'aim' };
   }
 
-  // Aim is met -> check clean conditions in order: reactive, pull, reactive marker, late, perfect
-  if (payload.peakReactionTier === 'reactive') {
+  // Aim is met -> check clean conditions in order: reactive (skipped for mark-disengagement), pull, reactive marker, late, perfect
+  if (aim !== 'mark-disengagement' && payload.peakReactionTier === 'reactive') {
     return { paws: 2, next: 'reactive' };
   }
   if (payload.pullPercentage > CLEAN_MAX_PULL) {
