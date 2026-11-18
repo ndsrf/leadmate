@@ -539,7 +539,7 @@ export default function App() {
         seenKinds,
         isTasteStage,
         reducedMotion,
-        // the telegraph: close exercises send none (they are not telegraphed)
+        // the telegraph (walking Stages only; close exercises start through startCloseExercise and send none)
         ...telegraphStartFields(current, uiSettingsRef.current, routeRef.current.name),
       };
       setPaused(false);

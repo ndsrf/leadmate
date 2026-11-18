@@ -477,7 +477,7 @@ export const ES_INTERFACE = {
   'settings.feedback.sounds': 'Sonidos de la interfaz',
   'settings.feedback.haptics': 'Vibración al tocar',
   'settings.feedback.alwaysTimingHelp': 'Mostrar siempre ayuda de ritmo',
-  'settings.feedback.alwaysTimingHelp.help': 'Mantiene los anillos de aproximación, pulsos sonoros y Marcar resaltado en todos los paseos.',
+  'settings.feedback.alwaysTimingHelp.help': 'Mantiene el anillo de aproximación, los pulsos sonoros y el resaltado del botón Marcar en todos los paseos.',
   'settings.feedback.help': 'Solo en este dispositivo. No afecta al paseo ni a la voz de tu perro.',
   'settings.appearance': 'Apariencia',
   'settings.appearance.system': 'Sistema',
