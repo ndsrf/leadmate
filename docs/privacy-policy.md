@@ -51,7 +51,7 @@ This document contains both the English and Spanish versions of our privacy poli
     - **No IP addresses or GeoIP:** PostHog is configured to discard client IP addresses immediately upon arrival; IP addresses are never recorded or stored, and no location tracking or GeoIP lookups are performed.
     - **No session recording or personal profiles:** Autocapture, session recording/replay, and user profiling are disabled.
     - **Not linked to your account:** Analytics data is associated solely with the random installation ID, not with your registered account. Because analytics data cannot be linked to your account or identity, account deletion does not affect anonymous historical usage metrics.
-    - **Opt-out at any time:** Analytics is enabled by default to help improve the game. You can turn it off at any time in **Settings → Preferences → Anonymous usage data**. Turning it off stops all tracking immediately and clears any queued events on your device.
+    - **Opt-out at any time:** Analytics is enabled by default to help improve the game. You can turn it off at any time in **Settings → Preferences → Anonymous usage analytics** (toggle: **Send anonymous usage data**). Turning it off stops all tracking immediately and clears any queued events on your device.
     - **Retention period:** Anonymous analytics events are retained in PostHog for **12 months**, after which they are permanently deleted.
 
 We do not use analytics or crash-reporting SDKs that track you across other apps, and we never sell your personal information.
@@ -89,7 +89,7 @@ We may also disclose information if required by law. These providers may process
 
 ## 6. Your rights
 
-Depending on where you live (for example the EU/EEA, UK or California), you may have the right to access, correct, delete or export your data, object to or restrict processing, and withdraw consent at any time. You can opt out of anonymous analytics at any time in Settings → Preferences. Contact us at hi@ndsrf.com to exercise your rights. You may also complain to your local data protection authority.
+Depending on where you live (for example the EU/EEA, UK or California), you may have the right to access, correct, delete or export your data, object to or restrict processing, and withdraw consent at any time. You can opt out of anonymous analytics at any time in Settings → Preferences → Anonymous usage analytics. Contact us at hi@ndsrf.com to exercise your rights. You may also complain to your local data protection authority.
 
 ## 7. Permissions
 
@@ -166,7 +166,7 @@ LeadMate ("la aplicación", "nosotros") es una aplicación móvil que te ayuda a
     - **Sin direcciones IP ni geolocalización:** PostHog está configurado para descartar de inmediato las direcciones IP de los clientes al recibirlas; las direcciones IP nunca se registran ni almacenan, y no se realiza seguimiento de ubicación ni GeoIP.
     - **Sin grabación de sesiones ni perfiles personales:** La autocaptura, la grabación/reproducción de sesiones y el perfilado de usuarios están completamente desactivados.
     - **No vinculado a tu cuenta:** Los datos de analítica están asociados exclusivamente al identificador aleatorio de instalación, no a tu cuenta de LeadMate. Como no están vinculados a tu cuenta, eliminar tu cuenta no altera los datos agregados anónimos de instalación.
-    - **Desactivación en cualquier momento:** La analítica está activada por defecto para ayudarnos a mejorar el juego. Puedes desactivarla en cualquier momento en **Ajustes → Preferencias → Datos anónimos de uso**. Al desactivarla, se detiene el envío de forma inmediata y se borra cualquier evento en cola en tu dispositivo.
+    - **Desactivación en cualquier momento:** La analítica está activada por defecto para ayudarnos a mejorar el juego. Puedes desactivarla en cualquier momento en **Ajustes → Preferencias → Datos de uso anónimos** (interruptor: **Enviar datos de uso anónimos**). Al desactivarla, se detiene el envío de forma inmediata y se borra cualquier evento en cola en tu dispositivo.
     - **Período de conservación:** Los eventos anónimos de analítica se conservan en PostHog durante un máximo de **12 meses**, tras los cuales se eliminan de forma permanente.
 
 No utilizamos herramientas analíticas de seguimiento entre distintas aplicaciones ni vendemos tu información personal.
@@ -204,7 +204,7 @@ Asimismo, podemos comunicar información si así lo exige la ley. Estos proveedo
 
 ## 6. Tus derechos
 
-En virtud de la normativa aplicable (como el RGPD en la UE/EEE), tienes derecho a acceder a tus datos, rectificarlos, solicitar su supresión o portabilidad, oponerte a su tratamiento o limitarlo, y retirar tu consentimiento en cualquier momento. Puedes oponerte a la analítica anónima en cualquier momento desde Ajustes → Preferencias. Escríbenos a hi@ndsrf.com para ejercer estos derechos. También puedes presentar una reclamación ante la Agencia Española de Protección de Datos (AEPD) o la autoridad de control de tu país.
+En virtud de la normativa aplicable (como el RGPD en la UE/EEE), tienes derecho a acceder a tus datos, rectificarlos, solicitar su supresión o portabilidad, oponerte a su tratamiento o limitarlo, y retirar tu consentimiento en cualquier momento. Puedes oponerte a la analítica anónima en cualquier momento desde Ajustes → Preferencias → Datos de uso anónimos. Escríbenos a hi@ndsrf.com para ejercer estos derechos. También puedes presentar una reclamación ante la Agencia Española de Protección de Datos (AEPD) o la autoridad de control de tu país.
 
 ## 7. Permisos solicitados
 
