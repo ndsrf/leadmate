@@ -148,6 +148,20 @@ export const PRODUCT_SCHEMA_FIELDS: readonly FieldDoc[] = [
   { name: 'image', type: 'string', required: false, description: 'Optional relative media path in media/' },
 ];
 
+export const SUPPORTED_ENCOUNTER_AIMS = [
+  'keep-slack',
+  'stay-calm',
+  'mark-disengagement',
+  'check-in',
+] as const;
+export type EncounterAim = (typeof SUPPORTED_ENCOUNTER_AIMS)[number];
+
+export const ENCOUNTER_SCHEMA_FIELDS: readonly FieldDoc[] = [
+  { name: 'id', type: 'string', required: true, description: 'Unique kebab-case identifier for the Encounter in this Node' },
+  { name: 'aim', type: 'string', required: true, description: 'Encounter Aim to train', allowedValues: SUPPORTED_ENCOUNTER_AIMS },
+  { name: 'scenario', type: 'object', required: true, description: 'Simulation scenario config (Partial<ScenarioConfig>), validated like an embedded scenario' },
+];
+
 export const RECOMMENDATION_SCHEMA_FIELDS: readonly FieldDoc[] = [
   { name: 'id', type: 'string', required: true, description: 'Unique kebab-case identifier for the Recommendation' },
   { name: 'target', type: 'string', required: true, description: 'Target Product, Subcategory, or Category ID' },
@@ -203,6 +217,12 @@ export interface LessonYaml {
   recommendations?: RecommendationYaml[];
 }
 
+export interface EncounterYaml {
+  id: string;
+  aim: EncounterAim;
+  scenario?: any;
+}
+
 export interface NodeYaml {
   id: string;
   mode: NodeMode;
@@ -214,6 +234,7 @@ export interface NodeYaml {
     closeScenarioName?: string;
     closeScenario?: any;
     minigame?: MinigameKind;
+    encounters?: EncounterYaml[];
   };
   exercises?: Array<{
     metric: Metric;
@@ -284,6 +305,9 @@ export function isDuelQuestionYaml(q: unknown): q is DuelCheckpointQuestionYaml 
 
 /** The first app version that renders Image Duel questions; a pack using one must declare at least this `minAppVersion`. */
 export const IMAGE_DUEL_MIN_APP_VERSION = '1.1.0';
+
+/** The first app version that plays Encounter Series; a pack using one must declare at least this `minAppVersion`. */
+export const ENCOUNTERS_MIN_APP_VERSION = '1.3.0';
 
 /** Strips a leading `media/` so a duel image is named as a file of the Node's `media/` folder. */
 export function duelImageFile(image: string): string {

@@ -9,6 +9,8 @@ export interface StartStageInfo {
   stage_id: string;
   mode: StageMode;
   attempt: number;
+  encounter_id?: string;
+  encounter_attempt?: number;
 }
 
 export interface StartMinigameInfo {
@@ -77,6 +79,8 @@ export class PlayTracker {
           stage_id: info.stage_id,
           mode: info.mode,
           attempt: info.attempt,
+          ...(info.encounter_id !== undefined ? { encounter_id: info.encounter_id } : {}),
+          ...(info.encounter_attempt !== undefined ? { encounter_attempt: info.encounter_attempt } : {}),
         },
         ...(ended ? { ended } : {}),
       };
@@ -116,7 +120,8 @@ export class PlayTracker {
   public end(
     outcome: 'finished' | 'skipped' | 'left',
     now: Date | number | string = Date.now(),
-    score?: number
+    score?: number,
+    paws?: number
   ): TrackedPlayEvent | null {
     if (!this.isOpen || !this.current) {
       return null;
@@ -140,6 +145,12 @@ export class PlayTracker {
       score !== null &&
       !Number.isNaN(score);
 
+    const hasPaws =
+      outcome === 'finished' &&
+      paws !== undefined &&
+      paws !== null &&
+      !Number.isNaN(paws);
+
     if (info.type === 'stage') {
       const stageOutcome: StageOutcome =
         outcome === 'skipped' ? 'skipped' : outcome === 'finished' ? 'finished' : 'left';
@@ -154,6 +165,9 @@ export class PlayTracker {
           outcome: stageOutcome,
           duration_seconds: durationSeconds,
           ...(hasScore ? { handling_score: Math.round(score) } : {}),
+          ...(info.encounter_id !== undefined ? { encounter_id: info.encounter_id } : {}),
+          ...(info.encounter_attempt !== undefined ? { encounter_attempt: info.encounter_attempt } : {}),
+          ...(hasPaws ? { paws: Math.round(paws) } : {}),
         },
       };
     }

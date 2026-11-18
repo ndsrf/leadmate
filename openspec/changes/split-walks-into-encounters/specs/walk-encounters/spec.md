@@ -60,11 +60,15 @@ Every ended Encounter attempt SHALL earn 1, 2 or 3 Paws from its own debrief pay
 - **THEN** both attempts earn the same Paws
 
 ### Requirement: Clean result
-A met Aim SHALL count as clean, earning 3 Paws, only when all of these hold: the Dog never reached the Reactive tier, Rigid Pull was at most 10% of the Encounter, no reactive Marker press and no Late Marker press was recorded, and, for a `mark-disengagement` or `check-in` Aim, at least one mark (a Marker hit or a Check-in hit) was graded Perfect.
+A met Aim SHALL count as clean, earning 3 Paws, only when all of these hold: the Dog never reached the Reactive tier (not required for a `mark-disengagement` Aim, because a Marker hit can only follow a Fixation, which is itself the Reactive tier), Rigid Pull was at most 10% of the Encounter, no reactive Marker press and no Late Marker press was recorded, and, for a `mark-disengagement` or `check-in` Aim, at least one mark (a Marker hit or a Check-in hit) was graded Perfect.
 
 #### Scenario: Perfect mark
-- **WHEN** a `mark-disengagement` Encounter ends with one Perfect Marker hit, 4% Rigid Pull, the Dog never Reactive and no Late or reactive press
+- **WHEN** a `mark-disengagement` Encounter ends with one Perfect Marker hit after the Dog's Fixation (so the Dog reached the Reactive tier), 4% Rigid Pull and no Late or reactive press
 - **THEN** it earns 3 Paws
+
+#### Scenario: Reactive tier still spoils other Aims
+- **WHEN** a `check-in` Encounter ends with one Perfect Check-in hit, 4% Rigid Pull, no Late or reactive press, and the Dog reached the Reactive tier
+- **THEN** it earns 2 Paws
 
 #### Scenario: Too much pull
 - **WHEN** a `stay-calm` Encounter ends with the Dog never Reactive and 15% Rigid Pull
@@ -75,7 +79,7 @@ A met Aim SHALL count as clean, earning 3 Paws, only when all of these hold: the
 - **THEN** it earns 2 Paws
 
 ### Requirement: Encounter result card
-When an Encounter ends, the system SHALL show its Paws and title over the ended Stage with a Retry action and a Next action, and SHALL show one line saying what the next Paw needs, taken from the first condition that was not met in the order: Aim, Reactive tier, Rigid Pull, reactive Marker press, Late Marker press, Perfect mark. At 3 Paws it SHALL say the Encounter is done perfectly instead. All text SHALL come from the localization catalog.
+When an Encounter ends, the system SHALL show its Paws and title over the ended Stage with a Retry action and a Next action, and SHALL show one line saying what the next Paw needs, taken from the first condition that was not met in the order: Aim, Reactive tier (skipped for a `mark-disengagement` Aim), Rigid Pull, reactive Marker press, Late Marker press, Perfect mark. At 3 Paws it SHALL say the Encounter is done perfectly instead. All text SHALL come from the localization catalog.
 
 #### Scenario: Two Paws
 - **WHEN** a `mark-disengagement` Encounter ends with 2 Paws because its only mark was graded Good

@@ -26,6 +26,7 @@ import { Screen } from './Screen';
 import { RecommendationCardList } from './RecommendationCard';
 import { getActiveContent } from '../content/runtime';
 import { DebriefTimelineSection } from './DebriefTimeline';
+import { EncounterPaws } from '../ui/EncounterPaws';
 
 export function PrimerScreen({
   t,
@@ -419,6 +420,28 @@ function CheckpointReview({ t, run }: { t: Translate; run: NodeRun }) {
   );
 }
 
+/** The Encounters of a finished or skipped Series, in order: title, kept Paws (or "not played") and attempts. */
+function EncounterList({ t, run, encounters }: { t: Translate; run: NodeRun; encounters: NonNullable<SimulationDebriefPayload['encounters']> }) {
+  const defs = run.node.simulation.encounters ?? [];
+  return (
+    <Panel className="mb-3">
+      <Text className="mb-1 font-display text-label text-inkMuted">{t('encounter.list.title')}</Text>
+      {encounters.map((e) => {
+        const title = defs.find((d) => d.id === e.id)?.title;
+        const played = e.attempts > 0;
+        const pawsLabel = t('encounter.paws').split('{n}').join(String(e.paws));
+        return (
+          <View key={e.id} testID={`debrief-encounter-${e.id}`} className="flex-row items-center justify-between gap-3 py-2">
+            <Text className="flex-1 text-body text-ink">{title ? t(title) : e.id}</Text>
+            <Text className="text-caption text-inkMuted">{played ? t(e.attempts === 1 ? 'encounter.attempts.one' : 'encounter.attempts.other').split('{n}').join(String(e.attempts)) : ''}</Text>
+            {played ? <EncounterPaws paws={e.paws} size={22} label={pawsLabel} /> : <Text className="font-display text-caption text-inkMuted">{t('encounter.notPlayed')}</Text>}
+          </View>
+        );
+      })}
+    </Panel>
+  );
+}
+
 function StageRows({ t, p }: { t: Translate; p: SimulationDebriefPayload }) {
   return (
     <>
@@ -574,6 +597,7 @@ function DebriefBody({
               {result.kind === 'stage' && result.payload.timeline !== undefined && (
                 <DebriefTimelineSection t={t} payload={result.payload} />
               )}
+              {result.kind === 'stage' && result.payload.encounters && <EncounterList t={t} run={run} encounters={result.payload.encounters} />}
               <Panel className="mb-1">
                 <StageRows t={t} p={result.payload} />
               </Panel>

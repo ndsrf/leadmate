@@ -132,6 +132,8 @@ export interface Telemetry {
   harshStops: number;
   /** Highest Arousal reached. */
   peakArousal: number;
+  /** Highest Reaction Tier reached. */
+  peakTier: ReactionTier;
   /** Disengagements followed by a Marker hit, per kind of Distractor. */
   calmEncounters: Partial<Record<DistractorKind, number>>;
   /** Seconds of active Sintonía. */
@@ -325,6 +327,7 @@ export function createState(seed: number, config: ScenarioConfig = defaultScenar
       posteSuccesses: 0,
       harshStops: 0,
       peakArousal: 0,
+      peakTier: 'calm',
       calmEncounters: {},
       sintoniaTime: 0,
       goSniffs: 0,
@@ -993,12 +996,17 @@ function updateArousal(state: SimState, dt: number): void {
   raiseArousal(state, rate > 0 ? rate * dt : -decay * dt);
 }
 
+const TIER_ORDER: Record<ReactionTier, number> = { calm: 0, alert: 1, reactive: 2 };
+
 /** Recomputes the Reaction Tier from Arousal and reports a change. */
 function refreshTier(state: SimState, events: SimEvent[]): void {
   const tier = tierFor(state.arousal, state.dogTraits.reactivityThreshold, state.config.reaction.alertFraction);
   if (tier === state.tier) return;
   state.tier = tier;
   events.push({ type: 'reaction-tier-change', time: state.time, tier });
+  if (TIER_ORDER[tier] > TIER_ORDER[state.telemetry.peakTier]) {
+    state.telemetry.peakTier = tier;
+  }
 }
 
 /** The Dog lets go of the Distractor: it holds still while the Reward Window is open. */

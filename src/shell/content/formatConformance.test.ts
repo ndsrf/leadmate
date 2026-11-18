@@ -68,6 +68,10 @@ describe('FORMAT.md Conformance', () => {
     expect(lessonGuideDoc).toContain(tables.duelQuestionTable);
   });
 
+  it('contains the generated encounter schema table without drift', () => {
+    expect(formatDoc).toContain(tables.encounterTable);
+  });
+
   it('fails when a field is removed from the guide (drift detection)', () => {
     const tableWithoutPrice = tables.productTable
       .split('\n')
@@ -80,6 +84,12 @@ describe('FORMAT.md Conformance', () => {
       .filter((line) => !line.includes('`images`'))
       .join('\n');
     expect(formatDoc).not.toContain(tableWithoutImages);
+
+    const tableWithoutAim = tables.encounterTable
+      .split('\n')
+      .filter((line) => !line.includes('`aim`'))
+      .join('\n');
+    expect(formatDoc).not.toContain(tableWithoutAim);
   });
 
   it('agent-style test: creates a Lesson from the guide example and it validates in a pack', () => {
@@ -332,5 +342,65 @@ describe('FORMAT.md Conformance', () => {
     const olderReport = validatePack(olderPack);
     expect(olderReport.valid).toBe(false);
     expect(olderReport.errors.some((e) => e.field === 'minAppVersion')).toBe(true);
+  });
+
+  it('agent-style test: creates a Node with an Encounter Series from the guide example and validates in a pack', () => {
+    const yamlMatch = /```yaml\nid: sample-series-walk([\s\S]*?)```/.exec(formatDoc);
+    expect(yamlMatch).not.toBeNull();
+    const nodeYaml = parseYaml<NodeYaml>(`id: sample-series-walk${yamlMatch![1]}`);
+
+    const mdMatch = /```markdown\n(# Paseo guiado por tramos[\s\S]*?)```/.exec(formatDoc);
+    expect(mdMatch).not.toBeNull();
+    const parsedNode = parseNodeMarkdown(mdMatch![1]);
+    expect(parsedNode.title).toBe('Paseo guiado por tramos');
+    expect(parsedNode.encounters).toBeDefined();
+    expect(Object.keys(parsedNode.encounters!)).toHaveLength(4);
+
+    const pack: ContentPack = {
+      pack: {
+        formatVersion: 1,
+        contentVersion: 1,
+        minAppVersion: '1.3.0',
+        languages: ['es'],
+      },
+      worlds: {
+        'sample-world': {
+          config: {
+            id: 'sample-world',
+            worldNumber: 1,
+            stretches: [[{ kind: 'node', id: 'sample-series-walk' }]],
+          },
+          text: {
+            es: { title: 'Mundo Ejemplo', topics: 'temas de prueba' },
+          },
+        },
+      },
+      lessons: {},
+      nodes: {
+        'sample-series-walk': {
+          config: nodeYaml,
+          text: {
+            es: parsedNode,
+          },
+        },
+      },
+      missions: {},
+    };
+
+    const report = validatePack(pack);
+    expect(report.valid).toBe(true);
+    expect(report.errors).toEqual([]);
+
+    // Drift / compatibility check: older minAppVersion must fail for Encounter Series
+    const olderPack: ContentPack = {
+      ...pack,
+      pack: {
+        ...pack.pack,
+        minAppVersion: '1.2.0',
+      },
+    };
+    const olderReport = validatePack(olderPack);
+    expect(olderReport.valid).toBe(false);
+    expect(olderReport.errors.some((e) => e.field === 'minAppVersion' && e.message.includes('Encounter Series'))).toBe(true);
   });
 });

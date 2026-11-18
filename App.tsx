@@ -6,7 +6,7 @@ import { AccessibilityInfo, AppState, BackHandler, useColorScheme, View } from '
 import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Fredoka_600SemiBold } from '@expo-google-fonts/fredoka';
-import { createTranslator, detectDeviceLanguage, getCatalog } from './src/i18n';
+import { createTranslator, detectDeviceLanguage, getCatalog, type TextKey } from './src/i18n';
 import { feedback } from './src/shell/ui/feedback';
 import { recordMarkerAssist, telegraphStartFields } from './src/shell/markerAssistWiring';
 import { installFeedback } from './src/shell/ui/feedbackBackends';
@@ -30,7 +30,9 @@ import { lookOf } from './src/shell/onboarding/look';
 import { INTRO_NODE } from './src/shell/onboarding/introNode';
 import { celebrationsFor, starsShown, type Celebration } from './src/shell/celebrations';
 import { completeDaily, dateSeed, generateDailyStage, todayString, warmupAfterDaily, type DailyCompletion } from './src/shell/daily';
-import { CloseCoachMarksOverlay, CoachMarksOverlay, DogWarningOverlay, ErrorOverlay, HintOverlay, LoadingOverlay, ResumeOverlay, SimulatorBackButton } from './src/shell/Overlays';
+import { CloseCoachMarksOverlay, CoachMarksOverlay, DogWarningOverlay, EncounterResultOverlay, ErrorOverlay, HintOverlay, LoadingOverlay, ResumeOverlay, SeriesProgressStrip, SimulatorBackButton } from './src/shell/Overlays';
+import { pawHintKey } from './src/shell/nodes/encounterHint';
+import { keptAttempt, pawsFor } from './src/shell/nodes/encounters';
 import { findNode, nodeForDog, POSTE_PRACTICE } from './src/shell/nodes/content';
 import { withPull } from './src/shell/nodes/scenarios';
 import { readDogSceneOf } from './src/shell/nodes/readDog';
@@ -201,13 +203,38 @@ function getStartStageInfo(
       attempt: currentRoute.flow.attempt + 1,
     };
   }
-  if (currentRoute.name === 'flow' && currentRoute.flow.name === 'node') {
+  const activeNodeFlow =
+    currentFlow?.name === 'node'
+      ? currentFlow
+      : currentRoute.name === 'flow' && currentRoute.flow.name === 'node'
+      ? currentRoute.flow
+      : null;
+
+  if (activeNodeFlow) {
+    const node = activeNodeFlow.run.node;
+    const encounters = node.simulation.encounters;
+    let encounter_id: string | undefined;
+    let encounter_attempt: number | undefined;
+
+    if (encounters && encounters.length > 0) {
+      const series = activeNodeFlow.run.series;
+      const index = series ? series.index : 0;
+      const enc = encounters[index];
+      if (enc) {
+        encounter_id = enc.id;
+        const attempts = series?.attempts[index];
+        encounter_attempt = (attempts ? attempts.length : 0) + 1;
+      }
+    }
+
     return {
       type: 'stage',
       stage_kind: 'node',
-      stage_id: currentRoute.flow.run.node.id,
+      stage_id: node.id,
       mode,
-      attempt: currentRoute.flow.attempt + 1,
+      attempt: activeNodeFlow.attempt + 1,
+      ...(encounter_id !== undefined ? { encounter_id } : {}),
+      ...(encounter_attempt !== undefined ? { encounter_attempt } : {}),
     };
   }
   return {
@@ -519,7 +546,8 @@ export default function App() {
 
   const resume = useCallback(() => {
     setPaused(false);
-    send({ type: 'resume' });
+    // an ended Stage behind a result card has nothing to resume
+    if (!cardShowingRef.current) send({ type: 'resume' });
   }, [send]);
 
   /** Starts a Stage with the Dog's snapshot; waits for the bundle if it is still loading. */
@@ -601,11 +629,44 @@ export default function App() {
           seconds_to_answer: secondsToAnswer,
         });
       }
+      flowRef.current = { ...f, run: nextRun };
       setFlow({ ...f, run: nextRun });
       return;
     }
-    setFlow({ ...f, run: advance(f.run, action) });
+    const run = advance(f.run, action);
+    // keep the ref current at once, so two actions in one tick (Next then a start) see the new state
+    flowRef.current = { ...f, run };
+    setFlow({ ...f, run });
   }, []);
+
+  /** The Dog as it was when the running Encounter Series started (the same for every Encounter and retry). */
+  const seriesSnapshot = useRef<LearningSnapshot | undefined>(undefined);
+  /** An Encounter's scenario: bundled, never replaced by a remote per-Node config. */
+  const encounterScenario = (scenario: Partial<ScenarioConfig>): Partial<ScenarioConfig> => ({ ...scenario, configVersion: 'bundled' });
+  /** True while an Encounter result card is shown: the Stage has ended, so nothing runs or pauses in the bundle. */
+  const cardShowing = route.name === 'flow' && route.flow.name === 'node' && route.flow.run.step === 'simulation' && route.flow.run.series?.showing === 'result';
+  const cardShowingRef = useRef(false);
+  cardShowingRef.current = cardShowing;
+
+  const retryEncounter = useCallback(() => {
+    const f = flowRef.current;
+    if (f?.name !== 'node' || !f.run.series) return;
+    const encounter = f.run.node.simulation.encounters?.[f.run.series.index];
+    const seed = f.run.series.seeds[f.run.series.index];
+    if (!encounter) return;
+    act({ type: 'retry' });
+    startStage(encounterScenario(encounter.scenario), seed, seriesSnapshot.current);
+  }, [act, startStage]);
+
+  const nextEncounter = useCallback(() => {
+    const f = flowRef.current;
+    if (f?.name !== 'node' || !f.run.series) return;
+    const encounters = f.run.node.simulation.encounters ?? [];
+    const next = encounters[f.run.series.index + 1];
+    act({ type: 'next-encounter' });
+    if (next) startStage(encounterScenario(next.scenario), newSeed(), seriesSnapshot.current);
+    else accountRef.current.countStage(); // the Series is over: one counted Stage for the whole Series
+  }, [act, startStage]);
 
   // entering an Interactive Simulation (walking stage or close exercise) starts the Stage
   const simulationKey =
@@ -620,6 +681,11 @@ export default function App() {
     const node = flowRef.current.run.node;
     if (node.mode === 'close_exercise') {
       startCloseExercise(node.simulation.closeScenario ?? {});
+    } else if (node.simulation.encounters && node.simulation.encounters.length > 0) {
+      // an Encounter Series: every Encounter and retry starts from the Dog as it was when the Series started
+      const current = recordRef.current;
+      seriesSnapshot.current = current ? toSnapshot(current, capacityRef.current) : undefined;
+      startStage(encounterScenario(node.simulation.encounters[0].scenario), newSeed(), seriesSnapshot.current);
     } else {
       startStage(resolveScenario(node.id, node.simulation.scenario ?? {}, accountRef.current.configs).scenario);
     }
@@ -925,9 +991,18 @@ export default function App() {
         if (recordRef.current) playResolvedCue(resolveCue(recordRef.current, language));
       } else if (message.type === 'debrief') {
         const payload: SimulationDebriefPayload = message.payload;
-        const endRes = playTracker.current.end('finished', new Date(), payload.handlingScore);
-        if (endRes) track(endRes.name, endRes.props);
         const f = flowRef.current;
+        let paws: number | undefined;
+        if (f?.name === 'node' && f.run.node.simulation.encounters?.length) {
+          const encounters = f.run.node.simulation.encounters;
+          const index = f.run.series?.index ?? 0;
+          const enc = encounters[index];
+          if (enc) {
+            paws = pawsFor(enc.aim, payload).paws;
+          }
+        }
+        const endRes = playTracker.current.end('finished', new Date(), payload.handlingScore, paws);
+        if (endRes) track(endRes.name, endRes.props);
         if (f?.name === 'daily' && f.result === null) {
           // the score and the Streak are kept; what the Dog has learned and the campaign are not touched
           const before = recordRef.current!;
@@ -949,6 +1024,9 @@ export default function App() {
           // ungraded: the warm-up never changes the Dog
           setWarmup('completed');
           goHome();
+        } else if (f?.name === 'node' && f.run.node.simulation.encounters?.length) {
+          // an Encounter ends: show its result card; the Node finishes only on the last Next or on Exit
+          act({ type: 'encounter-end', payload });
         } else if (f?.name === 'node') {
           accountRef.current.countStage();
           const kind = f.run.node.mode === 'close_exercise' ? 'close_exercise' : 'stage';
@@ -1255,18 +1333,23 @@ export default function App() {
     return fn;
   };
   const backInput = useRef<BackActionParams | null>(null);
+  // an ended Stage behind a result card cannot answer a pause, so the shell opens the Pause Menu itself
+  const pauseStage = useCallback(() => {
+    if (cardShowingRef.current) setPaused(true);
+    else send({ type: 'pause' });
+  }, [send]);
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       const input = backInput.current;
       if (!input) return false;
       const action = backAction(input);
-      if (action === 'pause') send({ type: 'pause' });
+      if (action === 'pause') pauseStage();
       else if (action === 'resume') resume();
       else if (action === 'screen') screenBack.current?.();
       return action !== 'exit';
     });
     return () => sub.remove();
-  }, [send, resume]);
+  }, [send, resume, pauseStage]);
 
   useEffect(() => {
     if (!pendingTrouble) return;
@@ -2060,7 +2143,7 @@ export default function App() {
             best={starsShown(record, run.node.id) ?? 1}
             celebrations={celebrations?.id === `${run.node.id}:${f.attempt}` ? celebrations.list : []}
             onPosteLink={() => startNodeRun(POSTE_PRACTICE)}
-            onPlayAgain={() => setFlow({ ...f, run: { ...run, step: 'simulation', result: null }, attempt: f.attempt + 1 })}
+            onPlayAgain={() => setFlow({ ...f, run: { ...run, step: 'simulation', result: null, series: undefined }, attempt: f.attempt + 1 })}
             onShop={(target) => openShop(target, { previousFlow: f })}
             onDone={withBack(async () => {
               // the Debrief of a Stretch's last Node opens its Mission brief
@@ -2081,6 +2164,31 @@ export default function App() {
     }
   }
 
+  // the running Encounter Series, if any: its progress strip and, while a result card shows, the card
+  const seriesRun = (() => {
+    if (route.name !== 'flow' || route.flow.name !== 'node' || route.flow.run.step !== 'simulation') return null;
+    const run = route.flow.run;
+    const encounters = run.node.simulation.encounters;
+    if (!encounters?.length) return null;
+    // a restarted Series (Play again) has no state until its first Encounter ends; the reducer creates it the same way
+    const series = run.series ?? { index: 0, attempts: encounters.map(() => []), seeds: [], showing: 'running' as const };
+    const kept: number[] = [];
+    for (const attempts of series.attempts) {
+      const k = keptAttempt(attempts);
+      if (!k) break;
+      kept.push(k.paws);
+    }
+    const encounter = encounters[series.index];
+    const here = series.attempts[series.index] ?? [];
+    const last = here[here.length - 1];
+    let card: { title: TextKey; paws: 1 | 2 | 3; hint: TextKey | null } | null = null;
+    if (series.showing === 'result' && last) {
+      const result = pawsFor(encounter.aim, last.payload);
+      card = { title: encounter.title, paws: result.paws, hint: pawHintKey(encounter.aim, result.next) };
+    }
+    return { series, total: encounters.length, kept, card };
+  })();
+
   backInput.current = { route, playingStage, paused, bundle, hasScreenBack: screenBack.current !== null, payoff: route.name === 'taste' && tastePayoff, briefing: route.name === 'taste' && !tasteBriefed, choosingDog };
 
   return (
@@ -2094,13 +2202,19 @@ export default function App() {
             <SimulatorBackButton
               onPress={() => {
                 if (bundle === 'ready') {
-                  send({ type: 'pause' });
+                  pauseStage();
                 } else {
                   screenBack.current?.();
                 }
               }}
               label={t('hud.back')}
             />
+          )}
+          {playingStage && seriesRun && (
+            <SeriesProgressStrip t={t} index={seriesRun.series.index + 1} total={seriesRun.total} kept={seriesRun.kept} />
+          )}
+          {playingStage && cardShowing && seriesRun?.card && (
+            <EncounterResultOverlay t={t} title={t(seriesRun.card.title)} paws={seriesRun.card.paws} hint={seriesRun.card.hint ? t(seriesRun.card.hint) : null} onRetry={retryEncounter} onNext={nextEncounter} />
           )}
           {playingStage && hint && !dogWarning && !paused && !isCloseExerciseFlow(route) && <HintOverlay text={t(HINT_TEXT[hint])} />}
           {playingStage && record && !tastePayoff && !paused && bundle === 'ready' && !isCloseExerciseFlow(route) && (
@@ -2157,6 +2271,10 @@ export default function App() {
                       best: completion.best,
                     });
                     setFlow({ ...f, result: { payload, completion, celebrations: list } });
+                  } else if (f.name === 'node' && f.run.step === 'simulation' && f.run.node.simulation.encounters?.length) {
+                    // leaving a Series: the running attempt is dropped; every Encounter kept finishes it normally, else it is skipped
+                    accountRef.current.countStage();
+                    act({ type: 'exit-series' });
                   } else if (f.name === 'node' && f.run.step === 'simulation') {
                     accountRef.current.countStage();
                     const kind = f.run.node.mode === 'close_exercise' ? 'close_exercise' : 'stage';
