@@ -1,4 +1,4 @@
-import { defaultScenario } from '../../sim/config';
+import { defaultScenario, scentSpotsOf } from '../../sim/config';
 import { validateScenario } from '../../sim/scenery';
 import {
   parseLessonMarkdown,
@@ -423,8 +423,18 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
         if (Array.isArray(encounters)) {
           const seenEncounterIds = new Set<string>();
 
-          encounters.forEach((enc, encIdx) => {
+          encounters.forEach((rawEnc: unknown, encIdx) => {
             const encFieldPrefix = `simulation.encounters[${encIdx}]`;
+
+            if (rawEnc === null || typeof rawEnc !== 'object' || Array.isArray(rawEnc)) {
+              errors.push({
+                file,
+                field: encFieldPrefix,
+                message: `Node "${id}": Encounter #${encIdx + 1} must be an object with an id, an aim and a scenario`,
+              });
+              return;
+            }
+            const enc = rawEnc as any;
 
             if (!enc.id || !isContentId(enc.id)) {
               errors.push({
@@ -495,9 +505,7 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
                 field: `${encFieldPrefix}.scenario.scents`,
                 message: `Node "${id}": Encounter "${encIdStr}" cannot declare Scent Spots`,
               });
-            }
-
-            if (Array.isArray(sc.scenery) && sc.scenery.some((s: any) => s.scent)) {
+            } else if (scentSpotsOf({ scents: sc.scents, scenery: Array.isArray(sc.scenery) ? sc.scenery.filter(Boolean) : [] }).length > 0) {
               errors.push({
                 file,
                 field: `${encFieldPrefix}.scenario.scenery`,
@@ -543,7 +551,7 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
         }
         if (cfg.simulation?.encounters && Array.isArray(cfg.simulation.encounters)) {
           for (const enc of cfg.simulation.encounters) {
-            if (enc.id && (!parsedNode.encounters?.[enc.id] || !parsedNode.encounters[enc.id].trim())) {
+            if (enc && enc.id && (!parsedNode.encounters?.[enc.id] || !parsedNode.encounters[enc.id].trim())) {
               errors.push({
                 file: `nodes/${id}/es.md`,
                 field: `encounters.${enc.id}`,

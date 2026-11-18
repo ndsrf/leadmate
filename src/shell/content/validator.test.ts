@@ -653,6 +653,23 @@ describe('validatePack scenarios', () => {
       expect(err?.message).toContain('check-in');
     });
 
+    it('Scenario: malformed encounter entries give validation errors instead of throwing', () => {
+      for (const bad of [null, 'oops', {}, { id: 'only-id' }, { aim: 'keep-slack' }]) {
+        const pack = makePackWithSeries();
+        const node = pack.nodes!['node-1'];
+        node.config.simulation!.encounters = [
+          ...node.config.simulation!.encounters!.slice(0, 2),
+          bad as any,
+        ];
+        let report: ReturnType<typeof validatePack> | undefined;
+        expect(() => {
+          report = validatePack(pack);
+        }).not.toThrow();
+        expect(report!.valid).toBe(false);
+        expect(report!.errors.some((e) => e.field?.includes('simulation.encounters[2]'))).toBe(true);
+      }
+    });
+
     it('Scenario: Time limit too long (40s) fails', () => {
       const pack = makePackWithSeries();
       const node = pack.nodes!['node-1'];
