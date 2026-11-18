@@ -1,3 +1,5 @@
+import { DIAGNOSTIC } from '../onboarding/diagnostic';
+
 /**
  * Read the Dog - pure engine
  *
@@ -33,3 +35,40 @@ export const SIGNALS: Record<RtdSignal, RtdSignalInfo> = {
   hackles_up: { cls: 'about_to_react', subtle: false },
   stiff_closed_mouth: { cls: 'about_to_react', subtle: true },
 };
+
+export const READ_THE_DOG = {
+  roundSeconds: 24,
+  pauseSeconds: 0.35,
+  wrongPauseSeconds: 1.2,
+  timers: [2.4, 2.0, 1.7, 1.4, 1.2, 1.0],
+  subtleFromLevel: 2,
+  upAfter: 3,
+  downAfter: 2,
+  missWeight: 2,
+  rightWeight: -1,
+  maxWeight: 5,
+  baseWeight: 1,
+  decisionAllowance: 0.45,
+  missSeconds: DIAGNOSTIC.timeout,
+  screenReaderTimer: 6,
+  bigEvery: 5,
+  basePoints: 100,
+} as const;
+
+export interface TimerOptions {
+  screenReader?: boolean;
+  timerSeconds?: number;
+}
+
+export function timerFor(level: number, opts?: TimerOptions): number {
+  if (opts?.screenReader) {
+    return READ_THE_DOG.screenReaderTimer;
+  }
+  if (opts?.timerSeconds !== undefined) {
+    return opts.timerSeconds;
+  }
+  const maxIdx = READ_THE_DOG.timers.length - 1;
+  const clamped = Math.max(0, Math.min(maxIdx, Math.floor(level)));
+  return READ_THE_DOG.timers[clamped];
+}
+
