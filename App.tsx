@@ -58,7 +58,7 @@ import { CheckpointScreen, DebriefScreen, PrimerScreen } from './src/shell/scree
 import { PosteMinigameView } from './src/shell/screens/PosteMinigameView';
 import { getAdService } from './src/shell/ads';
 import { ReadDogView } from './src/shell/screens/ReadDogView';
-import { DiagnosticView } from './src/shell/screens/DiagnosticView';
+import { ReadTheDogView } from './src/shell/screens/ReadTheDogView';
 import { PaywallScreen } from './src/shell/screens/PaywallScreen';
 import { ValueRecapScreen } from './src/shell/screens/ValueRecapScreen';
 import { PlanScreen } from './src/shell/screens/PlanScreen';
@@ -1468,7 +1468,7 @@ export default function App() {
       else if (route.step === 'concern') screen = <ConcernScreen t={t} record={record} onDone={(concerns) => update((r) => saveMainConcerns(r, concerns))} />;
       else if (route.step === 'setup') screen = <SetupScreen t={t} record={record} update={update} onPart={setSetupPart} />;
       else if (route.step === 'diagnostic')
-        screen = <DiagnosticView key="diagnostic" t={t} record={record} seed={newSeed()} onFinish={(latency) => update((r) => recordDiagnostic(r, latency))} />;
+        screen = <ReadTheDogView key="diagnostic" t={t} record={record} seed={newSeed()} onFinish={(latency) => update((r) => recordDiagnostic(r, latency))} />;
       else if (route.step === 'plan')
         screen = <PlanScreen t={t} dog={record} latency={record.onboarding.diagnosticLatency ?? 0.5} plan={record.onboarding.plan} onContinue={() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: nextStep('plan') } }))} />;
       else if (route.step === 'method')

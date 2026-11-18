@@ -192,7 +192,7 @@ jest.mock('./shell/SimView', () => {
 });
 for (const m of [
   'DailyResultScreen', 'DiaryScreen', 'DoorbellMatView', 'BarkdokuView', 'MissionScreens', 'LessonScreens', 'WorldMapScreen',
-  'NodeScreens', 'PosteMinigameView', 'ReadDogView', 'DiagnosticView', 'PaywallScreen', 'ValueRecapScreen', 'PlanScreen',
+  'NodeScreens', 'PosteMinigameView', 'ReadDogView', 'ReadTheDogView', 'PaywallScreen', 'ValueRecapScreen', 'PlanScreen',
   'IntroScreens', 'SetupScreen', 'SettingsScreen', 'SplashScreen', 'AccountScreens', 'MethodOverviewScreen',
 ]) {
   jest.mock(`./shell/screens/${m}`, () => mockScreens());
@@ -244,6 +244,8 @@ import type { ResolvedShop } from './shell/content/resolver';
 import { SHOP_STATE_STORAGE_KEY, DEFAULT_SHOP_STATE } from './shell/shop';
 import { POOR_SCORE_BELOW } from './shell/stars';
 import { getAnalytics, resetAnalyticsForTesting, MockAnalyticsService, ANALYTICS_STATE_KEY } from './shell/analytics';
+import { seedFromLatency } from './shell/onboarding/diagnostic';
+import { finishSetup } from './shell/onboarding/setup';
 
 const LOAD_TIMEOUT_MS = 20000;
 const latest = (name: string) => mockProps[name];
@@ -736,6 +738,240 @@ describe('App - Stage view lifecycle', () => {
       } finally {
         global.Intl = originalIntl;
       }
+    });
+  });
+
+  describe('Onboarding: Diagnostic as ReadTheDog (Tasks 6.2 & 6.3)', () => {
+    it('mounts ReadTheDogView for diagnostic step with no carry, records latency, and reaches diagnostic card and plan', async () => {
+      const record = { ...newDogRecord(), onboarding: { ...NEW_ONBOARDING, step: 'diagnostic' as const }, version: RECORD_VERSION };
+      mockStore.set(RECORD_KEY, JSON.stringify(record));
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+
+      // ReadTheDogView is mounted with no carry prop
+      expect(latest('ReadTheDogView')).toBeDefined();
+      expect(typeof latest('ReadTheDogView').seed).toBe('number');
+      expect(latest('ReadTheDogView').carry).toBeUndefined();
+
+      // Finishing round with latency 0.38
+      await act(async () => {
+        latest('ReadTheDogView').onFinish(0.38);
+      });
+
+      // Advances to PlanScreen (the diagnostic card and personal plan)
+      expect(latest('PlanScreen')).toBeDefined();
+      expect(latest('PlanScreen').latency).toBe(0.38);
+      expect(latest('PlanScreen').plan).toBeDefined();
+
+      // Latency is recorded in store and seeds reconnectionLatency once
+      const saved = JSON.parse(mockStore.get(RECORD_KEY)!);
+      expect(saved.onboarding.diagnosticLatency).toBe(0.38);
+      expect(saved.attributes.reconnectionLatency).toBe(seedFromLatency(0.38));
+      expect(saved.onboarding.plan).toBeDefined();
+    });
+
+    it('leaves a record that already has a latency unchanged on diagnostic finish', async () => {
+      const record = {
+        ...newDogRecord(),
+        onboarding: { ...NEW_ONBOARDING, step: 'diagnostic' as const, diagnosticLatency: 0.28 },
+        attributes: { ...newDogRecord().attributes, reconnectionLatency: 1 },
+        version: RECORD_VERSION,
+      };
+      mockStore.set(RECORD_KEY, JSON.stringify(record));
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+
+      expect(latest('ReadTheDogView')).toBeDefined();
+      await act(async () => {
+        latest('ReadTheDogView').onFinish(0.95);
+      });
+
+      const saved = JSON.parse(mockStore.get(RECORD_KEY)!);
+      expect(saved.onboarding.diagnosticLatency).toBe(0.28);
+      expect(saved.attributes.reconnectionLatency).toBe(1);
+    });
+
+    it('plays the diagnostic round again and seeds once after a progress reset', async () => {
+      const completedRecord = {
+        ...newDogRecord(),
+        onboarding: { ...NEW_ONBOARDING, step: 'done' as const, diagnosticLatency: 0.35 },
+        attributes: { ...newDogRecord().attributes, reconnectionLatency: 2 },
+        version: RECORD_VERSION,
+      };
+      mockStore.set(RECORD_KEY, JSON.stringify(completedRecord));
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+
+      // On World Map
+      expect(latest('WorldMapScreen')).toBeDefined();
+      act(() => latest('WorldMapScreen').onSettings());
+      expect(latest('SettingsScreen')).toBeDefined();
+
+      // Trigger reset
+      await act(async () => {
+        await latest('SettingsScreen').onReset();
+      });
+
+      // Returned to welcome with reset onboarding
+      expect(latest('SplashScreen')).toBeDefined();
+      const resetRecord = JSON.parse(mockStore.get(RECORD_KEY)!);
+      expect(resetRecord.onboarding.step).toBe('welcome');
+      expect(resetRecord.onboarding.diagnosticLatency).toBeNull();
+
+      // When the reset funnel reaches the diagnostic step again
+      const atDiagnostic = { ...resetRecord, onboarding: { ...resetRecord.onboarding, step: 'diagnostic' as const } };
+      mockStore.set(RECORD_KEY, JSON.stringify(atDiagnostic));
+      act(() => renderer.unmount());
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+
+      // Now ReadTheDogView is mounted again with no carry
+      expect(latest('ReadTheDogView')).toBeDefined();
+      expect(latest('ReadTheDogView').carry).toBeUndefined();
+
+      // Complete the round
+      await act(async () => {
+        latest('ReadTheDogView').onFinish(0.44);
+      });
+
+      // Diagnostic card and plan reached
+      expect(latest('PlanScreen')).toBeDefined();
+      expect(latest('PlanScreen').latency).toBe(0.44);
+
+      // Recorded in store and seeds reconnectionLatency once
+      const saved = JSON.parse(mockStore.get(RECORD_KEY)!);
+      expect(saved.onboarding.diagnosticLatency).toBe(0.44);
+      expect(saved.attributes.reconnectionLatency).toBe(seedFromLatency(0.44));
+    });
+
+    /** The reopened view is one new mount with a seed, no carry and nothing reported yet; the view itself starts at its start screen (ReadTheDogView.test.tsx, 6.3). */
+    function expectFreshRound() {
+      expect(mockMounted['ReadTheDogView']).toBe(1);
+      const props = latest('ReadTheDogView');
+      expect(typeof props.seed).toBe('number');
+      expect(props.carry).toBeUndefined();
+      expect(typeof props.onFinish).toBe('function');
+    }
+
+    it('restores diagnostic step with no latency recorded and starts a fresh round when closed mid-round', async () => {
+      const record = { ...newDogRecord(), onboarding: { ...NEW_ONBOARDING, step: 'diagnostic' as const }, version: RECORD_VERSION };
+      mockStore.set(RECORD_KEY, JSON.stringify(record));
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+
+      expect(latest('ReadTheDogView')).toBeDefined();
+
+      // Close app mid-round (unmount)
+      act(() => renderer.unmount());
+
+      // Stored record still has no latency
+      const saved = JSON.parse(mockStore.get(RECORD_KEY)!);
+      expect(saved.onboarding.step).toBe('diagnostic');
+      expect(saved.onboarding.diagnosticLatency).toBeNull();
+
+      // Reopen app
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+
+      // Restored diagnostic step, with a freshly mounted view (new seed, no carry) and still no latency stored
+      expectFreshRound();
+      const reopened = JSON.parse(mockStore.get(RECORD_KEY)!);
+      expect(reopened.onboarding.step).toBe('diagnostic');
+      expect(reopened.onboarding.diagnosticLatency).toBeNull();
+    });
+
+    it('restores diagnostic step with no latency recorded and starts a fresh round when closed on result before Continue', async () => {
+      const record = { ...newDogRecord(), onboarding: { ...NEW_ONBOARDING, step: 'diagnostic' as const }, version: RECORD_VERSION };
+      mockStore.set(RECORD_KEY, JSON.stringify(record));
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+
+      expect(latest('ReadTheDogView')).toBeDefined();
+      const firstSeed = latest('ReadTheDogView').seed;
+
+      // On result card before Continue: onFinish has not been called
+      // Close app
+      act(() => renderer.unmount());
+
+      const saved = JSON.parse(mockStore.get(RECORD_KEY)!);
+      expect(saved.onboarding.step).toBe('diagnostic');
+      expect(saved.onboarding.diagnosticLatency).toBeNull();
+
+      // Reopen app
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+
+      expectFreshRound();
+      expect(JSON.parse(mockStore.get(RECORD_KEY)!).onboarding.diagnosticLatency).toBeNull();
+      expect(typeof firstSeed).toBe('number');
+    });
+
+    it('leaves with System Back, restoring diagnostic step with no latency recorded on next launch', async () => {
+      const record = { ...newDogRecord(), onboarding: { ...NEW_ONBOARDING, step: 'diagnostic' as const }, version: RECORD_VERSION };
+      mockStore.set(RECORD_KEY, JSON.stringify(record));
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+
+      expect(latest('ReadTheDogView')).toBeDefined();
+
+      // System back on diagnostic step does not consume (returns false so OS exits app)
+      const handled = triggerBack();
+      expect(handled).toBe(false);
+
+      // App exits/unmounts
+      act(() => renderer.unmount());
+
+      // No latency recorded
+      const saved = JSON.parse(mockStore.get(RECORD_KEY)!);
+      expect(saved.onboarding.step).toBe('diagnostic');
+      expect(saved.onboarding.diagnosticLatency).toBeNull();
+
+      // Reopen app
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+
+      expectFreshRound();
+      expect(JSON.parse(mockStore.get(RECORD_KEY)!).onboarding.diagnosticLatency).toBeNull();
     });
   });
 

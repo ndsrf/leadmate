@@ -6,6 +6,8 @@ import type { Translate } from '../../i18n';
 import type { DogCoat } from '../../sim/config';
 import type { BreedId } from '../onboarding/breeds';
 import { BreedArt } from './BreedArt';
+import { FeedbackBurst, type FeedbackBurstProps } from './FeedbackBurst';
+import type { RtdSignal } from '../nodes/readTheDog';
 import { CanineMinigameAvatar } from './CanineMinigameAvatar';
 import { atDoor, livingRoomSpot, COLLAR_POINT, DOG_VIEW, HANDLER_LEAN_DEG, HANDLER_PALETTE, HANDLER_PIVOT, handlerHand, leashPath, postureSpec, tensionTone, type CaninePosture } from './canine';
 import type { ReadDogAction } from '../nodes/readDog';
@@ -347,7 +349,7 @@ export function TensionGauge({ t, tension }: { t: Translate; tension: number }) 
 export type ActionIcon = ReadDogAction | 'hand';
 
 /** The one big control of the Poste practice: raised like every game button, with an icon, and it sinks while held. */
-export function MinigameButton({ label, icon, onPressIn, onPressOut }: { label: string; icon: ActionIcon; onPressIn?: () => void; onPressOut?: () => void }) {
+export function MinigameButton({ label, icon, onPressIn, onPressOut, compact = false }: { label: string; icon: ActionIcon; onPressIn?: () => void; onPressOut?: () => void; /** A shorter button (still above the 44-point target) for screens that must fit three at 320 by 640. */ compact?: boolean }) {
   const color = usePalette();
   return (
     <Pressable onPressIn={onPressIn} onPressOut={onPressOut} accessibilityRole="button" accessibilityLabel={label}>
@@ -355,7 +357,7 @@ export function MinigameButton({ label, icon, onPressIn, onPressOut }: { label: 
         const s = buttonStyle(color, 'primary', { pressed });
         return (
           <Raised fill={s.fill} edge={s.edge} radius={theme.radius.lg} offset={theme.depth.md.x} shift={pressed ? theme.depth.md.x - theme.depth.pressed.x : 0} pressable
-            faceStyle={{ minHeight: 88, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: theme.space[4], paddingHorizontal: theme.space[4] }}>
+            faceStyle={{ minHeight: compact ? 56 : 88, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: theme.space[4], paddingHorizontal: theme.space[4] }}>
             <ButtonIcon icon={icon} tint={s.label} />
             <Text className="font-display text-title" style={{ color: s.label, flexShrink: 1, textAlign: 'center' }}>
               {label}
@@ -471,58 +473,82 @@ function ButtonIcon({ icon, tint }: { icon: ActionIcon; tint: string }) {
   );
 }
 
-const MEADOW_DOG_W = 190;
+export interface ReadTheDogSceneProps {
+  breed: BreedId;
+  coat: DogCoat;
+  /** The Body Signal on show, or null between signals (the Dog stands neutral). */
+  signal: RtdSignal | null;
+  /** Screen-reader description of the pose (`readTheDog.describe.<signal>`, never names the class); undefined means decorative. */
+  label?: string;
+  /** The line after an answer or a miss; null before an answer, so the scene never gives the class away. */
+  caption: string | null;
+  /** The Feedback Message to draw in the band above the Dog; null for none. */
+  burst: FeedbackBurstProps | null;
+}
+
+/** The Read the Dog scene Dog: bigger than the meadow Dog so a subtle part (a tongue flick, a whale eye) can be read, with a band above it. */
+const RTD_DOG_W = 190;
+const RTD_GROUND_Y = 176;
+const RTD_DOG_H = (RTD_DOG_W * 110) / 160;
+/** Height of the band above the Dog that Feedback Messages are drawn in, in scene units. */
+export const RTD_BAND_H = RTD_GROUND_Y - (RTD_DOG_H * 100) / 110;
+/** A caption keeps this much room even when empty, so the layout never jumps when the line appears. */
+export const RTD_CAPTION_MIN_H = 44;
 
 /**
- * The Diagnostic scene: the Dog in its breed and coat on a meadow, looking at the user while the signal is on. The posture
- * change is immediate under reduced motion; otherwise the Dog gives a short pop as it turns.
+ * The Read the Dog scene: the user's breed and coat on a meadow showing a Body Signal, a band above the Dog for the Feedback
+ * Message (never over the Dog), and a caption under the scene that is empty until the user answers or the time runs out.
+ * The scene keeps side margins from the screen edges so a swipe on it never starts where the system back gesture lives.
  */
-export function DiagnosticScene({ t, breed, coat, looking }: { t: Translate; breed: BreedId; coat: DogCoat; looking: boolean }) {
+export function ReadTheDogScene({ breed, coat, signal, label, caption, burst }: ReadTheDogSceneProps) {
   const [width, setWidth] = useState(0);
-  const { reduced } = useMotion();
-  const pop = useSharedValue(0);
-  useEffect(() => {
-    if (reduced) {
-      pop.value = 0;
-      return;
-    }
-    pop.value = withTiming(looking ? 1 : 0, { duration: theme.motion.duration.quick });
-  }, [looking, reduced, pop]);
-  const popStyle = useAnimatedStyle(() => ({ transform: [{ scale: 1 + pop.value * 0.05 }] }));
-  const dogH = (MEADOW_DOG_W * 110) / 160;
   return (
-    <Stage onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
-      <Svg style={fill} viewBox={`0 0 ${SCENE.w} ${SCENE.h}`} aria-hidden>
-        <Rect x={0} y={0} width={SCENE.w} height={SCENE.h} fill={lightColor.sky} />
-        <Circle cx={270} cy={40} r={20} fill={lightColor.accent} stroke={lightColor.ink} strokeWidth={2.5} />
-        <Path d="M0 122C50 100 110 118 170 106S280 96 320 112V190H0Z" fill={theme.world.sidewalk.ground} stroke={lightColor.ink} strokeWidth={2.5} />
-        <Path d="M0 150C70 132 150 156 230 142S300 134 320 142V190H0Z" fill={lightColor.brand} stroke={lightColor.ink} strokeWidth={2.5} />
-        <Path d="M0 174C80 162 170 182 250 170S300 166 320 170V190H0Z" fill={lightColor.brandDeep} stroke={lightColor.ink} strokeWidth={2.5} />
-      </Svg>
-      <View accessible={false} style={{ position: 'absolute', left: pctX(66), top: pctY(150 - (dogH * 100) / 110), width: pctX(MEADOW_DOG_W) }}>
-        <Animated.View style={popStyle}>
-          <BreedArt breed={breed} coat={coat} width={(width * MEADOW_DOG_W) / SCENE.w} looking={looking} label={t(looking ? 'minigame.dog.looking' : 'minigame.dog.standing_waiting')} />
-        </Animated.View>
+    <View style={{ width: '100%', gap: theme.space[2] }}>
+      <Stage onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+        <Svg style={fill} viewBox={`0 0 ${SCENE.w} ${SCENE.h}`} aria-hidden>
+          <Rect x={0} y={0} width={SCENE.w} height={SCENE.h} fill={lightColor.sky} />
+          <Circle cx={286} cy={RTD_BAND_H + 4} r={14} fill={lightColor.accent} stroke={lightColor.ink} strokeWidth={2.5} />
+          <Path d="M0 128C50 106 110 124 170 112S280 102 320 118V190H0Z" fill={theme.world.sidewalk.ground} stroke={lightColor.ink} strokeWidth={2.5} />
+          <Path d="M0 152C70 134 150 158 230 144S300 136 320 144V190H0Z" fill={lightColor.brand} stroke={lightColor.ink} strokeWidth={2.5} />
+          <Path d="M0 178C80 166 170 186 250 174S300 170 320 174V190H0Z" fill={lightColor.brandDeep} stroke={lightColor.ink} strokeWidth={2.5} />
+        </Svg>
+        <View accessible={false} style={{ position: 'absolute', left: pctX((SCENE.w - RTD_DOG_W) / 2), top: pctY(RTD_GROUND_Y - (RTD_DOG_H * 100) / 110), width: pctX(RTD_DOG_W) }}>
+          <BreedArt breed={breed} coat={coat} width={(width * RTD_DOG_W) / SCENE.w} signal={signal ?? undefined} {...(label !== undefined ? { label } : {})} />
+        </View>
+        {burst !== null && <FeedbackBurst {...burst} />}
+      </Stage>
+      <View style={{ minHeight: RTD_CAPTION_MIN_H, justifyContent: 'center' }}>
+        {caption !== null && (
+          <Text className="text-body text-center" style={{ color: lightColor.ink }}>
+            {caption}
+          </Text>
+        )}
       </View>
-    </Stage>
+    </View>
   );
 }
 
-const PAW_PATHS = ['M9 14a2.4 3 0 1 0 0.1 0z', 'M15 8a2.4 3 0 1 0 0.1 0z', 'M23 8a2.4 3 0 1 0 0.1 0z', 'M29 14a2.4 3 0 1 0 0.1 0z', 'M19 17c-6 0-10 5-10 9 0 3.5 3 4.5 6 4 2-.4 2.6-.6 4-.6s2 .2 4 .6c3 .5 6-.5 6-4 0-4-4-9-10-9z'];
+export interface RtdTimerBarProps {
+  /** Seconds left for the signal on show, and its full timer; the bar is left/total. */
+  left: number;
+  total: number;
+  /** Text alternative ("2 s left"), also the accessible label and shown beside the bar so the time never rests on colour; already translated. */
+  label: string;
+}
 
-/** The Diagnostic progress: one paw per response, filled brand green; empty paws stay outlined, so the count reads without colour. */
-export function PawRow({ t, filled, total }: { t: Translate; filled: number; total: number }) {
+/** The signal timer bar: a progressbar that empties as the time runs out, with its time as text beside it. */
+export function RtdTimerBar({ left, total, label }: RtdTimerBarProps) {
   const color = usePalette();
-  const label = t('diagnostic.paws').split('{n}').join(String(filled)).split('{total}').join(String(total));
+  const share = total > 0 ? Math.min(1, Math.max(0, left / total)) : 0;
+  const tone = share > 0.5 ? color.brand : share > 0.25 ? color.accent : color.coral;
   return (
-    <View accessible accessibilityRole="progressbar" accessibilityLabel={label} accessibilityValue={{ min: 0, max: total, now: filled }} className="flex-row items-center" style={{ gap: theme.space[1] }}>
-      {Array.from({ length: total }, (_, i) => (
-        <Svg key={i} width={32} height={32} viewBox="0 0 38 38" aria-hidden>
-          {PAW_PATHS.map((d) => (
-            <Path key={d} d={d} fill={i < filled ? color.brand : color.surfaceSunken} stroke={color.ink} strokeWidth={2.2} strokeLinejoin="round" />
-          ))}
-        </Svg>
-      ))}
+    <View accessible accessibilityRole="progressbar" accessibilityLabel={label} accessibilityValue={{ min: 0, max: 100, now: Math.round(share * 100) }} style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
+      <View style={{ flex: 1, height: 18, borderRadius: 9, overflow: 'hidden', backgroundColor: color.surfaceSunken, borderWidth: theme.border.ink, borderColor: color.outline }}>
+        <View style={{ width: `${Math.round(share * 100)}%`, height: '100%', backgroundColor: tone }} />
+      </View>
+      <Text className="text-body text-inkMuted" style={{ minWidth: 56, textAlign: 'right' }}>
+        {label}
+      </Text>
     </View>
   );
 }
