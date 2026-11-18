@@ -40,6 +40,7 @@ import { TIER_SECONDS, type FeedbackTier } from '../../hud/feedback';
 import { FeedbackBurst } from './FeedbackBurst';
 import { ReadTheDogScene, RtdTimerBar, RTD_BAND_H } from './MinigameProps';
 import { RTD_ART } from './rtdArt';
+import { lightColor } from './theme';
 
 const renderToStaticMarkup = (n: React.ReactElement) => render(n).split('&quot;').join('"');
 
@@ -113,8 +114,8 @@ describe('FeedbackBurst', () => {
   it('draws the big tier as a banner and the wrong tier in grey with no red', () => {
     expect(burst('big', 'right')).toContain('"alignSelf":"stretch"');
     const wrong = burst('wrong', 'wrong');
-    for (const red of ['#E8795C', '#F29A86', '#A63A22']) expect(wrong.toUpperCase()).not.toContain(red);
-    expect(wrong).toContain('#E6DDC8');
+    for (const red of [lightColor.coral, lightColor.danger, lightColor.dangerText]) expect(wrong.toUpperCase()).not.toContain(red.toUpperCase());
+    expect(wrong).toContain(lightColor.locked);
   });
 
   it('keeps every tier inside its TIER_SECONDS', () => {
