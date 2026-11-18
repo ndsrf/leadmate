@@ -151,4 +151,49 @@ describe('readTheDog - 1.3 newRound and stepRound time/phase', () => {
   });
 });
 
+describe('readTheDog - 1.4 answering', () => {
+  it('closes right answer as right, wrong as wrong with no retry, ignores second answer on closed signal, rises seq once per event', () => {
+    let state = newRound(777);
+    const signal1 = state.signal!;
+    const correct1 = SIGNALS[signal1].cls;
+    const wrong1: RtdClass = correct1 === 'calm' ? 'alert' : 'calm';
+
+    // Right answer
+    state = stepRound(state, 0.1, correct1);
+    expect(state.phase).toBe('pause');
+    expect(state.last?.seq).toBe(1);
+    expect(state.last?.kind).toBe('correct');
+    expect(state.last?.signal).toBe(signal1);
+    expect(state.last?.class).toBe(correct1);
+    expect(state.right[correct1]).toBe(1);
+
+    // Second answer while closed/in pause is ignored
+    state = stepRound(state, 0.05, wrong1);
+    expect(state.last?.seq).toBe(1);
+    expect(state.right[correct1]).toBe(1);
+
+    // Advance to next signal
+    state = stepRound(state, 0.3);
+    expect(state.phase).toBe('showing');
+    const signal2 = state.signal!;
+    const correct2 = SIGNALS[signal2].cls;
+    const wrong2: RtdClass = correct2 === 'calm' ? 'alert' : 'calm';
+
+    // Wrong answer
+    state = stepRound(state, 0.1, wrong2);
+    expect(state.phase).toBe('pause');
+    expect(state.last?.seq).toBe(2);
+    expect(state.last?.kind).toBe('wrong');
+    expect(state.last?.signal).toBe(signal2);
+    expect(state.last?.class).toBe(wrong2);
+    expect(state.wrong[wrong2]).toBe(1);
+
+    // No retry allowed: another answer while paused is ignored
+    state = stepRound(state, 0.1, correct2);
+    expect(state.last?.seq).toBe(2);
+    expect(state.right[correct2]).toBe(0);
+  });
+});
+
+
 
