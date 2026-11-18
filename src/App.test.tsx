@@ -1355,5 +1355,71 @@ describe('App - Stage view lifecycle', () => {
       expect(funnelEvents[0].properties.repeat).toBe(false);
       expect(funnelEvents[1].properties.repeat).toBe(false);
     });
+
+    it('a skipped Node Stage sends exactly one stage_started and one stage_ended with outcome skipped', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await openMap();
+      analytics.clear();
+
+      openStop(WALK_DISTRACTION.id);
+      throughPrimerAndCheckpoint();
+      await sendFromView({ type: 'ready' });
+
+      // In simulation: stage_started sent
+      const started = analytics.events.filter((e) => e.name === 'stage_started');
+      expect(started.length).toBe(1);
+      expect(started[0].properties).toMatchObject({
+        stage_kind: 'node',
+        stage_id: WALK_DISTRACTION.id,
+        mode: 'stage',
+        attempt: 1,
+      });
+
+      // Pause and Exit (Skip)
+      act(() => latest('SimulatorBackButton').onPress());
+      await sendFromView({ type: 'paused' });
+      act(() => latest('ResumeOverlay').onExit());
+
+      const ended = analytics.events.filter((e) => e.name === 'stage_ended');
+      expect(ended.length).toBe(1);
+      expect(ended[0].properties).toMatchObject({
+        stage_kind: 'node',
+        stage_id: WALK_DISTRACTION.id,
+        mode: 'stage',
+        attempt: 1,
+        outcome: 'skipped',
+      });
+      expect(typeof ended[0].properties.duration_seconds).toBe('number');
+    });
+
+    it('backing out of a Minigame sends minigame_ended with outcome left', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await openMap();
+      analytics.clear();
+
+      openStop(BARKDOKU_INTRO_NODE.id);
+      throughPrimerAndCheckpoint();
+      expect(latest('BarkdokuView')).toBeDefined();
+
+      const started = analytics.events.filter((e) => e.name === 'minigame_started');
+      expect(started.length).toBe(1);
+      expect(started[0].properties).toMatchObject({
+        node_id: BARKDOKU_INTRO_NODE.id,
+        attempt: 1,
+      });
+
+      // Back out of Minigame
+      act(() => latest('BarkdokuView').onExit());
+      expect(latest('WorldMapScreen')).toBeDefined();
+
+      const ended = analytics.events.filter((e) => e.name === 'minigame_ended');
+      expect(ended.length).toBe(1);
+      expect(ended[0].properties).toMatchObject({
+        node_id: BARKDOKU_INTRO_NODE.id,
+        attempt: 1,
+        outcome: 'left',
+      });
+      expect(ended[0].properties.handling_score).toBeUndefined();
+    });
   });
 });

@@ -98,6 +98,9 @@ import {
   updateAnalyticsFlags,
   ANALYTICS_STATE_KEY,
   readAnalyticsState,
+  PlayTracker,
+  type StageMode,
+  type StartStageInfo,
 } from './src/shell/analytics';
 import { daysSince, shouldStartSession } from './src/shell/analytics/session';
 import { FunnelTracker } from './src/shell/analytics/funnel';
@@ -150,6 +153,65 @@ function isCloseExerciseFlow(route: Route<Flow>): boolean {
 /** True in a close exercise that offers the hand drill's controls, the one whose controls get Coach marks. */
 function isHandDrillFlow(route: Route<Flow>): boolean {
   return route.name === 'flow' && route.flow.name === 'node' && route.flow.run.node.mode === 'close_exercise' && route.flow.run.node.simulation.closeScenario?.controls === 'hand_drill';
+}
+
+function getStartStageInfo(
+  currentRoute: Route<Flow>,
+  currentFlow: Flow | null,
+  mode: StageMode = 'stage'
+): StartStageInfo {
+  if (currentRoute.name === 'taste') {
+    return {
+      type: 'stage',
+      stage_kind: 'taste',
+      stage_id: 'taste',
+      mode,
+      attempt: 1,
+    };
+  }
+  if (currentRoute.name === 'first-stage') {
+    return {
+      type: 'stage',
+      stage_kind: 'first',
+      stage_id: 'intro-node',
+      mode,
+      attempt: 1,
+    };
+  }
+  if (currentRoute.name === 'flow' && currentRoute.flow.name === 'warmup') {
+    return {
+      type: 'stage',
+      stage_kind: 'warmup',
+      stage_id: 'warmup',
+      mode,
+      attempt: 1,
+    };
+  }
+  if (currentRoute.name === 'flow' && currentRoute.flow.name === 'daily') {
+    return {
+      type: 'stage',
+      stage_kind: 'daily',
+      stage_id: `daily:${todayString()}`,
+      mode,
+      attempt: currentRoute.flow.attempt + 1,
+    };
+  }
+  if (currentRoute.name === 'flow' && currentRoute.flow.name === 'node') {
+    return {
+      type: 'stage',
+      stage_kind: 'node',
+      stage_id: currentRoute.flow.run.node.id,
+      mode,
+      attempt: currentRoute.flow.attempt + 1,
+    };
+  }
+  return {
+    type: 'stage',
+    stage_kind: 'node',
+    stage_id: 'node',
+    mode,
+    attempt: 1,
+  };
 }
 
 const LOAD_TIMEOUT_MS = 20000;
@@ -306,6 +368,7 @@ export default function App() {
 
   const [setupPart, setSetupPart] = useState<SetupPart | null>(null);
   const funnelTracker = useRef(new FunnelTracker());
+  const playTracker = useRef(new PlayTracker());
   const lastBackgroundAt = useRef<Date | null>(null);
 
   useEffect(() => {
@@ -341,6 +404,7 @@ export default function App() {
   useEffect(() => {
     const sub = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'active') {
+        playTracker.current.resume();
         if (shouldStartSession(lastBackgroundAt.current, new Date())) {
           const state = getAnalyticsState();
           if (state) {
@@ -353,11 +417,20 @@ export default function App() {
         }
         lastBackgroundAt.current = null;
       } else {
+        playTracker.current.pause();
         lastBackgroundAt.current = new Date();
       }
     });
     return () => sub.remove();
   }, []);
+
+  useEffect(() => {
+    if (paused) {
+      playTracker.current.pause();
+    } else {
+      playTracker.current.resume();
+    }
+  }, [paused]);
   const pendingStart = useRef<ShellMessage | null>(null);
   const bundleReady = useRef(false);
   // the Stage view is created on demand (see stageViewWanted): one silent remount is allowed before play
@@ -460,6 +533,10 @@ export default function App() {
       setControlsUsed({});
       setStageRun((n) => n + 1);
       feedback.preloadStage();
+      const startInfo = getStartStageInfo(routeRef.current, flowRef.current, 'stage');
+      const startRes = playTracker.current.start(startInfo);
+      if (startRes.ended) track(startRes.ended.name, startRes.ended.props);
+      track(startRes.name, startRes.props);
       if (bundleReady.current) send(message);
       else pendingStart.current = message;
     },
@@ -483,6 +560,10 @@ export default function App() {
       setDogWarning(null);
       setControlsUsed({});
       setStageRun((n) => n + 1);
+      const startInfo = getStartStageInfo(routeRef.current, flowRef.current, 'close_exercise');
+      const startRes = playTracker.current.start(startInfo);
+      if (startRes.ended) track(startRes.ended.name, startRes.ended.props);
+      track(startRes.name, startRes.props);
       if (bundleReady.current) send(message);
       else pendingStart.current = message;
     },
@@ -536,6 +617,8 @@ export default function App() {
   const tastePayoffTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showTastePayoff = useCallback(() => {
     if (tastePayoffTimer.current) return;
+    const endRes = playTracker.current.end('finished', new Date());
+    if (endRes) track(endRes.name, endRes.props);
     send({ type: 'focus' });
     tastePayoffTimer.current = setTimeout(() => setTastePayoff(true), TASTE_LINGER_MS);
   }, [send]);
@@ -581,6 +664,49 @@ export default function App() {
       }
     }
   }, [route, setupPart, tasteBriefed, tastePayoff, introRun?.step, flow?.name, record?.onboarding.step]);
+
+  const minigameSimulationKey =
+    route.name === 'flow' &&
+    route.flow.name === 'node' &&
+    route.flow.run.step === 'simulation' &&
+    route.flow.run.node.mode === 'minigame'
+      ? `${route.flow.run.node.id}:${route.flow.attempt}`
+      : null;
+  useEffect(() => {
+    if (minigameSimulationKey === null || flowRef.current?.name !== 'node') return;
+    const f = flowRef.current;
+    const startRes = playTracker.current.start({
+      type: 'minigame',
+      node_id: f.run.node.id,
+      attempt: f.attempt + 1,
+    });
+    if (startRes.ended) track(startRes.ended.name, startRes.ended.props);
+    track(startRes.name, startRes.props);
+  }, [minigameSimulationKey]);
+
+  const playKey =
+    (route.name === 'taste' && tasteBriefed)
+      ? 'taste:1'
+      : (route.name === 'first-stage' && introRun?.step === 'simulation')
+      ? 'first:1'
+      : (route.name === 'flow' && route.flow.name === 'warmup')
+      ? 'warmup:1'
+      : (route.name === 'flow' && route.flow.name === 'daily' && route.flow.result === null)
+      ? `daily:${route.flow.attempt}`
+      : (route.name === 'flow' && route.flow.name === 'node' && route.flow.run.step === 'simulation')
+      ? `${route.flow.run.node.id}:${route.flow.attempt}`
+      : null;
+
+  const previousPlayKey = useRef<string | null>(null);
+  useEffect(() => {
+    if (previousPlayKey.current !== null && previousPlayKey.current !== playKey) {
+      if (playTracker.current.isOpen) {
+        const left = playTracker.current.end('left');
+        if (left) track(left.name, left.props);
+      }
+    }
+    previousPlayKey.current = playKey;
+  }, [playKey]);
 
   // the Stage view exists only while a Stage is being prepared or played; every shell screen runs without a browser engine behind it
   const viewWanted = stageViewWanted({ route: route as Parameters<typeof stageViewWanted>[0]['route'], introStep: introRun?.step ?? null });
@@ -720,6 +846,8 @@ export default function App() {
         if (recordRef.current) playResolvedCue(resolveCue(recordRef.current, language));
       } else if (message.type === 'debrief') {
         const payload: SimulationDebriefPayload = message.payload;
+        const endRes = playTracker.current.end('finished', new Date(), payload.handlingScore);
+        if (endRes) track(endRes.name, endRes.props);
         const f = flowRef.current;
         if (f?.name === 'daily' && f.result === null) {
           // the score and the Streak are kept; what the Dog has learned and the campaign are not touched
@@ -1739,8 +1867,11 @@ export default function App() {
       else if (run.step === 'checkpoint')
         screen = <CheckpointScreen t={t} run={run} setting={record.checkpointSeconds} onAnswer={(option) => act({ type: 'answer', option })} onTimeout={() => act({ type: 'timeout' })} />;
       else if (run.step === 'simulation' && run.node.mode === 'minigame') {
-        const finish = (metrics: Partial<Record<Metric, number>>, handlingScore?: number, puzzle?: PuzzleSummary) =>
+        const finish = (metrics: Partial<Record<Metric, number>>, handlingScore?: number, puzzle?: PuzzleSummary) => {
+          const endRes = playTracker.current.end('finished', new Date(), handlingScore);
+          if (endRes) track(endRes.name, endRes.props);
           act({ type: 'finish', result: { kind: 'minigame', metrics, handlingScore, ...(puzzle ? { puzzle } : {}) } });
+        };
         const minigame = run.node.simulation.minigame;
         const seed = f.attempt + 1 + (dateSeed(todayString()) % 1000);
         const playCue = () => playResolvedCue(resolveCue(record, language));
@@ -1844,6 +1975,8 @@ export default function App() {
               t={t}
               onResume={resume}
               onExit={() => {
+                const endRes = playTracker.current.end('skipped', new Date());
+                if (endRes) track(endRes.name, endRes.props);
                 setPaused(false);
                 if (route.name === 'taste') {
                   showTastePayoff();
