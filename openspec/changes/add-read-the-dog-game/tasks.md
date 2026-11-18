@@ -11,7 +11,7 @@
 - [x] 1.7 Test then implement the seeded weighted draw: never the same signal twice in a row, missed/wrong raises a signal's weight (capped), right lowers it to no less than base, a weak signal appears more often over a long run with the same seed, no `Math.random` (grep check in the test file or lint); verify the tests pass
 - [x] 1.8 Test then implement determinism: two runs with the same seed, carry and timed answers produce identical signal sequences and `roundResult`; verify the test passes
 - [x] 1.9 Test then implement `roundLatency`: median of per-answer values, where each right answer is its time minus `decisionAllowance` clamped to 0-1.5 and each miss is 1.5; wrong answers and the signal open at the end excluded; all-missed, only-wrong and empty rounds give 1.5; add a test pinning representative rounds to the quick, steady and slow bands of `latency.ts`; verify the tests pass
-- [ ] 1.10 Test then implement `roundResult(state)` (score, best Combo, per-class right/wrong/missed, end level, latency, seconds; serialisable, no names or free text) and `carryOf(state)` (level and weights for a replay) and `replaySeed(seed, n)` (deterministic, differs per n); verify the tests pass and that the engine never touches a Dog record
+- [x] 1.10 Test then implement `roundResult(state)` (score, best Combo, per-class right/wrong/missed, end level, latency, seconds; serialisable, no names or free text) and `carryOf(state)` (level and weights for a replay) and `replaySeed(seed, n)` (deterministic, differs per n); verify the tests pass and that the engine never touches a Dog record
 
 ## 2. Feedback and input helpers (pure, test-first)
 

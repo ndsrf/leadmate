@@ -565,6 +565,78 @@ describe('readTheDog - 1.9 roundLatency', () => {
   });
 });
 
+describe('readTheDog - 1.10 roundResult, carryOf, replaySeed and no DogRecord mutation', () => {
+  it('returns serialisable roundResult with score, bestCombo, per-class right/wrong/missed, endLevel, latency, seconds, and no free text', () => {
+    let state = newRound(1234);
+    // Answer right on 1st
+    state = stepRound(state, 0.1, SIGNALS[state.signal!].cls);
+    state = stepRound(state, 0.4);
+    // Answer wrong on 2nd
+    const wrongCls: RtdClass = SIGNALS[state.signal!].cls === 'calm' ? 'alert' : 'calm';
+    state = stepRound(state, 0.1, wrongCls);
+    state = stepRound(state, 1.3);
+    // Timeout on 3rd
+    state = stepRound(state, state.timer + 0.1);
+
+    const res = roundResult(state);
+    expect(res).toHaveProperty('score');
+    expect(res).toHaveProperty('bestCombo');
+    expect(res).toHaveProperty('right');
+    expect(res).toHaveProperty('wrong');
+    expect(res).toHaveProperty('missed');
+    expect(res).toHaveProperty('endLevel');
+    expect(res).toHaveProperty('latency');
+    expect(res).toHaveProperty('seconds');
+
+    // Serialisable test
+    const json = JSON.stringify(res);
+    expect(JSON.parse(json)).toEqual(res);
+
+    // No free text or names in values
+    const values = Object.values(res);
+    for (const v of values) {
+      if (typeof v === 'object' && v !== null) {
+        for (const sub of Object.values(v)) {
+          expect(typeof sub).toBe('number');
+        }
+      } else {
+        expect(typeof v).toBe('number');
+      }
+    }
+  });
+
+  it('carryOf extracts level and weights for replay', () => {
+    let state = newRound(5678, { level: 2, weights: { ...newRound(1).weights, play_bow: 3 } });
+    const carry = carryOf(state);
+    expect(carry.level).toBe(2);
+    expect(carry.weights.play_bow).toBe(3);
+  });
+
+  it('replaySeed is deterministic and differs per n', () => {
+    const seed = 42;
+    const s0 = replaySeed(seed, 0);
+    const s1 = replaySeed(seed, 1);
+    const s2 = replaySeed(seed, 2);
+
+    expect(s0).toBe(replaySeed(seed, 0));
+    expect(s1).toBe(replaySeed(seed, 1));
+    expect(s0).not.toBe(s1);
+    expect(s1).not.toBe(s2);
+    expect(s0).toBeGreaterThanOrEqual(0);
+  });
+
+  it('engine never imports or touches a DogRecord', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const source = fs.readFileSync(path.resolve(__dirname, 'readTheDog.ts'), 'utf8');
+    expect(source).not.toContain('DogRecord');
+    expect(source).not.toContain('recordDog');
+    expect(source).not.toContain('LearningAttributes');
+    expect(source).not.toContain('reconnectionLatency');
+  });
+});
+
+
 
 
 
