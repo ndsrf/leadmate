@@ -37,6 +37,7 @@ let activeStore: KeyValueStore | null = null;
 let activeRecord: DogRecord | null = null;
 let activeState: AnalyticsState | null = null;
 let isInitialized = false;
+let isEnabling = false;
 let eventBuffer: BufferedTrackEvent[] = [];
 
 function isJest(): boolean {
@@ -77,6 +78,7 @@ export function resetAnalyticsForTesting(): void {
   activeRecord = null;
   activeState = null;
   isInitialized = false;
+  isEnabling = false;
   eventBuffer = [];
 }
 
@@ -120,6 +122,23 @@ function getCommonProperties(capturedAt: Date, state: AnalyticsState): CommonPro
   };
 }
 
+async function flushBuffer(service: AnalyticsService, state: AnalyticsState): Promise<void> {
+  const toFlush = [...eventBuffer];
+  eventBuffer = [];
+
+  for (const item of toFlush) {
+    try {
+      const common = getCommonProperties(item.timestamp, state);
+      const built = buildEvent(item.name, item.props, common);
+      if (built) {
+        await service.capture({ ...built, timestamp: item.timestamp });
+      }
+    } catch {
+      // Swallow individual event errors
+    }
+  }
+}
+
 export async function initAnalytics(
   store: KeyValueStore,
   record?: DogRecord | null
@@ -150,22 +169,7 @@ export async function initAnalytics(
   if (enabled) {
     try {
       await service.start(state);
-
-      // Flush buffered events
-      const toFlush = [...eventBuffer];
-      eventBuffer = [];
-
-      for (const item of toFlush) {
-        try {
-          const common = getCommonProperties(item.timestamp, state);
-          const built = buildEvent(item.name, item.props, common);
-          if (built) {
-            await service.capture({ ...built, timestamp: item.timestamp });
-          }
-        } catch {
-          // Swallow individual event errors
-        }
-      }
+      await flushBuffer(service, state);
     } catch {
       // Guard service.start/flush failure: keep loaded state, do not clobber
       eventBuffer = [];
@@ -182,7 +186,10 @@ export function track(name: string, props: Record<string, unknown> = {}): void {
   try {
     const timestamp = new Date();
 
-    if (!isInitialized || !activeState) {
+    if (!isInitialized || !activeState || isEnabling) {
+      if (activeState && !isEnabled(activeState) && !isEnabling) {
+        return;
+      }
       // Buffer in memory with cap 50
       if (eventBuffer.length >= BUFFER_CAP) {
         eventBuffer.shift(); // Drop oldest
@@ -229,15 +236,27 @@ export async function setAnalyticsEnabled(enabled: boolean): Promise<void> {
       activeState.choice = enabled ? 'on' : 'off';
     }
 
-    if (activeStore && activeState && activeState.installId !== 'in-memory-fallback') {
-      await saveAnalyticsState(activeStore, activeState);
+    const service = getAnalytics();
+    if (enabled) {
+      isEnabling = true;
+      try {
+        await service.setEnabled(true);
+        if (activeState) {
+          await service.start(activeState);
+        }
+        if (activeState) {
+          await flushBuffer(service, activeState);
+        }
+      } finally {
+        isEnabling = false;
+      }
+    } else {
+      eventBuffer = [];
+      await service.setEnabled(false);
     }
 
-    const service = getAnalytics();
-    await service.setEnabled(enabled);
-
-    if (enabled && activeState) {
-      await service.start(activeState);
+    if (activeStore && activeState && activeState.installId !== 'in-memory-fallback') {
+      await saveAnalyticsState(activeStore, activeState);
     }
   } catch {
     // Swallow every error

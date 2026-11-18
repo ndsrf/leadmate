@@ -228,4 +228,53 @@ describe('Analytics Wiring and Track (Task 3.4)', () => {
     expect(storedAfterEnabled.installId).toBe('real-persisted-install-id');
     expect(storedAfterEnabled.choice).toBe('off');
   });
+
+  it('events tracked while setAnalyticsEnabled(true) is awaiting the save must not vanish', async () => {
+    let resolveSave: () => void = () => {};
+    const savePromise = new Promise<void>((resolve) => {
+      resolveSave = resolve;
+    });
+
+    const store = createMockStore({
+      [ANALYTICS_STATE_KEY]: JSON.stringify({
+        installId: 'disabled-install-id',
+        installedAt: '2026-11-18T00:00:00.000Z',
+        choice: 'off',
+        funnelDoneOnce: false,
+        funnelOpen: false,
+        upgradedInstall: false,
+      }),
+    });
+
+    await initAnalytics(store);
+
+    let started = false;
+    const capturedEvents: any[] = [];
+    mockService.start = jest.fn().mockImplementation(async () => {
+      started = true;
+    });
+    mockService.capture = jest.fn().mockImplementation(async (evt) => {
+      if (!started) {
+        // Simulates PostHog where client is null until start is called
+        return;
+      }
+      capturedEvents.push(evt);
+    });
+
+    const originalSetItem = store.setItem.bind(store);
+    store.setItem = async (key: string, value: string) => {
+      await savePromise;
+      return originalSetItem(key, value);
+    };
+
+    const enablePromise = setAnalyticsEnabled(true);
+
+    track('funnel_step_viewed', { step: 'welcome', repeat: false });
+
+    resolveSave();
+    await enablePromise;
+
+    expect(capturedEvents).toHaveLength(1);
+    expect(capturedEvents[0].name).toBe('funnel_step_viewed');
+  });
 });
