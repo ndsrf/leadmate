@@ -7,6 +7,7 @@ import {
   timerFor,
   newRound,
   stepRound,
+  drawNextSignal,
 } from './readTheDog';
 
 describe('readTheDog - 1.1 signal table', () => {
@@ -364,6 +365,83 @@ describe('readTheDog - 1.6 adaptive level', () => {
     expect(state.level).toBe(0);
   });
 });
+
+describe('readTheDog - 1.7 seeded weighted draw', () => {
+  it('never draws the same signal twice in a row', () => {
+    let state = newRound(3333);
+    let prev = state.signal!;
+    for (let i = 0; i < 20; i++) {
+      state = stepRound(state, 0.1, SIGNALS[state.signal!].cls);
+      state = stepRound(state, 0.4);
+      expect(state.signal).not.toBe(prev);
+      prev = state.signal!;
+    }
+  });
+
+  it('updates weights on wrong/miss (capped at maxWeight) and right (clamped to baseWeight)', () => {
+    let state = newRound(4444);
+    const sig = state.signal!;
+    const wrongCls: RtdClass = SIGNALS[sig].cls === 'calm' ? 'alert' : 'calm';
+
+    // Base weight is 1
+    expect(state.weights[sig]).toBe(1);
+
+    // 1st wrong: +2 -> 3
+    state = stepRound(state, 0.1, wrongCls);
+    expect(state.weights[sig]).toBe(3);
+    state = stepRound(state, 1.3);
+
+    // If sig appears again or we artificially set weights / test weight updates:
+    // Let's test weight bounds:
+    state.weights[sig] = 4;
+    // Another wrong: 4 + 2 = 6 -> capped at 5
+    state.signal = sig;
+    state = stepRound(state, 0.1, wrongCls);
+    expect(state.weights[sig]).toBe(5);
+
+    // Right answer: -1 -> 4
+    state = { ...state, phase: 'showing', signal: sig };
+    state = stepRound(state, 0.1, SIGNALS[sig].cls);
+    expect(state.weights[sig]).toBe(4);
+
+    // Multiple right answers clamp to baseWeight = 1
+    state = { ...state, phase: 'showing', signal: sig, weights: { ...state.weights, [sig]: 1 } };
+    state = stepRound(state, 0.1, SIGNALS[sig].cls);
+    expect(state.weights[sig]).toBe(1);
+  });
+
+  it('makes a weak signal appear more often over a long run with the same seed', () => {
+    // Generate 60 draws from drawNextSignal with base weights vs high weight on whale_eye
+    const baseWeights = { ...newRound(100).weights };
+    const weakWeights = { ...baseWeights, whale_eye: READ_THE_DOG.maxWeight };
+
+    let baseWhaleCount = 0;
+    let weakWhaleCount = 0;
+    let prevBase: RtdSignal | null = null;
+    let prevWeak: RtdSignal | null = null;
+
+    // Use level 2 so subtle signals like whale_eye are enabled
+    for (let i = 0; i < 60; i++) {
+      const drawnBase = drawNextSignal(1000, i, 2, baseWeights, prevBase);
+      if (drawnBase === 'whale_eye') baseWhaleCount++;
+      prevBase = drawnBase;
+
+      const drawnWeak = drawNextSignal(1000, i, 2, weakWeights, prevWeak);
+      if (drawnWeak === 'whale_eye') weakWhaleCount++;
+      prevWeak = drawnWeak;
+    }
+
+    expect(weakWhaleCount).toBeGreaterThan(baseWhaleCount);
+  });
+
+  it('uses no Math.random in readTheDog.ts', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const source = fs.readFileSync(path.resolve(__dirname, 'readTheDog.ts'), 'utf8');
+    expect(source).not.toContain('Math.random');
+  });
+});
+
 
 
 
