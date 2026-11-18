@@ -1,5 +1,6 @@
 import { createRng } from '../../sim/rng';
 import { DIAGNOSTIC, median } from '../onboarding/diagnostic';
+import type { TextKey } from '../../i18n';
 
 /**
  * Read the Dog - pure engine
@@ -379,7 +380,8 @@ export function stepRound(
   const newT = state.t + dt;
   const newTimeLeft = state.timeLeft - dt;
 
-  if (newTimeLeft <= 0 && state.signal !== null) {
+  // the round end is checked first: a signal still open when the round ends is neither right nor missed
+  if (newTimeLeft <= 0 && state.signal !== null && newT < READ_THE_DOG.roundSeconds) {
     const signal = state.signal;
     const signalClass = SIGNALS[signal].cls;
     const seq = (state.last?.seq ?? 0) + 1;
@@ -525,7 +527,7 @@ export interface RtdFeedback {
   tier: FeedbackTier;
   polarity: FeedbackPolarity;
   combo: number;
-  textKey: string;
+  textKey: TextKey;
 }
 
 export function rtdFeedback(
@@ -535,7 +537,7 @@ export function rtdFeedback(
 ): RtdFeedback {
   const kind = typeof event === 'string' ? event : event.kind;
   const isRight = kind === 'correct';
-  const textKey = `readTheDog.signal.${signal}`;
+  const textKey: TextKey = `readTheDog.signal.${signal}`;
 
   if (!isRight) {
     return {

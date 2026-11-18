@@ -16,6 +16,7 @@ import {
   rtdFeedback,
   swipeClass,
 } from './readTheDog';
+import type { TextKey } from '../../i18n';
 
 describe('readTheDog - 1.1 signal table', () => {
   it('defines exactly nine signals matching design Decision 2', () => {
@@ -156,6 +157,19 @@ describe('readTheDog - 1.3 newRound and stepRound time/phase', () => {
     );
     expect(totalRight).toBe(0);
     expect(totalMissed).toBe(0);
+  });
+});
+
+describe('readTheDog - round end checked first (review #5)', () => {
+  it('a signal whose timer expires on the same tick the round ends is neither right nor missed', () => {
+    let state = newRound(999);
+    // 0.01 s of round left and 0.01 s of timer left: one step expires both
+    state = { ...state, t: READ_THE_DOG.roundSeconds - 0.01, timeLeft: 0.01 };
+    state = stepRound(state, 0.02);
+    expect(state.phase).toBe('done');
+    expect(Object.values(state.missed).reduce((a, b) => a + b, 0)).toBe(0);
+    expect(state.last).toBeNull();
+    expect(roundResult(state).missed).toEqual({ calm: 0, alert: 0, about_to_react: 0 });
   });
 });
 
@@ -723,3 +737,10 @@ describe('readTheDog - 2.2 swipeClass', () => {
 
 
 
+
+describe('readTheDog - rtdFeedback textKey is a TextKey (review #7)', () => {
+  it('types textKey as a catalog key', () => {
+    const key: TextKey = rtdFeedback('correct', 1, 'soft_loose').textKey;
+    expect(key).toBe('readTheDog.signal.soft_loose');
+  });
+});
