@@ -542,16 +542,45 @@ export interface ReadTheDogSceneProps {
   burst: FeedbackBurstProps | null;
 }
 
-/** STUB (final props): meadow, breed Dog with `signal`, caption and a Feedback band above the Dog. Real drawing lands with task 5.1. */
+/** The Read the Dog scene Dog: bigger than the meadow Dog so a subtle part (a tongue flick, a whale eye) can be read, with a band above it. */
+const RTD_DOG_W = 190;
+const RTD_GROUND_Y = 176;
+const RTD_DOG_H = (RTD_DOG_W * 110) / 160;
+/** Height of the band above the Dog that Feedback Messages are drawn in, in scene units. */
+export const RTD_BAND_H = RTD_GROUND_Y - (RTD_DOG_H * 100) / 110;
+/** A caption keeps this much room even when empty, so the layout never jumps when the line appears. */
+export const RTD_CAPTION_MIN_H = 56;
+
+/**
+ * The Read the Dog scene: the user's breed and coat on a meadow showing a Body Signal, a band above the Dog for the Feedback
+ * Message (never over the Dog), and a caption under the scene that is empty until the user answers or the time runs out.
+ * The scene keeps side margins from the screen edges so a swipe on it never starts where the system back gesture lives.
+ */
 export function ReadTheDogScene({ breed, coat, signal, label, caption, burst }: ReadTheDogSceneProps) {
+  const [width, setWidth] = useState(0);
   return (
-    <Stage>
-      <View accessible={false} style={{ position: 'absolute', left: pctX(66), top: pctY(40), width: pctX(MEADOW_DOG_W) }}>
-        <BreedArt breed={breed} coat={coat} width={MEADOW_DOG_W} signal={signal ?? undefined} {...(label !== undefined ? { label } : {})} />
+    <View style={{ width: '100%', gap: theme.space[2] }}>
+      <Stage onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+        <Svg style={fill} viewBox={`0 0 ${SCENE.w} ${SCENE.h}`} aria-hidden>
+          <Rect x={0} y={0} width={SCENE.w} height={SCENE.h} fill={lightColor.sky} />
+          <Circle cx={286} cy={RTD_BAND_H + 4} r={14} fill={lightColor.accent} stroke={lightColor.ink} strokeWidth={2.5} />
+          <Path d="M0 128C50 106 110 124 170 112S280 102 320 118V190H0Z" fill={theme.world.sidewalk.ground} stroke={lightColor.ink} strokeWidth={2.5} />
+          <Path d="M0 152C70 134 150 158 230 144S300 136 320 144V190H0Z" fill={lightColor.brand} stroke={lightColor.ink} strokeWidth={2.5} />
+          <Path d="M0 178C80 166 170 186 250 174S300 170 320 174V190H0Z" fill={lightColor.brandDeep} stroke={lightColor.ink} strokeWidth={2.5} />
+        </Svg>
+        <View accessible={false} style={{ position: 'absolute', left: pctX((SCENE.w - RTD_DOG_W) / 2), top: pctY(RTD_GROUND_Y - (RTD_DOG_H * 100) / 110), width: pctX(RTD_DOG_W) }}>
+          <BreedArt breed={breed} coat={coat} width={(width * RTD_DOG_W) / SCENE.w} signal={signal ?? undefined} {...(label !== undefined ? { label } : {})} />
+        </View>
+        {burst !== null && <FeedbackBurst {...burst} />}
+      </Stage>
+      <View style={{ minHeight: RTD_CAPTION_MIN_H, justifyContent: 'center' }}>
+        {caption !== null && (
+          <Text className="text-body text-center" style={{ color: lightColor.ink }}>
+            {caption}
+          </Text>
+        )}
       </View>
-      {burst !== null && <FeedbackBurst {...burst} />}
-      {caption !== null && <Text>{caption}</Text>}
-    </Stage>
+    </View>
   );
 }
 
@@ -559,11 +588,23 @@ export interface RtdTimerBarProps {
   /** Seconds left for the signal on show, and its full timer; the bar is left/total. */
   left: number;
   total: number;
-  /** Text alternative ("2 s left"), also the accessible label; already translated. */
+  /** Text alternative ("2 s left"), also the accessible label and shown beside the bar so the time never rests on colour; already translated. */
   label: string;
 }
 
-/** STUB (final props): the signal timer bar, a progressbar with a text alternative. Real drawing lands with task 5.1. */
+/** The signal timer bar: a progressbar that empties as the time runs out, with its time as text beside it. */
 export function RtdTimerBar({ left, total, label }: RtdTimerBarProps) {
-  return <View accessible accessibilityRole="progressbar" accessibilityLabel={label} accessibilityValue={{ min: 0, max: 100, now: Math.round((Math.max(0, left) / total) * 100) }} />;
+  const color = usePalette();
+  const share = total > 0 ? Math.min(1, Math.max(0, left / total)) : 0;
+  const tone = share > 0.5 ? color.brand : share > 0.25 ? color.accent : color.coral;
+  return (
+    <View accessible accessibilityRole="progressbar" accessibilityLabel={label} accessibilityValue={{ min: 0, max: 100, now: Math.round(share * 100) }} style={{ flexDirection: 'row', alignItems: 'center', gap: theme.space[2] }}>
+      <View style={{ flex: 1, height: 18, borderRadius: 9, overflow: 'hidden', backgroundColor: color.surfaceSunken, borderWidth: theme.border.ink, borderColor: color.outline }}>
+        <View style={{ width: `${Math.round(share * 100)}%`, height: '100%', backgroundColor: tone }} />
+      </View>
+      <Text className="text-body text-inkMuted" style={{ minWidth: 56, textAlign: 'right' }}>
+        {label}
+      </Text>
+    </View>
+  );
 }
