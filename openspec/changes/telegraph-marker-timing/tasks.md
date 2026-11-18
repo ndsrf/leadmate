@@ -18,7 +18,7 @@
 
 ## 3. Feedback addition (pure, test-first)
 
-- [ ] 3.1 Add tests to `src/hud/feedback.test.ts` and then `perfectRun` in `FeedbackDecider`: it increments on Perfect hits regardless of time between them inside a Stage, starts at 0 in a new decider, resets on Good, miss, Late, reactive and wasted, is not touched by `missed-opportunity`, and is carried on the message shown for the Perfect press (also when that is `change-check-in`). The existing Combo tests stay green. Verify: `npx jest src/hud/feedback` passes.
+- [x] 3.1 Add tests to `src/hud/feedback.test.ts` and then `perfectRun` in `FeedbackDecider`: it increments on Perfect hits regardless of time between them inside a Stage, starts at 0 in a new decider, resets on Good, miss, Late, reactive and wasted, is not touched by `missed-opportunity`, and is carried on the message shown for the Perfect press (also when that is `change-check-in`). The existing Combo tests stay green. Verify: `npx jest src/hud/feedback` passes.
 
 ## 4. Bridge contract
 

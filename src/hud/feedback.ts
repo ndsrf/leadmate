@@ -30,6 +30,8 @@ export interface FeedbackMessage {
   firstTime: boolean;
   /** Same-kind right actions within `COMBO_WINDOW_SECONDS`; 1 means no Combo. */
   combo: number;
+  /** Perfect Marker presses in a row inside this Stage (GLOSSARY: "Perfects in a row"). */
+  perfectRun?: number;
   meterPoints?: number;
   meter?: FeedbackMeter;
 }
@@ -135,6 +137,7 @@ export class FeedbackDecider {
   private readonly combos = new Map<FeedbackActionKind, { count: number; last: number }>();
   private readonly lastShown = new Map<FeedbackActionKind, number>();
   private showing: { message: FeedbackMessage; until: number } | null = null;
+  private perfectRun = 0;
 
   constructor(options: FeedbackOptions = {}) {
     this.seen = new Set(options.seenKinds ?? []);
@@ -154,6 +157,26 @@ export class FeedbackDecider {
       candidates.push({ kind: 'leash-hint', tier: 'small', polarity: 'wrong', textKey: hintKey, firstTime: false, combo: 1 });
     }
     const hintCoversRigidPull = hintKey === 'hint.rigid';
+
+    for (const e of events) {
+      if (e.type === 'check-in-hit' && events.some((o) => o.type === 'change-check-in')) {
+        continue;
+      }
+      if (e.type === 'marker-hit' || e.type === 'check-in-hit' || e.type === 'change-check-in') {
+        if (e.grade === 'perfect') {
+          this.perfectRun += 1;
+        } else {
+          this.perfectRun = 0;
+        }
+      } else if (
+        e.type === 'marker-miss' ||
+        e.type === 'marker-late' ||
+        e.type === 'marker-reactive' ||
+        e.type === 'marker-wasted'
+      ) {
+        this.perfectRun = 0;
+      }
+    }
 
     for (const e of events) {
       const kind = feedbackKindOf(e);
@@ -232,6 +255,9 @@ export class FeedbackDecider {
       firstTime,
       combo,
     };
+    if (grade === 'perfect' && this.perfectRun > 0) {
+      message.perfectRun = this.perfectRun;
+    }
     if (meter) {
       message.meterPoints = meterPoints;
       message.meter = meter;
