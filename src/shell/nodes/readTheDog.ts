@@ -1,3 +1,4 @@
+import { createRng } from '../../sim/rng';
 import { DIAGNOSTIC } from '../onboarding/diagnostic';
 
 /**
@@ -60,6 +61,46 @@ export interface TimerOptions {
   timerSeconds?: number;
 }
 
+export interface RoundOptions extends TimerOptions {
+  fixedLevel?: number;
+}
+
+export interface RtdEvent {
+  seq: number;
+  kind: 'correct' | 'wrong' | 'missed';
+  signal: RtdSignal;
+  class: RtdClass | null;
+  time: number;
+}
+
+export interface RtdCarry {
+  level: number;
+  weights: Record<RtdSignal, number>;
+}
+
+export interface RoundState {
+  seed: number;
+  t: number;
+  phase: 'showing' | 'pause' | 'done';
+  signal: RtdSignal | null;
+  timer: number;
+  timeLeft: number;
+  pauseLeft: number;
+  level: number;
+  weights: Record<RtdSignal, number>;
+  combo: number;
+  bestCombo: number;
+  score: number;
+  rightStreak: number;
+  badStreak: number;
+  drawIndex: number;
+  rightTimes: number[];
+  right: Record<RtdClass, number>;
+  wrong: Record<RtdClass, number>;
+  missed: Record<RtdClass, number>;
+  last: RtdEvent | null;
+}
+
 export function timerFor(level: number, opts?: TimerOptions): number {
   if (opts?.screenReader) {
     return READ_THE_DOG.screenReaderTimer;
@@ -71,4 +112,343 @@ export function timerFor(level: number, opts?: TimerOptions): number {
   const clamped = Math.max(0, Math.min(maxIdx, Math.floor(level)));
   return READ_THE_DOG.timers[clamped];
 }
+
+export function drawNextSignal(
+  seed: number,
+  drawIndex: number,
+  level: number,
+  weights: Record<RtdSignal, number>,
+  previousSignal: RtdSignal | null,
+): RtdSignal {
+  const allSignals = Object.keys(SIGNALS) as RtdSignal[];
+  const candidates = allSignals.filter((s) => {
+    if (level < READ_THE_DOG.subtleFromLevel && SIGNALS[s].subtle) {
+      return false;
+    }
+    if (previousSignal && s === previousSignal) {
+      return false;
+    }
+    return true;
+  });
+
+  const totalWeight = candidates.reduce(
+    (sum, s) => sum + (weights[s] ?? READ_THE_DOG.baseWeight),
+    0,
+  );
+  const rng = createRng(seed * 7919 + drawIndex);
+  let r = rng.next() * totalWeight;
+  for (const s of candidates) {
+    const w = weights[s] ?? READ_THE_DOG.baseWeight;
+    if (r < w) {
+      return s;
+    }
+    r -= w;
+  }
+  return candidates[candidates.length - 1];
+}
+
+function defaultWeights(): Record<RtdSignal, number> {
+  const w = {} as Record<RtdSignal, number>;
+  for (const k of Object.keys(SIGNALS) as RtdSignal[]) {
+    w[k] = READ_THE_DOG.baseWeight;
+  }
+  return w;
+}
+
+function emptyCounts(): Record<RtdClass, number> {
+  return { calm: 0, alert: 0, about_to_react: 0 };
+}
+
+export function newRound(
+  seed: number,
+  carry?: RtdCarry | null,
+  opts?: RoundOptions,
+): RoundState {
+  const level =
+    opts?.fixedLevel !== undefined ? opts.fixedLevel : carry?.level ?? 0;
+  const weights = carry?.weights ? { ...carry.weights } : defaultWeights();
+  const drawIndex = 0;
+  const signal = drawNextSignal(seed, drawIndex, level, weights, null);
+  const timer = timerFor(level, opts);
+
+  return {
+    seed,
+    t: 0,
+    phase: 'showing',
+    signal,
+    timer,
+    timeLeft: timer,
+    pauseLeft: 0,
+    level,
+    weights,
+    combo: 0,
+    bestCombo: 0,
+    score: 0,
+    rightStreak: 0,
+    badStreak: 0,
+    drawIndex,
+    rightTimes: [],
+    right: emptyCounts(),
+    wrong: emptyCounts(),
+    missed: emptyCounts(),
+    last: null,
+  };
+}
+
+export function stepRound(
+  state: RoundState,
+  dt: number,
+  answer: RtdClass | null = null,
+  opts?: RoundOptions,
+): RoundState {
+  if (state.phase === 'done') {
+    return state;
+  }
+
+  const fixedLevel = opts?.fixedLevel;
+  const currentLevel = fixedLevel !== undefined ? fixedLevel : state.level;
+
+  if (state.phase === 'pause') {
+    const newT = state.t + dt;
+    if (newT >= READ_THE_DOG.roundSeconds) {
+      return {
+        ...state,
+        t: READ_THE_DOG.roundSeconds,
+        phase: 'done',
+        signal: null,
+      };
+    }
+    const newPauseLeft = state.pauseLeft - dt;
+    if (newPauseLeft <= 0) {
+      const drawIndex = state.drawIndex + 1;
+      const nextSignal = drawNextSignal(
+        state.seed,
+        drawIndex,
+        currentLevel,
+        state.weights,
+        state.signal,
+      );
+      const timer = timerFor(currentLevel, opts);
+      return {
+        ...state,
+        t: newT,
+        phase: 'showing',
+        signal: nextSignal,
+        timer,
+        timeLeft: timer,
+        pauseLeft: 0,
+        drawIndex,
+        level: currentLevel,
+      };
+    }
+    return {
+      ...state,
+      t: newT,
+      pauseLeft: newPauseLeft,
+      level: currentLevel,
+    };
+  }
+
+  // phase === 'showing'
+  if (answer !== null && state.signal !== null) {
+    const signal = state.signal;
+    const isRight = answer === SIGNALS[signal].cls;
+    const timeToAnswer = Math.max(0, state.timer - state.timeLeft);
+    const seq = (state.last?.seq ?? 0) + 1;
+    const weights = { ...state.weights };
+
+    let combo = state.combo;
+    let bestCombo = state.bestCombo;
+    let score = state.score;
+    let rightStreak = state.rightStreak;
+    let badStreak = state.badStreak;
+    let level = currentLevel;
+    const right = { ...state.right };
+    const wrong = { ...state.wrong };
+    const rightTimes = [...state.rightTimes];
+
+    if (isRight) {
+      combo += 1;
+      bestCombo = Math.max(bestCombo, combo);
+      rightStreak += 1;
+      badStreak = 0;
+      right[answer] += 1;
+      rightTimes.push(timeToAnswer);
+
+      const timeRatio = Math.max(0, Math.min(1, state.timeLeft / state.timer));
+      const comboMult = 1 + 0.1 * Math.min(combo - 1, 9);
+      const points = Math.round(
+        READ_THE_DOG.basePoints * (0.5 + 0.5 * timeRatio) * comboMult,
+      );
+      score += points;
+
+      weights[signal] = Math.max(
+        READ_THE_DOG.baseWeight,
+        (weights[signal] ?? READ_THE_DOG.baseWeight) + READ_THE_DOG.rightWeight,
+      );
+
+      if (rightStreak >= READ_THE_DOG.upAfter) {
+        if (fixedLevel === undefined) {
+          level = Math.min(READ_THE_DOG.timers.length - 1, level + 1);
+        }
+        rightStreak = 0;
+        badStreak = 0;
+      }
+    } else {
+      combo = 0;
+      badStreak += 1;
+      rightStreak = 0;
+      wrong[answer] += 1;
+
+      weights[signal] = Math.min(
+        READ_THE_DOG.maxWeight,
+        (weights[signal] ?? READ_THE_DOG.baseWeight) + READ_THE_DOG.missWeight,
+      );
+
+      if (badStreak >= READ_THE_DOG.downAfter) {
+        if (fixedLevel === undefined) {
+          level = Math.max(0, level - 1);
+        }
+        rightStreak = 0;
+        badStreak = 0;
+      }
+    }
+
+    const last: RtdEvent = {
+      seq,
+      kind: isRight ? 'correct' : 'wrong',
+      signal,
+      class: answer,
+      time: timeToAnswer,
+    };
+
+    const newT = state.t + dt;
+    if (newT >= READ_THE_DOG.roundSeconds) {
+      return {
+        ...state,
+        t: READ_THE_DOG.roundSeconds,
+        phase: 'done',
+        signal: null,
+        level,
+        weights,
+        combo,
+        bestCombo,
+        score,
+        rightStreak,
+        badStreak,
+        rightTimes,
+        right,
+        wrong,
+        last,
+      };
+    }
+
+    const pauseLeft = isRight
+      ? READ_THE_DOG.pauseSeconds
+      : READ_THE_DOG.wrongPauseSeconds;
+
+    return {
+      ...state,
+      t: newT,
+      phase: 'pause',
+      pauseLeft,
+      level,
+      weights,
+      combo,
+      bestCombo,
+      score,
+      rightStreak,
+      badStreak,
+      rightTimes,
+      right,
+      wrong,
+      last,
+    };
+  }
+
+  // answer === null
+  const newT = state.t + dt;
+  const newTimeLeft = state.timeLeft - dt;
+
+  if (newTimeLeft <= 0 && state.signal !== null) {
+    const signal = state.signal;
+    const signalClass = SIGNALS[signal].cls;
+    const seq = (state.last?.seq ?? 0) + 1;
+    const weights = { ...state.weights };
+
+    const combo = 0;
+    const badStreak = state.badStreak + 1;
+    const rightStreak = 0;
+    let level = currentLevel;
+    const missed = { ...state.missed };
+    missed[signalClass] += 1;
+
+    weights[signal] = Math.min(
+      READ_THE_DOG.maxWeight,
+      (weights[signal] ?? READ_THE_DOG.baseWeight) + READ_THE_DOG.missWeight,
+    );
+
+    if (badStreak >= READ_THE_DOG.downAfter) {
+      if (fixedLevel === undefined) {
+        level = Math.max(0, level - 1);
+      }
+    }
+
+    const last: RtdEvent = {
+      seq,
+      kind: 'missed',
+      signal,
+      class: null,
+      time: state.timer,
+    };
+
+    if (newT >= READ_THE_DOG.roundSeconds) {
+      return {
+        ...state,
+        t: READ_THE_DOG.roundSeconds,
+        phase: 'done',
+        signal: null,
+        level,
+        weights,
+        combo,
+        rightStreak: badStreak >= READ_THE_DOG.downAfter ? 0 : rightStreak,
+        badStreak: badStreak >= READ_THE_DOG.downAfter ? 0 : badStreak,
+        missed,
+        last,
+      };
+    }
+
+    return {
+      ...state,
+      t: newT,
+      phase: 'pause',
+      pauseLeft: READ_THE_DOG.wrongPauseSeconds,
+      level,
+      weights,
+      combo,
+      rightStreak: badStreak >= READ_THE_DOG.downAfter ? 0 : rightStreak,
+      badStreak: badStreak >= READ_THE_DOG.downAfter ? 0 : badStreak,
+      missed,
+      last,
+    };
+  }
+
+  if (newT >= READ_THE_DOG.roundSeconds) {
+    return {
+      ...state,
+      t: READ_THE_DOG.roundSeconds,
+      phase: 'done',
+      signal: null,
+      level: currentLevel,
+    };
+  }
+
+  return {
+    ...state,
+    t: newT,
+    timeLeft: newTimeLeft,
+    level: currentLevel,
+  };
+}
+
 

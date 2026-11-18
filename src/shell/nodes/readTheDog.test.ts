@@ -5,6 +5,8 @@ import {
   RtdSignal,
   READ_THE_DOG,
   timerFor,
+  newRound,
+  stepRound,
 } from './readTheDog';
 
 describe('readTheDog - 1.1 signal table', () => {
@@ -70,4 +72,83 @@ describe('readTheDog - 1.2 constants and timerFor', () => {
     expect(timerFor(5, { screenReader: true })).toBe(6);
   });
 });
+
+describe('readTheDog - 1.3 newRound and stepRound time/phase', () => {
+  it('initialises newRound at phase showing and ends at 24s', () => {
+    let state = newRound(12345);
+    expect(state.t).toBe(0);
+    expect(state.phase).toBe('showing');
+    expect(state.signal).toBeDefined();
+    expect(state.timer).toBe(2.4);
+
+    // Step by 24 seconds without answering
+    // The signal will time out at 2.4s, enter pause (1.2s), then next signal, etc.
+    let totalTime = 0;
+    while (state.phase !== 'done') {
+      state = stepRound(state, 0.1);
+      totalTime += 0.1;
+      if (totalTime > 30) break; // safety guard
+    }
+    expect(state.phase).toBe('done');
+    expect(state.t).toBeGreaterThanOrEqual(READ_THE_DOG.roundSeconds);
+  });
+
+  it('pauses for pauseSeconds after right answer and wrongPauseSeconds after wrong/missed, ignoring answers during pause', () => {
+    let state = newRound(42);
+    const correctClass = SIGNALS[state.signal!].cls;
+    const wrongClass: RtdClass = correctClass === 'calm' ? 'alert' : 'calm';
+
+    // Right answer
+    state = stepRound(state, 0.1, correctClass);
+    expect(state.phase).toBe('pause');
+    expect(state.pauseLeft).toBeCloseTo(READ_THE_DOG.pauseSeconds, 2);
+
+    // Answering during pause is ignored
+    const seqBefore = state.last?.seq;
+    state = stepRound(state, 0.1, wrongClass);
+    expect(state.last?.seq).toBe(seqBefore);
+
+    // Step through the rest of the pause
+    state = stepRound(state, 0.3);
+    expect(state.phase).toBe('showing');
+
+    // Wrong answer
+    const currentCorrect = SIGNALS[state.signal!].cls;
+    const currentWrong: RtdClass = currentCorrect === 'calm' ? 'alert' : 'calm';
+    state = stepRound(state, 0.1, currentWrong);
+    expect(state.phase).toBe('pause');
+    expect(state.pauseLeft).toBeCloseTo(READ_THE_DOG.wrongPauseSeconds, 2);
+
+    // Step through pause
+    state = stepRound(state, 1.3);
+    expect(state.phase).toBe('showing');
+
+    // Let timer run out -> missed
+    const timeout = state.timer;
+    state = stepRound(state, timeout + 0.01);
+    expect(state.phase).toBe('pause');
+    expect(state.last?.kind).toBe('missed');
+    expect(state.pauseLeft).toBeCloseTo(READ_THE_DOG.wrongPauseSeconds, 2);
+  });
+
+  it('counts an unanswered signal at round end as neither right nor missed', () => {
+    let state = newRound(999);
+    // Fast forward to 23.5s with dt
+    state = { ...state, t: 23.5 };
+    // Step by 0.6s to cross 24s while signal is open
+    state = stepRound(state, 0.6);
+    expect(state.phase).toBe('done');
+    const totalRight = (Object.values(state.right) as number[]).reduce(
+      (a, b) => a + b,
+      0,
+    );
+    const totalMissed = (Object.values(state.missed) as number[]).reduce(
+      (a, b) => a + b,
+      0,
+    );
+    expect(totalRight).toBe(0);
+    expect(totalMissed).toBe(0);
+  });
+});
+
 
