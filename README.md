@@ -371,6 +371,17 @@ EXPO_PUBLIC_ADMOB_BANNER_ID=ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx
 EXPO_PUBLIC_ADMOB_INTERSTITIAL_ID=ca-app-pub-xxxxxxxxxxxxxxxx/xxxxxxxxxx
 ```
 
+### Usage Analytics
+
+PostHog anonymous product analytics (EU region, ADR 0031). Identified solely by a random Install Id and never linked to accounts or Dogs:
+
+```bash
+EXPO_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
+EXPO_PUBLIC_POSTHOG_KEY=
+```
+
+When building or running in environments where no key is set (or key is empty `""`, on web, or in unit tests), `getAnalytics()` automatically falls back to `MockAnalyticsService` and nothing is sent. The development profile in `eas.json` holds an empty placeholder key for dev builds. Production key is gated on legal review.
+
 ## Adding a language
 
 1. Copy `src/i18n/es.ts` to `src/i18n/<code>.ts` and translate the values (keys stay the same;
