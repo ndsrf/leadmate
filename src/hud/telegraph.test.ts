@@ -491,6 +491,19 @@ describe('Telegraph sim-backed verification (task 2.6)', () => {
 
         const telegraph = model.update(view, 'full');
 
+        // a building arc that does not fade must land on its glance within one fixed step of the predicted time
+        if (
+          prevArcPhase === 'building' &&
+          telegraph.checkInArc?.phase !== 'building' &&
+          telegraph.checkInArc?.phase !== 'landed' &&
+          telegraph.checkInArc?.phase !== 'fading'
+        ) {
+          throw new Error(`seed ${seed}: building Check-in arc vanished at t=${state.time} without landing or fading`);
+        }
+        if (telegraph.checkInArc?.phase === 'building' && lastPredictedCheckInAt !== null) {
+          expect(state.time).toBeLessThanOrEqual(lastPredictedCheckInAt + config.fixedStep + 1e-4);
+        }
+
         // Track predicted check-in time while building
         if (telegraph.checkInArc?.phase === 'building') {
           lastPredictedCheckInAt = state.nextCheckInAt;
