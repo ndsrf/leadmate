@@ -7,6 +7,7 @@ import {
   initAnalytics,
   track,
   setAnalyticsEnabled,
+  updateAnalyticsFlags,
   getAnalyticsState,
   resetAnalyticsForTesting,
   setAnalyticsServiceForTesting,
@@ -192,5 +193,39 @@ describe('Analytics Wiring and Track (Task 3.4)', () => {
     expect(mockService.events).toHaveLength(0);
 
     warnSpy.mockRestore();
+  });
+
+  it('service.start throws -> setAnalyticsEnabled/updateAnalyticsFlags do not overwrite installId/choice in storage', async () => {
+    const existingState = {
+      installId: 'real-persisted-install-id',
+      installedAt: '2026-01-01T00:00:00.000Z',
+      choice: 'on' as const,
+      funnelDoneOnce: false,
+      funnelOpen: false,
+      upgradedInstall: false,
+    };
+    const store = createMockStore({
+      [ANALYTICS_STATE_KEY]: JSON.stringify(existingState),
+    });
+
+    mockService.start = jest.fn().mockImplementation(async () => {
+      throw new Error('SDK init failure');
+    });
+
+    await initAnalytics(store);
+
+    const state = getAnalyticsState();
+    expect(state?.installId).toBe('real-persisted-install-id');
+    expect(state?.choice).toBe('on');
+
+    await updateAnalyticsFlags({ funnelOpen: true });
+    const storedAfterFlags = JSON.parse(store.storage[ANALYTICS_STATE_KEY]);
+    expect(storedAfterFlags.installId).toBe('real-persisted-install-id');
+    expect(storedAfterFlags.funnelOpen).toBe(true);
+
+    await setAnalyticsEnabled(false);
+    const storedAfterEnabled = JSON.parse(store.storage[ANALYTICS_STATE_KEY]);
+    expect(storedAfterEnabled.installId).toBe('real-persisted-install-id');
+    expect(storedAfterEnabled.choice).toBe('off');
   });
 });

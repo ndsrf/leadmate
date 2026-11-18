@@ -127,15 +127,28 @@ export async function initAnalytics(
   activeStore = store;
   activeRecord = record ?? null;
 
+  let state: AnalyticsState;
   try {
-    const state = await loadAnalyticsState(store, undefined, undefined, record);
-    activeState = state;
-    isInitialized = true;
+    state = await loadAnalyticsState(store, undefined, undefined, record);
+  } catch {
+    state = {
+      installId: 'in-memory-fallback',
+      installedAt: new Date().toISOString(),
+      choice: null,
+      funnelDoneOnce: false,
+      funnelOpen: false,
+      upgradedInstall: false,
+    };
+  }
 
-    const enabled = isEnabled(state);
-    const service = getAnalytics();
+  activeState = state;
+  isInitialized = true;
 
-    if (enabled) {
+  const enabled = isEnabled(state);
+  const service = getAnalytics();
+
+  if (enabled) {
+    try {
       await service.start(state);
 
       // Flush buffered events
@@ -153,26 +166,16 @@ export async function initAnalytics(
           // Swallow individual event errors
         }
       }
-    } else {
-      // Discard pre-init events if analytics is disabled
+    } catch {
+      // Guard service.start/flush failure: keep loaded state, do not clobber
       eventBuffer = [];
     }
-
-    return state;
-  } catch {
-    // Graceful fallback to fresh in-memory state
-    activeState = {
-      installId: 'in-memory-fallback',
-      installedAt: new Date().toISOString(),
-      choice: null,
-      funnelDoneOnce: false,
-      funnelOpen: false,
-      upgradedInstall: false,
-    };
-    isInitialized = true;
+  } else {
+    // Discard pre-init events if analytics is disabled
     eventBuffer = [];
-    return activeState;
   }
+
+  return state;
 }
 
 export function track(name: string, props: Record<string, unknown> = {}): void {
@@ -226,7 +229,7 @@ export async function setAnalyticsEnabled(enabled: boolean): Promise<void> {
       activeState.choice = enabled ? 'on' : 'off';
     }
 
-    if (activeStore && activeState) {
+    if (activeStore && activeState && activeState.installId !== 'in-memory-fallback') {
       await saveAnalyticsState(activeStore, activeState);
     }
 
@@ -276,7 +279,7 @@ export async function updateAnalyticsFlags(
       activeState.funnelOpen = flags.funnelOpen;
       changed = true;
     }
-    if (changed && activeStore) {
+    if (changed && activeStore && activeState.installId !== 'in-memory-fallback') {
       await saveAnalyticsState(activeStore, activeState);
     }
   } catch {
