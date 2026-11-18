@@ -19,9 +19,9 @@ const NODE = 'park-unpredictable';
 afterEach(() => setActiveContent(null));
 
 describe('World 6 Stage Node park-unpredictable (beta)', () => {
-  it('the beta pack validates with no errors and needs app 1.2.0 (scent walks and the Image Duel)', () => {
+  it('the beta pack validates with no errors and needs app 1.3.0 (Encounter Series)', () => {
     expect(validatePack(pack).errors).toEqual([]);
-    expect(pack.pack.minAppVersion).toBe('1.2.0');
+    expect(pack.pack.minAppVersion).toBe('1.3.0');
   });
 
   it.each(['es', 'en'])('loads in %s with a 3-question Checkpoint: text, one Image Duel, text', (lang) => {
