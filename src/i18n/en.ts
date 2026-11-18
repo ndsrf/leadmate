@@ -708,7 +708,7 @@ export const EN_INTERFACE = {
   'readTheDog.answer.calm.hint': 'Swipe left or tap to choose Calm',
   'readTheDog.answer.alert.hint': 'Swipe up or tap to choose Alert',
   'readTheDog.answer.about_to_react.hint': 'Swipe right or tap to choose About to react',
-  'readTheDog.timer': '{s} s',
+  'readTheDog.timer': '{s} s left',
   'readTheDog.combo': 'Combo ×{n}',
   'readTheDog.score': 'Score: {points}',
   'readTheDog.signal.soft_loose': 'Soft and loose: {name} is calm',

@@ -1,10 +1,11 @@
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
 import { AccessibilityInfo } from 'react-native';
-import { createTranslator, es } from '../../i18n';
+import { createTranslator, en, es } from '../../i18n';
 import { feedback } from '../ui/feedback';
 import { ReadTheDogView } from './ReadTheDogView';
 import { SIGNALS } from '../nodes/readTheDog';
+import { ReadTheDogScene, RtdTimerBar } from '../ui/MinigameProps';
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 (globalThis as any).requestAnimationFrame = (cb: any) => setTimeout(cb, 16);
@@ -81,6 +82,8 @@ jest.mock('react-native', () => {
     AppState: { currentState: 'active', addEventListener: () => ({ remove: () => {} }) },
   };
 });
+
+const SIGNALS_LIST = () => Object.keys(SIGNALS) as (keyof typeof SIGNALS)[];
 
 describe('ReadTheDogView (5.3, 5.4, 6.1)', () => {
   const t = createTranslator(es);
@@ -334,5 +337,75 @@ describe('ReadTheDogView (5.3, 5.4, 6.1)', () => {
       freshStart(second);
       expect(onFinish).not.toHaveBeenCalled();
     });
+  });
+
+  describe('review #1, #2: stable base seed and replay announcement', () => {
+    const press = (r: ReactTestRenderer.ReactTestRenderer, label: string) => r.root.findAllByType('button' as any).find((b) => b.props.accessibilityLabel === label)!.props.onPress();
+    const describes = SIGNALS_LIST().map((sig) => t(`readTheDog.describe.${sig}` as any));
+
+    /** Plays round 1 with no answers, optionally re-rendering with another seed first, replays, and returns what was announced right after the replay. */
+    const replayAnnouncement = async (reseed: boolean) => {
+      let r!: ReactTestRenderer.ReactTestRenderer;
+      await act(async () => {
+        r = ReactTestRenderer.create(<ReadTheDogView t={t} record={record} seed={1} />);
+      });
+      await act(async () => {
+        press(r, t('readTheDog.start'));
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(25000);
+      });
+      if (reseed) {
+        await act(async () => {
+          r.update(<ReadTheDogView t={t} record={record} seed={987654} />);
+        });
+      }
+      (AccessibilityInfo.announceForAccessibility as jest.Mock).mockClear();
+      await act(async () => {
+        press(r, t('readTheDog.result.replay'));
+      });
+      const heard = (AccessibilityInfo.announceForAccessibility as jest.Mock).mock.calls.map((c) => c[0]);
+      return { heard, signal: r.root.findByType(ReadTheDogScene).props.signal };
+    };
+
+    it('a re-render with a new seed prop does not change the replay seed', async () => {
+      const same = await replayAnnouncement(false);
+      const reseeded = await replayAnnouncement(true);
+      expect(reseeded.signal).toBe(same.signal);
+      expect(reseeded.heard).toEqual(same.heard);
+    });
+
+    it('a re-render with a new seed does not rebuild an unstarted round (screen reader on)', async () => {
+      (AccessibilityInfo.isScreenReaderEnabled as jest.Mock).mockResolvedValueOnce(true);
+      let r!: ReactTestRenderer.ReactTestRenderer;
+      await act(async () => {
+        r = ReactTestRenderer.create(<ReadTheDogView t={t} record={record} seed={1} />);
+      });
+      const before = r.root.findByType(ReadTheDogScene).props.signal;
+      for (const seed of [2, 3, 4, 5, 6]) {
+        await act(async () => {
+          r.update(<ReadTheDogView t={t} record={record} seed={seed} />);
+        });
+        expect(r.root.findByType(ReadTheDogScene).props.signal).toBe(before);
+      }
+    });
+
+    it('announces the body description of the first signal of every replay', async () => {
+      const { heard } = await replayAnnouncement(false);
+      expect(heard.some((h) => describes.includes(h))).toBe(true);
+    });
+  });
+
+  it('review #3: the timer text alternative says what it is', async () => {
+    let r!: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      r = ReactTestRenderer.create(<ReadTheDogView t={t} record={record} seed={1} />);
+    });
+    await act(async () => {
+      r.root.findAllByType('button' as any).find((b) => b.props.accessibilityLabel === t('readTheDog.start'))!.props.onPress();
+    });
+    const label = r.root.findByType(RtdTimerBar).props.label as string;
+    expect(label).toMatch(/^quedan \d+ s$/);
+    expect(createTranslator(en)('readTheDog.timer').replace('{s}', '2')).toBe('2 s left');
   });
 });

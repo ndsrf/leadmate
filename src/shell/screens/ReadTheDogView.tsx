@@ -51,8 +51,8 @@ export interface ReadTheDogViewProps {
   record: Pick<DogRecord, 'breed' | 'coat'> & { name?: string };
   seed: number;
   onFinish?: (latency: number) => void;
+  /** Called once per finished round with its anonymous result. */
   onRoundResult?: (result: RoundResult) => void;
-  onResult?: (result: RoundResult) => void;
 }
 
 export function ReadTheDogView({
@@ -61,14 +61,15 @@ export function ReadTheDogView({
   seed,
   onFinish,
   onRoundResult,
-  onResult,
 }: ReadTheDogViewProps) {
   const color = usePalette();
   const [started, setStarted] = useState(false);
   const [isDone, setIsDone] = useState(false);
   const [screenReader, setScreenReader] = useState(false);
 
-  const reportResult = onRoundResult ?? onResult;
+  const reportResult = onRoundResult;
+  // the first seed is the base of the whole session: a parent that re-renders with a new seed never changes a replay
+  const baseSeed = useRef(seed).current;
   const finish = useRef(onFinish);
   finish.current = onFinish;
 
@@ -80,7 +81,8 @@ export function ReadTheDogView({
     ? { fixedLevel: 0, screenReader: true }
     : {};
 
-  const state = useRef<RoundState>(newRound(seed, null, roundOpts));
+  const [firstRound] = useState(() => newRound(baseSeed, null, roundOpts));
+  const state = useRef<RoundState>(firstRound);
   const pendingAnswer = useRef<RtdClass | null>(null);
 
   const [showingSignal, setShowingSignal] = useState<RtdSignal | null>(
@@ -121,7 +123,7 @@ export function ReadTheDogView({
   // Update initial round timer if screen reader is detected before start
   useEffect(() => {
     if (!started && screenReader) {
-      state.current = newRound(seed, null, {
+      state.current = newRound(baseSeed, null, {
         fixedLevel: 0,
         screenReader: true,
       });
@@ -129,7 +131,7 @@ export function ReadTheDogView({
       setTimeLeft(state.current.timeLeft);
       setShowingSignal(state.current.signal);
     }
-  }, [screenReader, started, seed]);
+  }, [screenReader, started, baseSeed]);
 
   // When started, announce initial signal
   useEffect(() => {
@@ -240,7 +242,7 @@ export function ReadTheDogView({
   const handleReplay = () => {
     roundReported.current = false;
     replayCount.current += 1;
-    const nextSeed = replaySeed(seed, replayCount.current);
+    const nextSeed = replaySeed(baseSeed, replayCount.current);
     const carry = carryOf(state.current);
     state.current = newRound(nextSeed, carry, roundOpts);
     setIsDone(false);
@@ -254,6 +256,10 @@ export function ReadTheDogView({
     setCombo(state.current.combo);
     setScore(state.current.score);
     setStarted(true); // Replay starts immediately with no start screen
+    // the start effect does not run again, so the first signal of a replay is announced here
+    if (state.current.signal) {
+      AccessibilityInfo.announceForAccessibility(t(`readTheDog.describe.${state.current.signal}`));
+    }
   };
 
   const handleContinue = () => {

@@ -707,7 +707,7 @@ export const ES_INTERFACE = {
   'readTheDog.answer.calm.hint': 'Desliza a la izquierda o toca para elegir Calma',
   'readTheDog.answer.alert.hint': 'Desliza hacia arriba o toca para elegir Alerta',
   'readTheDog.answer.about_to_react.hint': 'Desliza a la derecha o toca para elegir A punto de reaccionar',
-  'readTheDog.timer': '{s} s',
+  'readTheDog.timer': 'quedan {s} s',
   'readTheDog.combo': 'Combo ×{n}',
   'readTheDog.score': 'Puntos: {points}',
   'readTheDog.signal.soft_loose': 'Postura suave: {name} está en calma',
