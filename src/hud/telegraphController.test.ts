@@ -39,7 +39,29 @@ describe('TelegraphController level sampling', () => {
   });
 });
 
+describe('TelegraphController mid-approach level pickup', () => {
+  it('at Off, a step-up during a Fixation does not show a ring until the next approach', () => {
+    const c = new TelegraphController({ assist: assist('off') });
+    const f1 = c.step(view({ time: 1, dogMode: 'fixated', calmElapsed: 0 }), [fixStart], ctx());
+    expect(f1.ring).toBeNull();
+    const late: SimEvent = { type: 'marker-late', time: 1 } as SimEvent;
+    expect(c.step(view({ time: 1.5, dogMode: 'fixated', calmElapsed: 0.5 }), [late, late], ctx()).assistChanged?.level).toBe('late');
+    const f2 = c.step(view({ time: 2, dogMode: 'fixated', calmElapsed: 1 }), [], ctx());
+    expect(c.level).toBe('off');
+    expect(f2.ring).toBeNull();
+    c.step(view({ time: 6 }), [], ctx());
+    expect(c.level).toBe('late');
+  });
+});
+
 describe('TelegraphController outcomes', () => {
+  it('counts a paired check-in-hit + change-check-in on one tick as one success', () => {
+    const c = new TelegraphController({ assist: assist('full') });
+    const checkIn = { type: 'check-in-hit', time: 1, grade: 'perfect' } as SimEvent;
+    const change = { type: 'change-check-in', time: 1, grade: 'perfect', change: 'left-turn' } as SimEvent;
+    expect(c.step(view(), [checkIn, change], ctx()).assistChanged).toEqual(assist('full', 1, 0));
+  });
+
   it('steps the assist after three Marker hits and reports each change', () => {
     const c = new TelegraphController({ assist: assist('full') });
     expect(c.step(view(), [hit], ctx()).assistChanged).toEqual(assist('full', 1, 0));
@@ -156,4 +178,46 @@ describe('telegraph never changes a seeded Stage', () => {
       expect(run(seed, config, new TelegraphController({ assist: assist('full'), guidedFirstStage: true }))).toBe(none);
     }
   });
+});
+
+/** The highlight is draw-only: a press on the tick after a highlighted frame is judged on that tick (telegraph-marker-timing 6.3). */
+describe('a press while the Marker highlight is shown registers on the same tick', () => {
+  it.each([['guided first Stage', { ...defaultScenario, ...FIRST_WALK }], ['Daily Stage', generateDailyStage('2026-05-17')]] as [string, ScenarioConfig][])(
+    'in the %s',
+    (_n, config) => {
+      let pressesChecked = 0;
+      let hits = 0;
+      for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+        const state: SimState = createState(seed, config);
+        const walk = routeWalker(config);
+        const controller = new TelegraphController({ assist: assist('full') });
+        let highlighted = false;
+        let armed = true;
+        for (let i = 0; i < 90 / config.fixedStep && !state.ended; i++) {
+          const w = walk(state);
+          const stand = state.dogMode === 'fixated' || state.dogMode === 'holding';
+          const input: SimInput = { direction: w.direction, strength: stand ? 0 : w.strength, marker: highlighted, sniff: false };
+          const pre = { dogMode: state.dogMode as string, calmElapsed: state.calmElapsed };
+          const events = tick(state, input);
+          if (highlighted) {
+            pressesChecked++;
+            // the press is judged on this tick (a hit, or a sim judgement such as reactive on a rigid leash), never ignored
+            expect(events.some((e) => e.type === 'check-in-hit' || e.type.startsWith('marker-'))).toBe(true);
+            if (events.some((e) => e.type === 'marker-hit' || e.type === 'check-in-hit')) hits++;
+          }
+          const frame = controller.step(
+            { time: state.time, dogMode: state.dogMode, calmElapsed: state.calmElapsed, calmSeconds: state.config.calmSeconds, rewardWindow: state.rewardWindow, nextCheckInAt: state.nextCheckInAt, dogLookUntil: state.dogLookUntil, lookStartedAt: state.lookStartedAt, lookCause: state.lookCause },
+            events,
+            { pre, marksUsed: state.telemetry.marksUsed, markBudget: state.config.markBudget },
+          );
+          // press once, on the first tick after the highlight appears (a look or window judges one press)
+          if (!frame.highlight) armed = true;
+          highlighted = frame.highlight && armed;
+          if (highlighted) armed = false;
+        }
+      }
+      expect(pressesChecked).toBeGreaterThan(0);
+      expect(hits).toBeGreaterThan(0);
+    },
+  );
 });

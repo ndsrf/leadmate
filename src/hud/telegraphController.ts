@@ -73,7 +73,7 @@ export class TelegraphController {
 
   step(view: TelegraphView, events: readonly SimEvent[], ctx: TelegraphTickContext): TelegraphFrame {
     // a level change only applies between approaches: resample when nothing is on screen or a new Fixation begins
-    if (this.idle || events.some((e) => e.type === 'fixation-start')) this.sampled = this.current();
+    if ((this.idle && view.dogMode !== 'fixated' && view.rewardWindow === null) || events.some((e) => e.type === 'fixation-start')) this.sampled = this.current();
 
     const state = this.model.update(view, this.sampled);
 
