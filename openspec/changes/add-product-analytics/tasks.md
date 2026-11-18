@@ -54,7 +54,7 @@
 
 ## 9. Privacy documentation and rollout
 
-- [ ] 9.1 Update `docs/privacy-policy.md` (Spanish and English sections) to describe the anonymous analytics: what is sent, the PostHog EU processor, no name, email or account link, how to turn it off in Settings, that it is not linked to the account (so account deletion does not touch it) and the PostHog retention period; verify the policy names every event category in the contract
+- [x] 9.1 Update `docs/privacy-policy.md` (Spanish and English sections) to describe the anonymous analytics: what is sent, the PostHog EU processor, no name, email or account link, how to turn it off in Settings, that it is not linked to the account (so account deletion does not touch it) and the PostHog retention period; verify the policy names every event category in the contract
 - [ ] 9.2 Configure the PostHog production project: EU region, "Discard client IP data" on, no session replay, no autocapture; prepare the Play Console and App Store data-safety answers (app interactions, analytics, not linked to the user, not used for tracking); verify with a checklist in the PR description
 - [ ] 9.3 Build a funnel insight in PostHog over `funnel_step_viewed` steps in `FUNNEL_STEPS` order, plus a "last event per install" view, both excluding `upgraded_install` true; verify it shows data from the dev project after a manual run-through
 - [ ] 9.4 Only after 9.1 and 9.2 are done, add the production `EXPO_PUBLIC_POSTHOG_KEY` to the production profile of `eas.json`; verify the release build that first carries it ships the updated policy
