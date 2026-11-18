@@ -167,7 +167,8 @@ jest.mock('./shell/sync/useAccount', () => {
   return { useAccount: () => account };
 });
 // the same seed every time, so "the next Stage starts with the same seed" can be asserted
-jest.mock('./sim/rng', () => ({ ...jest.requireActual('./sim/rng'), newSeed: () => 4242 }));
+const mockSeeds = { next: () => 4242 };
+jest.mock('./sim/rng', () => ({ ...jest.requireActual('./sim/rng'), newSeed: () => mockSeeds.next() }));
 // the Debrief's record update needs a real Stage payload; the lifecycle under test does not
 jest.mock('./shell/nodes/node', () => ({
   ...jest.requireActual('./shell/nodes/node'),
@@ -246,6 +247,9 @@ import { POOR_SCORE_BELOW } from './shell/stars';
 import { getAnalytics, resetAnalyticsForTesting, MockAnalyticsService, ANALYTICS_STATE_KEY } from './shell/analytics';
 import { seedFromLatency } from './shell/onboarding/diagnostic';
 import { finishSetup } from './shell/onboarding/setup';
+import { payloadWith } from './shell/testPayload';
+import type { EncounterAim } from './shell/nodes/encounters';
+import type { SimulationDebriefPayload } from './sim/payload';
 
 const LOAD_TIMEOUT_MS = 20000;
 const latest = (name: string) => mockProps[name];
@@ -309,6 +313,7 @@ beforeEach(() => {
   for (const k of Object.keys(mockProps)) delete mockProps[k];
   for (const k of Object.keys(mockMounted)) delete mockMounted[k];
   Object.assign(mockSim, { mounts: 0, unmounts: 0, live: 0, posts: [], props: null });
+  mockSeeds.next = () => 4242;
   mockAppStateListeners.length = 0;
   mockBackHandlerListeners.length = 0;
   mockOnDebrief = null;
@@ -1949,5 +1954,185 @@ describe('App - Stage view lifecycle', () => {
         }
       }
     });
+  });
+});
+
+describe('App - Encounter Series flow', () => {
+  const AIMS: EncounterAim[] = ['mark-disengagement', 'stay-calm', 'check-in', 'keep-slack'];
+  /** Makes `walk-distraction` an Encounter Series of four Encounters, as a pack with a Series would. */
+  function seriesContent() {
+    const content = getActiveContent();
+    const encounters = AIMS.map((aim, i) => ({ id: `enc-${i}`, title: 'node.debrief.title' as const, aim, scenario: { waypoint: { x: 20 + i, y: 0 } } }));
+    setActiveContent({
+      ...content,
+      resolved: { ...content.resolved, nodes: content.resolved.nodes.map((n) => (n.id === 'walk-distraction' ? { ...n, simulation: { encounters } } : n)) },
+    });
+  }
+  const good = (seed: number): SimulationDebriefPayload => payloadWith({ seed, markerHits: 1, checkInHits: 1, markGrades: { perfect: 1, good: 0, late: 0 } });
+  const poor = (seed: number): SimulationDebriefPayload => payloadWith({ seed });
+  const card = () => latest('EncounterResultOverlay');
+  const starts = () => posted('start');
+
+  async function startSeries() {
+    await openMap();
+    seriesContent();
+    openStop(WALK_DISTRACTION.id);
+    throughPrimerAndCheckpoint();
+    await sendFromView({ type: 'ready' });
+  }
+
+  it('shows the result card on an Encounter end, and retries with the same seed and Dog snapshot without a remount or loading', async () => {
+    let n = 100;
+    mockSeeds.next = () => ++n;
+    await startSeries();
+    expect(starts()).toHaveLength(1);
+    const first = starts()[0];
+    expect(first.seed).toBe(101);
+    expect(latest('SeriesProgressStrip').index).toBe(1);
+    expect(latest('SeriesProgressStrip').total).toBe(4);
+
+    await sendFromView({ type: 'debrief', payload: poor(first.seed) });
+    expect(card()).toBeDefined();
+    expect(card().paws).toBe(1);
+    expect(latest('DebriefScreen')).toBeUndefined();
+    const mounts = mockSim.mounts;
+
+    act(() => card().onRetry());
+    expect(card()).toBeUndefined();
+    expect(starts()).toHaveLength(2);
+    expect(starts()[1].seed).toBe(first.seed);
+    expect(starts()[1].scenario).toEqual(first.scenario);
+    expect(mockSim.mounts).toBe(mounts); // no remount
+    expect(latest('LoadingOverlay')).toBeUndefined();
+    expect(latest('PrimerScreen')).toBeUndefined();
+    expect(latest('CheckpointScreen')).toBeUndefined();
+  });
+
+  it('starts the next Encounter with a new seed and the Series-start snapshot, and reaches the Debrief after the last Next', async () => {
+    let n = 100;
+    mockSeeds.next = () => ++n;
+    await startSeries();
+    const first = starts()[0];
+    for (let i = 0; i < 4; i++) {
+      const seed = starts()[starts().length - 1].seed;
+      await sendFromView({ type: 'debrief', payload: good(seed) });
+      expect(card().paws).toBe(3);
+      act(() => card().onNext());
+      if (i < 3) {
+        const s = starts()[starts().length - 1];
+        expect(s.seed).not.toBe(seed);
+        expect(s.scenario.learning).toEqual(first.scenario.learning);
+        expect(latest('SeriesProgressStrip').index).toBe(i + 2);
+        expect(latest('SeriesProgressStrip').kept).toHaveLength(i + 1);
+      }
+    }
+    expect(starts()).toHaveLength(4);
+    expect(latest('DebriefScreen')).toBeDefined();
+    expect(latest('DebriefScreen').run.result.payload.encounters).toHaveLength(4);
+    expect(latest('DebriefScreen').run.result.payload.handlingScore).toBe(1000);
+    expect(mockSim.live).toBe(0);
+  });
+
+  it('counts one Stage per Series and shows no advert between Encounters', async () => {
+    await startSeries();
+    for (let i = 0; i < 4; i++) {
+      await sendFromView({ type: 'debrief', payload: good(1) });
+      act(() => card().onNext());
+    }
+    expect(interstitialTriggered).toBe(false);
+  });
+
+  it('opens the Pause Menu over the card on back, and Resume returns to the same card', async () => {
+    await startSeries();
+    await sendFromView({ type: 'debrief', payload: poor(4242) });
+    const postsBefore = mockSim.posts.length;
+    act(() => void triggerBack());
+    expect(latest('ResumeOverlay')).toBeDefined();
+    expect(card()).toBeDefined();
+    act(() => latest('ResumeOverlay').onResume());
+    expect(latest('ResumeOverlay')).toBeUndefined();
+    expect(card()).toBeDefined();
+    expect(mockSim.posts).toHaveLength(postsBefore); // nothing was sent to the ended Stage
+  });
+
+  it('Exit on the third Encounter opens a skipped Debrief listing the kept Paws', async () => {
+    await startSeries();
+    for (let i = 0; i < 2; i++) {
+      await sendFromView({ type: 'debrief', payload: good(1) });
+      act(() => card().onNext());
+    }
+    act(() => mockSim.props.onMessage({ type: 'paused' }));
+    expect(latest('ResumeOverlay')).toBeDefined();
+    act(() => latest('ResumeOverlay').onExit());
+    const result = latest('DebriefScreen').run.result;
+    expect(result.skipped).toBe(true);
+    expect(result.payload.handlingScore).toBe(500);
+    expect(result.payload.encounters.map((e: { paws: number }) => e.paws)).toEqual([3, 3, 0, 0]);
+  });
+
+  it('Exit after every Encounter has a kept attempt finishes normally', async () => {
+    await startSeries();
+    for (let i = 0; i < 3; i++) {
+      await sendFromView({ type: 'debrief', payload: good(1) });
+      act(() => card().onNext());
+    }
+    await sendFromView({ type: 'debrief', payload: good(1) });
+    act(() => card().onRetry()); // retrying the last one, then Exit
+    act(() => mockSim.props.onMessage({ type: 'paused' }));
+    act(() => latest('ResumeOverlay').onExit());
+    const result = latest('DebriefScreen').run.result;
+    expect(result.skipped).toBeUndefined();
+    expect(result.payload.handlingScore).toBe(1000);
+  });
+
+  it('leaves the Dog record and completed Nodes unchanged when the flow is left mid-Series', async () => {
+    await openMap();
+    seriesContent();
+    const before = mockStore.get(RECORD_KEY);
+    openStop(WALK_DISTRACTION.id);
+    throughPrimerAndCheckpoint();
+    await sendFromView({ type: 'ready' });
+    await sendFromView({ type: 'debrief', payload: good(1) });
+    act(() => renderer.unmount());
+    expect(mockStore.get(RECORD_KEY)).toEqual(before);
+  });
+
+  it('a retry clears the hint, dog warning and controls-used state like a fresh Stage start', async () => {
+    await startSeries();
+    await sendFromView({ type: 'stage-signal', signal: 'dog-approaching', bearing: 1 });
+    expect(latest('DogWarningOverlay')).toBeDefined();
+    await sendFromView({ type: 'debrief', payload: poor(1) });
+    act(() => card().onRetry());
+    expect(latest('DogWarningOverlay')).toBeUndefined();
+    expect(latest('HintOverlay')).toBeUndefined();
+  });
+
+  it('Play again restarts the Series at Encounter 1 with new seeds, without the Primer or Checkpoint', async () => {
+    let n = 100;
+    mockSeeds.next = () => ++n;
+    await startSeries();
+    for (let i = 0; i < 4; i++) {
+      await sendFromView({ type: 'debrief', payload: good(1) });
+      act(() => card().onNext());
+    }
+    const seedsBefore = starts().map((s) => s.seed);
+    act(() => latest('DebriefScreen').onPlayAgain());
+    expect(latest('PrimerScreen')).toBeUndefined();
+    expect(latest('CheckpointScreen')).toBeUndefined();
+    await sendFromView({ type: 'ready' });
+    const again = starts()[starts().length - 1];
+    expect(seedsBefore).not.toContain(again.seed);
+    expect(latest('SeriesProgressStrip').index).toBe(1);
+    expect(card()).toBeUndefined();
+  });
+
+  it('a non-Series walking Node still goes straight to its Debrief', async () => {
+    await openMap();
+    openStop(WALK_DISTRACTION.id);
+    throughPrimerAndCheckpoint();
+    await sendFromView({ type: 'ready' });
+    await sendFromView({ type: 'debrief', payload: {} });
+    expect(card()).toBeUndefined();
+    expect(latest('DebriefScreen')).toBeDefined();
   });
 });
