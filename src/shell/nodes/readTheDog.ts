@@ -1,5 +1,5 @@
 import { createRng } from '../../sim/rng';
-import { DIAGNOSTIC } from '../onboarding/diagnostic';
+import { DIAGNOSTIC, median } from '../onboarding/diagnostic';
 
 /**
  * Read the Dog - pure engine
@@ -450,5 +450,59 @@ export function stepRound(
     level: currentLevel,
   };
 }
+
+export interface RoundResult {
+  score: number;
+  bestCombo: number;
+  right: Record<RtdClass, number>;
+  wrong: Record<RtdClass, number>;
+  missed: Record<RtdClass, number>;
+  endLevel: number;
+  latency: number;
+  seconds: number;
+}
+
+export function roundLatency(
+  state: Pick<RoundState, 'rightTimes' | 'missed'>,
+): number {
+  const missCount = (Object.values(state.missed) as number[]).reduce(
+    (a, b) => a + b,
+    0,
+  );
+  const adjustedRight = state.rightTimes.map((t) =>
+    Math.max(0, Math.min(1.5, t - READ_THE_DOG.decisionAllowance)),
+  );
+  const misses = Array(missCount).fill(READ_THE_DOG.missSeconds);
+  const allValues = [...adjustedRight, ...misses];
+  return median(allValues);
+}
+
+export function roundResult(state: RoundState): RoundResult {
+  return {
+    score: state.score,
+    bestCombo: state.bestCombo,
+    right: { ...state.right },
+    wrong: { ...state.wrong },
+    missed: { ...state.missed },
+    endLevel: state.level,
+    latency: roundLatency(state),
+    seconds: Math.min(READ_THE_DOG.roundSeconds, state.t),
+  };
+}
+
+export function carryOf(state: RoundState): RtdCarry {
+  return {
+    level: state.level,
+    weights: { ...state.weights },
+  };
+}
+
+export function replaySeed(seed: number, n: number): number {
+  let h = (seed ^ Math.imul(n + 1, 0x9e3779b9)) >>> 0;
+  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b) >>> 0;
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35) >>> 0;
+  return (h ^ (h >>> 16)) >>> 0;
+}
+
 
 

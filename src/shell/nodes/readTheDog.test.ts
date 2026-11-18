@@ -8,6 +8,10 @@ import {
   newRound,
   stepRound,
   drawNextSignal,
+  roundResult,
+  roundLatency,
+  carryOf,
+  replaySeed,
 } from './readTheDog';
 
 describe('readTheDog - 1.1 signal table', () => {
@@ -441,6 +445,58 @@ describe('readTheDog - 1.7 seeded weighted draw', () => {
     expect(source).not.toContain('Math.random');
   });
 });
+
+describe('readTheDog - 1.8 determinism', () => {
+  it('produces identical signal sequences and roundResult for identical seed, carry and answers', () => {
+    const runSimulation = () => {
+      const seed = 88888;
+      const carry = {
+        level: 1,
+        weights: {
+          soft_loose: 1,
+          play_bow: 2,
+          loose_wag: 1,
+          ears_up_still: 3,
+          lip_lick: 1,
+          whale_eye: 2,
+          freeze_stare: 1,
+          hackles_up: 1,
+          stiff_closed_mouth: 1,
+        },
+      };
+
+      let state = newRound(seed, carry);
+      const signalsSeen: RtdSignal[] = [state.signal!];
+
+      // Step until done with a scripted set of actions
+      let tick = 0;
+      while (state.phase !== 'done') {
+        tick++;
+        // On showing phase, answer periodically
+        if (state.phase === 'showing' && state.timeLeft < state.timer - 0.2) {
+          // answer calm every 3rd signal, otherwise correct class
+          const ans: RtdClass = tick % 3 === 0 ? 'calm' : SIGNALS[state.signal!].cls;
+          state = stepRound(state, 0.1, ans);
+        } else {
+          state = stepRound(state, 0.1);
+        }
+
+        if (state.phase === 'showing' && state.signal && signalsSeen[signalsSeen.length - 1] !== state.signal) {
+          signalsSeen.push(state.signal);
+        }
+      }
+
+      return { signalsSeen, result: roundResult(state) };
+    };
+
+    const run1 = runSimulation();
+    const run2 = runSimulation();
+
+    expect(run1.signalsSeen).toEqual(run2.signalsSeen);
+    expect(run1.result).toEqual(run2.result);
+  });
+});
+
 
 
 
