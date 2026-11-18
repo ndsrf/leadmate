@@ -34,7 +34,7 @@
 
 ## 6. Debrief
 
-- [ ] 6.1 Add an Encounter list (title, Paws, attempts, "not played") above the telemetry rows of `DebriefScreen` when `payload.encounters` is present; verify with a `NodeScreens.test.tsx` case for a finished Series and one for an exited Series, and that a non-Series Debrief is unchanged (snapshot).
+- [x] 6.1 Add an Encounter list (title, Paws, attempts, "not played") above the telemetry rows of `DebriefScreen` when `payload.encounters` is present; verify with a `NodeScreens.test.tsx` case for a finished Series and one for an exited Series, and that a non-Series Debrief is unchanged (snapshot).
 - [x] 6.2 Make Play again on a Series Node's Debrief restart the Series at Encounter 1 with new seeds; verify in `App.test.tsx` that the first `start` message after Play again has a different seed and no Primer or Checkpoint is shown.
 
 ## 7. Prototype Series on `walk-distraction`
