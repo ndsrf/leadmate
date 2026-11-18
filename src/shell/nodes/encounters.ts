@@ -42,21 +42,10 @@ export function keptAttempt(attempts: readonly EncounterAttempt[]): EncounterAtt
 
 export function combineEncounterPayloads(
   entries: readonly EncounterSeriesEntry[],
-  seriesLengthOrOptions?: number | { skipped?: boolean; seriesLength?: number } | boolean,
-  maybeSkipped?: boolean,
+  options: { skipped?: boolean; seriesLength?: number } = {},
 ): SimulationDebriefPayload {
-  let isSkipped = false;
-  let seriesLength = entries.length;
-
-  if (typeof seriesLengthOrOptions === 'boolean') {
-    isSkipped = seriesLengthOrOptions;
-  } else if (typeof seriesLengthOrOptions === 'number') {
-    seriesLength = seriesLengthOrOptions;
-    isSkipped = !!maybeSkipped;
-  } else if (seriesLengthOrOptions && typeof seriesLengthOrOptions === 'object') {
-    isSkipped = !!seriesLengthOrOptions.skipped;
-    seriesLength = seriesLengthOrOptions.seriesLength ?? entries.length;
-  }
+  const isSkipped = !!options.skipped;
+  const seriesLength = options.seriesLength ?? entries.length;
 
   const encounterSummaries: { id: string; paws: number; attempts: number; seed?: number }[] = [];
   const keptAttempts: EncounterAttempt[] = [];

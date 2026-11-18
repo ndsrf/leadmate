@@ -218,6 +218,7 @@ export function advance(run: NodeRun, action: NodeAction): NodeRun {
       const series = run.series ?? initialSeries(encounters);
 
       if (action.type === 'encounter-end') {
+        if (series.showing !== 'running') return run;
         const aim = encounters[series.index].aim;
         const pawResult = pawsFor(aim, action.payload);
         const attempt: EncounterAttempt = { payload: action.payload, paws: pawResult.paws };
@@ -238,6 +239,7 @@ export function advance(run: NodeRun, action: NodeAction): NodeRun {
       }
 
       if (action.type === 'retry') {
+        if (series.showing !== 'result') return run;
         return {
           ...run,
           series: {
@@ -248,6 +250,7 @@ export function advance(run: NodeRun, action: NodeAction): NodeRun {
       }
 
       if (action.type === 'next-encounter') {
+        if (series.showing !== 'result') return run;
         const nextIndex = series.index + 1;
         if (nextIndex < encounters.length) {
           return {
@@ -264,7 +267,7 @@ export function advance(run: NodeRun, action: NodeAction): NodeRun {
           id: enc.id,
           attempts: series.attempts[i] ?? [],
         }));
-        const combined = combineEncounterPayloads(seriesEntries, false);
+        const combined = combineEncounterPayloads(seriesEntries);
         return {
           ...run,
           step: 'debrief',
@@ -281,14 +284,14 @@ export function advance(run: NodeRun, action: NodeAction): NodeRun {
         }));
 
         if (allHaveKept) {
-          const combined = combineEncounterPayloads(seriesEntries, false);
+          const combined = combineEncounterPayloads(seriesEntries);
           return {
             ...run,
             step: 'debrief',
             result: { kind: 'stage', payload: combined },
           };
         } else {
-          const combined = combineEncounterPayloads(seriesEntries, true);
+          const combined = combineEncounterPayloads(seriesEntries, { skipped: true });
           return {
             ...run,
             step: 'debrief',

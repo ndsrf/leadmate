@@ -554,6 +554,25 @@ describe('Encounter Series progression (Task 3.3)', () => {
     expect(run.series?.showing).toBe('result');
   });
 
+  it('ignores a duplicate encounter-end while the result card shows', () => {
+    let run = toSimulation(seriesNode);
+    run = advance(run, { type: 'encounter-end', payload: payloadWith({ seed: 10, peakReactionTier: 'calm' }) });
+    const again = advance(run, { type: 'encounter-end', payload: payloadWith({ seed: 11, peakReactionTier: 'calm' }) });
+    expect(again).toBe(run);
+    expect(again.series?.attempts[0]).toHaveLength(1);
+  });
+
+  it('ignores retry and next-encounter unless the result card shows', () => {
+    let run = toSimulation(seriesNode);
+    expect(advance(run, { type: 'next-encounter' })).toBe(run);
+    expect(advance(run, { type: 'retry' })).toBe(run);
+    run = advance(run, { type: 'encounter-end', payload: payloadWith({ seed: 10, peakReactionTier: 'calm' }) });
+    run = advance(run, { type: 'next-encounter' });
+    const doubled = advance(run, { type: 'next-encounter' });
+    expect(doubled).toBe(run);
+    expect(doubled.series?.index).toBe(1);
+  });
+
   it('next moves to the following Encounter with a new seed slot', () => {
     let run = toSimulation(seriesNode);
     run = advance(run, { type: 'encounter-end', payload: payloadWith({ seed: 10, peakReactionTier: 'calm' }) });
