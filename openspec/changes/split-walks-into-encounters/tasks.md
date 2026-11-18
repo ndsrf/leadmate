@@ -49,7 +49,7 @@
 
 ## 9. Integration checks
 
-- [ ] 9.1 Run `npx jest`, `npx tsc --noEmit` and `content:validate` for both channels; all pass, and stable still plays `walk-distraction` as one walking Stage until the Series is promoted.
+- [x] 9.1 Run `npx jest`, `npx tsc --noEmit` and `content:validate` for both channels; all pass, and stable still plays `walk-distraction` as one walking Stage until the Series is promoted.
 - [ ] 9.2 On a device build, play the Series end to end: retry starts within one second with no loading screen; no frames are drawn while a result card shows; Pause/Exit mid-Series opens the Debrief with completion credit and 1 Star; killing the app mid-Series and reopening resumes nothing and leaves the Node as it was; the Daily Stage and `blind-corner` are unchanged.
 
 ## 10. Rollout
