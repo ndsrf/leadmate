@@ -575,6 +575,7 @@ export function resolvePack(pack: ContentPack, language: string = 'es', options?
     };
 
     if (cfg.opensAfterLesson) nodeDef.opensAfterLesson = cfg.opensAfterLesson;
+    if (cfg.introduces) nodeDef.introduces = [...cfg.introduces];
 
     // Debrief
     const hasDebrief = cfg.debrief || (parsedEs.debrief && (parsedEs.debrief.calm || parsedEs.debrief.notCalm));

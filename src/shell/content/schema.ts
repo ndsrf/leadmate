@@ -96,6 +96,7 @@ export const NODE_SCHEMA_FIELDS: readonly FieldDoc[] = [
   { name: 'mode', type: 'string', required: true, description: 'Node mode ("stage", "minigame", "close_exercise")', allowedValues: NODE_MODES },
   { name: 'prerequisites', type: 'string[]', required: true, description: 'IDs of Nodes that must be completed before this one is available' },
   { name: 'opensAfterLesson', type: 'string', required: false, description: 'Lesson ID whose reading alone unlocks this Node in its Stretch' },
+  { name: 'introduces', type: 'string[]', required: false, description: 'Action kinds Introduced by this Node' },
   { name: 'simulation', type: 'object', required: false, description: 'Stage/close scenario config or scenario name, or minigame kind' },
   { name: 'exercises', type: 'object[]', required: false, description: 'Array of exercises targeting metrics ({ metric, key? })' },
   { name: 'primerCards', type: 'object[]', required: false, description: 'Structured recap cards ({ kind, media?, tutorialUrl? })' },
@@ -228,6 +229,7 @@ export interface NodeYaml {
   mode: NodeMode;
   prerequisites: string[];
   opensAfterLesson?: string;
+  introduces?: string[];
   simulation?: {
     scenarioName?: string;
     scenario?: any;
@@ -636,6 +638,18 @@ export function validateNodeYaml(raw: unknown, file: string = 'node.yaml'): Vali
 
   if (obj.opensAfterLesson !== undefined && !isContentId(obj.opensAfterLesson)) {
     errors.push({ file, field: 'opensAfterLesson', message: `Invalid opensAfterLesson ID "${String(obj.opensAfterLesson)}"`, hint: 'Must be a valid Lesson ID' });
+  }
+
+  if (obj.introduces !== undefined) {
+    if (!Array.isArray(obj.introduces)) {
+      errors.push({ file, field: 'introduces', message: 'introduces must be an array of action kind strings', hint: 'introduces: ["kind1", "kind2"]' });
+    } else {
+      for (let i = 0; i < obj.introduces.length; i++) {
+        if (typeof obj.introduces[i] !== 'string') {
+          errors.push({ file, field: `introduces[${i}]`, message: 'introduces items must be strings', hint: 'Provide action kind string' });
+        }
+      }
+    }
   }
 
   if (obj.simulation !== undefined) {
