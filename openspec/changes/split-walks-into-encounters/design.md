@@ -44,9 +44,8 @@ Proposed Series (authored first in `content/beta/nodes/walk-distraction/node.yam
 | 1 | `loose-start` | Correa floja | `keep-slack` | Empty 20 m sidewalk (the Distractor activates past the route end) | waypoint |
 | 2 | `skate-far` | Míralo venir | `stay-calm` | Skateboarder crosses well ahead of a ~25 m route; step aside or slow down before the leash tightens | waypoint |
 | 3 | `skate-poste` | Poste y marca | `mark-disengagement` | Skateboarder passes close; Dog fixates at the leash limit | time-limit 18 s |
-| 4 | `turn-look` | Gira y te mira | `check-in` | Short route with two turns; mark the look after the Dog follows | time-limit 15 s |
 
-Each introduces one thing: Slack, looking far, Poste + Mark, Check-in. Encounter 4 relies on `followChance` (a chance, not a certainty); two turns in 15 s give at least two chances, and playtest decides whether to add a third.
+Each introduces one thing: Slack, looking far, Poste + Mark. There is no turn-following Encounter here: marking the look after the Dog follows a turn is taught by the Unpredictable walks Lesson in a later World, so this Stretch must not reward it before then (user decision after the manual check). The `check-in` Aim stays in the format for later Series.
 
 ### 2. Series data format in node.yaml
 ```yaml
@@ -126,7 +125,7 @@ Encounters are ordinary walking Stages, so a HUD ring reading calm-period progre
 
 ## Open Questions
 
-- Exact geometry and Distractor timing of the four prototype Encounters, and the turn-look tuning; settled in playtest and expressed only in node.yaml.
+- Exact geometry and Distractor timing of the three prototype Encounters; settled in playtest and expressed only in node.yaml.
 - How long the analytics baseline window should be before switching (depends on traffic once `add-product-analytics` is live).
 
 ## Grilling decisions
@@ -164,6 +163,6 @@ Questions raised against GLOSSARY.md, the ADRs, the main specs and the code, eac
 29. Are the Primer and Checkpoint of `walk-distraction` trimmed? Not in this change → isolates the measured variable.
 30. Is "each Encounter introduces one new thing" testable? Not by software → moved from the spec to the format guide and the prototype review.
 31. Is "running again within one second" testable? On the device check (9.2), with App tests asserting no remount and no loading overlay.
-32. Encounter layouts and turn-look tuning? Settled in playtest, node.yaml only (given default).
+32. Encounter layouts? Settled in playtest, node.yaml only (given default). A turn-look Encounter was dropped after the manual check: turn-following comes only with the Unpredictable walks Lesson.
 33. Where is the prototype authored first? The beta pack, not stable → matches the tasks and the migration plan.
 34. Who updates GLOSSARY.md and writes the ADR? The implementer, as a task (11.1-11.2) → this change only proposes the text.
