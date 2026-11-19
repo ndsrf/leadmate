@@ -11,7 +11,7 @@
 - [x] 2.1 Add optional `introduces: string[]` to the Node schema, parser and resolver (`src/shell/content/schema.ts`, `parser.ts`, `resolver.ts`) so that `NodeDef.introduces` is set. Verify with a resolver test on a fixture Node that has and one that lacks the field.
 - [x] 2.2 Write failing validator tests in `src/shell/content/validator.test.ts` for the scenarios of "Introductions are validated" and the stage-meters scenario "Meter Points for an action not yet Introduced": unknown kind, starting kind, Introduced twice (both Nodes named), meter kind not yet Introduced (Node, meter and kind named), and a never-Introduced kind as a warning only. Implement the checks in `validator.ts` (design decision 5). Verify they pass.
 - [x] 2.3 Document `introduces`, the starting set and the list of Introducible kinds in `content/FORMAT.md` (§3.4 and a short authoring note), and extend `src/shell/content/formatConformance.test.ts` so that a mismatch with `FEEDBACK_ACTION_KINDS` fails. Verify the test passes.
-- [ ] 2.4 Add the `introduces` lists of design decision 3 to the beta Nodes (`walk-distraction`, `poste-practice`, `leave-it-intro`, `park-nose-on`, `park-unpredictable`, `park-plant-mark`). Verify `npm run content:validate -- --channel beta` passes with no introduction warnings, and that `--channel stable` passes (warnings allowed, listed in the PR).
+- [x] 2.4 Add the `introduces` lists of design decision 3 to the beta Nodes (`walk-distraction`, `poste-practice`, `leave-it-intro`, `park-nose-on`, `park-unpredictable`, `park-plant-mark`). Verify `npm run content:validate -- --channel beta` passes with no introduction warnings, and that `--channel stable` passes (warnings allowed, listed in the PR).
 
 ## 3. Feedback gate in the HUD
 

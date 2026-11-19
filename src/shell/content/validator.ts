@@ -1170,23 +1170,26 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
   }
 
   // Check Stage Meters: every action kind a Node's meter gives Meter Points for must be Introduced at that Node
-  for (const [nodeId, nodeEntry] of Object.entries(pack.nodes ?? {})) {
-    const file = `nodes/${nodeId}/node.yaml`;
-    const meters = nodeEntry.config?.simulation?.scenario?.meters;
-    if (Array.isArray(meters)) {
-      const allowedKinds = cumulativePerNode.get(nodeId) ?? new Set(STARTING_KINDS);
-      for (const meter of meters) {
-        const meterId = meter?.id ?? 'unknown';
-        const points = meter?.meterPoints;
-        if (points && typeof points === 'object') {
-          for (const kind of Object.keys(points)) {
-            if (!allowedKinds.has(kind)) {
-              errors.push({
-                file,
-                field: 'simulation.scenario.meters',
-                message: `Node "${nodeId}": meter "${meterId}" gives Meter Points for "${kind}" which is not yet Introduced at this Node`,
-                hint: `Only Introduced action kinds can add Meter Points. Introduced at this Node: ${[...allowedKinds].join(', ')}`,
-              });
+  // Only enforced in channels that have adopted introductions (allChannelIntroducedKinds.size > 0)
+  if (allChannelIntroducedKinds.size > 0) {
+    for (const [nodeId, nodeEntry] of Object.entries(pack.nodes ?? {})) {
+      const file = `nodes/${nodeId}/node.yaml`;
+      const meters = nodeEntry.config?.simulation?.scenario?.meters;
+      if (Array.isArray(meters)) {
+        const allowedKinds = cumulativePerNode.get(nodeId) ?? new Set(STARTING_KINDS);
+        for (const meter of meters) {
+          const meterId = meter?.id ?? 'unknown';
+          const points = meter?.meterPoints;
+          if (points && typeof points === 'object') {
+            for (const kind of Object.keys(points)) {
+              if (!allowedKinds.has(kind)) {
+                errors.push({
+                  file,
+                  field: 'simulation.scenario.meters',
+                  message: `Node "${nodeId}": meter "${meterId}" gives Meter Points for "${kind}" which is not yet Introduced at this Node`,
+                  hint: `Only Introduced action kinds can add Meter Points. Introduced at this Node: ${[...allowedKinds].join(', ')}`,
+                });
+              }
             }
           }
         }

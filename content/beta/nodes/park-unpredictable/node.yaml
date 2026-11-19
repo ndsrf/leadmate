@@ -2,6 +2,13 @@ id: park-unpredictable
 mode: stage
 prerequisites:
   - park-nose-on
+introduces:
+  - followed-turn
+  - fresh-move
+  - repeated-move-ignored
+  - check-in-after-change
+  - chain
+  - sintonia
 simulation:
   scenario:
     world: 6
