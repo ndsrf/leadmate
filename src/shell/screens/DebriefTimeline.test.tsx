@@ -404,3 +404,35 @@ describe('DebriefTimelineSection component', () => {
     expect(fs.existsSync('/tmp/debrief_evidence.html')).toBe(true);
   });
 });
+
+describe('DebriefTimelineSection Introduced filter', () => {
+  const t = createTranslator(es);
+  const timeline: TimelineEntry[] = [
+    { t: 3, kind: 'check-in-hit', polarity: 'right' },
+    { t: 9, kind: 'followed-turn', polarity: 'right' },
+    { t: 15, kind: 'granted-sniff', polarity: 'right' },
+  ];
+  const payload: SimulationDebriefPayload = payloadWith({ durationSeconds: 30, timeline });
+  const render = (introducedKinds?: readonly string[]) => {
+    let root: any;
+    act(() => {
+      root = ReactTestRenderer.create(<DebriefTimelineSection t={t} payload={payload} introducedKinds={introducedKinds} />);
+    });
+    return root.root.findAll((n: any) => n.type === 'button' && n.props['data-moment-index'] !== undefined);
+  };
+
+  it('hides a followed-turn moment that was not Introduced, leaving the payload untouched', () => {
+    const buttons = render(['check-in-hit', 'granted-sniff']);
+    expect(buttons).toHaveLength(2);
+    expect(buttons.map((b: any) => b.props.accessibilityLabel).join('|')).not.toContain(t('feedback.followed-turn.short'));
+    expect(payload.timeline).toHaveLength(3);
+  });
+
+  it('shows every moment when the set is absent', () => {
+    expect(render()).toHaveLength(3);
+  });
+
+  it('shows the moment once it is Introduced', () => {
+    expect(render(['check-in-hit', 'followed-turn', 'granted-sniff'])).toHaveLength(3);
+  });
+});
