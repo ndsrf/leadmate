@@ -26,7 +26,9 @@ See proposal.md (Why). The relevant current state:
 - Adding a new action kind later forces a decision: the starting set or a Node that Introduces it. Validation and the format-guide drift test catch omissions.
 
 **Non-Goals:**
-- Hiding controls (the Go Sniff offer, Cue buttons) or the telegraph pieces.
+- Hiding Cue buttons, the Jackpot button (it already follows the Stage's Jackpot budget, which only World 6 Nodes have) or the telegraph pieces.
+- Hiding the Dog's eye contact after a followed turn: in the sim it is a real Check-in the player may mark, so hiding it would score an unseen moment.
+- A separate "new feedback unlocked" announcement: the first-time Hint of a newly Introduced kind is the announcement.
 - Per-player reading history (Lessons read) as the source.
 - Changing which kinds exist, their texts, tiers or icons.
 
@@ -56,11 +58,15 @@ It sits beside `FEEDBACK_ACTION_KINDS`, so adding a kind is reviewed next to the
 | Node (World) | `introduces` |
 |---|---|
 | `poste-practice` (2) | `poste`, `harsh-stop` |
+| `walk-distraction` (3) | `go-sniff`, `go-sniff-cut-short` |
 | `leave-it-intro` (4) | `wrong-cue`, `leave-it-food`, `food-eaten` |
-| `park-jogger` (5) | `go-sniff`, `go-sniff-cut-short` |
 | `park-nose-on` (6) | `granted-sniff`, `empty-sniff`, `scent-dragged-past` |
 | `park-unpredictable` (6) | `followed-turn`, `fresh-move`, `repeated-move-ignored`, `check-in-after-change`, `chain`, `sintonia` |
 | `park-plant-mark` (6) | `waited-plant`, `dragged-plant`, `waited-marking`, `interrupted-marking`, `smart-jackpot`, `wasted-jackpot` |
+
+Go Sniff is Introduced at `walk-distraction` because the how-to-play Lesson `howto-walking`, just before it in World 3, teaches the button, and the `go-sniff` spec already offered it from World 3. Moving it later (to `park-jogger`) was considered and rejected for now: it would mean rewriting that Lesson in both languages. It can move during playtest if World 3 still feels crowded.
+
+`sintonia` stays with `park-unpredictable`: Sintonía rewards following unpredictable walking, which that Node teaches.
 
 Every existing World 6 meter kind is Introduced at or before its Node:
 - `park-keep-fresh` uses `fresh-move` and `chain` after `park-unpredictable`.
@@ -78,7 +84,7 @@ The helper is `introducedKinds(context)` in `src/shell/introductions.ts`. The co
 - `{ kind: 'first' }`
 - `{ kind: 'daily', completedNodes }`
 
-It takes worlds and nodes as defaults, like `world.ts`. A Node not on any trail (a library or home item) uses the starting set plus its own `introduces`.
+It takes worlds and nodes as defaults, like `world.ts`. A Node not on any trail (a library or home item) uses the starting set plus its own `introduces`. The Daily Stage uses the Nodes the player has completed because it has no place on the trail; its score and payload do not change with it.
 
 `startStage` sends `introducedKinds` in the `start` message:
 - `StageScene` passes it to `FeedbackDecider`.
@@ -89,7 +95,9 @@ The decider drops a not-Introduced event before any Combo, Hint or seen logic. T
 - Coach marks (a control maps to the kinds it can produce: movement → `rigid-pull`; Marker → the Marker kinds; Poste → `poste`; Gather → always, since it has no kind of its own and only exists in close exercises after `poste-practice`);
 - the Debrief timeline filter.
 
-Alternative: filtering in the sim. Rejected, because it would change payloads and meters (ADR 0002 / ADR 0035).
+`StageScene` also uses the set for the Go Sniff offer: when `go-sniff` is not Introduced, it draws no Go Sniff button or prompt and ignores the Go Sniff keyboard shortcut. The sim keeps its own World check (`FIRST_WALKING_WORLD` in `src/sim/sim.ts`) unchanged, so payloads stay byte-identical (ADR 0002). On the trail both rules agree; they differ only in a new player's Daily Stage, where the button stays hidden, so no Go Sniff input reaches the sim.
+
+Alternative: filtering in the sim. Rejected, because it would change payloads and meters (ADR 0002 / ADR 0036).
 
 ### 5. Validation in `validator.ts`
 
@@ -107,7 +115,7 @@ The validator walks the channel's trail once and computes the cumulative set per
 ### 6. Docs
 
 - **GLOSSARY:** add "Introduced action" under Training: "a kind of handled action a walking Stage answers, because it is in the starting set or a Node on or before it on the trail Introduces it".
-- **ADR 0035:** "Walk feedback follows the trail and is presentation only".
+- **ADR 0036:** "Walk feedback follows the trail and is presentation only".
 
 ## Risks / Trade-offs
 
@@ -131,4 +139,4 @@ There is no data migration. `seenHints` keeps its meaning.
 
 ## Open Questions
 
-- Whether `sintonia` belongs with `park-unpredictable` or with an earlier walking Node. It can be moved later in content alone, during playtest.
+None. Placements of single kinds (for example Go Sniff or Sintonía) can move later in content alone, during playtest.

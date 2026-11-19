@@ -11,13 +11,15 @@
 - [ ] 2.1 Add optional `introduces: string[]` to the Node schema, parser and resolver (`src/shell/content/schema.ts`, `parser.ts`, `resolver.ts`) so that `NodeDef.introduces` is set. Verify with a resolver test on a fixture Node that has and one that lacks the field.
 - [ ] 2.2 Write failing validator tests in `src/shell/content/validator.test.ts` for the scenarios of "Introductions are validated" and the stage-meters scenario "Meter Points for an action not yet Introduced": unknown kind, starting kind, Introduced twice (both Nodes named), meter kind not yet Introduced (Node, meter and kind named), and a never-Introduced kind as a warning only. Implement the checks in `validator.ts` (design decision 5). Verify they pass.
 - [ ] 2.3 Document `introduces`, the starting set and the list of Introducible kinds in `content/FORMAT.md` (§3.4 and a short authoring note), and extend `src/shell/content/formatConformance.test.ts` so that a mismatch with `FEEDBACK_ACTION_KINDS` fails. Verify the test passes.
-- [ ] 2.4 Add the `introduces` lists of design decision 3 to the beta Nodes (`poste-practice`, `leave-it-intro`, `park-jogger`, `park-nose-on`, `park-unpredictable`, `park-plant-mark`). Verify `npm run content:validate -- --channel beta` passes with no introduction warnings, and that `--channel stable` passes (warnings allowed, listed in the PR).
+- [ ] 2.4 Add the `introduces` lists of design decision 3 to the beta Nodes (`walk-distraction`, `poste-practice`, `leave-it-intro`, `park-nose-on`, `park-unpredictable`, `park-plant-mark`). Verify `npm run content:validate -- --channel beta` passes with no introduction warnings, and that `--channel stable` passes (warnings allowed, listed in the PR).
 
 ## 3. Feedback gate in the HUD
 
 - [ ] 3.1 Write failing tests in `src/hud/feedback.test.ts`: with an Introduced set that lacks `followed-turn` and `harsh-stop`, a followed turn and a harsh stop produce no message, sound, haptic or icon; they neither join nor end a running Check-in Combo; no Hint is reported as newly seen for them; an absent set behaves as today; the Taste Stage rule still holds. Verify they fail.
 - [ ] 3.2 Add an optional `introducedKinds` option to `FeedbackDecider` and drop not-Introduced kinds before any Combo, Hint or seen logic. Verify 3.1 passes and the existing feedback tests stay green.
 - [ ] 3.3 Add optional `introducedKinds` to the bridge `start` message type and pass it from `StageScene` (and its `lastStartMessage` fallback) into `FeedbackDecider`. Verify with a bundle test that a started Stage without the field answers every kind and one with the field answers only the given kinds; verify `npm run sim:build` passes.
+
+- [ ] 3.4 In `StageScene`, when the start message carries an Introduced set without `go-sniff`, draw no Go Sniff button or prompt and ignore the Go Sniff keyboard shortcut (design decision 4). Verify with a bundle test that a scent Stage and a post-Disengagement offer show no button and send no `sniff` input in that case, and show it as today when `go-sniff` is Introduced or the field is absent; verify `npm run sim:build` passes.
 
 ## 4. Shell wiring
 
@@ -28,11 +30,11 @@
 
 ## 5. Docs
 
-- [ ] 5.1 Add "Introduced action" to GLOSSARY.md (Training) and write `docs/adr/0035-walk-feedback-follows-the-trail-presentation-only.md` (design decision 6). Verify `openspec validate introduce-walk-feedback-gradually --strict` passes and the glossary term is used unchanged in the code comments and the format guide.
+- [ ] 5.1 Check that the GLOSSARY entry "Introduced action" and `docs/adr/0036-walk-feedback-follows-the-trail-presentation-only.md` (written during planning) still match the implementation, and update them if not. Verify `openspec validate introduce-walk-feedback-gradually --strict` passes and the glossary term is used unchanged in the code comments and the format guide.
 
 ## 6. Integration check
 
-- [ ] 6.1 Manual run (web or device) after a progress reset. In the Taste Stage and the guided first Stage, only leash and Marker feedback appears (no "Nice turn!", no Poste Hint). `walk-distraction` in World 3 shows no "Nice turn!". After a dev unlock to World 6, `park-unpredictable` shows the followed-turn Hint the first time. Note the results in the PR.
+- [ ] 6.1 Manual run (web or device) after a progress reset. In the Taste Stage and the guided first Stage, only leash and Marker feedback appears (no "Nice turn!", no Poste Hint). `walk-distraction` in World 3 shows no "Nice turn!" and does offer the Go Sniff button; a new player's Daily Stage shows no Go Sniff button. After a dev unlock to World 6, `park-unpredictable` shows the followed-turn Hint the first time. Note the results in the PR.
 
 ## Workflow follow-up
 

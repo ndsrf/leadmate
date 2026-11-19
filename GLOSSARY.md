@@ -311,6 +311,10 @@ _Avoid_: Toast, popup, notification
 The first-time, fuller form of a Feedback Message, shown the first time that kind of action or event happens for the Dog (for example the leash first Taut). A seen Hint is not shown again; later the short form is shown.
 _Avoid_: Tutorial, tooltip
 
+**Introduced action**:
+A kind of handled action a walking Stage answers, with feedback and points, because it is in the starting set (leash tension and the Marker) or a Node at or before that Stage on the trail Introduces it. Before that, the walk shows nothing for it.
+_Avoid_: Unlocked feedback, enabled kind, taught action
+
 **Coach mark**:
 A drawn, non-blocking pointer with a short label over a Stage control (the movement control, the Marker), shown to a new user from the start of a Stage rather than after an event, and dismissed by using that control. Not a Hint.
 _Avoid_: Tutorial, tooltip, overlay
@@ -669,7 +673,7 @@ _Avoid_: File list, checksum index, lockfile
 ### Usage Analytics
 
 **Usage Analytics**:
-The anonymous record of which screens and steps a user reaches, sent from the Shell and never from a Stage, which the user can turn off in Settings.
+The anonymous record of which screens and steps a user reaches and what they tap, sent from the Shell and never from a Stage, which the user can turn off in Settings.
 _Avoid_: Tracking, telemetry, metrics
 
 **Install Id**:

@@ -50,7 +50,7 @@ The Daily Stage SHALL answer the starting set plus every kind Introduced by a No
 - **THEN** nothing is shown for the Go Sniff
 
 #### Scenario: Experienced player's Daily Stage
-- **WHEN** a player who has completed `park-jogger` plays the Daily Stage and the Dog starts a Go Sniff
+- **WHEN** a player who has completed `walk-distraction` plays the Daily Stage and the Dog starts a Go Sniff
 - **THEN** the Go Sniff Feedback Message is shown
 
 ### Requirement: Introductions never change the Stage
