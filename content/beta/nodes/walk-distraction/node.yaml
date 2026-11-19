@@ -21,16 +21,6 @@ simulation:
         distractor: { kind: skateboard, speed: 4, activateAfterMeters: 4, startOffset: 12, triggerRadius: 14 }
         markBudget: 3
         endCondition: { kind: time-limit, seconds: 18 }
-    - id: turn-look
-      aim: check-in
-      scenario:
-        waypoints:
-          - { x: 6, y: 0 }
-          - { x: 6, y: -2 }
-        waypoint: { x: 14, y: -2 }
-        distractor: { kind: skateboard, speed: 4, activateAfterMeters: 50, startOffset: 12, triggerRadius: 14 }
-        markBudget: 3
-        endCondition: { kind: time-limit, seconds: 15 }
 exercises:
   - metric: tension
     key: node.walk.exerciseTension

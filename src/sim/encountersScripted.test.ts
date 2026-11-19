@@ -4,7 +4,7 @@ import { defaultScenario, type ScenarioConfig } from './config';
 import { routePoints } from './scenery';
 import { routeLength } from './geometry';
 import { routeWalker, runScripted } from './harness';
-import { isDogLooking, type SimInput, type SimState } from './sim';
+import { type SimInput, type SimState } from './sim';
 import { parseYaml, type NodeYaml } from '../shell/content/schema';
 import { pawsFor } from '../shell/nodes/encounters';
 
@@ -13,12 +13,11 @@ describe('Prototype Encounters on walk-distraction', () => {
   const nodeYaml = parseYaml<NodeYaml>(readFileSync(nodePath, 'utf8'));
   const encounters = nodeYaml.simulation?.encounters ?? [];
 
-  it('has four authored encounters in order', () => {
+  it('has three authored encounters in order', () => {
     expect(encounters.map((e) => e.id)).toEqual([
       'loose-start',
       'skate-far',
       'skate-poste',
-      'turn-look',
     ]);
   });
 
@@ -44,7 +43,7 @@ describe('Prototype Encounters on walk-distraction', () => {
 
     it('each time-limited Encounter ends at its limit', () => {
       const timeLimited = encounters.filter((e) => e.scenario?.endCondition?.kind === 'time-limit');
-      expect(timeLimited).toHaveLength(2);
+      expect(timeLimited).toHaveLength(1);
 
       for (const enc of timeLimited) {
         const config: ScenarioConfig = { ...defaultScenario, ...enc.scenario };
@@ -60,17 +59,6 @@ describe('Prototype Encounters on walk-distraction', () => {
   describe('Passive runs (1 Paw where Aim needs an action)', () => {
     it('passive run on skate-poste (mark-disengagement) yields 1 Paw', () => {
       const enc = encounters.find((e) => e.id === 'skate-poste')!;
-      const config: ScenarioConfig = { ...defaultScenario, ...enc.scenario };
-      const walk = routeWalker(config);
-      // Handler walks but never presses marker
-      const { payload } = runScripted(1, (s) => ({ ...walk(s), marker: false }), config);
-      const res = pawsFor(enc.aim, payload);
-      expect(res.paws).toBe(1);
-      expect(res.next).toBe('aim');
-    });
-
-    it('passive run on turn-look (check-in) yields 1 Paw', () => {
-      const enc = encounters.find((e) => e.id === 'turn-look')!;
       const config: ScenarioConfig = { ...defaultScenario, ...enc.scenario };
       const walk = routeWalker(config);
       // Handler walks but never presses marker
@@ -130,29 +118,6 @@ describe('Prototype Encounters on walk-distraction', () => {
         return {
           direction: w.direction,
           strength: stop ? 0 : 0.6,
-          marker,
-        };
-      };
-      const { payload } = runScripted(1, inputs, config);
-      const res = pawsFor(enc.aim, payload);
-      expect(res.paws).toBe(3);
-    });
-
-    it('turn-look: 3 Paws on turning and marking the check-in glance', () => {
-      const enc = encounters.find((e) => e.id === 'turn-look')!;
-      const config: ScenarioConfig = { ...defaultScenario, ...enc.scenario };
-      const walk = routeWalker(config);
-      let marked = false;
-      const inputs = (s: SimState): SimInput => {
-        let marker = false;
-        if (isDogLooking(s) && !marked) {
-          marker = true;
-          marked = true;
-        }
-        const w = walk(s);
-        return {
-          direction: w.direction,
-          strength: 0.6,
           marker,
         };
       };

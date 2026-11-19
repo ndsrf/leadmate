@@ -39,7 +39,7 @@
 
 ## 7. Prototype Series on `walk-distraction`
 
-- [ ] 7.1 Author the three Encounters (`loose-start`, `skate-far`, `skate-poste`) from design decision 1 (no turn-following Encounter before the Unpredictable walks Lesson) in the beta pack's `nodes/walk-distraction/node.yaml`, with titles in `es.md` and `en.md`, leaving its Primer, Checkpoint, Lessons and Mission unchanged, and raise beta `minAppVersion` to `ENCOUNTERS_MIN_APP_VERSION`; verify `content:validate --channel beta` passes.
+- [x] 7.1 Author the three Encounters (`loose-start`, `skate-far`, `skate-poste`) from design decision 1 (no turn-following Encounter before the Unpredictable walks Lesson) in the beta pack's `nodes/walk-distraction/node.yaml`, with titles in `es.md` and `en.md`, leaving its Primer, Checkpoint, Lessons and Mission unchanged, and raise beta `minAppVersion` to `ENCOUNTERS_MIN_APP_VERSION`; verify `content:validate --channel beta` passes.
 - [x] 7.2 Add a sim-level test that scripts a good run through each Encounter scenario (stop for the skateboarder then mark, turn and mark the look) and asserts 3 Paws, and a passive run that asserts 1 Paw where the Aim needs an action; verify each time-limited Encounter ends at its limit, each waypoint Encounter's route is 20-28 m, and `loose-start`'s Distractor never activates.
 - [ ] 7.3 Playtest the Series on device with the worst and best attribute ranges and adjust timings in node.yaml only; record each Encounter's typical duration (target 10-20 s) and whether each introduces one new thing in the change notes.
 

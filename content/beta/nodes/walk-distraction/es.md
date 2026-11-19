@@ -46,7 +46,4 @@ Míralo venir
 ### skate-poste
 Poste y marca
 
-### turn-look
-Gira y te mira
-
 
