@@ -15,11 +15,11 @@
 
 ## 3. Feedback gate in the HUD
 
-- [ ] 3.1 Write failing tests in `src/hud/feedback.test.ts`: with an Introduced set that lacks `followed-turn` and `harsh-stop`, a followed turn and a harsh stop produce no message, sound, haptic or icon; they neither join nor end a running Check-in Combo; no Hint is reported as newly seen for them; an absent set behaves as today; the Taste Stage rule still holds. Verify they fail.
-- [ ] 3.2 Add an optional `introducedKinds` option to `FeedbackDecider` and drop not-Introduced kinds before any Combo, Hint or seen logic. Verify 3.1 passes and the existing feedback tests stay green.
-- [ ] 3.3 Add optional `introducedKinds` to the bridge `start` message type and pass it from `StageScene` (and its `lastStartMessage` fallback) into `FeedbackDecider`. Verify with a bundle test that a started Stage without the field answers every kind and one with the field answers only the given kinds; verify `npm run sim:build` passes.
+- [x] 3.1 Write failing tests in `src/hud/feedback.test.ts`: with an Introduced set that lacks `followed-turn` and `harsh-stop`, a followed turn and a harsh stop produce no message, sound, haptic or icon; they neither join nor end a running Check-in Combo; no Hint is reported as newly seen for them; an absent set behaves as today; the Taste Stage rule still holds. Verify they fail.
+- [x] 3.2 Add an optional `introducedKinds` option to `FeedbackDecider` and drop not-Introduced kinds before any Combo, Hint or seen logic. Verify 3.1 passes and the existing feedback tests stay green.
+- [x] 3.3 Add optional `introducedKinds` to the bridge `start` message type and pass it from `StageScene` (and its `lastStartMessage` fallback) into `FeedbackDecider`. Verify with a bundle test that a started Stage without the field answers every kind and one with the field answers only the given kinds; verify `npm run sim:build` passes.
 
-- [ ] 3.4 In `StageScene`, when the start message carries an Introduced set without `go-sniff`, draw no Go Sniff button or prompt and ignore the Go Sniff keyboard shortcut (design decision 4). Verify with a bundle test that a scent Stage and a post-Disengagement offer show no button and send no `sniff` input in that case, and show it as today when `go-sniff` is Introduced or the field is absent; verify `npm run sim:build` passes.
+- [x] 3.4 In `StageScene`, when the start message carries an Introduced set without `go-sniff`, draw no Go Sniff button or prompt and ignore the Go Sniff keyboard shortcut (design decision 4). Verify with a bundle test that a scent Stage and a post-Disengagement offer show no button and send no `sniff` input in that case, and show it as today when `go-sniff` is Introduced or the field is absent; verify `npm run sim:build` passes.
 
 ## 4. Shell wiring
 

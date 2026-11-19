@@ -10,6 +10,7 @@ import { createChangeDetector, portraitDirtyKey, quantize, RING_STEPS } from '..
 import { portraitLayers } from '../../src/hud/portrait';
 import { PORTRAIT_ATLAS, portraitAtlas, portraitAtlasUrl } from './portrait';
 import { HINT_SECONDS, HintTracker } from '../../src/hud/hints';
+import { isIntroduced, resolveIntroducedKinds } from './introducedKinds';
 import { FeedbackDecider, feedbackTextKey, type FeedbackMessage, type FeedbackTier } from '../../src/hud/feedback';
 import type { FeedbackActionKind, FeedbackPolarity } from '../../src/sim/feedbackKinds';
 import { withDogName } from '../../src/hud/effectsPool';
@@ -53,6 +54,8 @@ export interface StageOptions {
   onReady?: () => void;
   seenKinds?: readonly string[];
   isTasteStage?: boolean;
+  /** The Introduced actions of this Stage; absent means every kind (GLOSSARY: "Introduced action"). */
+  introducedKinds?: readonly string[];
   onFeedback?: (msg: {
     kind: FeedbackActionKind;
     tier: 'small' | 'medium' | 'big';
@@ -63,13 +66,13 @@ export interface StageOptions {
   }) => void;
 }
 
-let lastStartMessage: { seenKinds?: readonly string[]; isTasteStage?: boolean } | null = null;
+let lastStartMessage: { seenKinds?: readonly string[]; isTasteStage?: boolean; introducedKinds?: readonly string[] } | null = null;
 if (typeof window !== 'undefined') {
   window.addEventListener('message', (e) => {
     try {
       const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
       if (data && data.type === 'start') {
-        lastStartMessage = { seenKinds: data.seenKinds, isTasteStage: data.isTasteStage };
+        lastStartMessage = { seenKinds: data.seenKinds, isTasteStage: data.isTasteStage, introducedKinds: data.introducedKinds };
       }
     } catch {
       // not ours
@@ -164,6 +167,7 @@ export class StageScene extends Phaser.Scene {
   private ended = false;
   private signalGate = createSignalGate();
   private decider!: FeedbackDecider;
+  private introducedKinds: readonly string[] | undefined;
   private effectsView!: EffectsView;
   /** The telegraph (Approach ring, Check-in arc, Timing assist); null in the Taste Stage, which shows none. */
   private telegraph: TelegraphController | null = null;
@@ -187,7 +191,8 @@ export class StageScene extends Phaser.Scene {
     this.accumulator = 0;
     const seenKinds = options.seenKinds ?? lastStartMessage?.seenKinds ?? [];
     const isTasteStage = options.isTasteStage ?? lastStartMessage?.isTasteStage ?? false;
-    this.decider = new FeedbackDecider({ seenKinds, isTasteStage });
+    this.introducedKinds = resolveIntroducedKinds(options.introducedKinds, lastStartMessage?.introducedKinds);
+    this.decider = new FeedbackDecider({ seenKinds, isTasteStage, introducedKinds: this.introducedKinds });
     this.telegraph = isTasteStage
       ? null
       : new TelegraphController({ assist: options.markerAssist ?? DEFAULT_ASSIST, alwaysTimingHelp: options.alwaysTimingHelp, guidedFirstStage: options.guidedFirstStage });
@@ -637,7 +642,8 @@ export class StageScene extends Phaser.Scene {
 
   /** The Go Sniff button is on the HUD only while it is on offer. */
   private get sniffOnOffer(): boolean {
-    return isGoSniffAvailable(this.sim);
+    // not Introduced yet: no button or prompt (the sim's own World check is unchanged)
+    return isIntroduced(this.introducedKinds, 'go-sniff') && isGoSniffAvailable(this.sim);
   }
 
   private readInput(): SimInput {
@@ -655,7 +661,7 @@ export class StageScene extends Phaser.Scene {
     // the press stays queued until a tick consumes it (a frame can be shorter than one tick)
     const marker = this.markerPressed && this.marksLeft > 0;
     const jackpot = this.jackpotPressed && this.jackpotsLeft > 0;
-    return { ...move, marker, cue: this.cuePressed !== null, cueType: this.cuePressed ?? undefined, sniff: this.sniffPressed, jackpot };
+    return { ...move, marker, cue: this.cuePressed !== null, cueType: this.cuePressed ?? undefined, sniff: this.sniffPressed && isIntroduced(this.introducedKinds, 'go-sniff'), jackpot };
   }
 
   private get marksLeft(): number {
