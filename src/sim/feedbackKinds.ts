@@ -4,8 +4,27 @@ import type { SimEvent } from './sim';
 export type FeedbackPolarity = 'right' | 'wrong';
 
 /**
+ * Starting set of Introduced actions always answered in every walking Stage (design decision 2).
+ * Covers leash tension and the Marker with their right and wrong forms.
+ */
+export const STARTING_KINDS = [
+  'marker-hit',
+  'check-in-hit',
+  'disengagement',
+  'missed-reward-window',
+  'late-marker-press',
+  'reactive-marker',
+  'wasted-marker',
+  'missed-opportunity',
+  'rigid-pull',
+] as const;
+
+export type StartingKind = (typeof STARTING_KINDS)[number];
+
+/**
  * Every kind of handled action a Feedback Message (and a Stage Meter) can be about, with its
  * polarity. Adding a kind is one line here, plus its event in `feedbackKindOf`.
+ * Every new kind needs the starting set or a Node that Introduces it.
  */
 export const FEEDBACK_ACTION_KINDS = {
   'marker-hit': 'right',
