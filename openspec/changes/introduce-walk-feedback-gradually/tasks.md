@@ -3,8 +3,8 @@
 ## 1. Starting set and the Introduced-set helper (pure, test-first)
 
 - [x] 1.1 Add `STARTING_KINDS` beside `FEEDBACK_ACTION_KINDS` in `src/sim/feedbackKinds.ts` (design decision 2), with a comment on `FEEDBACK_ACTION_KINDS` that every new kind needs the starting set or a Node that Introduces it; verify with a test that every starting kind is a key of `FEEDBACK_ACTION_KINDS` and that `src/sim/payloadBaseline.test.ts` stays green.
-- [ ] 1.2 Write a failing table test `src/shell/introductions.test.ts` covering every scenario of the `walk-introductions` requirements "Starting set", "Nodes Introduce action kinds", "Introduced actions follow the trail", "Taste Stage and guided first Stage use the starting set" and "Daily Stage uses completed Nodes", on fixture worlds and nodes (including a replay of an earlier Node by an advanced player and a Node not on any trail). Verify it fails.
-- [ ] 1.3 Implement `introducedKinds(context, worlds?, nodes?)` in `src/shell/introductions.ts` (design decision 4: contexts `node`, `taste`, `first`, `daily`; cumulative in worldNumber, Stretch, Stop order). Verify 1.2 passes.
+- [x] 1.2 Write a failing table test `src/shell/introductions.test.ts` covering every scenario of the `walk-introductions` requirements "Starting set", "Nodes Introduce action kinds", "Introduced actions follow the trail", "Taste Stage and guided first Stage use the starting set" and "Daily Stage uses completed Nodes", on fixture worlds and nodes (including a replay of an earlier Node by an advanced player and a Node not on any trail). Verify it fails.
+- [x] 1.3 Implement `introducedKinds(context, worlds?, nodes?)` in `src/shell/introductions.ts` (design decision 4: contexts `node`, `taste`, `first`, `daily`; cumulative in worldNumber, Stretch, Stop order). Verify 1.2 passes.
 
 ## 2. Content format and validation
 

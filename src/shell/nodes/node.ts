@@ -100,6 +100,8 @@ export interface NodeDef {
     when: string;
     explanation: TextKey;
   }>;
+  /** Action kinds Introduced by this Node (design decision 1). */
+  introduces?: string[];
 }
 
 export function missingPrerequisites(node: NodeDef, completed: readonly string[]): string[] {
