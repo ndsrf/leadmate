@@ -12,6 +12,7 @@ import {
   type SubcategoryYaml,
 } from './schema';
 import { validatePack, type ContentPack } from './validator';
+import { FEEDBACK_ACTION_KINDS, STARTING_KINDS } from '../../sim/feedbackKinds';
 
 describe('FORMAT.md Conformance', () => {
   const formatPath = join(__dirname, '../../../content/FORMAT.md');
@@ -90,6 +91,31 @@ describe('FORMAT.md Conformance', () => {
       .filter((line) => !line.includes('`aim`'))
       .join('\n');
     expect(formatDoc).not.toContain(tableWithoutAim);
+
+    const tableWithoutIntroduces = tables.nodeTable
+      .split('\n')
+      .filter((line) => !line.includes('`introduces`'))
+      .join('\n');
+    expect(formatDoc).not.toContain(tableWithoutIntroduces);
+  });
+
+  it('Scenario: Action kinds listed - starting set and introducible kinds match FEEDBACK_ACTION_KINDS without drift', () => {
+    const startingMatch = formatDoc.match(/The \*\*starting set\*\* is always Introduced[\s\S]*?:\n([\s\S]*?)(?=\n\n|\nEvery other kind)/);
+    expect(startingMatch).not.toBeNull();
+    const startingDocKinds = [...startingMatch![1].matchAll(/- `([^`]+)`/g)].map((m) => m[1]).sort();
+    expect(startingDocKinds).toEqual([...STARTING_KINDS].sort());
+
+    const introducibleMatch = formatDoc.match(/Every other kind is an \*\*Introducible action kind\*\*[\s\S]*?:\n([\s\S]*?)(?=\n\n|###)/);
+    expect(introducibleMatch).not.toBeNull();
+    const introducibleDocKinds = [...introducibleMatch![1].matchAll(/- `([^`]+)`/g)].map((m) => m[1]).sort();
+    const expectedIntroducible = Object.keys(FEEDBACK_ACTION_KINDS)
+      .filter((k) => !(STARTING_KINDS as readonly string[]).includes(k))
+      .sort();
+    expect(introducibleDocKinds).toEqual(expectedIntroducible);
+
+    // Combined sets equal FEEDBACK_ACTION_KINDS
+    const allDocKinds = [...new Set([...startingDocKinds, ...introducibleDocKinds])].sort();
+    expect(allDocKinds).toEqual(Object.keys(FEEDBACK_ACTION_KINDS).sort());
   });
 
   it('agent-style test: creates a Lesson from the guide example and it validates in a pack', () => {
