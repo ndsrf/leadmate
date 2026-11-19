@@ -73,6 +73,30 @@ function makeValidPack(): ContentPack {
           prerequisites: [],
           simulation: { scenarioName: 'BLIND_CORNER' },
           exercises: [{ metric: 'tension' }],
+          introduces: [
+            'followed-turn',
+            'poste',
+            'sintonia',
+            'go-sniff',
+            'wrong-cue',
+            'harsh-stop',
+            'go-sniff-cut-short',
+            'granted-sniff',
+            'waited-plant',
+            'waited-marking',
+            'check-in-after-change',
+            'fresh-move',
+            'chain',
+            'leave-it-food',
+            'smart-jackpot',
+            'scent-dragged-past',
+            'dragged-plant',
+            'interrupted-marking',
+            'food-eaten',
+            'repeated-move-ignored',
+            'empty-sniff',
+            'wasted-jackpot',
+          ],
         },
         text: {
           es: {
@@ -837,6 +861,96 @@ describe('validatePack scenarios', () => {
       const report = validatePack(pack);
       expect(report.valid).toBe(true);
       expect(report.errors).toHaveLength(0);
+    });
+  });
+
+  describe('Introductions and Stage Meters validation (Task 2.2)', () => {
+    it('Scenario: Node Introduces an unknown action kind', () => {
+      const pack = makeValidPack();
+      pack.nodes['node-1'].config.introduces = ['non-existent-action-kind'];
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find(
+        (e) => e.message.includes('node-1') && e.message.includes('non-existent-action-kind')
+      );
+      expect(err).toBeDefined();
+    });
+
+    it('Scenario: Node Introduces a starting set kind', () => {
+      const pack = makeValidPack();
+      pack.nodes['node-1'].config.introduces = ['marker-hit'];
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find(
+        (e) => e.message.includes('node-1') && e.message.includes('marker-hit')
+      );
+      expect(err).toBeDefined();
+    });
+
+    it('Scenario: Introduced twice (both Nodes named)', () => {
+      const pack = makeValidPack();
+      pack.nodes['node-1'].config.introduces = ['followed-turn'];
+      pack.nodes['node-2'] = {
+        config: {
+          id: 'node-2',
+          mode: 'stage',
+          prerequisites: ['node-1'],
+          introduces: ['followed-turn'],
+        },
+        text: {
+          es: { title: 'Node 2' },
+        },
+      };
+      pack.worlds.basics.config.stretches[0].push({ kind: 'node', id: 'node-2' });
+
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find(
+        (e) =>
+          e.message.includes('followed-turn') &&
+          e.message.includes('node-1') &&
+          e.message.includes('node-2')
+      );
+      expect(err).toBeDefined();
+    });
+
+    it('Scenario: Meter Points for an action not yet Introduced (Node, meter and kind named)', () => {
+      const pack = makeValidPack();
+      pack.nodes['node-1'].config.introduces = ['go-sniff'];
+      pack.nodes['node-1'].config.simulation = {
+        scenario: {
+          meters: [
+            {
+              id: 'focus-meter',
+              labelKey: 'meter.focus',
+              icon: 'eye',
+              target: 50,
+              meterPoints: {
+                'fresh-move': 10,
+              },
+            },
+          ],
+        },
+      };
+
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find(
+        (e) =>
+          e.message.includes('node-1') &&
+          e.message.includes('focus-meter') &&
+          e.message.includes('fresh-move')
+      );
+      expect(err).toBeDefined();
+    });
+
+    it('Scenario: Never Introduced kind as a warning only', () => {
+      const pack = makeValidPack();
+      pack.nodes['node-1'].config.introduces = ['go-sniff'];
+      const report = validatePack(pack);
+      expect(report.valid).toBe(true);
+      const warn = report.warnings.find((w) => w.message.includes('smart-jackpot'));
+      expect(warn).toBeDefined();
     });
   });
 });
