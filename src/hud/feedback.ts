@@ -123,6 +123,11 @@ export interface FeedbackOptions {
   seenKinds?: Iterable<string>;
   /** The Taste Stage: wrong kinds are dropped and no Hint is offered to be recorded. */
   isTasteStage?: boolean;
+  /**
+   * The Introduced actions of this Stage (GLOSSARY: "Introduced action"): kinds outside it are dropped before any
+   * Combo, Hint or seen logic. Absent means every kind is Introduced. Presentation only; the sim is unchanged.
+   */
+  introducedKinds?: Iterable<string>;
 }
 
 /**
@@ -133,6 +138,7 @@ export interface FeedbackOptions {
 export class FeedbackDecider {
   private readonly seen: Set<string>;
   private readonly isTasteStage: boolean;
+  private readonly introduced: ReadonlySet<string> | null;
   private readonly leashHints = new HintTracker();
   private readonly combos = new Map<FeedbackActionKind, { count: number; last: number }>();
   private readonly lastShown = new Map<FeedbackActionKind, number>();
@@ -142,6 +148,7 @@ export class FeedbackDecider {
   constructor(options: FeedbackOptions = {}) {
     this.seen = new Set(options.seenKinds ?? []);
     this.isTasteStage = options.isTasteStage ?? false;
+    this.introduced = options.introducedKinds ? new Set(options.introducedKinds) : null;
   }
 
   /** The message still on screen at `time`, if any. */
@@ -181,6 +188,7 @@ export class FeedbackDecider {
     for (const e of events) {
       const kind = feedbackKindOf(e);
       if (!kind) continue;
+      if (this.introduced && !this.introduced.has(kind)) continue; // not Introduced: no message, Combo or Hint
       // the Marker on the look after a change reports both events; show only the more specific message
       if (kind === 'check-in-hit' && events.some((o) => o.type === 'change-check-in')) continue;
       if (kind === 'followed-turn' && events.some(isFollowedFreshMove)) continue; // the fresh move already says it

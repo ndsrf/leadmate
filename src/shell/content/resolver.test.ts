@@ -548,4 +548,27 @@ describe('resolvePack', () => {
       expect(resolved.catalog[lesson.recommendations![0].explanation]).toBe('This front-clip harness makes the Poste easier.');
     });
   });
+
+  describe('Node introduces resolution (Task 2.1)', () => {
+    it('resolves optional introduces field on NodeDef when present and leaves it undefined when absent', () => {
+      const fixture = makeFixturePack();
+      fixture.nodes['node-with-introduces'] = {
+        config: {
+          id: 'node-with-introduces',
+          mode: 'stage',
+          prerequisites: [],
+          introduces: ['go-sniff', 'go-sniff-cut-short'],
+        } as any,
+        text: {
+          es: { title: 'Node With Introduces' },
+        },
+      };
+      const resolved = resolvePack(fixture);
+      const nodeWithout = resolved.nodes.find((n) => n.id === 'node-1')!;
+      const nodeWith = resolved.nodes.find((n) => n.id === 'node-with-introduces')!;
+
+      expect(nodeWithout.introduces).toBeUndefined();
+      expect(nodeWith.introduces).toEqual(['go-sniff', 'go-sniff-cut-short']);
+    });
+  });
 });

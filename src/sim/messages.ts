@@ -18,6 +18,8 @@ export type ShellMessage =
       seenKinds?: readonly string[];
       /** The Taste Stage: wrong kinds are dropped and no Hint is offered to be recorded. */
       isTasteStage?: boolean;
+      /** The Introduced actions of this Stage (GLOSSARY: "Introduced action"); absent means every kind. */
+      introducedKinds?: readonly string[];
       /** OS reduced-motion preference: animations switch to fades, static poses, or 0 particles. */
       reducedMotion?: boolean;
       /** The Dog record's Timing assist (telegraph-marker-timing); absent in close exercises. */

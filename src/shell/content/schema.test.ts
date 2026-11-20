@@ -184,6 +184,7 @@ describe('node.yaml validation', () => {
       prerequisites: ['poste-practice'],
       simulation: { minigame: 'poste-hold' },
       exercises: [{ metric: 'tension' }, { metric: 'timing' }],
+      introduces: ['go-sniff', 'go-sniff-cut-short'],
     };
     const res = validateNodeYaml(valid);
     expect(res.valid).toBe(true);
@@ -195,6 +196,8 @@ describe('node.yaml validation', () => {
     expect(validateNodeYaml({ id: 'walk', mode: 'stage', prerequisites: 'not-an-array' }).valid).toBe(false);
     expect(validateNodeYaml({ id: 'walk', mode: 'stage', prerequisites: [], simulation: { minigame: 'unknown-game' } }).valid).toBe(false);
     expect(validateNodeYaml({ id: 'walk', mode: 'stage', prerequisites: [], exercises: [{ metric: 'bad-metric' }] }).valid).toBe(false);
+    expect(validateNodeYaml({ id: 'walk', mode: 'stage', prerequisites: [], introduces: 'not-an-array' }).valid).toBe(false);
+    expect(validateNodeYaml({ id: 'walk', mode: 'stage', prerequisites: [], introduces: [123] }).valid).toBe(false);
   });
 });
 

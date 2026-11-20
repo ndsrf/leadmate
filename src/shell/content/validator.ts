@@ -1,5 +1,6 @@
 import { defaultScenario, scentSpotsOf } from '../../sim/config';
 import { validateScenario } from '../../sim/scenery';
+import { FEEDBACK_ACTION_KINDS, isFeedbackActionKind, STARTING_KINDS } from '../../sim/feedbackKinds';
 import {
   parseLessonMarkdown,
   parseMissionMarkdown,
@@ -1083,6 +1084,127 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
           hint: `Add "${prevId}" to "retired" in pack.yaml to protect user progress`,
         });
       }
+    }
+  }
+
+  // 9. Validate Introductions and Stage Meters (Design Decision 5)
+  const introducedBy = new Map<string, string>(); // kind -> firstNodeId
+  const allChannelIntroducedKinds = new Set<string>();
+
+  // Check introduces on each Node
+  for (const [nodeId, nodeEntry] of Object.entries(pack.nodes ?? {})) {
+    const file = `nodes/${nodeId}/node.yaml`;
+    const introduces = nodeEntry.config?.introduces;
+    if (Array.isArray(introduces)) {
+      for (const kind of introduces) {
+        if (!isFeedbackActionKind(kind)) {
+          errors.push({
+            file,
+            field: 'introduces',
+            message: `Node "${nodeId}": introduces unknown action kind "${kind}"`,
+            hint: `Allowed action kinds are: ${Object.keys(FEEDBACK_ACTION_KINDS).join(', ')}`,
+          });
+        } else if ((STARTING_KINDS as readonly string[]).includes(kind)) {
+          errors.push({
+            file,
+            field: 'introduces',
+            message: `Node "${nodeId}": introduces "${kind}" which is already in the starting set`,
+            hint: 'Starting action kinds are always introduced and cannot be listed in introduces',
+          });
+        } else if (introducedBy.has(kind)) {
+          const firstNodeId = introducedBy.get(kind)!;
+          errors.push({
+            file,
+            field: 'introduces',
+            message: `Node "${nodeId}": action kind "${kind}" is already Introduced by Node "${firstNodeId}"`,
+            hint: `Each action kind outside the starting set can only be Introduced by one Node. Both "${firstNodeId}" and "${nodeId}" list it.`,
+          });
+        } else {
+          introducedBy.set(kind, nodeId);
+          allChannelIntroducedKinds.add(kind);
+        }
+      }
+    }
+  }
+
+  // Walk the trail to compute cumulative introduced kinds per Node
+  const sortedWorlds = Object.values(pack.worlds ?? {})
+    .map((w) => w.config)
+    .filter((w): w is WorldYaml => !!w && typeof w.worldNumber === 'number')
+    .sort((a, b) => a.worldNumber - b.worldNumber);
+
+  const cumulativePerNode = new Map<string, Set<string>>();
+  const cumulative = new Set<string>(STARTING_KINDS);
+
+  for (const world of sortedWorlds) {
+    for (const stretch of world.stretches ?? []) {
+      for (const stop of stretch ?? []) {
+        if (stop.kind === 'node') {
+          const nodeCfg = pack.nodes?.[stop.id]?.config;
+          if (Array.isArray(nodeCfg?.introduces)) {
+            for (const k of nodeCfg.introduces) {
+              if (isFeedbackActionKind(k)) {
+                cumulative.add(k);
+              }
+            }
+          }
+          cumulativePerNode.set(stop.id, new Set(cumulative));
+        }
+      }
+    }
+  }
+
+  // For off-trail nodes (library, home, or intro nodes not in any stretch)
+  for (const [nodeId, nodeEntry] of Object.entries(pack.nodes ?? {})) {
+    if (!cumulativePerNode.has(nodeId)) {
+      const offTrailSet = new Set<string>(STARTING_KINDS);
+      if (Array.isArray(nodeEntry.config?.introduces)) {
+        for (const k of nodeEntry.config.introduces) {
+          if (isFeedbackActionKind(k)) {
+            offTrailSet.add(k);
+          }
+        }
+      }
+      cumulativePerNode.set(nodeId, offTrailSet);
+    }
+  }
+
+  // Check Stage Meters: every action kind a Node's meter gives Meter Points for must be Introduced at that Node
+  // Only enforced in channels that have adopted introductions (allChannelIntroducedKinds.size > 0)
+  if (allChannelIntroducedKinds.size > 0) {
+    for (const [nodeId, nodeEntry] of Object.entries(pack.nodes ?? {})) {
+      const file = `nodes/${nodeId}/node.yaml`;
+      const meters = nodeEntry.config?.simulation?.scenario?.meters;
+      if (Array.isArray(meters)) {
+        const allowedKinds = cumulativePerNode.get(nodeId) ?? new Set(STARTING_KINDS);
+        for (const meter of meters) {
+          const meterId = meter?.id ?? 'unknown';
+          const points = meter?.meterPoints;
+          if (points && typeof points === 'object') {
+            for (const kind of Object.keys(points)) {
+              if (!allowedKinds.has(kind)) {
+                errors.push({
+                  file,
+                  field: 'simulation.scenario.meters',
+                  message: `Node "${nodeId}": meter "${meterId}" gives Meter Points for "${kind}" which is not yet Introduced at this Node`,
+                  hint: `Only Introduced action kinds can add Meter Points. Introduced at this Node: ${[...allowedKinds].join(', ')}`,
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Warning: each kind neither in STARTING_KINDS nor Introduced anywhere in the channel
+  for (const kind of Object.keys(FEEDBACK_ACTION_KINDS)) {
+    if (!(STARTING_KINDS as readonly string[]).includes(kind) && !allChannelIntroducedKinds.has(kind)) {
+      warnings.push({
+        file: 'pack.yaml',
+        field: 'introduces',
+        message: `Action kind "${kind}" is never Introduced by any Node in the channel`,
+      });
     }
   }
 

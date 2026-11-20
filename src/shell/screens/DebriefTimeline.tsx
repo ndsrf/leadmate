@@ -179,13 +179,20 @@ export function DebriefTimelineSection({
   t,
   payload,
   initialMoment = null,
+  introducedKinds,
 }: {
   t: Translate;
   payload: SimulationDebriefPayload;
   initialMoment?: TimelineEntry | null;
+  /** The Stage's Introduced actions (GLOSSARY: "Introduced action"); absent shows every moment. The payload is untouched. */
+  introducedKinds?: readonly string[];
 }) {
   const color = usePalette();
-  const timeline = payload.timeline ?? [];
+  const allMoments = payload.timeline ?? [];
+  const timeline = useMemo(
+    () => (introducedKinds ? allMoments.filter((entry) => introducedKinds.includes(entry.kind)) : allMoments),
+    [allMoments, introducedKinds],
+  );
   const duration = Math.max(1, payload.durationSeconds || 1);
   const [selected, setSelected] = useState<TimelineEntry | null>(initialMoment);
 

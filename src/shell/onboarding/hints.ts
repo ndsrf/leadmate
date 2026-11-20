@@ -36,21 +36,55 @@ export const COACH_ID: Record<StageControl, HintId> = {
   'close-mark': 'coach-close-mark',
 };
 
-/** Which of the close view's three Coach marks are on: not used yet this run, not timed out, not seen in an earlier run. */
+const MARKER_ACTION_KINDS: readonly string[] = [
+  'marker-hit',
+  'missed-reward-window',
+  'late-marker-press',
+  'reactive-marker',
+  'wasted-marker',
+  'missed-opportunity',
+];
+
+/**
+ * Checks whether a Stage control's actions are Introduced (design decision 4:
+ * movement -> rigid-pull; Marker -> Marker kinds; Poste -> poste; Gather -> always).
+ * Absent introducedKinds means every kind is Introduced.
+ */
+export function isControlIntroduced(control: StageControl, introducedKinds?: readonly string[]): boolean {
+  if (!introducedKinds) return true;
+  switch (control) {
+    case 'gather':
+      return true;
+    case 'move':
+      return introducedKinds.includes('rigid-pull');
+    case 'poste':
+      return introducedKinds.includes('poste');
+    case 'mark':
+    case 'close-mark':
+      return MARKER_ACTION_KINDS.some((kind) => introducedKinds.includes(kind));
+    default:
+      return true;
+  }
+}
+
+/** Which of the close view's three Coach marks are on: not used yet this run, not timed out, not seen in an earlier run, and actions Introduced. */
 export function closeMarksOn(
   seenHints: readonly string[],
   used: Partial<Record<StageControl, boolean>>,
   expired: boolean,
+  introducedKinds?: readonly string[],
 ): { gather: boolean; poste: boolean; marker: boolean } {
-  const on = (control: 'gather' | 'poste' | 'close-mark') => !used[control] && !expired && !seenHints.includes(COACH_ID[control]);
+  const on = (control: 'gather' | 'poste' | 'close-mark') =>
+    !used[control] && !expired && !seenHints.includes(COACH_ID[control]) && isControlIntroduced(control, introducedKinds);
   return { gather: on('gather'), poste: on('poste'), marker: on('close-mark') };
 }
 
-/** The hint a Stage signal calls for, or null when that hint was already seen. */
+/** The hint a Stage signal calls for, or null when that hint was already seen or its action is not Introduced. */
 export function hintFor(
   signal: StageSignal,
   seenHints: readonly string[],
   assist?: AssistLevel,
+  introducedKinds?: readonly string[],
 ): HintId | null {
   if (signal === 'first-fixation') {
     if (assist === 'full' && !seenHints.includes('marker-rhythm')) {
@@ -59,7 +93,11 @@ export function hintFor(
     return seenHints.includes('marker') ? null : 'marker';
   }
   const id = HINT_FOR_SIGNAL[signal];
-  return id === undefined || seenHints.includes(id) ? null : id;
+  if (id === undefined || seenHints.includes(id)) return null;
+  if (id === 'poste' && introducedKinds && !introducedKinds.includes('poste')) {
+    return null;
+  }
+  return id;
 }
 
 /** True while some hint is still unseen, so the shell has reason to watch the Stage's signals. */

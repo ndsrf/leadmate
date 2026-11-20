@@ -107,12 +107,51 @@ content/<channel>/                 channel = beta | stable
 | `mode` | `string` | **Yes** | `stage`, `minigame`, `close_exercise` | Node mode ("stage", "minigame", "close_exercise") |
 | `prerequisites` | `string[]` | **Yes** | - | IDs of Nodes that must be completed before this one is available |
 | `opensAfterLesson` | `string` | No | - | Lesson ID whose reading alone unlocks this Node in its Stretch |
+| `introduces` | `string[]` | No | - | Action kinds Introduced by this Node |
 | `simulation` | `object` | No | - | Stage/close scenario config or scenario name, or minigame kind |
 | `exercises` | `object[]` | No | - | Array of exercises targeting metrics ({ metric, key? }) |
 | `primerCards` | `object[]` | No | - | Structured recap cards ({ kind, media?, tutorialUrl? }) |
 | `checkpoint` | `object[]` | No | - | Quiz questions ({ question, options, explanation }) |
 | `debrief` | `object` | No | - | Hand drill debrief text keys ({ calm, notCalm }) |
 | `recommendations` | `object[]` | No | - | Optional list of shop recommendations ({ id, target, when }) |
+
+#### Authoring Note: Introduced Actions
+A walking Stage answers only its Introduced actions: feedback and Stage Meter points arrive with the Node that teaches them.
+
+The **starting set** is always Introduced in every walk (do not list these in `introduces`):
+- `check-in-hit`
+- `disengagement`
+- `late-marker-press`
+- `marker-hit`
+- `missed-opportunity`
+- `missed-reward-window`
+- `reactive-marker`
+- `rigid-pull`
+- `wasted-marker`
+
+Every other kind is an **Introducible action kind**, Introduced by at most one Node on the trail via `introduces: [...]`:
+- `chain`
+- `check-in-after-change`
+- `dragged-plant`
+- `empty-sniff`
+- `followed-turn`
+- `food-eaten`
+- `fresh-move`
+- `go-sniff`
+- `go-sniff-cut-short`
+- `granted-sniff`
+- `harsh-stop`
+- `interrupted-marking`
+- `leave-it-food`
+- `poste`
+- `repeated-move-ignored`
+- `scent-dragged-past`
+- `sintonia`
+- `smart-jackpot`
+- `waited-marking`
+- `waited-plant`
+- `wasted-jackpot`
+- `wrong-cue`
 
 ### 3.5 `missions/<mission-id>/mission.yaml`
 

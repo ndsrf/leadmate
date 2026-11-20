@@ -108,6 +108,7 @@ export interface ParsedNodeCheckpointQuestion {
 
 export interface ParsedNodeContent {
   title: string;
+  introduces?: string[];
   primer?: Array<{
     text: string;
     caption?: string;

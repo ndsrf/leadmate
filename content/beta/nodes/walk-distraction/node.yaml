@@ -2,6 +2,9 @@ id: walk-distraction
 mode: stage
 prerequisites:
   - poste-practice
+introduces:
+  - go-sniff
+  - go-sniff-cut-short
 simulation:
   encounters:
     - id: loose-start

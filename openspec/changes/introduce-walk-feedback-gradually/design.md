@@ -108,6 +108,8 @@ The validator walks the channel's trail once and computes the cumulative set per
   - an entry already in `STARTING_KINDS`;
   - a kind Introduced by two Nodes, naming both;
   - a Stage Meter `meterPoints` kind not in its Node's cumulative set.
+
+  The meter check runs only in a channel where at least one Node has `introduces`. Stable has none until the lists are promoted, and its World 6 meters give points for kinds it does not yet Introduce, so checking it would fail validation of the content players have today. Once any Node in a channel Introduces something, the check applies in full.
 - **Warning:** each kind neither in `STARTING_KINDS` nor Introduced anywhere in the channel.
 
 `content/FORMAT.md` documents the field and lists both sets. The format-conformance test compares that list with `FEEDBACK_ACTION_KINDS`.
