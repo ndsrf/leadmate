@@ -82,7 +82,7 @@ import { dogStore, loadStoredLanguage, saveStoredLanguage } from './src/shell/st
 import { completeFirstStage } from './src/shell/onboarding/firstStage';
 import { nextStep } from './src/shell/onboarding/flow';
 import { recordDiagnostic } from './src/shell/onboarding/diagnostic';
-import { closeMarksOn, COACH_ID, feedbackKindSeen, HINT_TEXT, hintFor, markFeedbackKindSeen, markHintSeen, type HintId } from './src/shell/onboarding/hints';
+import { closeMarksOn, COACH_ID, feedbackKindSeen, HINT_TEXT, hintFor, isControlIntroduced, markFeedbackKindSeen, markHintSeen, type HintId } from './src/shell/onboarding/hints';
 import { completeTaste, leaveWelcome, namedTranslator, saveMainConcerns, saveNameAndLook, withDogName } from './src/shell/onboarding/intro';
 import { passPaywall } from './src/shell/onboarding/paywall';
 import { TASTE_LINGER_MS, tasteKind, tasteScenarioFor, tasteSnapshot } from './src/shell/onboarding/taste';
@@ -984,8 +984,8 @@ export default function App() {
             if (!inTaste) update((r) => markHintSeen(r, 'dog-approaching'));
           }
         } else {
-          // the taste shows no Hints and records none
-          const shown = recordRef.current && !inTaste ? hintFor(message.signal, recordRef.current.seenHints, message.assist) : null;
+          // the taste shows no Hints and records none; event Hints gate by introducedKinds
+          const shown = recordRef.current && !inTaste ? hintFor(message.signal, recordRef.current.seenHints, message.assist, stageIntroducedKindsRef.current) : null;
           if (shown) {
             setHint(shown);
             update((r) => markHintSeen(r, shown));
@@ -2246,14 +2246,14 @@ export default function App() {
             <CoachMarksOverlay
               moveText={t('coach.controls.move')}
               markText={t('coach.controls.mark')}
-              showMove={!controlsUsed.move && !record.seenHints.includes(COACH_ID.move)}
-              showMark={!controlsUsed.mark && !markExpired && !record.seenHints.includes(COACH_ID.mark)}
+              showMove={!controlsUsed.move && !record.seenHints.includes(COACH_ID.move) && isControlIntroduced('move', stageIntroducedKinds)}
+              showMark={!controlsUsed.mark && !markExpired && !record.seenHints.includes(COACH_ID.mark) && isControlIntroduced('mark', stageIntroducedKinds)}
             />
           )}
           {playingStage && record && !paused && bundle === 'ready' && isHandDrillFlow(route) && (
             <CloseCoachMarksOverlay
               texts={{ gather: t('coach.close.gather'), poste: t('coach.close.poste'), marker: t('coach.close.mark') }}
-              show={closeMarksOn(record.seenHints, controlsUsed, markExpired)}
+              show={closeMarksOn(record.seenHints, controlsUsed, markExpired, stageIntroducedKinds)}
             />
           )}
           {playingStage && record && dogWarning && !paused && (

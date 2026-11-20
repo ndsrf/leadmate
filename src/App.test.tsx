@@ -440,6 +440,38 @@ describe('App - Stage view lifecycle', () => {
       expect(latest('DebriefScreen')).toBeDefined();
       expect(latest('DebriefScreen').introducedKinds).toEqual(start.introducedKinds);
     });
+
+    it('in guided first Stage shows no Poste Hint and records none as seen, while move and mark marks still appear', async () => {
+      const record = { ...newDogRecord(), onboarding: { ...NEW_ONBOARDING, step: 'first-stage' as const }, version: RECORD_VERSION };
+      mockStore.set(RECORD_KEY, JSON.stringify(record));
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+      throughPrimerAndCheckpoint();
+      await sendFromView({ type: 'ready' });
+
+      // movement and Marker marks still appear there
+      expect(latest('CoachMarksOverlay')).toBeDefined();
+      expect(latest('CoachMarksOverlay').showMove).toBe(true);
+      expect(latest('CoachMarksOverlay').showMark).toBe(true);
+
+      // Leash limit signal arrives: Poste is not Introduced, so no Poste Hint is shown and none is recorded
+      await sendFromView({ type: 'stage-signal', signal: 'leash-limit', time: 1 });
+      expect(latest('HintOverlay')).toBeUndefined();
+      const saved = JSON.parse(mockStore.get(RECORD_KEY)!);
+      expect(saved.seenHints).not.toContain('poste');
+    });
+
+    it('close exercise still shows Gather, Poste and Marker marks', async () => {
+      await openMap();
+      openStop(CALM_HANDS_NODE.id);
+      throughPrimerAndCheckpoint();
+      await sendFromView({ type: 'ready' });
+      expect(latest('CloseCoachMarksOverlay').show).toEqual({ gather: true, poste: true, marker: true });
+    });
   });
 
   it('remounts once silently when the view fails while the player reads, then errors when the Stage needs it', async () => {

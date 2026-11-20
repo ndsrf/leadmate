@@ -1,7 +1,7 @@
 import { STAGE_SIGNALS } from '../../sim/messages';
 import { loadDogRecord, newDogRecord, saveDogRecord, type KeyValueStore } from '../dogRecord';
 import { feedbackHintId, feedbackKindSeen, markFeedbackKindSeen } from './hints';
-import { closeMarksOn, COACH_ID, hintFor, HINT_IDS, hintsRemain, markHintSeen } from './hints';
+import { closeMarksOn, COACH_ID, hintFor, HINT_IDS, hintsRemain, isControlIntroduced, markHintSeen } from './hints';
 
 describe('hints', () => {
   it('maps each Stage signal to one hint', () => {
@@ -76,6 +76,30 @@ describe('hints', () => {
     expect(hintsRemain([])).toBe(true);
     expect(hintsRemain([...HINT_IDS])).toBe(false);
   });
+
+  it('gates the poste hint by introducedKinds: null when not introduced, poste when introduced or absent', () => {
+    expect(hintFor('leash-limit', [], undefined, ['rigid-pull', 'marker-hit'])).toBeNull();
+    expect(hintFor('leash-limit', [], undefined, ['poste', 'marker-hit'])).toBe('poste');
+    expect(hintFor('leash-limit', [], undefined, undefined)).toBe('poste');
+    expect(hintFor('leash-limit', [])).toBe('poste');
+  });
+
+  describe('isControlIntroduced mapping', () => {
+    it('maps controls to their action kinds and always allows gather', () => {
+      expect(isControlIntroduced('gather', [])).toBe(true);
+      expect(isControlIntroduced('move', ['rigid-pull'])).toBe(true);
+      expect(isControlIntroduced('move', ['marker-hit'])).toBe(false);
+      expect(isControlIntroduced('poste', ['poste'])).toBe(true);
+      expect(isControlIntroduced('poste', ['rigid-pull'])).toBe(false);
+      expect(isControlIntroduced('mark', ['marker-hit'])).toBe(true);
+      expect(isControlIntroduced('mark', ['rigid-pull'])).toBe(false);
+      expect(isControlIntroduced('close-mark', ['marker-hit'])).toBe(true);
+      expect(isControlIntroduced('close-mark', ['rigid-pull'])).toBe(false);
+      // absent introducedKinds allows all
+      expect(isControlIntroduced('move', undefined)).toBe(true);
+      expect(isControlIntroduced('poste', undefined)).toBe(true);
+    });
+  });
 });
 
 describe('close-view Coach marks', () => {
@@ -98,6 +122,13 @@ describe('close-view Coach marks', () => {
 
   it('does not count the walking Marker mark for the close Marker', () => {
     expect(closeMarksOn([COACH_ID.mark, COACH_ID.move], { mark: true, move: true }, false).marker).toBe(true);
+  });
+
+  it('gates close-view Coach marks by introducedKinds', () => {
+    // without poste introduced
+    expect(closeMarksOn([], {}, false, ['marker-hit'])).toEqual({ gather: true, poste: false, marker: true });
+    // with poste introduced
+    expect(closeMarksOn([], {}, false, ['marker-hit', 'poste'])).toEqual({ gather: true, poste: true, marker: true });
   });
 
   it('records each in seenHints with its own id, and has ids in HINT_IDS', () => {
