@@ -10,14 +10,14 @@ import { createChangeDetector, portraitDirtyKey, quantize, RING_STEPS } from '..
 import { portraitLayers } from '../../src/hud/portrait';
 import { PORTRAIT_ATLAS, portraitAtlas, portraitAtlasUrl } from './portrait';
 import { HINT_SECONDS, HintTracker } from '../../src/hud/hints';
-import { isIntroduced, resolveIntroducedKinds } from './introducedKinds';
+import { goSniffInput, goSniffOffered, resolveIntroducedKinds } from './introducedKinds';
 import { FeedbackDecider, feedbackTextKey, type FeedbackMessage, type FeedbackTier } from '../../src/hud/feedback';
 import type { FeedbackActionKind, FeedbackPolarity } from '../../src/sim/feedbackKinds';
 import { withDogName } from '../../src/hud/effectsPool';
 import type { CueType, ScenarioConfig } from '../../src/sim/config';
 import { leashCurve, leashPoint, type TensionState } from '../../src/sim/leash';
 import { buildPayload, type SimulationDebriefPayload } from '../../src/sim/payload';
-import { activeDistractor, createState, isDogLooking, isGoSniffAvailable, routeOf, setPaused, tick, noInput, wrappedLeash, type ReactionTier, type SimEvent, type SimInput, type SimState } from '../../src/sim/sim';
+import { activeDistractor, createState, isDogLooking, routeOf, setPaused, tick, noInput, wrappedLeash, type ReactionTier, type SimEvent, type SimInput, type SimState } from '../../src/sim/sim';
 import { createOutbox, createSignalGate, type Outbox, type StageControl, type StageSignal } from '../../src/sim/messages';
 import { add, length, scale, sub, type Vec2 } from '../../src/sim/vec';
 import { TEXTURES, TILE_ORIGIN_Y } from './assets';
@@ -643,7 +643,7 @@ export class StageScene extends Phaser.Scene {
   /** The Go Sniff button is on the HUD only while it is on offer. */
   private get sniffOnOffer(): boolean {
     // not Introduced yet: no button or prompt (the sim's own World check is unchanged)
-    return isIntroduced(this.introducedKinds, 'go-sniff') && isGoSniffAvailable(this.sim);
+    return goSniffOffered(this.introducedKinds, this.sim);
   }
 
   private readInput(): SimInput {
@@ -661,7 +661,7 @@ export class StageScene extends Phaser.Scene {
     // the press stays queued until a tick consumes it (a frame can be shorter than one tick)
     const marker = this.markerPressed && this.marksLeft > 0;
     const jackpot = this.jackpotPressed && this.jackpotsLeft > 0;
-    return { ...move, marker, cue: this.cuePressed !== null, cueType: this.cuePressed ?? undefined, sniff: this.sniffPressed && isIntroduced(this.introducedKinds, 'go-sniff'), jackpot };
+    return { ...move, marker, cue: this.cuePressed !== null, cueType: this.cuePressed ?? undefined, sniff: goSniffInput(this.sniffPressed, this.introducedKinds), jackpot };
   }
 
   private get marksLeft(): number {
