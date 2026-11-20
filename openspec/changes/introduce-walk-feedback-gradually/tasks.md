@@ -30,7 +30,7 @@
 
 ## 5. Docs
 
-- [ ] 5.1 Check that the GLOSSARY entry "Introduced action" and `docs/adr/0036-walk-feedback-follows-the-trail-presentation-only.md` (written during planning) still match the implementation, and update them if not. Verify `openspec validate introduce-walk-feedback-gradually --strict` passes and the glossary term is used unchanged in the code comments and the format guide.
+- [x] 5.1 Check that the GLOSSARY entry "Introduced action" and `docs/adr/0036-walk-feedback-follows-the-trail-presentation-only.md` (written during planning) still match the implementation, and update them if not. Verify `openspec validate introduce-walk-feedback-gradually --strict` passes and the glossary term is used unchanged in the code comments and the format guide.
 
 ## 6. Integration check
 
