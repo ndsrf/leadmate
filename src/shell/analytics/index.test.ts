@@ -17,7 +17,14 @@ import {
   getAnalyticsState,
   resetAnalyticsForTesting,
   setAnalyticsServiceForTesting,
+  setAnalyticsScreen,
+  setAnalyticsForeground,
+  setAnalyticsSignedIn,
+  startAnalyticsSession,
+  trackAppBackgrounded,
+  updateAnalyticsRecord,
 } from './index';
+import { newDogRecord } from '../dogRecord';
 import { MockAnalyticsService } from './mock';
 import { ANALYTICS_STATE_KEY } from './state';
 import type { KeyValueStore, DogRecord } from '../dogRecord';
@@ -325,5 +332,117 @@ describe('Analytics Wiring and Track (Task 3.4)', () => {
 
     // Hook must re-read state after initAnalytics resolves
     expect(currentEnabled).toBe(false);
+  });
+});
+
+describe('Screens, context and sessions (Task 11.4)', () => {
+  let mockService: MockAnalyticsService;
+
+  beforeEach(() => {
+    resetAnalyticsForTesting();
+    mockService = new MockAnalyticsService();
+    setAnalyticsServiceForTesting(mockService);
+  });
+
+  afterEach(() => {
+    resetAnalyticsForTesting();
+  });
+
+  it('adds the context to every event', async () => {
+    await initAnalytics(createMockStore(), newDogRecord());
+    setAnalyticsScreen('map');
+    track('lesson_opened', { lesson_id: 'l1', source: 'trail' });
+    expect(mockService.events[0].properties).toMatchObject({
+      screen: 'map',
+      stops_done: 0,
+      furthest_stop_index: -1,
+      funnel_done: false,
+      has_account: false,
+      plus_status: 'free',
+      session_number: 1,
+      platform: 'ios',
+      runtime: 'store',
+    });
+    expect(typeof mockService.events[0].properties.seconds_in_session).toBe('number');
+  });
+
+  it('keeps the screen an event was made on when it is sent late', async () => {
+    setAnalyticsScreen('welcome');
+    track('funnel_step_viewed', { step: 'welcome', repeat: false });
+    setAnalyticsScreen('language');
+    await initAnalytics(createMockStore(), newDogRecord());
+    expect(mockService.events[0].properties.screen).toBe('welcome');
+  });
+
+  it('registers the context except seconds_in_session as super properties, again on a change', async () => {
+    await initAnalytics(createMockStore(), newDogRecord());
+    setAnalyticsScreen('map');
+    expect(mockService.registered).toMatchObject({ screen: 'map', stops_done: 0, plus_status: 'free', platform: 'ios' });
+    expect(mockService.registered).not.toHaveProperty('seconds_in_session');
+    setAnalyticsScreen('shop');
+    expect(mockService.registered.screen).toBe('shop');
+    setAnalyticsSignedIn(true);
+    expect(mockService.registered.has_account).toBe(true);
+  });
+
+  it('registers nothing while analytics is off', async () => {
+    const store = createMockStore({
+      [ANALYTICS_STATE_KEY]: JSON.stringify({ installId: 'i', installedAt: '2026-11-18T00:00:00.000Z', choice: 'off', funnelDoneOnce: false, funnelOpen: false, upgradedInstall: false }),
+    });
+    await initAnalytics(store, newDogRecord());
+    setAnalyticsScreen('map');
+    updateAnalyticsRecord(newDogRecord());
+    expect(mockService.registered).toEqual({});
+  });
+
+  it('registers again after analytics is turned back on', async () => {
+    await initAnalytics(createMockStore(), newDogRecord());
+    setAnalyticsScreen('map');
+    await setAnalyticsEnabled(false);
+    await setAnalyticsEnabled(true);
+    expect(mockService.registered.screen).toBe('map');
+  });
+
+  it('raises session_number with each App Session and saves it', async () => {
+    const store = createMockStore();
+    await initAnalytics(store, newDogRecord());
+    expect(getAnalyticsState()?.sessionCount).toBe(1);
+    startAnalyticsSession();
+    track('lesson_opened', { lesson_id: 'l1', source: 'trail' });
+    expect(mockService.events[0].properties.session_number).toBe(2);
+    expect(JSON.parse(store.storage[ANALYTICS_STATE_KEY]).sessionCount).toBe(2);
+  });
+
+  it('counts foreground seconds only', async () => {
+    await initAnalytics(createMockStore(), newDogRecord());
+    startAnalyticsSession(1_000_000);
+    setAnalyticsForeground(false, 1_010_000);
+    setAnalyticsForeground(true, 2_810_000);
+    const spy = jest.spyOn(Date, 'now').mockReturnValue(2_830_000);
+    try {
+      trackAppBackgrounded(2_830_000);
+    } finally {
+      spy.mockRestore();
+    }
+    expect(mockService.events[mockService.events.length - 1]?.name).toBe('app_backgrounded');
+    expect(mockService.events[mockService.events.length - 1]?.properties.seconds_in_session).toBe(30);
+  });
+
+  it('sends app_backgrounded with the current screen and flushes', async () => {
+    await initAnalytics(createMockStore(), newDogRecord());
+    setAnalyticsScreen('lesson');
+    trackAppBackgrounded();
+    const event = mockService.events[mockService.events.length - 1];
+    expect(event?.name).toBe('app_backgrounded');
+    expect(event?.properties.screen).toBe('lesson');
+    expect(mockService.flushed).toBe(true);
+  });
+
+  it('sends nothing on background while analytics is off', async () => {
+    await initAnalytics(createMockStore(), newDogRecord());
+    await setAnalyticsEnabled(false);
+    trackAppBackgrounded();
+    expect(mockService.events).toEqual([]);
+    expect(mockService.flushed).toBe(false);
   });
 });

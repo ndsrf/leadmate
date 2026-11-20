@@ -1,4 +1,11 @@
-import { buildEvent, SCHEMA_VERSION, FUNNEL_STEPS, CommonProperties, EVENTS } from './contract';
+import {
+  buildEvent,
+  SCHEMA_VERSION,
+  FUNNEL_STEPS,
+  SCREENS,
+  CommonProperties,
+  EVENTS,
+} from './contract';
 
 const baseCommon: CommonProperties = {
   app_version: '1.2.0',
@@ -242,6 +249,83 @@ describe('Analytics Event Contract (Task 2.1)', () => {
       );
       expect(badPaws).toBeNull();
     });
+  });
+});
+
+describe('Screens and context (Task 11.1)', () => {
+  const context = {
+    screen: 'map',
+    world_id: 'world-1',
+    stops_done: 7,
+    furthest_stop_index: 8,
+    funnel_done: true,
+    has_account: true,
+    plus_status: 'trial',
+    session_number: 3,
+    seconds_in_session: 41.6,
+    platform: 'android',
+    runtime: 'dev_build',
+  } as const;
+
+  it('lists every Funnel step except map once, plus map and the other screens', () => {
+    expect(new Set(SCREENS).size).toBe(SCREENS.length);
+    for (const step of FUNNEL_STEPS) expect(SCREENS).toContain(step);
+    for (const name of ['splash', 'value_recap', 'settings_dog', 'settings_preferences', 'settings_account', 'library', 'diary', 'lesson', 'node_minigame', 'daily_result', 'warmup_stage', 'barkdoku', 'shop', 'auth_login', 'auth_signup', 'register']) {
+      expect(SCREENS).toContain(name);
+    }
+  });
+
+  it('builds screen_viewed with an optional previous screen and item id', () => {
+    const first = buildEvent('screen_viewed', { screen: 'welcome' }, baseCommon);
+    expect(first?.properties.screen).toBe('welcome');
+    expect(first?.properties.previous_screen).toBeUndefined();
+    const lesson = buildEvent(
+      'screen_viewed',
+      { screen: 'lesson', previous_screen: 'map', screen_item_id: 'lesson-leash-basics' },
+      baseCommon
+    );
+    expect(lesson?.properties.screen_item_id).toBe('lesson-leash-basics');
+  });
+
+  it('drops screen_viewed with an unknown screen or a name-shaped item id', () => {
+    expect(buildEvent('screen_viewed', { screen: 'nope' }, baseCommon)).toBeNull();
+    expect(buildEvent('screen_viewed', { screen: 'lesson', screen_item_id: 'Luna' }, baseCommon)).toBeNull();
+  });
+
+  it('builds app_backgrounded with screen and seconds_in_session', () => {
+    const event = buildEvent('app_backgrounded', { screen: 'lesson', seconds_in_session: 40 }, baseCommon);
+    expect(event?.properties.screen).toBe('lesson');
+    expect(event?.properties.seconds_in_session).toBe(40);
+  });
+
+  it('adds the context properties to every event and keeps schema_version 1', () => {
+    const event = buildEvent('lesson_opened', { lesson_id: 'l1', source: 'trail' }, { ...baseCommon, ...context });
+    expect(event?.properties).toMatchObject({
+      schema_version: 1,
+      screen: 'map',
+      world_id: 'world-1',
+      stops_done: 7,
+      furthest_stop_index: 8,
+      funnel_done: true,
+      has_account: true,
+      plus_status: 'trial',
+      session_number: 3,
+      seconds_in_session: 42,
+      platform: 'android',
+      runtime: 'dev_build',
+    });
+  });
+
+  it('omits world_id before the Dog has a World and leaves context out when not given', () => {
+    const noWorld = buildEvent('lesson_opened', { lesson_id: 'l1', source: 'trail' }, { ...baseCommon, ...context, world_id: undefined });
+    expect(noWorld?.properties).not.toHaveProperty('world_id');
+    const bare = buildEvent('lesson_opened', { lesson_id: 'l1', source: 'trail' }, baseCommon);
+    expect(bare?.properties).not.toHaveProperty('screen');
+  });
+
+  it("the event's own screen wins over the context screen", () => {
+    const event = buildEvent('screen_viewed', { screen: 'lesson' }, { ...baseCommon, ...context });
+    expect(event?.properties.screen).toBe('lesson');
   });
 });
 

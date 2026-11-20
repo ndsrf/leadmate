@@ -304,6 +304,32 @@ describe('Settings: Area tabs navigation and section partitioning', () => {
     expect(cuentaTab).toContain('aria-pressed="true"');
   });
 
+  it('reports the visible Settings Area through onTab', async () => {
+    const seen: string[] = [];
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(
+        <SettingsScreen
+          t={t}
+          language="es"
+          record={newDogRecord()}
+          update={() => {}}
+          onClose={() => {}}
+          account={makeAccount()}
+          onLogIn={() => {}}
+          ui={{ settings: DEFAULT_UI_SETTINGS, change: () => {} }}
+          onReset={() => {}}
+          onTab={(tab) => seen.push(tab)}
+        />,
+      );
+    });
+    expect(seen).toEqual(['dog']);
+    await act(async () => {
+      renderer!.root.findByProps({ testID: 'settings-tab-preferences' }).props.onPress();
+    });
+    expect(seen).toEqual(['dog', 'preferences']);
+  });
+
   it('switches tabs interactively when tab buttons are pressed', async () => {
     let renderer: ReactTestRenderer.ReactTestRenderer;
     await act(async () => {

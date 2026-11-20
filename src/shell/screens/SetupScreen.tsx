@@ -192,7 +192,7 @@ export function SetupScreen({
               />
             </View>
           ))}
-          <Button label={t('setup.finish')} onPress={() => update(finishSetup)} />
+          <Button label={t('setup.finish')} onPress={() => update(finishSetup)} testID="funnel.setup_finish" />
         </Panel>
       )}
     </Screen>

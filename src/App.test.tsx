@@ -1610,6 +1610,58 @@ describe('App - Stage view lifecycle', () => {
       expect(sessionEvents[0].properties.first_session).toBe(false);
     });
 
+    it('welcome -> language sends screen_viewed for both, with previous_screen welcome (Task 11.4)', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+        jest.runAllTicks();
+      });
+      act(() => latest('SplashScreen').actions.onStart());
+
+      const views = analytics.events.filter((e) => e.name === 'screen_viewed');
+      const screens = views.map((e) => e.properties.screen);
+      expect(screens.slice(-2)).toEqual(['welcome', 'language']);
+      const language = views[views.length - 1];
+      expect(language.properties.previous_screen).toBe('welcome');
+      expect(typeof language.properties.seconds_in_session).toBe('number');
+      expect(views.filter((e) => e.properties.screen === 'welcome')).toHaveLength(1);
+      // the Funnel keeps its own event alongside
+      expect(analytics.events.filter((e) => e.name === 'funnel_step_viewed').map((e) => e.properties.step)).toEqual(['welcome', 'language']);
+    });
+
+    it('opening a Lesson from the map sends screen lesson with its id (Task 11.4)', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await openMap();
+      analytics.clear();
+
+      act(() => latest('WorldMapScreen').onOpenStop({ kind: 'lesson', id: 'body-language' }));
+      const view = analytics.events.find((e) => e.name === 'screen_viewed');
+      expect(view?.properties).toMatchObject({ screen: 'lesson', previous_screen: 'map', screen_item_id: 'body-language' });
+      const opened = analytics.events.find((e) => e.name === 'lesson_opened');
+      expect(opened?.properties.screen).toBe('lesson');
+      expect(analytics.registered.screen).toBe('lesson');
+    });
+
+    it('backgrounding sends app_backgrounded with the current screen, not on inactive (Task 11.4)', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await openMap();
+      act(() => latest('WorldMapScreen').onOpenStop({ kind: 'lesson', id: 'body-language' }));
+      analytics.clear();
+
+      act(() => mockAppStateListeners.forEach((cb) => cb('inactive')));
+      expect(analytics.events.filter((e) => e.name === 'app_backgrounded')).toHaveLength(0);
+
+      act(() => mockAppStateListeners.forEach((cb) => cb('background')));
+      const backgrounded = analytics.events.filter((e) => e.name === 'app_backgrounded');
+      expect(backgrounded).toHaveLength(1);
+      expect(backgrounded[0].properties.screen).toBe('lesson');
+      expect(typeof backgrounded[0].properties.seconds_in_session).toBe('number');
+      expect(analytics.flushed).toBe(true);
+    });
+
     it('advancing welcome -> language sends both steps once each', async () => {
       const analytics = getAnalytics() as MockAnalyticsService;
       await act(async () => {
@@ -1931,6 +1983,9 @@ describe('App - Stage view lifecycle', () => {
         act(() => latest('MissionBriefScreen').onClose());
       }
 
+      // Leave the app: app_backgrounded carries the last screen
+      act(() => mockAppStateListeners.forEach((cb) => cb('background')));
+
       // Assert that we have captured events covering funnel, lesson, checkpoint, stage, minigame
       expect(analytics.events.length).toBeGreaterThan(5);
       const eventNames = new Set(analytics.events.map((e) => e.name));
@@ -1944,14 +1999,23 @@ describe('App - Stage view lifecycle', () => {
       expect(eventNames.has('minigame_started')).toBe(true);
       expect(eventNames.has('minigame_ended')).toBe(true);
       expect(eventNames.has('stop_completed')).toBe(true);
+      expect(eventNames.has('screen_viewed')).toBe(true);
+      expect(eventNames.has('app_backgrounded')).toBe(true);
 
-      // Assert none of the sensitive values nor the installId appear in ANY event properties
+      // Assert none of the sensitive values nor the installId appear in ANY event properties,
+      // the context properties of every event and screen_viewed / app_backgrounded included
       const bannedValues = [dogName, email, dogId, accountId, installId];
       for (const event of analytics.events) {
         const propsStr = JSON.stringify(event.properties);
         for (const banned of bannedValues) {
           expect(propsStr).not.toContain(banned);
         }
+        expect(event.properties.platform).toBeDefined();
+        expect(event.properties.runtime).toBeDefined();
+      }
+      // ...nor the super properties the SDK adds to every tap
+      for (const banned of bannedValues) {
+        expect(JSON.stringify(analytics.registered)).not.toContain(banned);
       }
     });
   });

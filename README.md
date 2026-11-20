@@ -378,9 +378,55 @@ PostHog anonymous product analytics (EU region, ADR 0031). Identified solely by 
 ```bash
 EXPO_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
 EXPO_PUBLIC_POSTHOG_KEY=
+EXPO_PUBLIC_BUILD_PROFILE=
 ```
 
-When building or running in environments where no key is set (or key is empty `""`, on web, or in unit tests), `getAnalytics()` automatically falls back to `MockAnalyticsService` and nothing is sent. The development profile in `eas.json` holds an empty placeholder key for dev builds. Production key is gated on legal review.
+`EXPO_PUBLIC_BUILD_PROFILE` is set by each `eas.json` profile (`development`, `preview`, `closed-test`, `production`) and becomes the `runtime` property of every event (`dev_build`, `preview`, `closed_test`, `store`; Expo Go and web are detected at run time). Leave it empty locally.
+
+When no key is set (or the key is empty `""`) or in unit tests, `getAnalytics()` automatically falls back to `MockAnalyticsService` and nothing is sent. The development profile in `eas.json` holds the PostHog dev project key (`phc_` keys are public client keys); for local `expo start`, put the same two lines in `.env.local`. Events are sent from native builds, Expo Go and web alike. Production key is gated on legal review.
+
+### Setting up PostHog
+
+1. **Create a project.** Sign up at <https://eu.posthog.com> and create a project in the **EU Cloud** region. The region must match the host below. A US project rejects events sent to the EU host. Use separate projects for development and production.
+2. **Copy the project token.** It is under Project settings → Project token and starts with `phc_`. It is a public client key, safe to commit in `eas.json`.
+3. **Local runs (web, Expo Go, `expo start`).** Put these in `.env.local` (git-ignored), then restart with `npx expo start -c`. Env vars are read at bundle time, so a plain reload does not pick up changes:
+
+   ```bash
+   EXPO_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
+   EXPO_PUBLIC_POSTHOG_KEY=phc_your_dev_project_token
+   ```
+
+4. **EAS builds.** The `development`, `preview` and `closed-test` profiles in `eas.json` already carry the dev host and key, plus `EXPO_PUBLIC_BUILD_PROFILE`. The `production` profile has no key until legal review is done (tasks 9.1 to 9.4 in `openspec/changes/add-product-analytics`).
+5. **Check it works.** The console prints `[analytics] using PostHog`, and `[PostHog] capture {...}` for each event in development. Events are batched, so they reach PostHog after 20 events, after 30 seconds, or when the app goes to the background. Look in **Activity → Live events**. With no key the console says `using MockAnalyticsService` and nothing is sent.
+
+**Reading the data**
+
+- Live events is a raw feed. Filter by `event` (for example `screen_viewed`), hide `$autocapture`, and add the columns `screen`, `previous_screen`, `session_number` and `runtime`.
+- Filter `runtime` to `web`, `dev_build`, `preview` or `closed_test` (the Google Play closed-test testers) to separate your own test sessions from store users.
+- Users are anonymous (`personProfiles: 'never'`), so the Persons and Active users views stay empty. Use a Trends insight with "Unique users" on `session_started` instead.
+- Session replay runs only in `dev_build`, `preview` and `closed_test` native builds, with text inputs and images masked. It is off for store builds, web and Expo Go. Build the closed-test release with `eas build --profile closed-test --platform android`, upload it to the Play closed-testing track, and tell the testers they are recorded. Watch recordings under Session replay, filtered by `runtime = closed_test`. Expo Go cannot record because the replay module is native, and web would need `posthog-js` (not set up).
+- Event names and properties are defined in `src/shell/analytics/contract.ts`. The privacy policy in `docs/privacy-policy.md` must stay in step with it, and a test enforces that.
+
+**Funnel insights (task 9.3)**
+
+Build these once per PostHog project, by hand in the UI. Save them to a dashboard, for example "First-session funnel".
+
+1. **Onboarding funnel.**
+   - Go to Product analytics → New insight → Funnels.
+   - Add one step per entry of `FUNNEL_STEPS` (`src/shell/analytics/contract.ts`), in this order. Each step is the event `funnel_step_viewed` with the filter `step = <name>`:
+     `welcome`, `language`, `dog`, `concern`, `taste_briefing`, `taste_stage`, `taste_payoff`, `setup_equipment`, `setup_weights`, `setup_about`, `setup_home`, `setup_questions`, `diagnostic`, `plan`, `method`, `first_primer`, `first_checkpoint`, `first_walk`, `first_debrief`, `register_prompt`, `account`, `paywall`, `map`.
+   - Put a first step before them: the event `session_started` with the filters `first_session` = true and `upgraded_install` = false. Only `session_started` carries those two properties, so a global filter would drop the other steps. People who updated from an older app version skip onboarding and would otherwise skew the funnel.
+   - Set "Aggregating by" to Unique users, and use a conversion window of 14 days or more. People often finish onboarding on a later day.
+   - Only the first view of each step counts. Repeat views carry `repeat = true`, so add a filter `repeat` = false if the counts look inflated.
+2. **Where people stop.** Create a Trends insight on `funnel_step_viewed`:
+   - Use the Unique users math.
+   - Break down by `step`.
+   - Set the display to Table or Bar.
+   - Use the filter `session_number` = 1 to limit it to first sessions.
+   - Compared with the funnel, this shows the last step each install reached.
+3. **Last screen per install.** Create a Paths insight with the event type Custom events, include only `screen_viewed`, and filter `session_number` = 1. Every event carries `session_number`, so this limits the view to first sessions. The end of each path shows where installs stopped. To see only the endings, use a Trends insight on `screen_viewed` with the "Unique users" math and the same filter, broken down by `screen`.
+
+Before relying on a funnel, check it against real data: run through onboarding in a dev build or on web and confirm each step shows up in Live events, in order. Tasks 9.3 and 11.9 stay open until that is done.
 
 ## Adding a language
 

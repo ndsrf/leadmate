@@ -10,6 +10,7 @@ describe('MockAnalyticsService (Task 3.3)', () => {
     funnelDoneOnce: false,
     funnelOpen: false,
     upgradedInstall: false,
+    sessionCount: 0,
   };
 
   const dummyEvent: AnalyticsEvent = {

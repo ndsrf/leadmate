@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines the anonymous product analytics the app sends: a small, versioned set of events that shows where users are in the Funnel and the trail, which screen they saw last, and whether Lessons are read, while keeping personal data out and letting the user turn it off.
+Defines the anonymous product analytics the app sends: a versioned set of events that shows where users are in the Funnel and the trail, which screens they move through and tap on, which screen they saw last, and whether Lessons are read, while keeping personal data out and letting the user turn it off.
 
 Terms: an **install id** is the random id that identifies this app install to analytics and nothing else. An **App Session** is one stretch of app use, started at launch or on returning to the foreground after at least 30 minutes away; it is not a Stage and not a Stretch.
 
@@ -43,7 +43,7 @@ The system SHALL mark the analytics state as an upgraded install when it is firs
 - **THEN** `session_started` carries `upgraded_install` false
 
 ### Requirement: No personal data in events
-Every event property SHALL be one the event contract declares for that event, and SHALL be a whole number, a boolean, a value from a fixed set, or a content id (lowercase letters, digits and `_ . : -`, at most 64 characters, not UUID-shaped). The system SHALL NOT send the Dog's name, email, account id, Dog id, the install id as a property, typed text, recorded audio, location or any free text. An event that breaks the contract SHALL be dropped, not sent.
+Every event the Shell sends SHALL go through the event contract, and every property of it SHALL be one the event contract declares for that event, and SHALL be a whole number, a boolean, a value from a fixed set, or a content id (lowercase letters, digits and `_ . : -`, at most 64 characters, not UUID-shaped). The system SHALL NOT send the Dog's name, email, account id, Dog id, the install id as a property, typed text, recorded audio, location or any free text. An event that breaks the contract SHALL be dropped, not sent. Tap events recorded by the analytics SDK's touch autocapture are outside the contract and SHALL be limited as set out in "Taps are captured without screen text".
 
 #### Scenario: Dog name never sent
 - **WHEN** a user whose Dog is named "Luna" with account email "luna@example.com" plays through the Funnel, a Lesson, a Checkpoint, a Stage and a Minigame
@@ -65,6 +65,10 @@ Every event property SHALL be one the event contract declares for that event, an
 - **WHEN** an event is sent
 - **THEN** it carries no location, and the analytics service is configured not to derive a location from the network address
 
+#### Scenario: SDK device properties
+- **WHEN** an event is sent
+- **THEN** it may carry the properties the analytics SDK adds on its own about the device and app (such as operating system, device type and SDK version), and none that identify the person
+
 ### Requirement: Versioned event contract
 The system SHALL send only events named in the event contract, and every event SHALL carry the contract's `schema_version`. Adding an event, an optional property or a new value to a fixed set SHALL keep the version; renaming or removing an event, a property or a value, or changing a property's meaning or kind, SHALL raise it.
 
@@ -85,7 +89,7 @@ The system SHALL send only events named in the event contract, and every event S
 - **THEN** `schema_version` is raised
 
 ### Requirement: Common event properties
-Every event SHALL carry `schema_version`, `app_version`, `content_version` and `content_channel` (stable or beta) of the active Content Pack, the app `language` (`es` or `en`) and `seconds_since_install`, the whole seconds since the install id was created, never below 0.
+Every event the Shell sends SHALL carry `schema_version`, `app_version`, `content_version` and `content_channel` (stable or beta) of the active Content Pack, the app `language` (`es` or `en`) and `seconds_since_install`, the whole seconds since the install id was created, never below 0.
 
 #### Scenario: Common properties present
 - **WHEN** any event is sent
@@ -94,6 +98,45 @@ Every event SHALL carry `schema_version`, `app_version`, `content_version` and `
 #### Scenario: Clock set back
 - **WHEN** the device clock is set to before the install id was created
 - **THEN** `seconds_since_install` is 0
+
+### Requirement: Context event properties
+Every event the Shell sends SHALL also carry the user's context: `screen` (from "Screen names"); progress as `world_id` (the World the Dog is working through), `stops_done` (done trail Stops across all Worlds, Satellite Stops excluded), `furthest_stop_index` (in that World, -1 when none) and `funnel_done` (the Dog's Funnel is finished now); `has_account` and `plus_status` (free, trial, subscribed), with no account id; `session_number` and `seconds_in_session`; and `platform` (ios, android, web) and `runtime` (store, preview, dev_build, expo_go, web). Adding them SHALL keep `schema_version`. Tap events SHALL carry the same context except `seconds_in_session`.
+
+#### Scenario: Context properties present
+- **WHEN** any event is sent
+- **THEN** it carries `screen`, `stops_done`, `furthest_stop_index`, `funnel_done`, `has_account`, `plus_status`, `session_number`, `seconds_in_session`, `platform` and `runtime`, and `world_id` once the Dog has a World
+
+#### Scenario: Progress reflects the Dog
+- **WHEN** a signed-in user in a Trial who has done 7 trail Stops and 2 Satellite Stops in the World they are working through, the furthest at trail index 8, opens a Lesson
+- **THEN** `lesson_opened` carries that World's id as `world_id`, `stops_done` 7, `furthest_stop_index` 8, `has_account` true and `plus_status` trial, and no account id
+
+#### Scenario: Subscription and Free Tier
+- **WHEN** the user has an active store Subscription Tier, and later the same user is on the Free Tier after it lapses
+- **THEN** events carry `plus_status` subscribed, and later free
+
+#### Scenario: Funnel again after a reset
+- **WHEN** a user who finished the Funnel resets progress and sees the welcome screen again
+- **THEN** events carry `funnel_done` false until the Funnel ends again
+
+#### Scenario: New install
+- **WHEN** the welcome screen shows on a new install
+- **THEN** `stops_done` is 0, `furthest_stop_index` is -1, `funnel_done` is false, `has_account` is false and `session_number` is 1
+
+#### Scenario: Session counting
+- **WHEN** the app returns to the foreground after 45 minutes away and the user opens Settings 20 foreground seconds later
+- **THEN** the events of the new App Session carry `session_number` one higher than before, and that `screen_viewed` carries `seconds_in_session` 20
+
+#### Scenario: Expo Go traffic
+- **WHEN** the app runs in Expo Go
+- **THEN** every event carries `runtime` expo_go
+
+#### Scenario: Internal preview build
+- **WHEN** the app runs as an internal preview build
+- **THEN** every event carries `runtime` preview, not store
+
+#### Scenario: Taps carry context
+- **WHEN** the user taps a button on the World Map
+- **THEN** the tap event carries `screen` map and the progress, `plus_status`, `session_number`, `platform` and `runtime` in force, and no `seconds_in_session`
 
 ### Requirement: Events made at startup are not lost
 Events made before the analytics state has finished loading at launch SHALL be held on the device in memory with the time they happened, and SHALL be sent once the state has loaded if analytics is on, or discarded if it is off.
@@ -139,6 +182,97 @@ The `step` of `funnel_step_viewed` SHALL be one of, in Funnel order: welcome, la
 #### Scenario: Taste parts
 - **WHEN** the user dismisses the Taste Briefing and the Dog later reacts
 - **THEN** `funnel_step_viewed` is sent with `step` taste_briefing, then taste_stage, then taste_payoff
+
+### Requirement: Screen viewed
+The system SHALL send `screen_viewed` with `screen`, `previous_screen` (absent for the first screen of an App Session) and, for screens about one content item, `screen_item_id` (the Lesson, Node or Mission id), each time a different screen comes to the front, once per arrival. A screen counts as different when its `screen` or `screen_item_id` changes. `funnel_step_viewed` SHALL keep being sent alongside it for Funnel screens.
+
+#### Scenario: Map to Lesson
+- **WHEN** the user taps a Lesson Stop on the World Map
+- **THEN** `screen_viewed` is sent with `screen` lesson, `previous_screen` map and the Lesson's id as `screen_item_id`
+
+#### Scenario: Re-render is not a view
+- **WHEN** the same screen re-renders without the user leaving it
+- **THEN** no further `screen_viewed` is sent
+
+#### Scenario: Settings Areas
+- **WHEN** the user opens Settings and switches from the Perro Settings Area to Preferencias
+- **THEN** `screen_viewed` is sent with `screen` settings_dog and then settings_preferences
+
+#### Scenario: Node steps
+- **WHEN** the user goes through a Node from its primer to its Debrief
+- **THEN** `screen_viewed` is sent for node_primer, node_checkpoint, node_stage (or node_minigame) and node_debrief, each with the Node's id
+
+#### Scenario: Funnel screens
+- **WHEN** the user moves from the language question to the Dog's name and look screen
+- **THEN** both `funnel_step_viewed` and `screen_viewed` are sent for each step
+
+#### Scenario: Off
+- **WHEN** analytics is off
+- **THEN** no `screen_viewed` is sent
+
+### Requirement: Screen names
+The `screen` of every event, and `screen_viewed`'s `screen` and `previous_screen`, SHALL be one of: splash; the Funnel step names other than map; map; value_recap; settings_dog, settings_preferences, settings_account; library; diary; lesson; mission_check, mission_brief, mission_waiting, mission_checkin, mission_problem, mission_fix, mission_passed; node_primer, node_checkpoint, node_stage, node_minigame, node_debrief; daily_stage, daily_result; warmup_stage; barkdoku; shop; paywall; auth_login, auth_signup; register. Adding a screen name SHALL keep `schema_version`.
+
+#### Scenario: Paywall outside the Funnel
+- **WHEN** the user opens the paywall from the World Map
+- **THEN** `screen` is paywall
+
+#### Scenario: Account flow over the Funnel
+- **WHEN** the user opens login from the welcome screen
+- **THEN** `screen` is auth_login
+
+### Requirement: Taps are captured without screen text
+The system SHALL record the user's taps with the analytics SDK's touch autocapture while analytics is on. A tap event SHALL carry only component names, fixed test ids, fixed capture labels, the tap position and the analytics SDK's own properties. It SHALL NOT carry any element's text content or accessibility label. Test ids and capture labels SHALL be fixed strings in code, never built from names, ids or user input. The Dog-name input and the login, registration and account views SHALL be excluded from tap capture together with their children; screens that only display the Dog's name SHALL keep tap capture. Screen and app-lifecycle autocapture SHALL stay off. On web only touch taps are recorded, not mouse clicks.
+
+#### Scenario: Tap on a button
+- **WHEN** the user taps the "Empezar prueba" button on the paywall
+- **THEN** a tap event is recorded with the button's fixed test id and component names, and no button text
+
+#### Scenario: Dog name never in a tap
+- **WHEN** a user whose Dog is named "Luna" taps through the Dog's name and look screen and the World Map
+- **THEN** no recorded tap event contains "Luna" in any property
+
+#### Scenario: Screens showing the Dog's name keep taps
+- **WHEN** the user taps a Stop on the World Map, whose header shows the Dog's name
+- **THEN** a tap event is recorded, without the Dog's name
+
+#### Scenario: Account form not captured
+- **WHEN** the user taps inside the login or registration form
+- **THEN** no tap event is recorded for those taps
+
+#### Scenario: Off
+- **WHEN** analytics is off and the user taps a button
+- **THEN** no tap event is recorded or sent
+
+### Requirement: App backgrounded
+The system SHALL send `app_backgrounded` with `screen` and `seconds_in_session` each time the app goes to the background (on web, when its tab is hidden), and not on a brief interruption such as a system overlay, so the last screen before a user leaves is known even when no later event follows.
+
+#### Scenario: User leaves from a Lesson
+- **WHEN** the user switches away from the app 40 seconds into an App Session while a Lesson is open
+- **THEN** `app_backgrounded` is sent with `screen` lesson and `seconds_in_session` 40
+
+#### Scenario: Off
+- **WHEN** analytics is off and the app goes to the background
+- **THEN** no `app_backgrounded` is sent
+
+### Requirement: Session replay only in internal builds
+The system SHALL record session replays only in dev builds and internal preview builds, and only while analytics is on, with all text, text inputs and images masked. Store builds, web and Expo Go SHALL NOT record replays.
+
+#### Scenario: Store build
+- **WHEN** the app runs as a store build
+- **THEN** no session replay is recorded
+
+#### Scenario: Dev build
+- **WHEN** the app runs as a dev build with analytics on
+- **THEN** a replay is recorded with every text, input and image masked
+
+#### Scenario: Preview build
+- **WHEN** a tester runs an internal preview build with analytics on
+- **THEN** a replay is recorded with every text, input and image masked
+
+#### Scenario: Dev build with analytics off
+- **WHEN** the app runs as a dev build with analytics off
+- **THEN** no session replay is recorded
 
 ### Requirement: Session started
 The system SHALL send `session_started` with `days_since_install` (whole days), `first_session` and `upgraded_install` when an App Session starts: when the app is launched, and when it comes back to the foreground after at least 30 minutes in the background.
@@ -304,7 +438,7 @@ Analytics SHALL be on for an install whose user has never changed the switch, wi
 
 #### Scenario: Turned off
 - **WHEN** the user turns analytics off and then plays a Stage
-- **THEN** no event is sent, including any queued but not yet sent before the switch
+- **THEN** no event is sent, including any queued but not yet sent before the switch, and no tap or session replay is recorded
 
 #### Scenario: Off after restart
 - **WHEN** the user turned analytics off and reopens the app
@@ -341,7 +475,7 @@ Sending analytics SHALL NOT block or delay any screen, input or Stage, and a fai
 - **THEN** the app starts and plays normally
 
 #### Scenario: Not configured
-- **WHEN** the build has no analytics project key, or runs on the web
+- **WHEN** the build has no analytics project key
 - **THEN** nothing is sent and the app behaves normally
 
 ### Requirement: Simulation stays free of analytics

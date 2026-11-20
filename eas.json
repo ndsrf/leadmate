@@ -10,8 +10,9 @@
       "environment": "development",
       "env": {
         "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a",
+        "EXPO_PUBLIC_BUILD_PROFILE": "development",
         "EXPO_PUBLIC_POSTHOG_HOST": "https://eu.i.posthog.com",
-        "EXPO_PUBLIC_POSTHOG_KEY": ""
+        "EXPO_PUBLIC_POSTHOG_KEY": "phc_skxGchTqYVkhC4TMiRtDvfTzRU3zdMxEvVujYENMnAM9"
       },
       "android": {
         "buildType": "apk"
@@ -21,7 +22,10 @@
       "distribution": "internal",
       "environment": "preview",
       "env": {
-        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a"
+        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a",
+        "EXPO_PUBLIC_BUILD_PROFILE": "preview",
+        "EXPO_PUBLIC_POSTHOG_HOST": "https://eu.i.posthog.com",
+        "EXPO_PUBLIC_POSTHOG_KEY": "phc_skxGchTqYVkhC4TMiRtDvfTzRU3zdMxEvVujYENMnAM9"
       },
       "android": {
         "buildType": "apk"
@@ -29,7 +33,18 @@
     },
     "production": {
       "environment": "production",
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_BUILD_PROFILE": "production"
+      }
+    },
+    "closed-test": {
+      "extends": "production",
+      "env": {
+        "EXPO_PUBLIC_BUILD_PROFILE": "closed_test",
+        "EXPO_PUBLIC_POSTHOG_HOST": "https://eu.i.posthog.com",
+        "EXPO_PUBLIC_POSTHOG_KEY": "phc_skxGchTqYVkhC4TMiRtDvfTzRU3zdMxEvVujYENMnAM9"
+      }
     }
   }
 }

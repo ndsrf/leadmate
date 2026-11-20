@@ -63,8 +63,8 @@ export function PrimerScreen({
         t={t}
       />
       <Text className="text-center font-display text-label text-inkMuted">{`${run.card + 1} / ${total}`}</Text>
-      <Button label={t('node.next')} onPress={onNext} />
-      <Button label={t('node.back')} tone="quiet" onPress={onExit} />
+      <Button label={t('node.next')} onPress={onNext} testID="node.primer_next" />
+      <Button label={t('node.back')} tone="quiet" onPress={onExit} testID="node.primer_exit" />
       {guideOpen && card.tutorialUrl && <InAppBrowserModal t={t} url={card.tutorialUrl} onClose={() => setGuideOpen(false)} />}
     </Screen>
   );
@@ -633,8 +633,8 @@ function DebriefBody({
             onOpenShop={onShop}
             t={t}
           />
-          <Button label={t('results.playAgain')} onPress={onPlayAgain} />
-          <Button label={t('results.continue')} tone="secondary" onPress={onDone} />
+          <Button label={t('results.playAgain')} onPress={onPlayAgain} testID="node.play_again" />
+          <Button label={t('results.continue')} tone="secondary" onPress={onDone} testID="node.results_continue" />
         </>
       )}
     </Screen>

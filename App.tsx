@@ -108,9 +108,17 @@ import {
   type LessonSource,
   stopsNewlyDone,
   type StopCompletedProps,
+  setAnalyticsScreen,
+  setAnalyticsForeground,
+  setAnalyticsSignedIn,
+  startAnalyticsSession,
+  trackAppBackgrounded,
+  screenOf,
+  ScreenViews,
 } from './src/shell/analytics';
 import { daysSince, shouldStartSession } from './src/shell/analytics/session';
-import { FunnelTracker } from './src/shell/analytics/funnel';
+import { FunnelTracker, funnelStepOf } from './src/shell/analytics/funnel';
+import { AnalyticsProvider } from './src/shell/analytics/AnalyticsProvider';
 import type { SetupPart } from './src/shell/onboarding/setup';
 import { ShopScreen, type ShopLevel } from './src/shell/screens/ShopScreen';
 import { ShopPopup } from './src/shell/screens/ShopPopup';
@@ -402,6 +410,8 @@ export default function App() {
 
   const [setupPart, setSetupPart] = useState<SetupPart | null>(null);
   const funnelTracker = useRef(new FunnelTracker());
+  const screenViews = useRef(new ScreenViews());
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>('dog');
   const playTracker = useRef(new PlayTracker());
   const lessonTimer = useRef<LessonTimer | null>(null);
   const checkpointShownAt = useRef<number>(Date.now());
@@ -442,9 +452,11 @@ export default function App() {
       if (nextState === 'active') {
         playTracker.current.resume();
         lessonTimer.current?.resume();
+        setAnalyticsForeground(true);
         if (shouldStartSession(lastBackgroundAt.current, new Date())) {
           const state = getAnalyticsState();
           if (state) {
+            startAnalyticsSession();
             track('session_started', {
               days_since_install: daysSince(state.installedAt),
               first_session: false,
@@ -456,6 +468,11 @@ export default function App() {
       } else {
         playTracker.current.pause();
         lessonTimer.current?.pause();
+        if (nextState === 'background') {
+          // inactive also fires for Control Center and system dialogs on iOS: not a departure
+          trackAppBackgrounded();
+          setAnalyticsForeground(false);
+        }
         if (!lastBackgroundAt.current) {
           lastBackgroundAt.current = new Date();
         }
@@ -761,6 +778,31 @@ export default function App() {
       }
     }
   }, [route, setupPart, tasteBriefed, tastePayoff, introRun?.step, flow?.name, record?.onboarding.step]);
+
+  useEffect(() => {
+    const funnelStep = funnelStepOf({
+      route,
+      setupPart,
+      tasteBriefed,
+      tastePayoff,
+      introStep: introRun?.step,
+      flowName: flow?.name,
+      isFunnelAuth: flow?.name === 'auth' && (flow.returnTo === 'map' || record?.onboarding.step !== 'done'),
+      funnelOpen: true,
+    });
+    const view = screenViews.current.view(screenOf({ route, funnelStep, flow, settingsTab }));
+    if (!view) return;
+    setAnalyticsScreen(view.screen);
+    track('screen_viewed', {
+      screen: view.screen,
+      previous_screen: view.previous_screen,
+      screen_item_id: view.itemId,
+    });
+  }, [route, flow, setupPart, tasteBriefed, tastePayoff, introRun?.step, settingsTab, record?.onboarding.step]);
+
+  useEffect(() => {
+    setAnalyticsSignedIn(account.signedIn);
+  }, [account.signedIn]);
 
   const minigameSimulationKey =
     route.name === 'flow' &&
@@ -1523,6 +1565,7 @@ export default function App() {
             contentChannel={contentSession.channel}
             onSwitchChannel={handleSwitchChannel}
             initialTab={settingsInitialTab}
+            onTab={setSettingsTab}
           />
         ) : (
           overlay
@@ -2193,107 +2236,109 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <PaletteProvider scheme={scheme}>
-        <PaletteRoot className="flex-1 bg-bg">
-          {viewWanted && <SimView key={attempt} ref={sim} onMessage={onMessage} onLoadError={() => viewFailedRef.current()} />}
-          {screen}
-          <ContentUpdateBanner t={t} />
-          {playingStage && !paused && !tastePayoff && (
-            <SimulatorBackButton
-              onPress={() => {
-                if (bundle === 'ready') {
-                  pauseStage();
-                } else {
-                  screenBack.current?.();
-                }
-              }}
-              label={t('hud.back')}
-            />
-          )}
-          {playingStage && seriesRun && (
-            <SeriesProgressStrip t={t} index={seriesRun.series.index + 1} total={seriesRun.total} kept={seriesRun.kept} />
-          )}
-          {playingStage && cardShowing && seriesRun?.card && (
-            <EncounterResultOverlay t={t} title={t(seriesRun.card.title)} paws={seriesRun.card.paws} hint={seriesRun.card.hint ? t(seriesRun.card.hint) : null} onRetry={retryEncounter} onNext={nextEncounter} />
-          )}
-          {playingStage && hint && !dogWarning && !paused && !isCloseExerciseFlow(route) && <HintOverlay text={t(HINT_TEXT[hint])} />}
-          {playingStage && record && !tastePayoff && !paused && bundle === 'ready' && !isCloseExerciseFlow(route) && (
-            <CoachMarksOverlay
-              moveText={t('coach.controls.move')}
-              markText={t('coach.controls.mark')}
-              showMove={!controlsUsed.move && !record.seenHints.includes(COACH_ID.move)}
-              showMark={!controlsUsed.mark && !markExpired && !record.seenHints.includes(COACH_ID.mark)}
-            />
-          )}
-          {playingStage && record && !paused && bundle === 'ready' && isHandDrillFlow(route) && (
-            <CloseCoachMarksOverlay
-              texts={{ gather: t('coach.close.gather'), poste: t('coach.close.poste'), marker: t('coach.close.mark') }}
-              show={closeMarksOn(record.seenHints, controlsUsed, markExpired)}
-            />
-          )}
-          {playingStage && record && dogWarning && !paused && (
-            <DogWarningOverlay text={withDogName(t('coach.dog.warning'), record.name, t('dog.neutral'))} bearing={dogWarning.bearing} />
-          )}
-          {route.name === 'taste' && tastePayoff && record && <PayoffOverlay t={t} name={record.name} mainConcerns={record.mainConcerns} onContinue={() => update(completeTaste)} />}
-          {playingStage && bundle === 'loading' && <LoadingOverlay t={t} />}
-          {playingStage && paused && (
-            <ResumeOverlay
-              t={t}
-              onResume={resume}
-              onExit={() => {
-                const endRes = playTracker.current.end('skipped', new Date());
-                if (endRes) track(endRes.name, endRes.props);
-                setPaused(false);
-                if (route.name === 'taste') {
-                  showTastePayoff();
-                } else if (route.name === 'first-stage') {
-                  const payload = skippedSimulationPayload(newSeed());
-                  setIntroRun((r) => (r ? advance(r, { type: 'finish', result: { kind: 'stage', payload, skipped: true } }) : null));
-                } else if (route.name === 'flow') {
-                  const f = route.flow;
-                  if (f.name === 'warmup') {
-                    setWarmup('completed');
-                    goHome();
-                  } else if (f.name === 'daily' && f.result === null) {
-                    const payload = skippedSimulationPayload(dateSeed(todayString()));
-                    const before = recordRef.current!;
-                    const now = new Date();
-                    const completion = completeDaily(before, payload, now);
-                    update(() => completion.record);
-                    setWarmup((w) => warmupAfterDaily(w));
-                    if (!isPlus(completion.record, now)) {
-                      getAdService().preloadInterstitial().catch(() => {});
+      <AnalyticsProvider>
+        <PaletteProvider scheme={scheme}>
+          <PaletteRoot className="flex-1 bg-bg">
+            {viewWanted && <SimView key={attempt} ref={sim} onMessage={onMessage} onLoadError={() => viewFailedRef.current()} />}
+            {screen}
+            <ContentUpdateBanner t={t} />
+            {playingStage && !paused && !tastePayoff && (
+              <SimulatorBackButton
+                onPress={() => {
+                  if (bundle === 'ready') {
+                    pauseStage();
+                  } else {
+                    screenBack.current?.();
+                  }
+                }}
+                label={t('hud.back')}
+              />
+            )}
+            {playingStage && seriesRun && (
+              <SeriesProgressStrip t={t} index={seriesRun.series.index + 1} total={seriesRun.total} kept={seriesRun.kept} />
+            )}
+            {playingStage && cardShowing && seriesRun?.card && (
+              <EncounterResultOverlay t={t} title={t(seriesRun.card.title)} paws={seriesRun.card.paws} hint={seriesRun.card.hint ? t(seriesRun.card.hint) : null} onRetry={retryEncounter} onNext={nextEncounter} />
+            )}
+            {playingStage && hint && !dogWarning && !paused && !isCloseExerciseFlow(route) && <HintOverlay text={t(HINT_TEXT[hint])} />}
+            {playingStage && record && !tastePayoff && !paused && bundle === 'ready' && !isCloseExerciseFlow(route) && (
+              <CoachMarksOverlay
+                moveText={t('coach.controls.move')}
+                markText={t('coach.controls.mark')}
+                showMove={!controlsUsed.move && !record.seenHints.includes(COACH_ID.move)}
+                showMark={!controlsUsed.mark && !markExpired && !record.seenHints.includes(COACH_ID.mark)}
+              />
+            )}
+            {playingStage && record && !paused && bundle === 'ready' && isHandDrillFlow(route) && (
+              <CloseCoachMarksOverlay
+                texts={{ gather: t('coach.close.gather'), poste: t('coach.close.poste'), marker: t('coach.close.mark') }}
+                show={closeMarksOn(record.seenHints, controlsUsed, markExpired)}
+              />
+            )}
+            {playingStage && record && dogWarning && !paused && (
+              <DogWarningOverlay text={withDogName(t('coach.dog.warning'), record.name, t('dog.neutral'))} bearing={dogWarning.bearing} />
+            )}
+            {route.name === 'taste' && tastePayoff && record && <PayoffOverlay t={t} name={record.name} mainConcerns={record.mainConcerns} onContinue={() => update(completeTaste)} />}
+            {playingStage && bundle === 'loading' && <LoadingOverlay t={t} />}
+            {playingStage && paused && (
+              <ResumeOverlay
+                t={t}
+                onResume={resume}
+                onExit={() => {
+                  const endRes = playTracker.current.end('skipped', new Date());
+                  if (endRes) track(endRes.name, endRes.props);
+                  setPaused(false);
+                  if (route.name === 'taste') {
+                    showTastePayoff();
+                  } else if (route.name === 'first-stage') {
+                    const payload = skippedSimulationPayload(newSeed());
+                    setIntroRun((r) => (r ? advance(r, { type: 'finish', result: { kind: 'stage', payload, skipped: true } }) : null));
+                  } else if (route.name === 'flow') {
+                    const f = route.flow;
+                    if (f.name === 'warmup') {
+                      setWarmup('completed');
+                      goHome();
+                    } else if (f.name === 'daily' && f.result === null) {
+                      const payload = skippedSimulationPayload(dateSeed(todayString()));
+                      const before = recordRef.current!;
+                      const now = new Date();
+                      const completion = completeDaily(before, payload, now);
+                      update(() => completion.record);
+                      setWarmup((w) => warmupAfterDaily(w));
+                      if (!isPlus(completion.record, now)) {
+                        getAdService().preloadInterstitial().catch(() => {});
+                      }
+                      const list = celebrationsFor(progressAt(before, now), progressAt(completion.record, now), {
+                        kind: 'daily',
+                        improved: completion.improved,
+                        firstOfDay: completion.firstOfDay,
+                        best: completion.best,
+                      });
+                      setFlow({ ...f, result: { payload, completion, celebrations: list } });
+                    } else if (f.name === 'node' && f.run.step === 'simulation' && f.run.node.simulation.encounters?.length) {
+                      // leaving a Series: the running attempt is dropped; every Encounter kept finishes it normally, else it is skipped
+                      accountRef.current.countStage();
+                      act({ type: 'exit-series' });
+                    } else if (f.name === 'node' && f.run.step === 'simulation') {
+                      accountRef.current.countStage();
+                      const kind = f.run.node.mode === 'close_exercise' ? 'close_exercise' : 'stage';
+                      const payload = skippedSimulationPayload(f.attempt + 1, f.run.node.mode);
+                      act({ type: 'finish', result: { kind, payload, skipped: true } });
+                    } else {
+                      goHome();
                     }
-                    const list = celebrationsFor(progressAt(before, now), progressAt(completion.record, now), {
-                      kind: 'daily',
-                      improved: completion.improved,
-                      firstOfDay: completion.firstOfDay,
-                      best: completion.best,
-                    });
-                    setFlow({ ...f, result: { payload, completion, celebrations: list } });
-                  } else if (f.name === 'node' && f.run.step === 'simulation' && f.run.node.simulation.encounters?.length) {
-                    // leaving a Series: the running attempt is dropped; every Encounter kept finishes it normally, else it is skipped
-                    accountRef.current.countStage();
-                    act({ type: 'exit-series' });
-                  } else if (f.name === 'node' && f.run.step === 'simulation') {
-                    accountRef.current.countStage();
-                    const kind = f.run.node.mode === 'close_exercise' ? 'close_exercise' : 'stage';
-                    const payload = skippedSimulationPayload(f.attempt + 1, f.run.node.mode);
-                    act({ type: 'finish', result: { kind, payload, skipped: true } });
                   } else {
                     goHome();
                   }
-                } else {
-                  goHome();
-                }
-              }}
-            />
-          )}
-          {playingStage && bundle === 'error' && <ErrorOverlay t={t} onRetry={retry} />}
-          <DevPerfOverlay />
-          <StatusBar style="dark" hidden />
-        </PaletteRoot>
-      </PaletteProvider>
+                }}
+              />
+            )}
+            {playingStage && bundle === 'error' && <ErrorOverlay t={t} onRetry={retry} />}
+            <DevPerfOverlay />
+            <StatusBar style="dark" hidden />
+          </PaletteRoot>
+        </PaletteProvider>
+      </AnalyticsProvider>
     </SafeAreaProvider>
   );
 }

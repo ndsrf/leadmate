@@ -64,9 +64,16 @@ describe('Analytics State (Task 3.1)', () => {
         funnelDoneOnce: true,
         funnelOpen: false,
         upgradedInstall: false,
+        sessionCount: 3,
       };
       expect(readAnalyticsState(valid)).toEqual(valid);
       expect(readAnalyticsState(JSON.stringify(valid))).toEqual(valid);
+    });
+
+    it('loads an old saved state without a session count as 0', () => {
+      const old = { installId: 'abc', installedAt: '2026-11-18T00:00:00.000Z', choice: null, funnelDoneOnce: false, funnelOpen: false, upgradedInstall: false };
+      expect(readAnalyticsState(old)?.sessionCount).toBe(0);
+      expect(readAnalyticsState({ ...old, sessionCount: -2 })?.sessionCount).toBe(0);
     });
 
     it('returns null on corrupt or invalid data', () => {
@@ -92,6 +99,7 @@ describe('Analytics State (Task 3.1)', () => {
       expect(state.funnelDoneOnce).toBe(false);
       expect(state.funnelOpen).toBe(false);
       expect(state.upgradedInstall).toBe(false);
+      expect(state.sessionCount).toBe(0);
 
       // Verify it was persisted to storage
       expect(store.storage[ANALYTICS_STATE_KEY]).toBeDefined();
@@ -127,6 +135,7 @@ describe('Analytics State (Task 3.1)', () => {
         funnelDoneOnce: true,
         funnelOpen: false,
         upgradedInstall: false,
+        sessionCount: 0,
       };
       const store = createMockStore({
         [ANALYTICS_STATE_KEY]: JSON.stringify(existing),
@@ -171,6 +180,7 @@ describe('Analytics State (Task 3.1)', () => {
         funnelDoneOnce: true,
         funnelOpen: false,
         upgradedInstall: false,
+        sessionCount: 0,
       };
       let shouldThrow = true;
       const store = createMockStore({
@@ -209,6 +219,7 @@ describe('Analytics State (Task 3.1)', () => {
         funnelDoneOnce: false,
         funnelOpen: true,
         upgradedInstall: false,
+        sessionCount: 0,
       };
 
       await saveAnalyticsState(store, state);
@@ -233,6 +244,7 @@ describe('Analytics State (Task 3.1)', () => {
         funnelDoneOnce: false,
         funnelOpen: false,
         upgradedInstall: false,
+        sessionCount: 0,
       };
 
       await expect(saveAnalyticsState(throwingStore, state)).resolves.not.toThrow();

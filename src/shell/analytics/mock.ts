@@ -7,6 +7,7 @@ export class MockAnalyticsService implements AnalyticsService {
   public state: AnalyticsState | null = null;
   public enabled: boolean = true;
   public flushed: boolean = false;
+  public registered: Record<string, string | number | boolean> = {};
 
   public get captured(): AnalyticsEvent[] {
     return this.events;
@@ -15,6 +16,7 @@ export class MockAnalyticsService implements AnalyticsService {
   public clear(): void {
     this.events = [];
     this.flushed = false;
+    this.registered = {};
   }
 
   public async start(state: AnalyticsState): Promise<void> {
@@ -34,6 +36,13 @@ export class MockAnalyticsService implements AnalyticsService {
     if (!on) {
       this.clear();
     }
+  }
+
+  public async register(properties: Record<string, string | number | boolean>): Promise<void> {
+    if (!this.enabled) {
+      return;
+    }
+    this.registered = { ...this.registered, ...properties };
   }
 
   public async flush(): Promise<void> {

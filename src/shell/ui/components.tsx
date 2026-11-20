@@ -236,6 +236,7 @@ export function Chip({
   compact = false,
   onPress,
   accessibilityLabel,
+  testID,
 }: {
   label?: string;
   value?: React.ReactNode;
@@ -244,6 +245,7 @@ export function Chip({
   compact?: boolean;
   onPress?: () => void;
   accessibilityLabel?: string;
+  testID?: string;
 }) {
   const color = usePalette();
   const focus = useFocus();
@@ -266,6 +268,7 @@ export function Chip({
       onBlur={focus.onBlur}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      testID={testID}
       hitSlop={target.hitSlop}
       style={{ minHeight: theme.size.touchMin, justifyContent: 'center', maxWidth: '100%' }}
     >
@@ -423,7 +426,8 @@ export function TextField({ label, ...input }: { label?: string } & TextInputPro
   const focus = useFocus();
   const ring = theme.depth.focusRing;
   return (
-    <View className="mt-1">
+    // ph-no-capture: taps in any text field (the Dog's name, login, registration) are never recorded by analytics
+    <View className="mt-1" ph-no-capture>
       {label !== undefined && <Text className="mb-1 font-display text-label text-ink">{label}</Text>}
       <View>
         {focus.focused && <View pointerEvents="none" style={{ position: 'absolute', left: -ring.offset + 1, top: -ring.offset + 1, right: -ring.offset + 1, bottom: -ring.offset + 1, borderWidth: ring.width, borderColor: color.focus, borderRadius: theme.radius.md + 2 }} />}

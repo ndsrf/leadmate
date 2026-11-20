@@ -140,7 +140,7 @@ export function DogLookScreen({
               />
             ))}
           </View>
-          <Button label={t('setup.next')} onPress={next} />
+          <Button label={t('setup.next')} onPress={next} testID="funnel.dog_next" />
         </Panel>
       )}
     </Screen>
@@ -159,7 +159,7 @@ export function TasteBriefScreen({ t, name, onStart }: { t: Translate; name: str
         <Text className="mb-2 text-bodyL text-ink">{withDogName(t('tasteBrief.walk'), name, neutral)}</Text>
         <Text className="mb-2 text-bodyL text-ink">{withDogName(t('tasteBrief.goal'), name, neutral)}</Text>
         <Text className="mb-4 text-bodyL text-inkMuted">{withDogName(t('tasteBrief.drag'), name, neutral)}</Text>
-        <Button label={t('tasteBrief.start')} onPress={onStart} />
+        <Button label={t('tasteBrief.start')} onPress={onStart} testID="funnel.taste_start" />
       </Panel>
     </Screen>
   );
@@ -178,7 +178,7 @@ export function PayoffOverlay({ t, name, mainConcerns = [], onContinue }: { t: T
         </Text>
         <Text className="mb-2 text-bodyL text-ink">{withDogName(t(keys.reacted), name, neutral)}</Text>
         <Text className="mb-4 text-bodyL text-inkMuted">{withDogName(t(keys.body), name, neutral)}</Text>
-        <Button label={t('payoff.continue')} onPress={onContinue} />
+        <Button label={t('payoff.continue')} onPress={onContinue} testID="funnel.payoff_continue" />
       </Panel>
     </LightRegion>
   );
@@ -195,8 +195,8 @@ export function ConcernScreen({ t, record, onDone }: { t: Translate; record: Dog
       <Panel>
         <Text className="mb-1 text-body text-inkMuted">{t('concern.help')}</Text>
         <MainConcernChips t={t} value={picked} onToggle={(c) => setPicked((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]))} />
-        <Button label={t('concern.continue')} onPress={() => onDone(picked)} />
-        <Button label={t('concern.skip')} tone="quiet" onPress={() => onDone([])} />
+        <Button label={t('concern.continue')} onPress={() => onDone(picked)} testID="funnel.concern_continue" />
+        <Button label={t('concern.skip')} tone="quiet" onPress={() => onDone([])} testID="funnel.concern_skip" />
       </Panel>
     </Screen>
   );
@@ -249,7 +249,7 @@ export function LanguageScreen({
           <SelectChip label={t('language.es')} selected={current === 'es'} onPress={() => choose('es')} />
           <SelectChip label={t('language.en')} selected={current === 'en'} onPress={() => choose('en')} />
         </View>
-        <Button label={t('language.continue')} onPress={() => onDone(current)} />
+        <Button label={t('language.continue')} onPress={() => onDone(current)} testID="funnel.language_continue" />
       </Panel>
     </Screen>
   );

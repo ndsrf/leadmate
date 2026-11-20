@@ -71,9 +71,9 @@ export function SplashScreen({ t, onShown, actions }: { t: Translate; onShown?: 
         {actions ? (
           <View className="items-center px-6" style={{ position: 'absolute', left: 0, right: 0, bottom: 40 }}>
             <View style={{ width: '100%', maxWidth: 360 }}>
-              <Button label={t('welcome.start')} onPress={actions.onStart} />
+              <Button label={t('welcome.start')} onPress={actions.onStart} testID="funnel.welcome_start" />
               {actions.onLogIn && (
-                <Pressable onPress={actions.onLogIn} accessibilityRole="link" className="mt-1 items-center justify-center" style={{ minHeight: 44 }}>
+                <Pressable testID="funnel.welcome_login" onPress={actions.onLogIn} accessibilityRole="link" className="mt-1 items-center justify-center" style={{ minHeight: 44 }}>
                   <Text className="text-body text-ink underline">{t('welcome.haveAccount')}</Text>
                 </Pressable>
               )}

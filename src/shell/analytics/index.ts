@@ -3,7 +3,10 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import type { KeyValueStore, DogRecord } from '../dogRecord';
 import { getActiveContent } from '../content/runtime';
-import { buildEvent, type CommonProperties } from './contract';
+import { WORLDS, worldsFor, type WorldDef } from '../world';
+import { buildEvent, contextProperties, type CommonProperties, type ContextProperties, type ScreenName } from './contract';
+import { contextOf, runtimeOf } from './context';
+import { SessionClock } from './session';
 import {
   loadAnalyticsState,
   saveAnalyticsState,
@@ -22,11 +25,15 @@ export * from './posthog';
 export * from './stages';
 export * from './lessons';
 export * from './stops';
+export * from './screen';
+export * from './context';
 
 interface BufferedTrackEvent {
   name: string;
   props: Record<string, unknown>;
   timestamp: Date;
+  /** The user's context when the event happened, kept so a late send does not change it. */
+  context: Partial<ContextProperties>;
 }
 
 const BUFFER_CAP = 50;
@@ -39,6 +46,10 @@ let activeRecord: DogRecord | null = null;
 let activeState: AnalyticsState | null = null;
 let isInitialized = false;
 let isEnabling = false;
+let activeScreen: ScreenName = 'splash';
+let activeSignedIn = false;
+let lastRegistered = '';
+const sessionClock = new SessionClock();
 let eventBuffer: BufferedTrackEvent[] = [];
 const stateListeners = new Set<(state: AnalyticsState) => void>();
 
@@ -59,8 +70,10 @@ function isJest(): boolean {
   );
 }
 
-function isWeb(): boolean {
-  return typeof Platform !== 'undefined' && Platform.OS === 'web';
+function devWarn(message: string, error?: unknown): void {
+  if (typeof __DEV__ !== 'undefined' && __DEV__ && !isJest()) {
+    console.warn(`[analytics] ${message}`, error ?? '');
+  }
 }
 
 export function getAnalytics(): AnalyticsService {
@@ -69,12 +82,17 @@ export function getAnalytics(): AnalyticsService {
   }
   if (!analyticsServiceInstance) {
     const posthogKey = process.env.EXPO_PUBLIC_POSTHOG_KEY?.trim();
-    if (isJest() || isWeb() || !posthogKey) {
+    if (isJest() || !posthogKey) {
       analyticsServiceInstance = new MockAnalyticsService();
     } else {
       const host = process.env.EXPO_PUBLIC_POSTHOG_HOST?.trim() || DEFAULT_POSTHOG_HOST;
-      analyticsServiceInstance = new PostHogAnalyticsService(posthogKey, host);
+      analyticsServiceInstance = new PostHogAnalyticsService(posthogKey, host, currentRuntime());
     }
+    devWarn(
+      analyticsServiceInstance instanceof MockAnalyticsService
+        ? 'using MockAnalyticsService (no EXPO_PUBLIC_POSTHOG_KEY in this bundle): nothing is sent'
+        : 'using PostHog'
+    );
   }
   return analyticsServiceInstance;
 }
@@ -93,6 +111,10 @@ export function resetAnalyticsForTesting(): void {
   isEnabling = false;
   eventBuffer = [];
   stateListeners.clear();
+  activeScreen = 'splash';
+  activeSignedIn = false;
+  lastRegistered = '';
+  sessionClock.restart();
 }
 
 export function getAnalyticsState(): AnalyticsState | null {
@@ -101,9 +123,120 @@ export function getAnalyticsState(): AnalyticsState | null {
 
 export function updateAnalyticsRecord(record: DogRecord | null): void {
   activeRecord = record;
+  registerSuperProperties();
 }
 
-function getCommonProperties(capturedAt: Date, state: AnalyticsState): CommonProperties {
+/** The screen at the front now; every later event, and every tap, carries it. */
+export function setAnalyticsScreen(screen: ScreenName): void {
+  activeScreen = screen;
+  registerSuperProperties();
+}
+
+export function getAnalyticsScreen(): ScreenName {
+  return activeScreen;
+}
+
+export function setAnalyticsSignedIn(signedIn: boolean): void {
+  activeSignedIn = signedIn;
+  registerSuperProperties();
+}
+
+/** The app went to the background or came back: the App Session clock pauses while it is away. */
+export function setAnalyticsForeground(foreground: boolean, now: number = Date.now()): void {
+  if (foreground) sessionClock.foreground(now);
+  else sessionClock.background(now);
+}
+
+/** A new App Session begins (a cold start, or a return after a long absence): raises `session_number`. */
+export function startAnalyticsSession(now: number = Date.now()): void {
+  sessionClock.restart(now);
+  if (activeState) {
+    activeState.sessionCount += 1;
+    if (activeStore && activeState.installId !== 'in-memory-fallback') {
+      void saveAnalyticsState(activeStore, activeState);
+    }
+  }
+  registerSuperProperties();
+}
+
+export function flushAnalytics(): void {
+  try {
+    if (!activeState || !isEnabled(activeState)) return;
+    const flushed = getAnalytics().flush();
+    if (flushed && typeof flushed.catch === 'function') flushed.catch(() => {});
+  } catch {
+    // never throws
+  }
+}
+
+/** `app_backgrounded` with the last screen, then a flush so it leaves before the OS may kill the app. */
+export function trackAppBackgrounded(now: number = Date.now()): void {
+  track('app_backgrounded', { screen: activeScreen, seconds_in_session: sessionClock.seconds(now) });
+  flushAnalytics();
+}
+
+function currentRuntime(): ContextProperties['runtime'] {
+  const platform = Platform.OS === 'ios' || Platform.OS === 'android' || Platform.OS === 'web' ? Platform.OS : 'android';
+  return runtimeOf({
+    platform,
+    executionEnvironment: Constants.executionEnvironment as string | undefined,
+    buildProfile: process.env.EXPO_PUBLIC_BUILD_PROFILE?.trim() || undefined,
+  });
+}
+
+function currentContext(now: number): Partial<ContextProperties> {
+  const platform = Platform.OS === 'ios' || Platform.OS === 'android' || Platform.OS === 'web' ? Platform.OS : 'android';
+  const buildProfile = process.env.EXPO_PUBLIC_BUILD_PROFILE?.trim() || undefined;
+  const executionEnvironment = Constants.executionEnvironment as string | undefined;
+  const sessionNumber = activeState?.sessionCount ?? 1;
+  const secondsInSession = sessionClock.seconds(now);
+  const record = activeRecord;
+  if (!record) {
+    return {
+      screen: activeScreen,
+      has_account: activeSignedIn,
+      session_number: Math.max(1, sessionNumber),
+      seconds_in_session: secondsInSession,
+      platform,
+      runtime: runtimeOf({ platform, executionEnvironment, buildProfile }),
+    };
+  }
+  let worlds: readonly WorldDef[] = WORLDS;
+  try {
+    worlds = worldsFor(record.onboarding?.plan ?? [], record);
+  } catch {
+    // fall back to the authored Worlds
+  }
+  return contextOf({
+    record,
+    worlds,
+    signedIn: activeSignedIn,
+    sessionNumber,
+    secondsInSession,
+    screen: activeScreen,
+    buildProfile,
+    executionEnvironment,
+    platform,
+    now: new Date(now),
+  });
+}
+
+/** Passes the context to the SDK as super properties (all but `seconds_in_session`) when it changed. */
+function registerSuperProperties(): void {
+  try {
+    if (!isInitialized || !activeState || isEnabling || !isEnabled(activeState)) return;
+    const props = contextProperties(currentContext(Date.now()), false);
+    const key = JSON.stringify(props);
+    if (key === lastRegistered) return;
+    lastRegistered = key;
+    const registered = getAnalytics().register(props);
+    if (registered && typeof registered.catch === 'function') registered.catch(() => {});
+  } catch (error) {
+    devWarn('register failed', error);
+  }
+}
+
+function getCommonProperties(capturedAt: Date, state: AnalyticsState, context: Partial<ContextProperties>): CommonProperties {
   const installedMs = Date.parse(state.installedAt);
   const secondsSinceInstall = Math.max(
     0,
@@ -132,6 +265,7 @@ function getCommonProperties(capturedAt: Date, state: AnalyticsState): CommonPro
     content_channel: contentChannel,
     language,
     seconds_since_install: secondsSinceInstall,
+    ...context,
   };
 }
 
@@ -141,7 +275,7 @@ async function flushBuffer(service: AnalyticsService, state: AnalyticsState): Pr
 
   for (const item of toFlush) {
     try {
-      const common = getCommonProperties(item.timestamp, state);
+      const common = getCommonProperties(item.timestamp, state, item.context);
       const built = buildEvent(item.name, item.props, common);
       if (built) {
         await service.capture({ ...built, timestamp: item.timestamp });
@@ -149,6 +283,14 @@ async function flushBuffer(service: AnalyticsService, state: AnalyticsState): Pr
     } catch {
       // Swallow individual event errors
     }
+  }
+}
+
+function startSessionCounter(state: AnalyticsState): void {
+  sessionClock.restart();
+  state.sessionCount += 1;
+  if (activeStore && state.installId !== 'in-memory-fallback') {
+    void saveAnalyticsState(activeStore, state);
   }
 }
 
@@ -170,6 +312,7 @@ export async function initAnalytics(
       funnelDoneOnce: false,
       funnelOpen: false,
       upgradedInstall: false,
+      sessionCount: 0,
     };
   }
 
@@ -180,15 +323,21 @@ export async function initAnalytics(
   const enabled = isEnabled(state);
   const service = getAnalytics();
 
+  // opening the app is the start of an App Session
+  startSessionCounter(state);
+
   if (enabled) {
     try {
       await service.start(state);
       await flushBuffer(service, state);
-    } catch {
+      registerSuperProperties();
+    } catch (error) {
+      devWarn('PostHog failed to start', error);
       // Guard service.start/flush failure: keep loaded state, do not clobber
       eventBuffer = [];
     }
   } else {
+    devWarn('analytics is turned off in Settings: nothing is sent');
     // Discard pre-init events if analytics is disabled
     eventBuffer = [];
   }
@@ -208,7 +357,7 @@ export function track(name: string, props: Record<string, unknown> = {}): void {
       if (eventBuffer.length >= BUFFER_CAP) {
         eventBuffer.shift(); // Drop oldest
       }
-      eventBuffer.push({ name, props, timestamp });
+      eventBuffer.push({ name, props, timestamp, context: currentContext(timestamp.getTime()) });
       return;
     }
 
@@ -216,7 +365,7 @@ export function track(name: string, props: Record<string, unknown> = {}): void {
       return; // Gated immediately when disabled
     }
 
-    const common = getCommonProperties(timestamp, activeState);
+    const common = getCommonProperties(timestamp, activeState, currentContext(timestamp.getTime()));
     const built = buildEvent(name, props, common);
     if (!built) {
       if (typeof __DEV__ !== 'undefined' && __DEV__) {
@@ -228,9 +377,10 @@ export function track(name: string, props: Record<string, unknown> = {}): void {
     const service = getAnalytics();
     const capturePromise = service.capture({ ...built, timestamp });
     if (capturePromise && typeof capturePromise.catch === 'function') {
-      capturePromise.catch(() => {});
+      capturePromise.catch((error: unknown) => devWarn(`capture failed for "${name}"`, error));
     }
-  } catch {
+  } catch (error) {
+    devWarn(`track failed for "${name}"`, error);
     // track is synchronous, returns void, and never throws
   }
 }
@@ -245,6 +395,7 @@ export async function setAnalyticsEnabled(enabled: boolean): Promise<void> {
         funnelDoneOnce: false,
         funnelOpen: false,
         upgradedInstall: false,
+        sessionCount: 0,
       };
     } else {
       activeState.choice = enabled ? 'on' : 'off';
@@ -265,8 +416,11 @@ export async function setAnalyticsEnabled(enabled: boolean): Promise<void> {
       } finally {
         isEnabling = false;
       }
+      lastRegistered = '';
+      registerSuperProperties();
     } else {
       eventBuffer = [];
+      lastRegistered = '';
       await service.setEnabled(false);
     }
 

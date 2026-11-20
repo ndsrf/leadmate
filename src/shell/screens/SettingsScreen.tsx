@@ -153,6 +153,7 @@ export function SettingsScreen({
   onSwitchChannel,
   isDev: isDevProp,
   initialTab = 'dog',
+  onTab,
 }: {
   t: Translate;
   language: Language;
@@ -170,6 +171,8 @@ export function SettingsScreen({
   onSwitchChannel?: SwitchChannelFn;
   isDev?: boolean;
   initialTab?: SettingsTab;
+  /** Told the visible Settings Area when the screen opens and whenever it changes (analytics). */
+  onTab?: (tab: SettingsTab) => void;
 }) {
   const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
   const scrollRef = useRef<ScrollViewInstance>(null);
@@ -186,6 +189,12 @@ export function SettingsScreen({
   useEffect(() => {
     setActiveTab(initialTab);
   }, [initialTab]);
+
+  useEffect(() => {
+    onTab?.(activeTab);
+    // onTab is a reporting callback; a new function identity is not a new view
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   const selectLanguage = (newLang: Language) => {
     if (language === newLang) return;

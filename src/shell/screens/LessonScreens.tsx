@@ -57,6 +57,7 @@ export function LibraryScreen({
           {fixes.map((entry) => (
             <Pressable
               key={entry.fix.id}
+              testID="library.fix"
               onPress={() => handlePress(() => onOpenFix?.(entry))}
               accessibilityRole="button"
               accessibilityLabel={`${t('fix.title')}. ${fixEntryLabel(entry, t)}.`}
@@ -80,6 +81,7 @@ export function LibraryScreen({
         return (
           <Pressable
             key={lesson.id}
+            testID="library.lesson"
             onPress={() => handlePress(() => onOpen(lesson))}
             accessibilityRole="button"
             accessibilityLabel={libraryEntryLabel(entry, t)}
@@ -134,7 +136,7 @@ function Item({
   }
   return (
     <View className="mt-8">
-      <Button label={t('lesson.done')} onPress={onDone} />
+      <Button label={t('lesson.done')} onPress={onDone} testID="lesson.done" />
     </View>
   );
 }

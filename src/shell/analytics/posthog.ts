@@ -25,7 +25,8 @@
  *    Cited from: `node_modules/posthog-react-native/dist/posthog-rn.d.ts` (line 176), `PostHogOptions.capturePushNotificationOpened`.
  *    Option: `enableSessionReplay: false`
  *    Cited from: `node_modules/posthog-react-native/dist/posthog-rn.d.ts` (line 47), `PostHogOptions.enableSessionReplay`.
- *    Autocapture of screens and touches is disabled by avoiding PostHogProvider with captureScreens/captureTouches.
+ *    Touch autocapture comes from PostHogProvider (AnalyticsProvider.tsx) with screens off and only `testID`/`ph-label` captured.
+ *    Session replay (`enableSessionReplay`) is on only for dev_build, preview and closed_test runtimes, all text, inputs and images masked.
  *
  * 5. Distinct-ID bootstrap:
  *    Option: `bootstrap: { distinctId: installId, isIdentifiedId: false }`.
@@ -48,40 +49,88 @@
  *    retrying with exponential backoff and dropping the oldest when maxQueueSize (1000) is exceeded.
  */
 
-import { PostHog, PostHogPersistedProperty } from 'posthog-react-native';
+import { PostHog, PostHogPersistedProperty, type PostHogOptions } from 'posthog-react-native';
 import type { AnalyticsService, AnalyticsEvent } from './types';
 import type { AnalyticsState } from './state';
 
 export const DEFAULT_POSTHOG_HOST = 'https://eu.i.posthog.com';
 
+/** Session replay records only in dev builds, internal previews and the invited closed-test build, never in store builds, Expo Go or on web. */
+export function replayAllowed(runtime: string | undefined): boolean {
+  return runtime === 'dev_build' || runtime === 'preview' || runtime === 'closed_test';
+}
+
+/** The SDK options: privacy settings, offline queue, the install id as the distinct id and, for internal builds only, masked replay. */
+export function buildPostHogOptions(host: string, installId: string, runtime?: string): PostHogOptions {
+  const replay = replayAllowed(runtime);
+  return {
+    host,
+    disableGeoip: true,
+    personProfiles: 'never',
+    captureAppLifecycleEvents: false,
+    capturePushNotificationOpened: false,
+    enableSessionReplay: replay,
+    ...(replay
+      ? {
+          sessionReplayConfig: {
+            maskAllTextInputs: true,
+            maskAllImages: true,
+            maskAllSandboxedViews: true,
+            captureLog: false,
+          },
+        }
+      : {}),
+    maxQueueSize: 1000,
+    flushAt: 20,
+    flushInterval: 30000,
+    bootstrap: {
+      distinctId: installId,
+      isIdentifiedId: false,
+    },
+  };
+}
+
 export class PostHogAnalyticsService implements AnalyticsService {
   private client: PostHog | null = null;
+  private readonly clientListeners = new Set<(client: PostHog) => void>();
 
   constructor(
     private readonly apiKey: string,
-    private readonly host: string = DEFAULT_POSTHOG_HOST
+    private readonly host: string = DEFAULT_POSTHOG_HOST,
+    private readonly runtime?: string
   ) {}
+
+  /** The SDK client once started (the touch autocapture Provider is handed this one). */
+  public getClient(): PostHog | null {
+    return this.client;
+  }
+
+  public onClient(listener: (client: PostHog) => void): () => void {
+    this.clientListeners.add(listener);
+    return () => {
+      this.clientListeners.delete(listener);
+    };
+  }
 
   public async start(state: AnalyticsState): Promise<void> {
     if (this.client) {
       return;
     }
 
-    this.client = new PostHog(this.apiKey, {
-      host: this.host,
-      disableGeoip: true,
-      personProfiles: 'never',
-      captureAppLifecycleEvents: false,
-      capturePushNotificationOpened: false,
-      enableSessionReplay: false,
-      maxQueueSize: 1000,
-      flushAt: 20,
-      flushInterval: 30000,
-      bootstrap: {
-        distinctId: state.installId,
-        isIdentifiedId: false,
-      },
-    });
+    this.client = new PostHog(this.apiKey, buildPostHogOptions(this.host, state.installId, this.runtime));
+
+    for (const listener of this.clientListeners) {
+      try {
+        listener(this.client);
+      } catch {
+        // a listener never stops analytics
+      }
+    }
+
+    if (typeof __DEV__ !== 'undefined' && __DEV__) {
+      // SDK logs every capture and flush request to the console in dev builds
+      this.client.debug(true);
+    }
 
     if (state.choice === 'off') {
       await this.client.optOut();
@@ -126,6 +175,13 @@ export class PostHogAnalyticsService implements AnalyticsService {
         // Best effort queue clearing
       }
     }
+  }
+
+  public async register(properties: Record<string, string | number | boolean>): Promise<void> {
+    if (!this.client) {
+      return;
+    }
+    await this.client.register(properties);
   }
 
   public async flush(): Promise<void> {

@@ -44,6 +44,46 @@ export const FUNNEL_STEPS = [
 
 export type FunnelStep = (typeof FUNNEL_STEPS)[number];
 
+/** Every value `screen` and `previous_screen` may take. Adding one keeps SCHEMA_VERSION. */
+export const SCREENS = [
+  'splash',
+  ...FUNNEL_STEPS.filter((step) => step !== 'map'),
+  'map',
+  'value_recap',
+  'settings_dog',
+  'settings_preferences',
+  'settings_account',
+  'library',
+  'diary',
+  'lesson',
+  'mission_check',
+  'mission_brief',
+  'mission_waiting',
+  'mission_checkin',
+  'mission_problem',
+  'mission_fix',
+  'mission_passed',
+  'node_primer',
+  'node_checkpoint',
+  'node_stage',
+  'node_minigame',
+  'node_debrief',
+  'daily_stage',
+  'daily_result',
+  'warmup_stage',
+  'barkdoku',
+  'shop',
+  'auth_login',
+  'auth_signup',
+  'register',
+] as const;
+
+export type ScreenName = (typeof SCREENS)[number];
+
+export const PLUS_STATUSES = ['free', 'trial', 'subscribed'] as const;
+export const PLATFORMS = ['ios', 'android', 'web'] as const;
+export const RUNTIMES = ['store', 'preview', 'closed_test', 'dev_build', 'expo_go', 'web'] as const;
+
 export type PropertyKind =
   | { kind: 'int' }
   | { kind: 'bool' }
@@ -58,6 +98,15 @@ export interface PropertyDefinition {
 export type EventDeclaration = Record<string, PropertyDefinition>;
 
 export const EVENTS: Record<string, EventDeclaration> = {
+  screen_viewed: {
+    screen: { kind: { kind: 'enum', values: SCREENS } },
+    previous_screen: { kind: { kind: 'enum', values: SCREENS }, optional: true },
+    screen_item_id: { kind: { kind: 'id' }, optional: true },
+  },
+  app_backgrounded: {
+    screen: { kind: { kind: 'enum', values: SCREENS } },
+    seconds_in_session: { kind: { kind: 'int' } },
+  },
   funnel_step_viewed: {
     step: { kind: { kind: 'enum', values: FUNNEL_STEPS } },
     repeat: { kind: { kind: 'bool' } },
@@ -122,12 +171,67 @@ export const EVENTS: Record<string, EventDeclaration> = {
   },
 };
 
-export interface CommonProperties {
+/** The user's context, added to every event (and registered as PostHog super properties, except seconds_in_session). */
+export interface ContextProperties {
+  screen: ScreenName;
+  world_id?: string;
+  stops_done: number;
+  furthest_stop_index: number;
+  funnel_done: boolean;
+  has_account: boolean;
+  plus_status: (typeof PLUS_STATUSES)[number];
+  session_number: number;
+  seconds_in_session: number;
+  platform: (typeof PLATFORMS)[number];
+  runtime: (typeof RUNTIMES)[number];
+}
+
+export interface CommonProperties extends Partial<ContextProperties> {
   app_version: string;
   content_version: number;
   content_channel: 'stable' | 'beta';
   language: 'es' | 'en';
   seconds_since_install: number;
+}
+
+/**
+ * Validates context properties; invalid or absent ones are left out rather than dropping the event.
+ * `seconds_in_session` is included only when `withSeconds` is true (it changes every second, so it is not a super property).
+ */
+export function contextProperties(
+  context: Partial<ContextProperties>,
+  withSeconds = true
+): Record<string, string | number | boolean> {
+  const out: Record<string, string | number | boolean> = {};
+  const int = (v: unknown): number | null =>
+    typeof v === 'number' && Number.isFinite(v) ? Math.round(v) : null;
+  const oneOf = (list: readonly string[], v: unknown): string | null =>
+    typeof v === 'string' && list.includes(v) ? v : null;
+
+  const screen = oneOf(SCREENS, context.screen);
+  if (screen) out.screen = screen;
+  if (typeof context.world_id === 'string' && ID_REGEX.test(context.world_id) && !UUID_REGEX.test(context.world_id)) {
+    out.world_id = context.world_id;
+  }
+  const stopsDone = int(context.stops_done);
+  if (stopsDone !== null) out.stops_done = Math.max(0, stopsDone);
+  const furthest = int(context.furthest_stop_index);
+  if (furthest !== null) out.furthest_stop_index = Math.max(-1, furthest);
+  if (typeof context.funnel_done === 'boolean') out.funnel_done = context.funnel_done;
+  if (typeof context.has_account === 'boolean') out.has_account = context.has_account;
+  const plus = oneOf(PLUS_STATUSES, context.plus_status);
+  if (plus) out.plus_status = plus;
+  const sessionNumber = int(context.session_number);
+  if (sessionNumber !== null) out.session_number = Math.max(1, sessionNumber);
+  if (withSeconds) {
+    const seconds = int(context.seconds_in_session);
+    if (seconds !== null) out.seconds_in_session = Math.max(0, seconds);
+  }
+  const platform = oneOf(PLATFORMS, context.platform);
+  if (platform) out.platform = platform;
+  const runtime = oneOf(RUNTIMES, context.runtime);
+  if (runtime) out.runtime = runtime;
+  return out;
 }
 
 export interface BuiltEvent {
@@ -245,6 +349,7 @@ export function buildEvent(
     content_channel: common.content_channel,
     language: common.language,
     seconds_since_install: secondsSinceInstall,
+    ...contextProperties(common),
     ...validatedProps,
   };
 

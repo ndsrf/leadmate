@@ -59,7 +59,7 @@ export function PlanScreen({ t, dog, latency, plan, onContinue }: { t: Translate
           <Text className="text-body text-ink">{t('plan.note.supervision')}</Text>
         </Panel>
       )}
-      <Button label={t('plan.continue')} onPress={onContinue} />
+      <Button label={t('plan.continue')} onPress={onContinue} testID="funnel.plan_continue" />
     </Screen>
   );
 }

@@ -21,7 +21,7 @@ See proposal.md for why. The current state that shapes the approach:
 - Later changes (`add-read-the-dog-game`, `telegraph-marker-timing`, `split-walks-into-encounters`) add events by adding a contract entry and an ADDED requirement to `product-analytics`, with no change to the plumbing.
 
 **Non-Goals:**
-- No generic `screen_viewed` for every screen, no autocapture, no session replay, no feature flags, no surveys.
+- No screen or app-lifecycle autocapture (the Shell sends `screen_viewed` and `session_started` itself), no session replay outside dev builds, no feature flags, no surveys.
 - No user identification, no account linking, no person profiles.
 - No consent dialog. Analytics is on by default and can be turned off in Settings (decided with the user, see Risks).
 - No dashboards in the repo. The PostHog funnel and insights are configured in PostHog.
@@ -42,10 +42,12 @@ Following the `ads/` pattern:
 | `lessons.ts` | pure | `LessonTimer`: foreground time and furthest progress; `close(closedBy)` → props |
 | `stops.ts` | pure | `stopsNewlyDone(before, after, worlds, now)` built on `stopStatus` |
 | `session.ts` | pure | `shouldStartSession(lastBackgroundAt, now)` (30 min), `daysSince`, `secondsSince` |
+| `screen.ts` | pure | `screenOf(...)` → `{ screen, itemId? }` over `SCREENS`; `ScreenViews` dedupe (decision 12) |
+| `context.ts` | pure | `contextOf(...)` → progress, account/plan, App Session, platform and runtime properties (decision 12) |
 | `types.ts` | types | `AnalyticsService` interface: `start(state)`, `capture(event)`, `setEnabled(on)`, `flush()` |
 | `posthog.ts` | adapter | `PostHogAnalyticsService` over `posthog-react-native` |
 | `mock.ts` | adapter | `MockAnalyticsService`: records events in memory for tests, sends nothing |
-| `index.ts` | wiring | `getAnalytics()` singleton (mock under Jest, on web, or with no key), `track(name, props)` that stamps the time, builds the common properties, validates and captures, inside `try/catch`; events tracked before `initAnalytics` finishes wait in a small in-memory buffer (cap 50) |
+| `index.ts` | wiring | `getAnalytics()` singleton (mock under Jest or with no key), `track(name, props)` that stamps the time, builds the common properties, validates and captures, inside `try/catch`; events tracked before `initAnalytics` finishes wait in a small in-memory buffer (cap 50) |
 
 `track` is the only API screens and `App.tsx` call. It is synchronous, returns `void`, and never throws.
 
@@ -76,10 +78,11 @@ Event names are `snake_case` `object_verb`. Property names are `snake_case`. A c
 
 ### 4. PostHog configuration (GDPR-minded)
 
-- Read `EXPO_PUBLIC_POSTHOG_KEY` and `EXPO_PUBLIC_POSTHOG_HOST` (default `https://eu.i.posthog.com`, the EU region). With no key, use the mock. Dev and release builds use different PostHog projects through different keys in `eas.json` profiles.
+- Read `EXPO_PUBLIC_POSTHOG_KEY` and `EXPO_PUBLIC_POSTHOG_HOST` (default `https://eu.i.posthog.com`, the EU region). With no key, use the mock. Dev and release builds use different PostHog projects through different keys in `eas.json` profiles: `development` and `preview` carry the dev project key, `production` the production key (after 9.4). Each profile also sets `EXPO_PUBLIC_BUILD_PROFILE` (development, preview, production) for `runtime`.
 - SDK options:
   - `captureAppLifecycleEvents: false`. We send our own `session_started`.
-  - No autocapture of screens or touches, and no session replay.
+  - No autocapture of screens or app lifecycle. Touch autocapture is on, limited as in decision 12.
+  - Session replay only in dev builds (decision 13).
   - `disableGeoip: true`.
   - `personProfiles: 'never'`, or the SDK's equivalent for anonymous-only events.
   - `flushAt` around 20, `flushInterval` around 30 s.
@@ -160,6 +163,23 @@ An App Session is one stretch of app use: it starts at launch or on a return to 
 
 There is a new `AnalyticsSection` in `SettingsScreen.tsx` on the Preferencias tab, after the language section. It uses the existing `Toggle` and the `Section`/caption pattern of the feedback section. It takes `{ enabled, setEnabled }` from an `useAnalyticsSetting()` hook, which reads and writes `AnalyticsState`. The strings `settings.analytics`, `settings.analytics.toggle` and `settings.analytics.help` are added to `src/i18n/es.ts` and `src/i18n/en.ts`.
 
+### 12. Screens, context and taps
+
+The first release answered "which screen was last?" only for the Funnel and the Stage, Lesson and Checkpoint events. Testing with the dev project showed that is not enough to see what users do between those events or where they give up, so the scope grew (decided with the user):
+
+- **`screen.ts` (pure).** `screenOf({ route, funnelStep, flow, settingsTab, nodeStep, missionView, dailyResult })` → `{ screen, itemId? }` covering every value in `SCREENS`, and a `ScreenViews` dedupe that reports a view only when `screen` or `itemId` changes. `App.tsx` computes it once per render and keeps the current screen in a ref that `track` reads for the common `screen` property. `SettingsScreen` gains an optional `onTab(tab)` prop reporting the visible Settings Area, like `SetupScreen.onPart`.
+- **`context.ts` (pure).** `contextOf({ record, worlds, account, session, buildProfile, executionEnvironment, platform, now })` → the context properties. `world_id` and `furthest_stop_index` come from `currentWorld(progress)`; `stops_done` counts trail Stops whose `stopStatus` is done across all Worlds, Satellite Stops excluded (as in `stops.ts`); `funnel_done` is the Dog's onboarding step being done, so it is false again after Reset Progress (`repeat` on `funnel_step_viewed` carries "ever finished"); `plus_status` is trial while `trialState` is active and not subscribed, subscribed with an active store Subscription Tier in `billing`, else free; `has_account` reads the auth session. `runtime`: web when `Platform.OS` is web, expo_go when `Constants.executionEnvironment` is `storeClient`, else from `EXPO_PUBLIC_BUILD_PROFILE` (development → dev_build, preview → preview, production or unset → store). The contract declares them as common properties so `schema_version` stays 1.
+- **Super properties.** Every context property except `seconds_in_session` is validated through the contract and passed to `posthog.register()` at start and whenever it changes (screen change, Stop done, sign-in, Plus change, new App Session), so `$autocapture` taps carry the same context as declared events. `seconds_in_session` changes every second, so it is computed per declared event in `track` and is not registered. On opt-out nothing is registered.
+- **Sessions.** `AnalyticsState` gains `sessionCount`, raised and saved whenever `session_started` is sent; `seconds_in_session` is foreground time since then, paused while backgrounded.
+- **`app_backgrounded`.** Sent from the existing `AppState` listener on `background` only (on web, react-native-web reports a hidden tab as background), then `flush()` is called so it leaves before the OS may kill the app. `inactive` is ignored: on iOS it also fires for Control Center and system dialogs.
+- **Taps.** The app root is wrapped in `PostHogProvider` with our existing client (`client={posthog}`) and `autocapture: { captureTouches: true, captureScreens: false, captureLifecycleEvents: false, propsToCapture: ['testID', 'ph-label'] }`. Leaving `children` and `accessibilityLabel` out of `propsToCapture` keeps screen text (where the Dog's name appears) out of tap events; the element label falls back to the component name. The Dog name input and the login, registration and account views get `ph-no-capture`. Screens that only display the Dog's name (World Map header, Debrief, Lessons) keep tap capture, since no text is captured. The SDK listens to `onTouchEndCapture`, so on web only touch taps are recorded, not mouse clicks; taps are tested on a device or with devtools touch emulation. Main buttons get fixed `testID`s (`paywall.start_trial`, `map.stop`, …). With no client (mock), the Provider is not mounted. An opted-out client drops autocapture events like any other.
+
+*Alternative considered:* a declared `ui_action` event per button, through the contract. Rejected by the user in favour of autocapture: every tap is visible without adding a contract entry per button. The cost is that tap events bypass the contract, mitigated by `propsToCapture`, `ph-no-capture` and a test (task 11.5).
+
+### 13. Session replay in dev builds only
+
+`posthog-react-native-session-replay` is added (native module, so it works only in dev and store builds, never in Expo Go or on web). `enableSessionReplay` is true only when `runtime` is dev_build or preview (internal testers), with `sessionReplayConfig: { maskAllTextInputs: true, maskAllImages: true, maskAllSandboxedViews: true }` and text masking on. Store builds never turn it on, whatever the key.
+
 ## Risks / Trade-offs
 
 - **[GDPR/ePrivacy: Spain's AEPD may treat analytics without prior consent as non-compliant, and a random install id is still pseudonymous personal data]** → Mitigations:
@@ -174,6 +194,10 @@ There is a new `AnalyticsSection` in `SettingsScreen.tsx` on the Preferencias ta
 - **[Android Auto Backup restores `leadmate.analytics` with the rest of AsyncStorage]** → A restored device keeps the install id. Accepted: it restores the same Dog, so it is the same user's history.
 - **[Ads already ask GDPR consent through Google UMP (ADR 0018)]** → Analytics does not read or depend on the UMP answer; the two are separate purposes with separate controls. If legal review ties them, that is part of the opt-in follow-up.
 - **[Erasure requests]** → The install id is not shown to the user or linked to the account, so account deletion does not touch analytics. The privacy policy states this and the PostHog retention period.
+- **[Touch autocapture bypasses the contract]** → `propsToCapture` limited to `testID` and `ph-label`, `ph-no-capture` on views with the Dog's name or account details, and a test that fails on a `testID` or `ph-label` built from a template string or variable. The privacy policy and ADR 0031 are updated to name tap capture.
+- **[Session replay records the screen]** → Dev and preview builds only, everything masked; store builds cannot enable it. Testers using those builds are told.
+- **[Super properties persist in SDK storage]** → They hold only contract-validated context, never ids or text, and are re-registered on each change, so a stale value lasts at most until the next change.
+- **[More properties per event]** → Every one is a number, boolean, fixed value or content id, and they go through the contract like the rest.
 - **[A future event may need a string that is not id-shaped]** → It is added as an `enum` with its values, or the contract grows a new kind on purpose, with a review.
 
 ## Migration Plan
@@ -213,7 +237,7 @@ Questions raised when stress-testing this change against GLOSSARY.md, the ADRs, 
 20. **Should the default be resolved when the state is created?** No: store `choice` as on/off/null and resolve `null` with `DEFAULT_ENABLED` at read time, so flipping the constant reaches every user who never chose.
 21. **Does local bookkeeping run while analytics is off?** Yes for device-only flags (`funnelDoneOnce`, `funnelOpen`); no event is built, buffered or queued.
 22. **Does turning analytics back on send an event?** No; the next natural event is the first.
-23. **Web build: mock only without a key, or always?** Always the mock on web (matches tasks and the ads/billing pattern).
+23. **Web build: mock only without a key, or always?** Only without a key. `posthog-react-native` runs on web, so web and Expo Go send events like native builds when a key is set (changed from "always the mock" so the dev project can be tested from the browser).
 24. **The progress-reset spec lists what a reset keeps but not analytics?** Add a MODIFIED `progress-reset` requirement naming the analytics choice and install id.
 25. **Account deletion and erasure requests?** Analytics is not linked to the account and is untouched; the privacy policy says so and states PostHog retention.
 26. **Android Auto Backup restores the install id?** Accepted; it restores the same Dog and user.
@@ -222,7 +246,24 @@ Questions raised when stress-testing this change against GLOSSARY.md, the ADRs, 
 29. **The privacy test "from a record" cannot run at `buildEvent` level?** Keep a contract-level test and add an end-to-end wiring test with `MockAnalyticsService`.
 30. **`seconds_since_install` if the clock goes back?** Clamped at 0.
 31. **Untestable wording ("about 25", "exactly one" despite kills)?** Scenarios made exact, and "unless the app is closed or killed first" added.
-32. **Scope creep: Barkdoku, Shop, Value Recap, later Paywalls, ads?** Out of scope, listed in the proposal; later changes add events through the contract.
+32. **Scope creep: Barkdoku, Shop, Value Recap, later Paywalls, ads?** First out of scope; revised (decision 12): they are covered by `screen_viewed` and taps, with no dedicated events. Ads stay out.
 33. **Install id generator?** No new dependency; an injected UUID v4 generator in the Shell (ADR 0002 binds only the simulation).
 34. **Settings tab for the switch: Preferencias or Cuenta?** Preferencias: it is a device setting that works with no account.
 35. **Does the default-on decision deserve an ADR?** Yes: hard to reverse once data is collected, surprising without the context, and a real trade-off (proposed as ADR 0031).
+36. **Where users tap: declared events or autocapture?** Touch autocapture, limited to component names, fixed test ids and capture labels (decision 12), chosen by the user for coverage without per-button upkeep.
+37. **Every screen, or only the Funnel?** A `screen_viewed` for every screen, plus `screen` as a common property; `funnel_step_viewed` stays so the existing funnel insight keeps working.
+38. **Which context on every event?** Progress, account and plan, App Session, platform and runtime (decision 12).
+39. **Session replay?** Dev builds only, fully masked (decision 13).
+40. **Taps lacked context?** Context is registered as PostHog super properties after contract validation, so taps carry it (ADR 0035).
+41. **`ph-no-capture` on every view showing the Dog's name?** No: that would drop World Map, Debrief and Lesson taps, and no text is captured anyway. Only the Dog-name input and the login, registration and account views.
+42. **Which World for `world_id` and `furthest_stop_index`?** `currentWorld`, the World the Dog is working through.
+43. **Do `stops_done` count Satellite Stops?** No; done trail Stops across all Worlds.
+44. **`is_plus` hides Trial vs paying?** Replaced by `plus_status` (free, trial, subscribed).
+45. **Preview APKs would count as store installs?** `EXPO_PUBLIC_BUILD_PROFILE` per profile; `runtime` adds preview.
+46. **`app_backgrounded` on iOS `inactive`?** No; `background` only, to avoid Control Center and dialog noise.
+47. **Mouse clicks on web?** Not recorded; the SDK listens to touches only. No second SDK (ADR 0035).
+48. **Does tap capture deserve an ADR?** Yes: ADR 0035 amends ADR 0031.
+49. **`seconds_in_session` on taps?** No; a super property cannot keep a clock. Declared events carry it.
+50. **Preview builds send nothing without a key?** The `preview` profile carries the dev key.
+51. **Replay in preview builds?** Yes, fully masked, for internal testers; never in store builds.
+52. **`funnel_done`: current Funnel state or ever finished?** Current state; `repeat` carries "ever finished".

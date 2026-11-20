@@ -3,6 +3,21 @@
 exports[`Contract Snapshot (Task 2.3) matches the contract snapshot of all event names, property names and kinds 1`] = `
 [
   {
+    "event": "app_backgrounded",
+    "properties": [
+      {
+        "kind": "enum(splash|welcome|language|dog|concern|taste_briefing|taste_stage|taste_payoff|setup_equipment|setup_weights|setup_about|setup_home|setup_questions|diagnostic|plan|method|first_primer|first_checkpoint|first_walk|first_debrief|register_prompt|account|paywall|map|value_recap|settings_dog|settings_preferences|settings_account|library|diary|lesson|mission_check|mission_brief|mission_waiting|mission_checkin|mission_problem|mission_fix|mission_passed|node_primer|node_checkpoint|node_stage|node_minigame|node_debrief|daily_stage|daily_result|warmup_stage|barkdoku|shop|auth_login|auth_signup|register)",
+        "name": "screen",
+        "optional": false,
+      },
+      {
+        "kind": "int",
+        "name": "seconds_in_session",
+        "optional": false,
+      },
+    ],
+  },
+  {
     "event": "checkpoint_answered",
     "properties": [
       {
@@ -124,6 +139,26 @@ exports[`Contract Snapshot (Task 2.3) matches the contract snapshot of all event
         "kind": "id",
         "name": "node_id",
         "optional": false,
+      },
+    ],
+  },
+  {
+    "event": "screen_viewed",
+    "properties": [
+      {
+        "kind": "enum(splash|welcome|language|dog|concern|taste_briefing|taste_stage|taste_payoff|setup_equipment|setup_weights|setup_about|setup_home|setup_questions|diagnostic|plan|method|first_primer|first_checkpoint|first_walk|first_debrief|register_prompt|account|paywall|map|value_recap|settings_dog|settings_preferences|settings_account|library|diary|lesson|mission_check|mission_brief|mission_waiting|mission_checkin|mission_problem|mission_fix|mission_passed|node_primer|node_checkpoint|node_stage|node_minigame|node_debrief|daily_stage|daily_result|warmup_stage|barkdoku|shop|auth_login|auth_signup|register)",
+        "name": "previous_screen",
+        "optional": true,
+      },
+      {
+        "kind": "enum(splash|welcome|language|dog|concern|taste_briefing|taste_stage|taste_payoff|setup_equipment|setup_weights|setup_about|setup_home|setup_questions|diagnostic|plan|method|first_primer|first_checkpoint|first_walk|first_debrief|register_prompt|account|paywall|map|value_recap|settings_dog|settings_preferences|settings_account|library|diary|lesson|mission_check|mission_brief|mission_waiting|mission_checkin|mission_problem|mission_fix|mission_passed|node_primer|node_checkpoint|node_stage|node_minigame|node_debrief|daily_stage|daily_result|warmup_stage|barkdoku|shop|auth_login|auth_signup|register)",
+        "name": "screen",
+        "optional": false,
+      },
+      {
+        "kind": "id",
+        "name": "screen_item_id",
+        "optional": true,
       },
     ],
   },

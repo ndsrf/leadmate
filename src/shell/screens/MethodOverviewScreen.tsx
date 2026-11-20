@@ -59,10 +59,10 @@ export function MethodOverviewScreen({
         </Text>
       </Panel>
 
-      <Button label={t('method.continue')} onPress={onContinue} />
+      <Button label={t('method.continue')} onPress={onContinue} testID="funnel.method_continue" />
       {onBack && (
         <View className="mt-2">
-          <Button label={t('method.back')} tone="quiet" onPress={onBack} />
+          <Button label={t('method.back')} tone="quiet" onPress={onBack} testID="funnel.method_back" />
         </View>
       )}
     </Screen>

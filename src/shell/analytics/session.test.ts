@@ -1,4 +1,4 @@
-import { shouldStartSession, daysSince, secondsSince, SESSION_BACKGROUND_THRESHOLD_MS } from './session';
+import { shouldStartSession, daysSince, secondsSince, SessionClock, SESSION_BACKGROUND_THRESHOLD_MS } from './session';
 
 describe('App Session Utilities (Task 5.1)', () => {
   describe('shouldStartSession', () => {
@@ -64,5 +64,38 @@ describe('App Session Utilities (Task 5.1)', () => {
       const now = new Date('2026-11-10T10:00:00.000Z');
       expect(daysSince(start, now)).toBe(0);
     });
+  });
+});
+
+describe('SessionClock', () => {
+  const t = (seconds: number) => 1_000_000 + seconds * 1000;
+
+  it('counts foreground seconds since the session began', () => {
+    const clock = new SessionClock(t(0));
+    expect(clock.seconds(t(20))).toBe(20);
+  });
+
+  it('does not count time in the background', () => {
+    const clock = new SessionClock(t(0));
+    clock.background(t(10));
+    expect(clock.seconds(t(300))).toBe(10);
+    clock.foreground(t(310));
+    expect(clock.seconds(t(320))).toBe(20);
+  });
+
+  it('ignores repeated background and foreground calls', () => {
+    const clock = new SessionClock(t(0));
+    clock.background(t(10));
+    clock.background(t(50));
+    clock.foreground(t(60));
+    clock.foreground(t(70));
+    expect(clock.seconds(t(80))).toBe(30);
+  });
+
+  it('starts over with a new session', () => {
+    const clock = new SessionClock(t(0));
+    clock.background(t(10));
+    clock.restart(t(3000));
+    expect(clock.seconds(t(3020))).toBe(20);
   });
 });

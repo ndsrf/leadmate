@@ -19,6 +19,8 @@ export interface AnalyticsState {
   funnelDoneOnce: boolean;
   funnelOpen: boolean;
   upgradedInstall: boolean;
+  /** App Sessions started on this install; 0 before the first `session_started`. Old saved states load with 0. */
+  sessionCount: number;
 }
 
 export function isEnabled(
@@ -74,6 +76,10 @@ export function readAnalyticsState(raw: unknown): AnalyticsState | null {
     funnelDoneOnce: Boolean(r.funnelDoneOnce),
     funnelOpen: Boolean(r.funnelOpen),
     upgradedInstall: Boolean(r.upgradedInstall),
+    sessionCount:
+      typeof r.sessionCount === 'number' && Number.isFinite(r.sessionCount) && r.sessionCount > 0
+        ? Math.floor(r.sessionCount)
+        : 0,
   };
 }
 
@@ -111,6 +117,7 @@ export async function loadAnalyticsState(
     funnelDoneOnce: false,
     funnelOpen: false,
     upgradedInstall,
+    sessionCount: 0,
   };
 
   if (!readFailed) {
