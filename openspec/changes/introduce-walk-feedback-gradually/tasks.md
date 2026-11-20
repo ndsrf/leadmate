@@ -23,7 +23,7 @@
 
 ## 4. Shell wiring
 
-- [ ] 4.1 In `App.tsx` `startStage`, compute the context (Taste route → `taste`; the guided first Stage → `first`; Daily → `daily` with the completed Nodes; a Node flow → `node` with its id, including each Encounter of a Series) and send `introducedKinds`. Verify with `App.test.tsx` that the start message for the first Stage carries exactly the starting set and that `park-unpredictable` includes `followed-turn`.
+- [x] 4.1 In `App.tsx` `startStage`, compute the context (Taste route → `taste`; the guided first Stage → `first`; Daily → `daily` with the completed Nodes; a Node flow → `node` with its id, including each Encounter of a Series) and send `introducedKinds`. Verify with `App.test.tsx` that the start message for the first Stage carries exactly the starting set and that `park-unpredictable` includes `followed-turn`.
 - [ ] 4.2 Gate the Poste event Hint and the Coach marks by the same set (design decision 4: control → kinds mapping). Verify with `App.test.tsx` that the guided first Stage shows no Poste Hint and records none as seen, that the movement and Marker marks still appear there, and that a close exercise still shows Gather, Poste and Marker marks.
 - [x] 4.3 Filter the Debrief walk timeline (`src/shell/screens/DebriefTimeline.tsx`) by the Stage's Introduced set, leaving the payload untouched. Verify with a component test on a `park-nose-on` payload containing a `followed-turn` moment.
 - [ ] 4.4 Add a payload-identity test: the same seeded Stage and inputs give identical debrief payloads, meter values and handling score with only the starting set and with every kind Introduced (scenario "Same seed, different Introduced sets"). Verify `npx jest`, `npm run typecheck` and `npm run sim:build` pass.

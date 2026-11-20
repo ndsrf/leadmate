@@ -240,8 +240,10 @@ import App from '../App';
 import { newDogRecord, NEW_ONBOARDING, RECORD_KEY, RECORD_VERSION } from './shell/dogRecord';
 import { todayString } from './shell/daily';
 import { BARKDOKU_INTRO_NODE, CALM_HANDS_NODE, CLOSE_PASS_NODE, WALK_DISTRACTION, findNode } from './shell/nodes/content';
+import * as path from 'path';
 import { getActiveContent, setActiveContent } from './shell/content/runtime';
-import type { ResolvedShop } from './shell/content/resolver';
+import { loadPackFromDisk } from './shell/content/loader';
+import { resolvePack, type ResolvedShop } from './shell/content/resolver';
 import { SHOP_STATE_STORAGE_KEY, DEFAULT_SHOP_STATE } from './shell/shop';
 import { POOR_SCORE_BELOW } from './shell/stars';
 import { getAnalytics, resetAnalyticsForTesting, MockAnalyticsService, ANALYTICS_STATE_KEY } from './shell/analytics';
@@ -250,6 +252,7 @@ import { finishSetup } from './shell/onboarding/setup';
 import { payloadWith } from './shell/testPayload';
 import type { EncounterAim } from './shell/nodes/encounters';
 import type { SimulationDebriefPayload } from './sim/payload';
+import { STARTING_KINDS } from './sim/feedbackKinds';
 
 const LOAD_TIMEOUT_MS = 20000;
 const latest = (name: string) => mockProps[name];
@@ -396,6 +399,47 @@ describe('App - Stage view lifecycle', () => {
     const second = posted('start')[1];
     expect(second.seed).toBe(first.seed);
     expect(second.scenario).toEqual(first.scenario);
+  });
+
+  describe('Introduced actions in Stage start and Debrief (introduce-walk-feedback-gradually 4.1)', () => {
+    it('sends exactly the starting set of Introduced kinds for the guided first Stage', async () => {
+      const record = { ...newDogRecord(), onboarding: { ...NEW_ONBOARDING, step: 'first-stage' as const }, version: RECORD_VERSION };
+      mockStore.set(RECORD_KEY, JSON.stringify(record));
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+      expect(latest('PrimerScreen')).toBeDefined();
+      throughPrimerAndCheckpoint();
+      await sendFromView({ type: 'ready' });
+      const [start] = posted('start');
+      expect(start).toBeDefined();
+      expect(start.introducedKinds).toEqual([...new Set(STARTING_KINDS)].sort());
+    });
+
+    it('includes followed-turn in introducedKinds for park-unpredictable and passes them to DebriefScreen', async () => {
+      const betaPack = loadPackFromDisk(path.join(__dirname, '..', 'content', 'beta'));
+      setActiveContent({
+        channel: 'beta',
+        isBaseline: false,
+        contentVersion: 1,
+        pack: betaPack,
+        resolved: resolvePack(betaPack, 'es'),
+        language: 'es',
+      });
+      await openMap();
+      openStop('park-unpredictable');
+      throughPrimerAndCheckpoint();
+      await sendFromView({ type: 'ready' });
+      const [start] = posted('start');
+      expect(start).toBeDefined();
+      expect(start.introducedKinds).toContain('followed-turn');
+      await sendFromView({ type: 'debrief', payload: { timeline: [] } });
+      expect(latest('DebriefScreen')).toBeDefined();
+      expect(latest('DebriefScreen').introducedKinds).toEqual(start.introducedKinds);
+    });
   });
 
   it('remounts once silently when the view fails while the player reads, then errors when the Stage needs it', async () => {

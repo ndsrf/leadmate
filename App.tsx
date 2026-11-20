@@ -54,6 +54,7 @@ import { applyBillingSubscription, canStartTrial, computeTrialRecap, isPlus, pen
 import { FixScreen, MissionBriefScreen, MissionCheckInScreen, MissionCheckScreen, MissionPassedScreen, MissionProblemScreen, MissionWaitingScreen } from './src/shell/screens/MissionScreens';
 import type { Concern } from './src/shell/concerns';
 import { WORLDS, worldsFor, type Stop } from './src/shell/world';
+import { introducedKinds, type IntroductionContext } from './src/shell/introductions';
 import { lessonDay, markLessonRead, todaysLesson } from './src/shell/lessons/lesson';
 import { LessonScreen, LibraryScreen } from './src/shell/screens/LessonScreens';
 import { WorldMapScreen } from './src/shell/screens/WorldMapScreen';
@@ -373,6 +374,8 @@ export default function App() {
   const [controlsUsed, setControlsUsed] = useState<Partial<Record<StageControl, boolean>>>({});
   const [markExpired, setMarkExpired] = useState(false);
   const [stageRun, setStageRun] = useState(0);
+  const [stageIntroducedKinds, setStageIntroducedKinds] = useState<readonly string[] | undefined>(undefined);
+  const stageIntroducedKindsRef = useRef<readonly string[] | undefined>(undefined);
   const [warmup, setWarmup] = useState<WarmupOutcome>('none');
   // celebrations are diffed once when a result opens and then only displayed, so each shows once
   const [celebrations, setCelebrations] = useState<{ id: string; list: Celebration[] } | null>(null);
@@ -559,6 +562,23 @@ export default function App() {
         .filter((id) => id.startsWith('feedback:'))
         .map((id) => id.slice('feedback:'.length));
       const isTasteStage = routeRef.current.name === 'taste';
+      let context: IntroductionContext | undefined;
+      if (routeRef.current.name === 'taste') {
+        context = { kind: 'taste' };
+      } else if (
+        routeRef.current.name === 'first-stage' ||
+        (flowRef.current?.name === 'node' && flowRef.current.run.node.id === 'intro-node')
+      ) {
+        context = { kind: 'first' };
+      } else if (flowRef.current?.name === 'daily') {
+        context = { kind: 'daily', completedNodes: current.completedNodes };
+      } else if (flowRef.current?.name === 'node') {
+        context = { kind: 'node', nodeId: flowRef.current.run.node.id };
+      }
+      const worlds = current ? worldsFor(current.onboarding.plan, current) : WORLDS;
+      const introduced = context ? introducedKinds(context, worlds) : undefined;
+      setStageIntroducedKinds(introduced);
+      stageIntroducedKindsRef.current = introduced;
       const message: ShellMessage = {
         type: 'start',
         seed,
@@ -566,6 +586,7 @@ export default function App() {
         scenario: { ...withPull(scenario, current.weights), learning: snapshot ?? toSnapshot(current, capacityRef.current), look: lookOf(current) },
         seenKinds,
         isTasteStage,
+        introducedKinds: introduced,
         reducedMotion,
         // the telegraph (walking Stages only; close exercises start through startCloseExercise and send none)
         ...telegraphStartFields(current, uiSettingsRef.current, routeRef.current.name),
@@ -602,6 +623,8 @@ export default function App() {
       setHint(null);
       setDogWarning(null);
       setControlsUsed({});
+      setStageIntroducedKinds(undefined);
+      stageIntroducedKindsRef.current = undefined;
       setStageRun((n) => n + 1);
       const startInfo = getStartStageInfo(routeRef.current, flowRef.current, 'close_exercise');
       const startRes = playTracker.current.start(startInfo);
@@ -1634,6 +1657,7 @@ export default function App() {
           onPosteLink={() => {}}
           best={starsFor(payload.handlingScore)}
           celebrations={[]}
+          introducedKinds={stageIntroducedKinds}
           onPlayAgain={() => {
             setIntroRun((r) => (r ? { ...r, step: 'simulation', result: null } : null));
           }}
@@ -2142,6 +2166,7 @@ export default function App() {
             mission={findMission(missionForDebrief(run.node.id, worldsFor(record.onboarding.plan, record)) ?? '')?.title}
             best={starsShown(record, run.node.id) ?? 1}
             celebrations={celebrations?.id === `${run.node.id}:${f.attempt}` ? celebrations.list : []}
+            introducedKinds={stageIntroducedKinds}
             onPosteLink={() => startNodeRun(POSTE_PRACTICE)}
             onPlayAgain={() => setFlow({ ...f, run: { ...run, step: 'simulation', result: null, series: undefined }, attempt: f.attempt + 1 })}
             onShop={(target) => openShop(target, { previousFlow: f })}

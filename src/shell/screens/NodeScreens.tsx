@@ -508,6 +508,7 @@ export function DebriefScreen({
   best,
   celebrations,
   onShop,
+  introducedKinds,
 }: {
   t: Translate;
   run: NodeRun;
@@ -522,10 +523,12 @@ export function DebriefScreen({
   /** Celebrations of this completion, computed once when the Debrief opened. */
   celebrations: readonly Celebration[];
   onShop?: (target: { level: 'home' | 'category' | 'subcategory' | 'product'; id?: string }) => void;
+  /** The Stage's Introduced actions (GLOSSARY: "Introduced action"); absent shows every moment. */
+  introducedKinds?: readonly string[];
 }) {
   const result = run.result;
   if (!result) return null;
-  return <DebriefBody t={t} run={run} result={result} showPosteLink={showPosteLink} mission={mission} onPosteLink={onPosteLink} onDone={onDone} onPlayAgain={onPlayAgain} best={best} celebrations={celebrations} onShop={onShop} />;
+  return <DebriefBody t={t} run={run} result={result} showPosteLink={showPosteLink} mission={mission} onPosteLink={onPosteLink} onDone={onDone} onPlayAgain={onPlayAgain} best={best} celebrations={celebrations} onShop={onShop} introducedKinds={introducedKinds} />;
 }
 
 function DebriefBody({
@@ -540,6 +543,7 @@ function DebriefBody({
   best,
   celebrations,
   onShop,
+  introducedKinds,
 }: {
   t: Translate;
   run: NodeRun;
@@ -552,6 +556,7 @@ function DebriefBody({
   best: Stars;
   celebrations: readonly Celebration[];
   onShop?: (target: { level: 'home' | 'category' | 'subcategory' | 'product'; id?: string }) => void;
+  introducedKinds?: readonly string[];
 }) {
   const exercise = pickExercise(run.node, result);
   const score = result.kind === 'stage' || result.kind === 'close_exercise' ? result.payload.handlingScore : result.handlingScore;
@@ -595,7 +600,7 @@ function DebriefBody({
           {result.kind === 'stage' || result.kind === 'close_exercise' ? (
             <>
               {result.kind === 'stage' && result.payload.timeline !== undefined && (
-                <DebriefTimelineSection t={t} payload={result.payload} />
+                <DebriefTimelineSection t={t} payload={result.payload} introducedKinds={introducedKinds} />
               )}
               {result.kind === 'stage' && result.payload.encounters && <EncounterList t={t} run={run} encounters={result.payload.encounters} />}
               <Panel className="mb-1">
