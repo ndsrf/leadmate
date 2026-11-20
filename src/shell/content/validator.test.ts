@@ -952,5 +952,29 @@ describe('validatePack scenarios', () => {
       const warn = report.warnings.find((w) => w.message.includes('smart-jackpot'));
       expect(warn).toBeDefined();
     });
+
+    it('Scenario: Channel without introductions (no meter error; fresh-move listed as never Introduced)', () => {
+      const pack = makeValidPack();
+      // no Node in the channel has `introduces` (the shared fixture gives one Node a list; drop it)
+      for (const node of Object.values(pack.nodes)) delete node.config.introduces;
+      pack.nodes['node-1'].config.simulation = {
+        scenario: {
+          meters: [
+            {
+              id: 'focus-meter',
+              labelKey: 'meter.focus',
+              icon: 'eye',
+              target: 50,
+              meterPoints: { 'fresh-move': 10 },
+            },
+          ],
+        },
+      };
+
+      const report = validatePack(pack);
+      expect(report.errors.filter((e) => e.message.includes('focus-meter') || e.message.includes('fresh-move'))).toEqual([]);
+      expect(report.valid).toBe(true);
+      expect(report.warnings.some((w) => w.message.includes('fresh-move') && w.message.includes('never Introduced'))).toBe(true);
+    });
   });
 });
