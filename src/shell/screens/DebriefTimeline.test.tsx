@@ -6,6 +6,13 @@ import ReactTestRenderer, { act } from 'react-test-renderer';
 import { createTranslator, es, en } from '../../i18n';
 import type { TimelineEntry } from '../../sim/scentWalk';
 import type { SimulationDebriefPayload } from '../../sim/payload';
+import * as path from 'path';
+import { defaultScenario, type ScenarioConfig } from '../../sim/config';
+import { buildPayload } from '../../sim/payload';
+import { createState, noInput, tick } from '../../sim/sim';
+import { introducedKinds } from '../introductions';
+import { loadPackFromDisk } from '../content/loader';
+import { resolvePack } from '../content/resolver';
 import { payloadWith } from '../testPayload';
 import { DebriefTimelineSection } from './DebriefTimeline';
 import { DebriefScreen } from './NodeScreens';
@@ -407,12 +414,21 @@ describe('DebriefTimelineSection component', () => {
 
 describe('DebriefTimelineSection Introduced filter', () => {
   const t = createTranslator(es);
+
+  // a real seeded park-nose-on Stage, with a followed-turn moment added to its timeline
+  const beta = resolvePack(loadPackFromDisk(path.join(__dirname, '../../../content/beta')), 'es');
+  const setFor = (nodeId: string) => introducedKinds({ kind: 'node', nodeId }, beta.worlds, beta.nodes);
+  const parkNoseOn = beta.nodes.find((n) => n.id === 'park-nose-on')!;
+  const config: ScenarioConfig = { ...defaultScenario, ...parkNoseOn.simulation.scenario };
+  const sim = createState(7, config);
+  for (let i = 0; i < 200; i++) tick(sim, noInput, config.fixedStep);
+  const base = buildPayload(sim);
   const timeline: TimelineEntry[] = [
     { t: 3, kind: 'check-in-hit', polarity: 'right' },
     { t: 9, kind: 'followed-turn', polarity: 'right' },
     { t: 15, kind: 'granted-sniff', polarity: 'right' },
   ];
-  const payload: SimulationDebriefPayload = payloadWith({ durationSeconds: 30, timeline });
+  const payload: SimulationDebriefPayload = { ...base, durationSeconds: 30, timeline };
   const render = (introducedKinds?: readonly string[]) => {
     let root: any;
     act(() => {
@@ -421,8 +437,14 @@ describe('DebriefTimelineSection Introduced filter', () => {
     return root.root.findAll((n: any) => n.type === 'button' && n.props['data-moment-index'] !== undefined);
   };
 
-  it('hides a followed-turn moment that was not Introduced, leaving the payload untouched', () => {
-    const buttons = render(['check-in-hit', 'granted-sniff']);
+  it("park-nose-on's Introduced set has granted-sniff but not followed-turn", () => {
+    const set = setFor('park-nose-on');
+    expect(set).toContain('granted-sniff');
+    expect(set).not.toContain('followed-turn');
+  });
+
+  it('hides the followed-turn moment of a park-nose-on payload, leaving the payload untouched', () => {
+    const buttons = render(setFor('park-nose-on'));
     expect(buttons).toHaveLength(2);
     expect(buttons.map((b: any) => b.props.accessibilityLabel).join('|')).not.toContain(t('feedback.followed-turn.short'));
     expect(payload.timeline).toHaveLength(3);
@@ -432,7 +454,7 @@ describe('DebriefTimelineSection Introduced filter', () => {
     expect(render()).toHaveLength(3);
   });
 
-  it('shows the moment once it is Introduced', () => {
-    expect(render(['check-in-hit', 'followed-turn', 'granted-sniff'])).toHaveLength(3);
+  it('shows the moment once it is Introduced (park-unpredictable)', () => {
+    expect(render(setFor('park-unpredictable'))).toHaveLength(3);
   });
 });
