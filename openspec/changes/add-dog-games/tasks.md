@@ -29,7 +29,7 @@
 
 ## 5. Map entry, navigation and paywall resume
 
-- [ ] 5.1 Add the Games `IconChip` to `WorldMapScreen.tsx` Row 1 next to the gear and basket, shown only when the pack has games, with the localized label and a 44-point target; verify in `WorldMapScreen.test.tsx`: shown with games, hidden without, order gear/basket/games, still on Row 1 at 320 points.
+- [x] 5.1 Add the Games `IconChip` to `WorldMapScreen.tsx` Row 1 next to the gear and basket, shown only when the pack has games, with the localized label and a 44-point target; verify in `WorldMapScreen.test.tsx`: shown with games, hidden without, order gear/basket/games, still on Row 1 at 320 points.
 - [ ] 5.2 Add the `games` and `game` flows to `App.tsx` and `navigation.ts` with back handling (game → list → map, random included) over the mounted map; verify in `navigation.test.ts` and `App.test.tsx` for system back from the list, a listed game and a random game.
 - [ ] 5.3 Add the paywall `then: { kind: 'game', gameId }` resume; verify in `App.test.tsx` that a trial started from a locked game returns to that game unlocked and a dismissed paywall returns to it locked.
 
