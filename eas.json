@@ -24,6 +24,7 @@
       "env": {
         "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a",
         "EXPO_PUBLIC_BUILD_PROFILE": "preview",
+        "ALLOW_BASELINE_AHEAD": "1",
         "EXPO_PUBLIC_POSTHOG_HOST": "https://eu.i.posthog.com",
         "EXPO_PUBLIC_POSTHOG_KEY": "phc_skxGchTqYVkhC4TMiRtDvfTzRU3zdMxEvVujYENMnAM9"
       },
