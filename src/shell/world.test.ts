@@ -22,6 +22,9 @@ import { isPlus } from './plus';
 import { requiredLessonsOf } from './nodes/readDog';
 import type { ScenarioConfig } from '../sim/config';
 import { defaultScenario } from '../sim/config';
+import * as path from 'node:path';
+import { loadPackFromDisk } from './content/loader';
+import { resolvePack } from './content/resolver';
 
 const ids = (n: readonly NodeDef[]) => n.map((x) => x.id);
 const world = (id: string) => findWorld(id)!;
@@ -531,6 +534,67 @@ describe('Plus Worlds', () => {
     const trial = { ...record, onboarding: { ...record.onboarding, trialStartedAt: at(9, 1).toISOString() } };
     expect(isWorldUnlocked(recall, { ...trial, plus: isPlus(trial, at(9, 3)) })).toBe(true);
     expect(isWorldUnlocked(recall, { ...trial, plus: isPlus(trial, at(9, 9)) })).toBe(false);
+  });
+});
+
+describe('World 7 (cafe) and World 8 (trails) progression', () => {
+  const cafe = world('cafe');
+  const trails = world('trails');
+
+  it('World 7 unlocks after World 6 for Plus users, and stays locked for free users (Plus gate)', () => {
+    expect(isWorldUnlocked(cafe, finished('home', 'sidewalk', 'urban', 'park', 'recall'))).toBe(false);
+    expect(isWorldUnlocked(cafe, { ...finished('home', 'sidewalk', 'urban', 'park'), plus: true })).toBe(false);
+    expect(isWorldUnlocked(cafe, { ...finished('home', 'sidewalk', 'urban', 'park', 'recall'), plus: true })).toBe(true);
+  });
+
+  it('completion of World 7 unlocks World 8 as Coming-soon', () => {
+    expect(isWorldUnlocked(trails, { ...finished('home', 'sidewalk', 'urban', 'park', 'recall'), plus: true })).toBe(false);
+
+    const cafeDone: Progress = {
+      ...finished('home', 'sidewalk', 'urban', 'park', 'recall'),
+      completedWorlds: ['basics', 'home', 'sidewalk', 'urban', 'park', 'recall', 'cafe'],
+      plus: true,
+    };
+    expect(isWorldUnlocked(trails, cafeDone)).toBe(true);
+    expect(trails.preview).toBe(true);
+  });
+
+  it('beta pack: World 7 has four Stretches in order, no preview, unlocks after World 6, and completion unlocks World 8 as Coming-soon', () => {
+    const betaPack = loadPackFromDisk(path.join(__dirname, '../../content/beta'));
+    const betaResolved = resolvePack(betaPack, 'es');
+    const betaCafe = betaResolved.worlds.find((w) => w.id === 'cafe')!;
+    const betaTrails = betaResolved.worlds.find((w) => w.id === 'trails')!;
+
+    expect(betaCafe.preview).toBeFalsy();
+    expect(betaCafe.nodeCount).toBeUndefined();
+    expect(betaCafe.stretches).toHaveLength(4);
+    expect(betaCafe.stretches[0].map((s) => s.id)).toEqual(['theory-cafe-setup', 'cafe-arrive', 'mission-cafe-short-visit']);
+    expect(betaCafe.stretches[1].map((s) => s.id)).toEqual(['theory-cafe-settle', 'cafe-settle', 'mission-cafe-settle']);
+    expect(betaCafe.stretches[2].map((s) => s.id)).toEqual(['theory-cafe-waiters', 'cafe-passing-dog', 'mission-cafe-waiters']);
+    expect(betaCafe.stretches[3].map((s) => s.id)).toEqual(['theory-cafe-leave-early', 'mission-cafe-leave-early']);
+
+    // Plus gate
+    const w6DoneFree = finished('home', 'sidewalk', 'urban', 'park', 'recall');
+    expect(isWorldUnlocked(betaCafe, w6DoneFree, betaResolved.worlds)).toBe(false);
+
+    // Unlocks after World 6 for Plus user
+    const w6DonePlus = { ...w6DoneFree, plus: true };
+    expect(isWorldUnlocked(betaCafe, w6DonePlus, betaResolved.worlds)).toBe(true);
+
+    // Completing World 7 unlocks World 8 as Coming-soon
+    const allCafeStops = betaCafe.stretches.flat();
+    const cafeCompleted: Progress = {
+      ...w6DonePlus,
+      completedNodes: [...w6DonePlus.completedNodes, ...allCafeStops.filter((s) => s.kind === 'node').map((s) => s.id)],
+      readLessons: [...w6DonePlus.readLessons, ...allCafeStops.filter((s) => s.kind === 'lesson').map((s) => s.id)],
+      missions: {
+        ...w6DonePlus.missions,
+        ...Object.fromEntries(allCafeStops.filter((s) => s.kind === 'mission').map((s) => [s.id, { target: 'full' as const, skipRun: 0, attempts: [], startedAt: '2026-05-01T08:00:00.000Z', passedOn: '2026-05-02' }])),
+      },
+    };
+    expect(isWorldComplete(betaCafe, cafeCompleted)).toBe(true);
+    expect(isWorldUnlocked(betaTrails, cafeCompleted, betaResolved.worlds)).toBe(true);
+    expect(betaTrails.preview).toBe(true);
   });
 });
 
