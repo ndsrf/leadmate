@@ -6,7 +6,7 @@
 - [x] 1.2 Add game rules to `validator.ts` (unique id across all items, known difficulty, positive minutes, `needs` ids exist in the shop index, images exist in `media/` with Spanish alt text, safety note required for `fabric`/`plastic`/`bone` materials); verify with validator tests, one per rule, each asserting the error names file, field and hint.
 - [x] 1.3 Add game media limits to the validator (PNG, 16:9, width ≤ 960, weight ≤ 250 KB) and verify with fixtures for oversized, wrong-ratio and wrong-format images.
 - [x] 1.4 Document `games/` in `content/FORMAT.md` and `src/shell/content/formatGuide.ts` with a worked example; verify the guide-drift test (`formatConformance.test.ts`) passes and fails when a field is removed from the guide.
-- [ ] 1.5 Extend `scripts/content-validate.mjs` to cover games and verify `npm run content:validate -- beta` reports a deliberately broken sample game and passes a fixed one.
+- [x] 1.5 Extend `scripts/content-validate.mjs` to cover games and verify `npm run content:validate -- beta` reports a deliberately broken sample game and passes a fixed one.
 
 ## 2. Resolving games per language
 

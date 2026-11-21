@@ -140,5 +140,85 @@ minigameId: read_dog
       expect(res.stderr).toContain('Spanish');
       expect(res.stderr).toContain('Hint:');
     });
+
+    it('Fixture 4: broken game definition (missing safety for swallowable materials) fails with file/field/hint and exit non-zero', () => {
+      fs.writeFileSync(
+        path.join(tmpDir, 'pack.yaml'),
+        `
+contentVersion: 1
+formatVersion: 1
+minAppVersion: "1.0.0"
+languages:
+  - es
+worlds:
+  - id: world-1
+    title: Mundo 1
+    tier: free
+    preview: false
+    nodeCount: 1
+    stretches:
+      - id: s1
+        nodes:
+          - test-node
+`.trim()
+      );
+      fs.mkdirSync(path.join(tmpDir, 'lessons'), { recursive: true });
+      fs.mkdirSync(path.join(tmpDir, 'missions'), { recursive: true });
+      const nodeDir = path.join(tmpDir, 'nodes', 'test-node');
+      fs.mkdirSync(nodeDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(nodeDir, 'node.yaml'),
+        `
+id: test-node
+title: Test Node
+type: exercise
+mode: minigame
+minigameId: read_dog
+`.trim()
+      );
+      fs.writeFileSync(path.join(nodeDir, 'es.md'), '# Title\n\n## Instructions\nInstrucciones\n');
+
+      const gameDir = path.join(tmpDir, 'games', 'game-fabric');
+      fs.mkdirSync(gameDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(gameDir, 'game.yaml'),
+        `
+id: game-fabric
+order: 1
+free: true
+difficulty: easy
+minutes: 5
+materials:
+  - fabric
+images:
+  - step-1.png
+needs: []
+`.trim()
+      );
+      fs.writeFileSync(
+        path.join(gameDir, 'es.md'),
+        `
+# Juego Tela
+
+## intro
+Introduccion
+
+## materials
+Tela
+
+## steps
+1. Paso 1
+
+## tips
+Consejo
+`.trim()
+      );
+
+      const res = runValidate(['--dir', tmpDir]);
+      expect(res.status).not.toBe(0);
+      expect(res.stderr).toContain('games/game-fabric/es.md');
+      expect(res.stderr).toContain('safety');
+      expect(res.stderr).toContain('Hint:');
+    });
   });
 });
