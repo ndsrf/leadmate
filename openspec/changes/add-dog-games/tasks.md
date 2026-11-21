@@ -12,7 +12,7 @@
 
 - [x] 2.1 Add `ResolvedGame` and `games` to `resolver.ts` (language fallback to Spanish, `needs` resolved through `ResolvedShop.idToKind`, targets the shop hides for the language dropped); verify with resolver tests for fallback, a missing target and a language-hidden target.
 - [x] 2.2 Include games in `build.ts` and the generated baseline (text only, images downloaded); verify `npm run gen:baseline` output changes and `baselineHashes.test.ts` passes.
-- [ ] 2.3 Resolve game illustration paths through the pack-media resolver (`mediaResolver.ts`), with the themed placeholder when not downloaded; verify with a resolver test for the downloaded, pending and failed cases.
+- [x] 2.3 Resolve game illustration paths through the pack-media resolver (`mediaResolver.ts`), with the themed placeholder when not downloaded; verify with a resolver test for the downloaded, pending and failed cases.
 
 ## 3. Game logic
 
