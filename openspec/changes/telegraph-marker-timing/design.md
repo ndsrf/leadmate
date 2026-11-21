@@ -86,6 +86,9 @@ The rhythm Hint replaces the text of the existing first-Fixation Hint when the t
 ### 9. Poste practice ring in the shell
 `posteRingProgress(state) = clamp(held / holdToSettle)`, with a phase of `landed` on a `settled` outcome and a snap on `released`, as a pure helper next to `posteMinigame.ts`. `PosteMinigameView` draws it around the Dog in `LeashScene` with react-native-svg, and the reduced-motion form comes through the existing motion gate. It ignores the assist level and never writes it.
 
+### 10. Explain the ring in the existing how-to-play Lessons
+Players can't tell what the ring is for from the screen alone, so the content says it. `content/beta/lessons/howto-walking` gets a fifth control (`controls: 5`, image `howto-walking-5`, captured by `scripts/capture-controls.mjs` with the ring half closed around the Dog) and a sentence in its Poste control, in `en.md` and `es.md`. `howto-tap-hold` gets text on the Poste practice ring. This is content only: no new Lesson, no new Lesson kind, no shell code. The text must not use `{name}`. The baseline and its hashes are regenerated, and the lesson content and library text tests cover the new control.
+
 ## Risks / Trade-offs
 
 - [The telegraph turns marking into following a UI ring instead of reading the Dog] → The assist fades on the player's own results down to Off. The ring is centred on the Dog so the eyes stay on the Dog. Analytics (later) will check that players actually get to Off.

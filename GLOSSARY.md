@@ -315,6 +315,10 @@ _Avoid_: Tutorial, tooltip
 A kind of handled action a walking Stage answers, with feedback and points, because it is in the starting set (leash tension and the Marker) or a Node at or before that Stage on the trail Introduces it. Before that, the walk shows nothing for it.
 _Avoid_: Unlocked feedback, enabled kind, taught action
 
+**Dog sign**:
+A mark drawn over or around the Dog in a Stage that shows its state: the yellow "!" of a Fixation, the circle of Alert, the eye and gaze line of looking at the Handler, the sound arcs of barking, the scent dots of sniffing and the green glow of Sintonía. It is not a Feedback Message (a reaction to the user's action) or a Hint (the first-time text that explains a sign).
+_Avoid_: Indicator, icon, emote, status icon
+
 **Coach mark**:
 A drawn, non-blocking pointer with a short label over a Stage control (the movement control, the Marker), shown to a new user from the start of a Stage rather than after an event, and dismissed by using that control. Not a Hint.
 _Avoid_: Tutorial, tooltip, overlay
