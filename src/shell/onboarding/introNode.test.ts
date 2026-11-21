@@ -4,10 +4,10 @@ import { payloadWith } from '../testPayload';
 import { INTRO_NODE } from './introNode';
 
 describe('INTRO_NODE', () => {
-  it('has 4 primer cards, a valid checkpoint, and exercises with keys in the catalog', () => {
+  it('has 5 primer cards, a valid checkpoint, and exercises with keys in the catalog', () => {
     expect(INTRO_NODE.id).toBe('intro-node');
     expect(INTRO_NODE.mode).toBe('stage');
-    expect(INTRO_NODE.primerCards).toHaveLength(4);
+    expect(INTRO_NODE.primerCards).toHaveLength(5);
     expect(es[INTRO_NODE.title]).toBeTruthy();
 
     for (const card of INTRO_NODE.primerCards) {
@@ -35,12 +35,17 @@ describe('INTRO_NODE', () => {
     }
   });
 
+  it('puts the overview card after the movement controls card, before the Checkpoint', () => {
+    const texts = INTRO_NODE.primerCards.map((c) => (typeof c === 'string' ? c : c.text));
+    expect(texts.indexOf('node.intro.cardSigns')).toBe(texts.indexOf('node.intro.card2') + 1);
+  });
+
   it('steps through primer -> checkpoint -> simulation -> debrief via the Node state machine', () => {
     let run = startNode(INTRO_NODE);
     expect(run.step).toBe('primer');
     expect(run.card).toBe(0);
 
-    // 4 cards -> 3 next actions
+    // 5 cards -> 4 next actions
     run = advance(run, { type: 'next' });
     expect(run.step).toBe('primer');
     expect(run.card).toBe(1);
@@ -50,6 +55,9 @@ describe('INTRO_NODE', () => {
 
     run = advance(run, { type: 'next' });
     expect(run.card).toBe(3);
+
+    run = advance(run, { type: 'next' });
+    expect(run.card).toBe(4);
 
     run = advance(run, { type: 'next' });
     expect(run.step).toBe('checkpoint');

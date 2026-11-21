@@ -206,6 +206,7 @@ export const ES_INTERFACE = {
   'node.intro.card2': 'Arrastra el dedo por la pantalla para mover al guía. Camina a un ritmo tranquilo para mantener la forma de «U» en la correa.',
   'node.intro.card3': 'El color de la correa indica la tensión: verde es floja, amarilla se tensa y roja está al límite. Si se tensa ante un estímulo, frena en seco y actúa como un poste inmóvil.',
   'node.intro.card4': 'Cuando tu perro mire hacia ti o desvíe la mirada de una distracción, pulsa Marcar para premiar ese momento de conexión y calma.',
+  'node.intro.cardSigns': 'Joystick: arrastra para caminar hacia la bandera.\nMarcar: tócalo para premiar el momento justo; el número es cuántos te quedan.\nVamos: llama a tu perro a tu lado.\nCorrea: verde floja, amarilla tensa, roja al límite.\n«!»: tu perro se ha quedado fijo en algo; el anillo muestra cuándo tocar Marcar.\nOjo: tu perro te está mirando.\nCírculo: tu perro está en alerta.\nBarra y cara: lo alterado que está tu perro.',
   'node.intro.question': '¿Qué debes hacer en cuanto la correa empiece a tensarse ante una distracción?',
   'node.intro.optionAnchor': 'Frenar y quedarte quieto como un poste',
   'node.intro.optionPull': 'Pegar un tirón fuerte hacia atrás',

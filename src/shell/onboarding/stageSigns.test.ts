@@ -94,3 +94,17 @@ describe('stage sign inventory', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 });
+
+describe('the Primer overview card', () => {
+  it.each([['en', en], ['es', es]] as const)('has a label for every sign with an overview line (%s)', (_lang, catalog) => {
+    const card = catalog['node.intro.cardSigns'];
+    for (const entry of STAGE_SIGNS.filter((s) => s.overview && !s.exempt)) {
+      expect({ id: entry.id, labelled: card.includes(catalog[entry.overview!]) }).toEqual({ id: entry.id, labelled: true });
+    }
+  });
+
+  it('is the card after the movement controls card in the guided first Stage Primer', () => {
+    const texts = INTRO_NODE.primerCards.map((c) => (typeof c === 'string' ? c : c.text));
+    expect(texts[texts.indexOf('node.intro.card2') + 1]).toBe('node.intro.cardSigns');
+  });
+});

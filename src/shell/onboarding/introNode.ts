@@ -31,6 +31,8 @@ export const INTRO_NODE: NodeDef = {
   primerCards: [
     { kind: 'real-world', text: 'node.intro.card1' },
     { kind: 'virtual-dog', text: 'node.intro.card2' },
+    // what the Stage shows: the controls and the signs around the Dog (the list lives in stageSigns.ts)
+    { kind: 'virtual-dog', text: 'node.intro.cardSigns' },
     { kind: 'virtual-dog', text: 'node.intro.card3' },
     { kind: 'virtual-dog', text: 'node.intro.card4' },
   ],

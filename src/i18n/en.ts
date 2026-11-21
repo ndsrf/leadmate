@@ -207,6 +207,7 @@ export const EN_INTERFACE = {
   'node.intro.card2': 'Drag your finger across the screen to move the Handler. Walk at a steady, calm pace to keep the "U" shape in the leash.',
   'node.intro.card3': 'The leash color shows tension: green is slack, yellow is taut, and red is at the limit. If it goes taut before a distractor, stop dead and act as an immovable poste.',
   'node.intro.card4': 'When your Dog looks at you or disengages from a distraction, press Marker to reward that moment of connection and calm.',
+  'node.intro.cardSigns': 'Joystick: drag to walk towards the flag.\nMarker: tap it to reward the right moment; the number is how many you have left.\nLet\'s Go: call your Dog back to you.\nLeash: green is slack, yellow taut, red at the limit.\n"!": your Dog locked onto something; the ring shows when to tap Marker.\nEye: your Dog is looking at you.\nCircle: your Dog is on alert.\nBar and face: how worked up your Dog is.',
   'node.intro.question': 'What should you do as soon as the leash starts to go taut before a distraction?',
   'node.intro.optionAnchor': 'Stop and remain still like a poste',
   'node.intro.optionPull': 'Yank hard backward',
