@@ -82,6 +82,7 @@ import { dogStore, loadStoredLanguage, saveStoredLanguage } from './src/shell/st
 import { completeFirstStage } from './src/shell/onboarding/firstStage';
 import { nextStep } from './src/shell/onboarding/flow';
 import { recordDiagnostic } from './src/shell/onboarding/diagnostic';
+import { dropStale, elapseHint, EMPTY_HINT_QUEUE, offerHint, type HintQueue } from './src/shell/onboarding/hintQueue';
 import { closeMarksOn, COACH_ID, feedbackKindSeen, HINT_TEXT, hintFor, isControlIntroduced, markFeedbackKindSeen, markHintSeen, type HintId } from './src/shell/onboarding/hints';
 import { completeTaste, leaveWelcome, namedTranslator, saveMainConcerns, saveNameAndLook, withDogName } from './src/shell/onboarding/intro';
 import { passPaywall } from './src/shell/onboarding/paywall';
@@ -257,6 +258,8 @@ function getStartStageInfo(
 
 const LOAD_TIMEOUT_MS = 20000;
 const HINT_MS = 7000;
+/** How often the guided first Stage's Hint queue counts time. */
+const HINT_QUEUE_TICK_MS = 250;
 /** The Marker Coach mark gives up after this long without a press. */
 const COACH_MARK_MS = 20000;
 const MIN_SPLASH_MS = 2200;
@@ -376,6 +379,8 @@ export default function App() {
   }, []);
   const [flow, setFlow] = useState<Flow | null>(null);
   const [hint, setHint] = useState<HintId | null>(null);
+  // the guided first Stage shows one Hint at a time: the ones due wait here in a fixed order
+  const [hintQueue, setHintQueue] = useState<HintQueue>(EMPTY_HINT_QUEUE);
   // the approaching-dog warning: where the dog comes from on screen, while it is shown
   const [dogWarning, setDogWarning] = useState<{ bearing: number | null } | null>(null);
   // Coach marks: which controls were used in this Stage, and the Stage's run number (restarts the Marker timeout)
@@ -407,6 +412,7 @@ export default function App() {
 
   const flowRef = useRef(flow);
   flowRef.current = flow;
+  const hintQueueActive = useRef(false);
   const recordRef = useRef(record);
   recordRef.current = record;
   const vocalizer = useRef(createVocalizer(playDogSound));
@@ -549,6 +555,34 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [hint]);
 
+  // the guided first Stage's Hint queue: its clock runs only while the Stage does, and the next Hint shows when one ends
+  useEffect(() => {
+    if (!hintQueue.current || paused) return;
+    const timer = setInterval(() => setHintQueue((q) => elapseHint(q, HINT_QUEUE_TICK_MS, false, HINT_MS)), HINT_QUEUE_TICK_MS);
+    return () => clearInterval(timer);
+  }, [hintQueue.current, paused]);
+
+  // a Hint that takes its turn is shown, and recorded as seen only now: one that was dropped while waiting never is
+  useEffect(() => {
+    const current = hintQueue.current;
+    if (!current) {
+      if (hintQueueActive.current) {
+        setHint(null);
+        setDogWarning(null);
+      }
+      return;
+    }
+    hintQueueActive.current = true;
+    if (current.id === 'dog-approaching') {
+      setHint(null);
+      setDogWarning({ bearing: current.bearing ?? null });
+    } else {
+      setDogWarning(null);
+      setHint(current.id);
+    }
+    update((r) => markHintSeen(r, current.id));
+  }, [hintQueue.current]);
+
   useEffect(() => {
     if (!dogWarning) return;
     const timer = setTimeout(() => setDogWarning(null), HINT_MS);
@@ -611,6 +645,8 @@ export default function App() {
       setPaused(false);
       setHint(null);
       setDogWarning(null);
+      setHintQueue(EMPTY_HINT_QUEUE);
+      hintQueueActive.current = false;
       setControlsUsed({});
       setStageRun((n) => n + 1);
       feedback.preloadStage();
@@ -1012,7 +1048,14 @@ export default function App() {
       } else if (message.type === 'paused') setPaused(true);
       else if (message.type === 'stage-signal') {
         const inTaste = routeRef.current.name === 'taste';
-        if (message.signal === 'control-used' && message.control) {
+        // the guided first Stage explains every sign it shows, one Hint at a time
+        const guided = routeRef.current.name === 'first-stage';
+        if (message.signal === 'dog-sign-gone') {
+          if (guided && message.sign) {
+            const sign = message.sign;
+            setHintQueue((q) => dropStale(q, sign));
+          }
+        } else if (message.signal === 'control-used' && message.control) {
           // a Coach mark is gone once its control is used; the taste records this too, so the first guided Stage skips it
           const control = message.control;
           setControlsUsed((used) => ({ ...used, [control]: true }));
@@ -1020,15 +1063,23 @@ export default function App() {
         } else if (message.signal === 'dog-approaching') {
           // the warning shows in the taste but is recorded only in recorded Stages
           const seen = recordRef.current?.seenHints ?? [];
-          if (inTaste || hintFor('dog-approaching', seen)) {
+          if (guided) {
+            if (hintFor('dog-approaching', seen)) {
+              const bearing = message.bearing;
+              setHintQueue((q) => offerHint(q, { id: 'dog-approaching', bearing }, HINT_MS));
+            }
+          } else if (inTaste || hintFor('dog-approaching', seen)) {
             setHint(null); // one panel at a time
             setDogWarning({ bearing: message.bearing ?? null });
             if (!inTaste) update((r) => markHintSeen(r, 'dog-approaching'));
           }
         } else {
           // the taste shows no Hints and records none; event Hints gate by introducedKinds
-          const shown = recordRef.current && !inTaste ? hintFor(message.signal, recordRef.current.seenHints, message.assist, stageIntroducedKindsRef.current) : null;
-          if (shown) {
+          const shown = recordRef.current && !inTaste ? hintFor(message.signal, recordRef.current.seenHints, message.assist, stageIntroducedKindsRef.current, { guided, sign: message.sign }) : null;
+          if (shown && guided) {
+            const queued = { id: shown, sign: message.sign };
+            setHintQueue((q) => offerHint(q, queued, HINT_MS));
+          } else if (shown) {
             setHint(shown);
             update((r) => markHintSeen(r, shown));
           }
@@ -1379,6 +1430,7 @@ export default function App() {
       setReminder(false);
       setHint(null);
       setDogWarning(null);
+      setHintQueue(EMPTY_HINT_QUEUE);
       setPaused(false);
       setFlow(null);
       setSettingsOpen(false);

@@ -253,6 +253,7 @@ import { payloadWith } from './shell/testPayload';
 import type { EncounterAim } from './shell/nodes/encounters';
 import type { SimulationDebriefPayload } from './sim/payload';
 import { STARTING_KINDS } from './sim/feedbackKinds';
+import { en, es, type TextKey } from './i18n';
 
 const LOAD_TIMEOUT_MS = 20000;
 const latest = (name: string) => mockProps[name];
@@ -463,6 +464,69 @@ describe('App - Stage view lifecycle', () => {
       expect(latest('HintOverlay')).toBeUndefined();
       const saved = JSON.parse(mockStore.get(RECORD_KEY)!);
       expect(saved.seenHints).not.toContain('poste');
+    });
+
+    describe('Hints for Dog signs (explain-guided-first-stage 2.5)', () => {
+      const startGuided = async (step: 'first-stage' | 'taste' = 'first-stage') => {
+        const record = { ...newDogRecord(), onboarding: { ...NEW_ONBOARDING, step }, version: RECORD_VERSION };
+        mockStore.set(RECORD_KEY, JSON.stringify(record));
+        await act(async () => {
+          renderer = create(<App />);
+        });
+        await act(async () => {
+          jest.advanceTimersByTime(2500);
+        });
+        throughPrimerAndCheckpoint();
+        await sendFromView({ type: 'ready' });
+      };
+      const hintText = () => latest('HintOverlay')?.text;
+      const seen = () => JSON.parse(mockStore.get(RECORD_KEY)!).seenHints as string[];
+
+      it('shows one Hint at a time in the guided first Stage, the second after the first ends, and records each when it shows', async () => {
+        await startGuided();
+        await sendFromView({ type: 'stage-signal', signal: 'dog-sign', time: 1, sign: 'eye' });
+        expect([en['onboarding.hint.sign.eye' as TextKey], es['onboarding.hint.sign.eye' as TextKey]]).toContain(hintText());
+        await sendFromView({ type: 'stage-signal', signal: 'dog-sign', time: 2, sign: 'alert' });
+        expect([en['onboarding.hint.sign.eye' as TextKey], es['onboarding.hint.sign.eye' as TextKey]]).toContain(hintText());
+        expect(seen()).toContain('sign-eye');
+        expect(seen()).not.toContain('sign-alert');
+        await act(async () => {
+          jest.advanceTimersByTime(8000);
+        });
+        expect([en['onboarding.hint.sign.alert' as TextKey], es['onboarding.hint.sign.alert' as TextKey]]).toContain(hintText());
+        expect(seen()).toContain('sign-alert');
+      });
+
+      it('drops a waiting Hint whose sign is gone, without recording it', async () => {
+        await startGuided();
+        await sendFromView({ type: 'stage-signal', signal: 'dog-sign', time: 1, sign: 'eye' });
+        await sendFromView({ type: 'stage-signal', signal: 'dog-sign', time: 2, sign: 'alert' });
+        await sendFromView({ type: 'stage-signal', signal: 'dog-sign-gone', time: 3, sign: 'alert' });
+        await act(async () => {
+          jest.advanceTimersByTime(8000);
+        });
+        expect(latest('HintOverlay')).toBeUndefined();
+        expect(seen()).not.toContain('sign-alert');
+      });
+
+      it('does not show a Dog sign Hint again on a replay', async () => {
+        await startGuided();
+        await sendFromView({ type: 'stage-signal', signal: 'dog-sign', time: 1, sign: 'eye' });
+        await act(async () => {
+          jest.advanceTimersByTime(8000);
+        });
+        await sendFromView({ type: 'stage-signal', signal: 'dog-sign', time: 9, sign: 'eye' });
+        expect(latest('HintOverlay')).toBeUndefined();
+      });
+
+      it('shows no Dog sign Hint in the Taste Stage and leaves the record unchanged', async () => {
+        await startGuided('taste');
+        const before = seen();
+        await sendFromView({ type: 'stage-signal', signal: 'dog-sign', time: 1, sign: 'eye' });
+        await sendFromView({ type: 'stage-signal', signal: 'first-fixation', time: 2, assist: 'full' });
+        expect(latest('HintOverlay')).toBeUndefined();
+        expect(seen()).toEqual(before);
+      });
     });
 
     it('close exercise still shows Gather, Poste and Marker marks', async () => {
