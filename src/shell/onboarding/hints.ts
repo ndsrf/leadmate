@@ -4,7 +4,7 @@ import type { StageControl, StageSignal } from '../../sim/messages';
 import type { AssistLevel } from '../../hud/markerAssist';
 import type { DogRecord } from '../dogRecord';
 
-export const HINT_IDS = ['leash-colors', 'marker', 'marker-rhythm', 'poste', 'dog-approaching', 'coach-move', 'coach-mark', 'coach-gather', 'coach-poste', 'coach-close-mark'] as const;
+export const HINT_IDS = ['leash-colors', 'marker', 'marker-rhythm', 'poste', 'dog-approaching', 'coach-move', 'coach-mark', 'coach-gather', 'coach-poste', 'coach-close-mark', 'fixation-ring', 'sign-alert', 'sign-eye', 'sign-bark'] as const;
 export type HintId = (typeof HINT_IDS)[number];
 
 const HINT_FOR_SIGNAL: Partial<Record<StageSignal, HintId>> = {
@@ -25,6 +25,10 @@ export const HINT_TEXT: Record<HintId, TextKey> = {
   'coach-gather': 'coach.close.gather',
   'coach-poste': 'coach.close.poste',
   'coach-close-mark': 'coach.close.mark',
+  'fixation-ring': 'onboarding.hint.fixationRing',
+  'sign-alert': 'onboarding.hint.sign.alert',
+  'sign-eye': 'onboarding.hint.sign.eye',
+  'sign-bark': 'onboarding.hint.sign.bark',
 };
 
 /** The Coach mark ids, by the control they point at. Not Hints: drawn over the controls, recorded when the control is used. */

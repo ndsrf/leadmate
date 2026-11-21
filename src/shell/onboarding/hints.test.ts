@@ -38,7 +38,7 @@ describe('hints', () => {
     const rest = ['leash-colors', 'marker', 'marker-rhythm', 'poste'];
     expect(hintsRemain(rest)).toBe(true);
     expect(hintsRemain([...rest, 'dog-approaching', 'coach-move'])).toBe(true);
-    expect(hintsRemain([...rest, 'dog-approaching', 'coach-move', 'coach-mark', 'coach-gather', 'coach-poste', 'coach-close-mark'])).toBe(false);
+    expect(hintsRemain([...rest, 'dog-approaching', 'coach-move', 'coach-mark', 'coach-gather', 'coach-poste', 'coach-close-mark', 'fixation-ring', 'sign-alert', 'sign-eye', 'sign-bark'])).toBe(false);
   });
 
   it('selects rhythm Hint at Full assist when unseen, otherwise follows marker rule', () => {

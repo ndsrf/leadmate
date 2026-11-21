@@ -2,12 +2,12 @@
 
 ## 1. Inventory and coverage test
 
-- [ ] 1.1 Run the guided first Stage on web and in the bundle source, and write `src/shell/onboarding/stageSigns.ts` listing every sign, icon, meter, badge and control it can show (including every Dog sign drawn in `StageScene.draw`, Feedback Message icons, flying meter points, Stage meters, Mark and Jackpot badges, the Approach ring and Check-in arc) with `hint` and/or `overview` for each. Verify: the list is reviewed with the product owner.
-- [ ] 1.2 Add a sim test over seeds 1 to 8 of the guided first scenario that records which Dog signs can occur, and a test that fails for any atlas frame or Feedback kind the guided first Stage can draw that is not in the list, and for any entry with neither a Hint nor an overview line, skipping kinds that are not Introduced. Verify: `npx jest src/shell/onboarding/stageSigns` fails for the right reason before 2.x and passes after.
+- [x] 1.1 Run the guided first Stage on web and in the bundle source, and write `src/shell/onboarding/stageSigns.ts` listing every sign, icon, meter, badge and control it can show (including every Dog sign drawn in `StageScene.draw`, Feedback Message icons, flying meter points, Stage meters, Mark and Jackpot badges, the Approach ring and Check-in arc) with `hint` and/or `overview` for each. Verify: the list is reviewed with the product owner.
+- [x] 1.2 Add a sim test over seeds 1 to 8 of the guided first scenario that records which Dog signs can occur, and a test that fails for any atlas frame or Feedback kind the guided first Stage can draw that is not in the list, and for any entry with neither a Hint nor an overview line, skipping kinds that are not Introduced. Verify: `npx jest src/shell/onboarding/stageSigns` fails for the right reason before 2.x and passes after.
 
 ## 2. Hints for signs
 
-- [ ] 2.1 Add the new `StageSignal`s and their `decode` validation in `src/sim/messages.ts`, with tests that reject malformed shapes. Verify: `npx jest src/sim/messages` passes and no other file under `src/sim/` changes.
+- [x] 2.1 Add the new `StageSignal`s and their `decode` validation in `src/sim/messages.ts`, with tests that reject malformed shapes. Verify: `npx jest src/sim/messages` passes and no other file under `src/sim/` changes.
 - [ ] 2.2 Emit each new signal from `StageScene` and `effectsView` the first time its sign is drawn, through the signal gate. Verify: build the bundle with no type errors, and a test with a fake scene shows each signal once per Stage.
 - [ ] 2.3 Add the Hint ids, `HINT_FOR_SIGNAL` entries and es/en text (no `{name}` unless needed). Verify: `npx jest src/shell/onboarding/hints src/i18n` passes, including parity.
 - [ ] 2.4 Add the Hint queue (one at a time, fixed priority, drop stale, pause with the Stage) and tests for two close signs, a stale sign and a paused Stage. Verify: tests pass.
