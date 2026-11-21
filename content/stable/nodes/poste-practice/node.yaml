@@ -1,9 +1,6 @@
 id: poste-practice
 mode: minigame
 prerequisites: []
-introduces:
-  - poste
-  - harsh-stop
 simulation:
   minigame: poste-hold
 exercises:

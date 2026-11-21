@@ -11,7 +11,7 @@ Just like in the living room: observe your Dog and tap the action that helps. He
 
 ## Control 2
 ### Hold
-In Poste practice, hold the button down to remain stationary while the Dog pulls. Release only once they have calmed and the leash goes Slack. A ring around the Dog closes while you hold, lands when the Dog settles, and snaps open if you let go too early.
+In Poste practice, hold the button down to remain stationary while the Dog pulls. Release only once they have calmed and the leash goes Slack.
 - alt: Screenshot of Poste practice with the hold button highlighted
 - caption: Hold to perform Poste
 

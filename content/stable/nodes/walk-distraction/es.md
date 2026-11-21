@@ -36,14 +36,3 @@ Quiere oler un árbol. ¿Cuándo le dejas?
 - poste: En la calle: cuando veas algo que lo altere, párate antes de que la correa se tense.
 - attention: En casa: premia cada vez que tu perro te mira sin que lo llames.
 
-## encounters
-### loose-start
-Correa floja
-
-### skate-far
-Míralo venir
-
-### skate-poste
-Poste y marca
-
-

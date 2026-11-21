@@ -17,7 +17,7 @@ La correa cuelga verde cuando va floja, se pone recta y amarilla cuando se tensa
 
 ## Control 3
 ### El Poste
-Si sueltas el joystick cuando la correa se tensa, haces poste: aparece un aro claro a tus pies. Espera a que el perro vuelva y la correa se afloje. Mientras te quedas quieto, un aro se cierra alrededor del perro.
+Si sueltas el joystick cuando la correa se tensa, haces poste: aparece un aro claro a tus pies. Espera a que el perro vuelva y la correa se afloje.
 - alt: Captura del paseo con el joystick suelto y el aro de poste a los pies de la persona, rodeado
 - caption: Hacer poste
 
@@ -26,18 +26,6 @@ Si sueltas el joystick cuando la correa se tensa, haces poste: aparece un aro cl
 Cuando tu perro ha caminado bien, aparece un rato el botón Olfatear, con un aro que se va vaciando. Tócalo antes de que se acabe: oler es su premio.
 - alt: Captura del paseo con el botón Olfatear resaltado
 - caption: Dejar olfatear
-
-## Control 5
-### Las señales del perro
-La «!» amarilla significa que tu perro se ha quedado fijo en algo. Detente, espera a que el anillo se cierre y toca Marcar. El círculo sobre la cabeza de tu perro indica que está en alerta. Mantén la correa floja y dale espacio. El ojo significa que tu perro te mira. Toca Marcar para premiarlo. Las líneas curvas son ladridos: tu perro se ha pasado de su límite. Detente, quédate quieto y deja que se calme.
-- alt: Captura de la primera fijación del paseo con los controles, la correa, la «!» y el anillo numerados
-- caption: Las señales alrededor de tu perro
-
-## Control 6
-### El aro de la mirada
-Cuando el aro se asienta, el perro te mira (es el ojo de arriba): ese es el momento de Marcar. Si te mueves, o la correa se pone en tirón rígido, el aro se abre de golpe y empiezas de nuevo. Al principio el botón Marcar se ilumina y suenan tres tics; se apagan a medida que mejoras, y puedes mantenerlos en Ajustes.
-- alt: Captura de la primera fijación del paseo con el aro alrededor del perro numerado
-- caption: Toca Marcar cuando el aro se asienta
 
 ## tip
 Prueba los controles sin prisa: el primer paseo es para aprender, no para puntuar.

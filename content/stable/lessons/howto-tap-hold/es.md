@@ -11,7 +11,7 @@ Como en el salón: mira cómo está tu perro y toca la acción que le ayuda. Aqu
 
 ## Control 2
 ### Mantener
-En la práctica del Poste, mantén pulsado el botón para no moverte mientras el perro tira. Suelta solo cuando se haya calmado y la correa afloje. Un aro alrededor del perro se cierra mientras mantienes, se asienta cuando el perro se calma y se abre de golpe si sueltas antes de tiempo.
+En la práctica del Poste, mantén pulsado el botón para no moverte mientras el perro tira. Suelta solo cuando se haya calmado y la correa afloje.
 - alt: Captura de la práctica del Poste con el botón de mantener pulsado rodeado
 - caption: Mantener para hacer poste
 

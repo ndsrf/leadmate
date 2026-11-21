@@ -2,13 +2,6 @@ id: park-plant-mark
 mode: stage
 prerequisites:
   - park-keep-fresh
-introduces:
-  - waited-plant
-  - dragged-plant
-  - waited-marking
-  - interrupted-marking
-  - smart-jackpot
-  - wasted-jackpot
 simulation:
   scenario:
     world: 6
