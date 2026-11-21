@@ -5,10 +5,13 @@ import { mapModel as realMapModel, nextMapChange, type MapModel, type MapStop } 
 import { withBasicsDone } from './testProgress';
 import type { MissionState } from './missions/mission';
 import { progressOf, stopsOf, WORLDS, worldsFor, type Progress, type WorldDef } from './world';
+import * as path from 'node:path';
+import { loadPackFromDisk } from './content/loader';
+import { resolvePack } from './content/resolver';
 
 const at = (h: number, day = 2, m = 0) => new Date(2026, 4, day, h, m);
 /** The map of a Dog past the Basics World: these tests are about Home & Thresholds and the Worlds after it. */
-const mapModel = (p: Parameters<typeof realMapModel>[0], stars: Parameters<typeof realMapModel>[1], now: Date) => realMapModel(withBasicsDone(p), stars, now);
+const mapModel = (p: Parameters<typeof realMapModel>[0], stars: Parameters<typeof realMapModel>[1], now: Date, content?: Parameters<typeof realMapModel>[3]) => realMapModel(withBasicsDone(p), stars, now, content);
 const find = (m: MapModel, id: string): MapStop => m.worlds.flatMap((w) => w.stops).find((s) => s.stop.id === id)!;
 const stateOf = (m: MapModel, id: string) => find(m, id).state;
 const started = (startedAt: Date, over: Partial<MissionState> = {}): MissionState => ({ target: 'full', skipRun: 0, attempts: [], startedAt: startedAt.toISOString(), ...over });
@@ -104,10 +107,26 @@ describe('mapModel over Stops', () => {
   });
 
   it('keeps preview Worlds with their planned count and no Stops', () => {
-    const cafe = mapModel(progressOf([]), {}, at(9)).worlds.find((w) => w.world.id === 'cafe')!;
-    expect(cafe).toMatchObject({ tier: 'plus', preview: true, stops: [] });
-    expect(cafe.total).toBeGreaterThan(0);
-    expect(cafe.moreComing).toBeUndefined();
+    const trails = mapModel(progressOf([]), {}, at(9)).worlds.find((w) => w.world.id === 'trails')!;
+    expect(trails).toMatchObject({ tier: 'plus', preview: true, stops: [] });
+    expect(trails.total).toBeGreaterThan(0);
+    expect(trails.moreComing).toBeUndefined();
+  });
+
+  it('World 7 is playable with Stretches and Stops in the beta pack', () => {
+    const betaPack = loadPackFromDisk(path.join(__dirname, '../../content/beta'));
+    const betaResolved = resolvePack(betaPack, 'es');
+    const m = mapModel(progressOf([]), {}, at(9), {
+      worlds: betaResolved.worlds,
+      nodes: betaResolved.nodes,
+      lessons: betaResolved.lessons,
+      missions: betaResolved.missions,
+    });
+    const cafe = m.worlds.find((w) => w.world.id === 'cafe')!;
+    expect(cafe).toBeDefined();
+    expect(cafe.preview).toBeFalsy();
+    expect(cafe.stops.length).toBe(11);
+    expect(cafe.total).toBe(11);
   });
 
   it('reports all-complete with nothing next-up or waiting', () => {
