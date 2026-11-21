@@ -25,10 +25,12 @@ describe('the "Las señales del perro" control of the walking How-to-play Lesson
     expect(controlFive('es').heading).toBe('Las señales del perro');
   });
 
-  it('declares five controls and has the fifth picture', () => {
+  it('declares six controls and has the fifth and sixth pictures', () => {
     const yaml = readFileSync(join(LESSON, 'lesson.yaml'), 'utf8');
-    expect(yaml).toMatch(/^controls: 5$/m);
+    expect(yaml).toMatch(/^controls: 6$/m);
     expect(yaml).toContain('- howto-walking-5');
+    expect(yaml).toContain('- howto-walking-6');
     expect(existsSync(join(LESSON, 'media', 'howto-walking-5.png'))).toBe(true);
+    expect(existsSync(join(LESSON, 'media', 'howto-walking-6.png'))).toBe(true);
   });
 });
