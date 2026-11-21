@@ -56,6 +56,8 @@ export const SCREENS = [
   'library',
   'diary',
   'lesson',
+  'games',
+  'game',
   'mission_check',
   'mission_brief',
   'mission_waiting',
@@ -168,6 +170,10 @@ export const EVENTS: Record<string, EventDeclaration> = {
     stop_id: { kind: { kind: 'id' } },
     stop_kind: { kind: { kind: 'enum', values: ['lesson', 'node', 'mission'] } },
     stop_index: { kind: { kind: 'int' } },
+  },
+  game_random_picked: {
+    game_id: { kind: { kind: 'id' } },
+    plus_status: { kind: { kind: 'enum', values: PLUS_STATUSES }, optional: true },
   },
 };
 

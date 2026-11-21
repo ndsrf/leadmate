@@ -35,7 +35,7 @@
 
 ## 6. Analytics
 
-- [ ] 6.1 Add the `games` and `game` screen names and a random-pick event to `src/shell/analytics/contract.ts` and its snapshot, without game text or dog data; verify `contract.test.ts`, `screen.test.ts` and the updated snapshot pass, and coordinate the snapshot with the in-flight `add-product-analytics`.
+- [x] 6.1 Add the `games` and `game` screen names and a random-pick event to `src/shell/analytics/contract.ts` and its snapshot, without game text or dog data; verify `contract.test.ts`, `screen.test.ts` and the updated snapshot pass, and coordinate the snapshot with the in-flight `add-product-analytics`.
 
 ## 7. Illustrations and seed content
 

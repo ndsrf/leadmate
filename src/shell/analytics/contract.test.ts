@@ -250,6 +250,43 @@ describe('Analytics Event Contract (Task 2.1)', () => {
       expect(badPaws).toBeNull();
     });
   });
+
+  describe('Dog Games analytics (Task 6.1)', () => {
+    it('accepts game_random_picked with game_id and optional plus_status', () => {
+      const event = buildEvent(
+        'game_random_picked',
+        { game_id: 'eleccion-mano', plus_status: 'free' },
+        baseCommon
+      );
+      expect(event).not.toBeNull();
+      expect(event?.properties.game_id).toBe('eleccion-mano');
+      expect(event?.properties.plus_status).toBe('free');
+
+      const eventNoPlus = buildEvent(
+        'game_random_picked',
+        { game_id: 'eleccion-mano' },
+        baseCommon
+      );
+      expect(eventNoPlus).not.toBeNull();
+      expect(eventNoPlus?.properties.game_id).toBe('eleccion-mano');
+    });
+
+    it('rejects invalid game_id or non-enum plus_status', () => {
+      const badId = buildEvent(
+        'game_random_picked',
+        { game_id: 'Bad_Game_Id' },
+        baseCommon
+      );
+      expect(badId).toBeNull();
+
+      const badPlus = buildEvent(
+        'game_random_picked',
+        { game_id: 'eleccion-mano', plus_status: 'gold' as any },
+        baseCommon
+      );
+      expect(badPlus).toBeNull();
+    });
+  });
 });
 
 describe('Screens and context (Task 11.1)', () => {
@@ -270,7 +307,7 @@ describe('Screens and context (Task 11.1)', () => {
   it('lists every Funnel step except map once, plus map and the other screens', () => {
     expect(new Set(SCREENS).size).toBe(SCREENS.length);
     for (const step of FUNNEL_STEPS) expect(SCREENS).toContain(step);
-    for (const name of ['splash', 'value_recap', 'settings_dog', 'settings_preferences', 'settings_account', 'library', 'diary', 'lesson', 'node_minigame', 'daily_result', 'warmup_stage', 'barkdoku', 'shop', 'auth_login', 'auth_signup', 'register']) {
+    for (const name of ['splash', 'value_recap', 'settings_dog', 'settings_preferences', 'settings_account', 'library', 'diary', 'lesson', 'games', 'game', 'node_minigame', 'daily_result', 'warmup_stage', 'barkdoku', 'shop', 'auth_login', 'auth_signup', 'register']) {
       expect(SCREENS).toContain(name);
     }
   });

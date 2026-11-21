@@ -6,7 +6,7 @@ exports[`Contract Snapshot (Task 2.3) matches the contract snapshot of all event
     "event": "app_backgrounded",
     "properties": [
       {
-        "kind": "enum(splash|welcome|language|dog|concern|taste_briefing|taste_stage|taste_payoff|setup_equipment|setup_weights|setup_about|setup_home|setup_questions|diagnostic|plan|method|first_primer|first_checkpoint|first_walk|first_debrief|register_prompt|account|paywall|map|value_recap|settings_dog|settings_preferences|settings_account|library|diary|lesson|mission_check|mission_brief|mission_waiting|mission_checkin|mission_problem|mission_fix|mission_passed|node_primer|node_checkpoint|node_stage|node_minigame|node_debrief|daily_stage|daily_result|warmup_stage|barkdoku|shop|auth_login|auth_signup|register)",
+        "kind": "enum(splash|welcome|language|dog|concern|taste_briefing|taste_stage|taste_payoff|setup_equipment|setup_weights|setup_about|setup_home|setup_questions|diagnostic|plan|method|first_primer|first_checkpoint|first_walk|first_debrief|register_prompt|account|paywall|map|value_recap|settings_dog|settings_preferences|settings_account|library|diary|lesson|games|game|mission_check|mission_brief|mission_waiting|mission_checkin|mission_problem|mission_fix|mission_passed|node_primer|node_checkpoint|node_stage|node_minigame|node_debrief|daily_stage|daily_result|warmup_stage|barkdoku|shop|auth_login|auth_signup|register)",
         "name": "screen",
         "optional": false,
       },
@@ -54,6 +54,21 @@ exports[`Contract Snapshot (Task 2.3) matches the contract snapshot of all event
         "kind": "enum(welcome|language|dog|concern|taste_briefing|taste_stage|taste_payoff|setup_equipment|setup_weights|setup_about|setup_home|setup_questions|diagnostic|plan|method|first_primer|first_checkpoint|first_walk|first_debrief|register_prompt|account|paywall|map)",
         "name": "step",
         "optional": false,
+      },
+    ],
+  },
+  {
+    "event": "game_random_picked",
+    "properties": [
+      {
+        "kind": "id",
+        "name": "game_id",
+        "optional": false,
+      },
+      {
+        "kind": "enum(free|trial|subscribed)",
+        "name": "plus_status",
+        "optional": true,
       },
     ],
   },
@@ -146,12 +161,12 @@ exports[`Contract Snapshot (Task 2.3) matches the contract snapshot of all event
     "event": "screen_viewed",
     "properties": [
       {
-        "kind": "enum(splash|welcome|language|dog|concern|taste_briefing|taste_stage|taste_payoff|setup_equipment|setup_weights|setup_about|setup_home|setup_questions|diagnostic|plan|method|first_primer|first_checkpoint|first_walk|first_debrief|register_prompt|account|paywall|map|value_recap|settings_dog|settings_preferences|settings_account|library|diary|lesson|mission_check|mission_brief|mission_waiting|mission_checkin|mission_problem|mission_fix|mission_passed|node_primer|node_checkpoint|node_stage|node_minigame|node_debrief|daily_stage|daily_result|warmup_stage|barkdoku|shop|auth_login|auth_signup|register)",
+        "kind": "enum(splash|welcome|language|dog|concern|taste_briefing|taste_stage|taste_payoff|setup_equipment|setup_weights|setup_about|setup_home|setup_questions|diagnostic|plan|method|first_primer|first_checkpoint|first_walk|first_debrief|register_prompt|account|paywall|map|value_recap|settings_dog|settings_preferences|settings_account|library|diary|lesson|games|game|mission_check|mission_brief|mission_waiting|mission_checkin|mission_problem|mission_fix|mission_passed|node_primer|node_checkpoint|node_stage|node_minigame|node_debrief|daily_stage|daily_result|warmup_stage|barkdoku|shop|auth_login|auth_signup|register)",
         "name": "previous_screen",
         "optional": true,
       },
       {
-        "kind": "enum(splash|welcome|language|dog|concern|taste_briefing|taste_stage|taste_payoff|setup_equipment|setup_weights|setup_about|setup_home|setup_questions|diagnostic|plan|method|first_primer|first_checkpoint|first_walk|first_debrief|register_prompt|account|paywall|map|value_recap|settings_dog|settings_preferences|settings_account|library|diary|lesson|mission_check|mission_brief|mission_waiting|mission_checkin|mission_problem|mission_fix|mission_passed|node_primer|node_checkpoint|node_stage|node_minigame|node_debrief|daily_stage|daily_result|warmup_stage|barkdoku|shop|auth_login|auth_signup|register)",
+        "kind": "enum(splash|welcome|language|dog|concern|taste_briefing|taste_stage|taste_payoff|setup_equipment|setup_weights|setup_about|setup_home|setup_questions|diagnostic|plan|method|first_primer|first_checkpoint|first_walk|first_debrief|register_prompt|account|paywall|map|value_recap|settings_dog|settings_preferences|settings_account|library|diary|lesson|games|game|mission_check|mission_brief|mission_waiting|mission_checkin|mission_problem|mission_fix|mission_passed|node_primer|node_checkpoint|node_stage|node_minigame|node_debrief|daily_stage|daily_result|warmup_stage|barkdoku|shop|auth_login|auth_signup|register)",
         "name": "screen",
         "optional": false,
       },
