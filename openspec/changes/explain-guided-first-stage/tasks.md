@@ -24,7 +24,7 @@
 ## 4. Integration checks
 
 - [ ] 4.1 Play the guided first Stage on web and on a device after a progress reset, in Spanish and in English. Verify: every sign that appears has been explained by the overview or a Hint, no two Hints overlap, none blocks input, and the walk still takes under 25 seconds of play.
-- [ ] 4.2 Run `npm test` and `npx tsc --noEmit`. Verify: both pass.
+- [x] 4.2 Run `npm test` and `npx tsc --noEmit`. Verify: both pass.
 
 ## Workflow follow-up
 
