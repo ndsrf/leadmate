@@ -5,7 +5,7 @@ export const BASELINE_PACK: ContentPack = {
   "pack": {
     "formatVersion": 1,
     "contentVersion": 5,
-    "minAppVersion": "1.2.0",
+    "minAppVersion": "1.3.0",
     "languages": [
       "es",
       "en"
@@ -570,8 +570,8 @@ export const BASELINE_PACK: ContentPack = {
         "controls": 2
       },
       "text": {
-        "en": "# How to Play: Tap and Hold\n\n## intro\nIn home Minigames, you use two gestures: tap, which you already know, and hold. Here is each one on the actual screen.\n\n## Control 1\n### Tap\nJust like in the living room: observe your Dog and tap the action that helps. Here they are Wait, Cue, Marker, or the step-specific action.\n- alt: Screenshot of the harness ritual: the Dog sniffs the ground and the Cue button is highlighted\n- caption: Tap the action that helps\n\n## Control 2\n### Hold\nIn Poste practice, hold the button down to remain stationary while the Dog pulls. Release only once they have calmed and the leash goes Slack.\n- alt: Screenshot of Poste practice with the hold button highlighted\n- caption: Hold to perform Poste\n\n## tip\nLook at the Dog, not the button: their ears and tail tell you when to release.\n",
-        "es": "# Cómo se juega: tocar y mantener\n\n## intro\nEn los minijuegos de casa usas dos gestos: tocar, que ya conoces, y mantener. Aquí ves cada uno sobre la pantalla real.\n\n## Control 1\n### Tocar\nComo en el salón: mira cómo está tu perro y toca la acción que le ayuda. Aquí son Esperar, Llamar, Marcar o la del paso.\n- alt: Captura del ritual del arnés: el perro olfatea el suelo y el botón Llamar está rodeado\n- caption: Tocar la acción que le ayuda\n\n## Control 2\n### Mantener\nEn la práctica del Poste, mantén pulsado el botón para no moverte mientras el perro tira. Suelta solo cuando se haya calmado y la correa afloje.\n- alt: Captura de la práctica del Poste con el botón de mantener pulsado rodeado\n- caption: Mantener para hacer poste\n\n## tip\nMira al perro, no al botón: sus orejas y su cola te dicen cuándo soltar.\n\n"
+        "en": "# How to Play: Tap and Hold\n\n## intro\nIn home Minigames, you use two gestures: tap, which you already know, and hold. Here is each one on the actual screen.\n\n## Control 1\n### Tap\nJust like in the living room: observe your Dog and tap the action that helps. Here they are Wait, Cue, Marker, or the step-specific action.\n- alt: Screenshot of the harness ritual: the Dog sniffs the ground and the Cue button is highlighted\n- caption: Tap the action that helps\n\n## Control 2\n### Hold\nIn Poste practice, hold the button down to remain stationary while the Dog pulls. Release only once they have calmed and the leash goes Slack. A ring around the Dog closes while you hold, lands when the Dog settles, and snaps open if you let go too early.\n- alt: Screenshot of Poste practice with the hold button highlighted\n- caption: Hold to perform Poste\n\n## tip\nLook at the Dog, not the button: their ears and tail tell you when to release.\n",
+        "es": "# Cómo se juega: tocar y mantener\n\n## intro\nEn los minijuegos de casa usas dos gestos: tocar, que ya conoces, y mantener. Aquí ves cada uno sobre la pantalla real.\n\n## Control 1\n### Tocar\nComo en el salón: mira cómo está tu perro y toca la acción que le ayuda. Aquí son Esperar, Llamar, Marcar o la del paso.\n- alt: Captura del ritual del arnés: el perro olfatea el suelo y el botón Llamar está rodeado\n- caption: Tocar la acción que le ayuda\n\n## Control 2\n### Mantener\nEn la práctica del Poste, mantén pulsado el botón para no moverte mientras el perro tira. Suelta solo cuando se haya calmado y la correa afloje. Un aro alrededor del perro se cierra mientras mantienes, se asienta cuando el perro se calma y se abre de golpe si sueltas antes de tiempo.\n- alt: Captura de la práctica del Poste con el botón de mantener pulsado rodeado\n- caption: Mantener para hacer poste\n\n## tip\nMira al perro, no al botón: sus orejas y su cola te dicen cuándo soltar.\n\n"
       },
       "files": [
         "media/howto-tap-hold-1.png",
@@ -586,19 +586,23 @@ export const BASELINE_PACK: ContentPack = {
           "howto-walking-1",
           "howto-walking-2",
           "howto-walking-3",
-          "howto-walking-4"
+          "howto-walking-4",
+          "howto-walking-5",
+          "howto-walking-6"
         ],
-        "controls": 4
+        "controls": 6
       },
       "text": {
-        "en": "# How to Play: Walking\n\n## intro\nFrom now on you walk along the street. Here are the walk controls on the actual screen.\n\n## Control 1\n### The Joystick\nDrag the joystick to walk. The further you move it from the center, the faster you move. Release it to stop.\n- alt: Screenshot of the walk with the joystick on the bottom left and a directional arrow\n- caption: Walking with the joystick\n\n## Control 2\n### The Leash\nThe leash hangs green when Slack, turns straight and yellow when Taut, and turns red and thicker if it becomes a Rigid Pull.\n- alt: Screenshot of the walk with the straight, Taut leash between Handler and Dog, highlighted\n- caption: Taut leash: straight and yellow\n\n## Control 3\n### Poste\nIf you release the joystick when the leash goes Taut, you perform Poste: a light ring appears at your feet. Wait until the Dog returns and the leash goes Slack.\n- alt: Screenshot of the walk with the joystick released and the Poste ring at the Handler's feet, highlighted\n- caption: Performing Poste\n\n## Control 4\n### Go Sniff\nWhen your Dog has walked nicely, the Go Sniff button appears for a short time with a depleting ring. Tap it before it expires: sniffing is their reward.\n- alt: Screenshot of the walk with the Go Sniff button highlighted\n- caption: Allow sniffing\n\n## tip\nTest the controls without rushing: the first walk is for learning, not scoring.\n",
-        "es": "# Cómo se juega: pasear\n\n## intro\nDesde ahora paseas por la calle. Estos son los controles del paseo, sobre la pantalla real.\n\n## Control 1\n### El joystick\nArrastra el joystick para caminar. Cuanto más lo alejas del centro, más rápido vas. Suéltalo para pararte.\n- alt: Captura del paseo con el joystick abajo a la izquierda y una flecha de dirección\n- caption: Caminar con el joystick\n\n## Control 2\n### La correa\nLa correa cuelga verde cuando va floja, se pone recta y amarilla cuando se tensa, y roja y más gruesa si se convierte en un tirón rígido.\n- alt: Captura del paseo con la correa recta y tensa entre la persona y el perro, rodeada\n- caption: Correa tensa: recta y amarilla\n\n## Control 3\n### El Poste\nSi sueltas el joystick cuando la correa se tensa, haces poste: aparece un aro claro a tus pies. Espera a que el perro vuelva y la correa se afloje.\n- alt: Captura del paseo con el joystick suelto y el aro de poste a los pies de la persona, rodeado\n- caption: Hacer poste\n\n## Control 4\n### Olfatear\nCuando tu perro ha caminado bien, aparece un rato el botón Olfatear, con un aro que se va vaciando. Tócalo antes de que se acabe: oler es su premio.\n- alt: Captura del paseo con el botón Olfatear resaltado\n- caption: Dejar olfatear\n\n## tip\nPrueba los controles sin prisa: el primer paseo es para aprender, no para puntuar.\n\n"
+        "en": "# How to Play: Walking\n\n## intro\nFrom now on you walk along the street. Here are the walk controls on the actual screen.\n\n## Control 1\n### The Joystick\nDrag the joystick to walk. The further you move it from the center, the faster you move. Release it to stop.\n- alt: Screenshot of the walk with the joystick on the bottom left and a directional arrow\n- caption: Walking with the joystick\n\n## Control 2\n### The Leash\nThe leash hangs green when Slack, turns straight and yellow when Taut, and turns red and thicker if it becomes a Rigid Pull.\n- alt: Screenshot of the walk with the straight, Taut leash between Handler and Dog, highlighted\n- caption: Taut leash: straight and yellow\n\n## Control 3\n### Poste\nIf you release the joystick when the leash goes Taut, you perform Poste: a light ring appears at your feet. Wait until the Dog returns and the leash goes Slack. While you hold still, a ring closes around the Dog.\n- alt: Screenshot of the walk with the joystick released and the Poste ring at the Handler's feet, highlighted\n- caption: Performing Poste\n\n## Control 4\n### Go Sniff\nWhen your Dog has walked nicely, the Go Sniff button appears for a short time with a depleting ring. Tap it before it expires: sniffing is their reward.\n- alt: Screenshot of the walk with the Go Sniff button highlighted\n- caption: Allow sniffing\n\n## Control 5\n### The Dog's signs\nThe yellow \"!\" means your Dog locked onto something. Stop, wait for the ring to close, then tap Marker. The circle over your Dog's head means it is on alert. Keep the leash slack and give it space. The eye means your Dog is looking at you. Tap Marker to reward it. The curved lines are barking: your Dog is over its limit. Stop, stay still and let it calm down.\n- alt: Screenshot of the first Fixation of the walk with the controls, the leash, the \"!\" and the ring numbered\n- caption: The signs around your Dog\n\n## Control 6\n### The Gaze Ring\nWhen the ring lands, the Dog looks at you (that is the eye above): that is the moment to tap Marker. If you move, or the leash becomes a Rigid Pull, the ring snaps open and you start again. At first the Marker button lights up and three ticks play; they fade as you improve, and you can keep them in Settings.\n- alt: Screenshot of the first Fixation of the walk with the ring around the Dog numbered\n- caption: Tap Marker when the ring lands\n\n## tip\nTest the controls without rushing: the first walk is for learning, not scoring.\n",
+        "es": "# Cómo se juega: pasear\n\n## intro\nDesde ahora paseas por la calle. Estos son los controles del paseo, sobre la pantalla real.\n\n## Control 1\n### El joystick\nArrastra el joystick para caminar. Cuanto más lo alejas del centro, más rápido vas. Suéltalo para pararte.\n- alt: Captura del paseo con el joystick abajo a la izquierda y una flecha de dirección\n- caption: Caminar con el joystick\n\n## Control 2\n### La correa\nLa correa cuelga verde cuando va floja, se pone recta y amarilla cuando se tensa, y roja y más gruesa si se convierte en un tirón rígido.\n- alt: Captura del paseo con la correa recta y tensa entre la persona y el perro, rodeada\n- caption: Correa tensa: recta y amarilla\n\n## Control 3\n### El Poste\nSi sueltas el joystick cuando la correa se tensa, haces poste: aparece un aro claro a tus pies. Espera a que el perro vuelva y la correa se afloje. Mientras te quedas quieto, un aro se cierra alrededor del perro.\n- alt: Captura del paseo con el joystick suelto y el aro de poste a los pies de la persona, rodeado\n- caption: Hacer poste\n\n## Control 4\n### Olfatear\nCuando tu perro ha caminado bien, aparece un rato el botón Olfatear, con un aro que se va vaciando. Tócalo antes de que se acabe: oler es su premio.\n- alt: Captura del paseo con el botón Olfatear resaltado\n- caption: Dejar olfatear\n\n## Control 5\n### Las señales del perro\nLa «!» amarilla significa que tu perro se ha quedado fijo en algo. Detente, espera a que el anillo se cierre y toca Marcar. El círculo sobre la cabeza de tu perro indica que está en alerta. Mantén la correa floja y dale espacio. El ojo significa que tu perro te mira. Toca Marcar para premiarlo. Las líneas curvas son ladridos: tu perro se ha pasado de su límite. Detente, quédate quieto y deja que se calme.\n- alt: Captura de la primera fijación del paseo con los controles, la correa, la «!» y el anillo numerados\n- caption: Las señales alrededor de tu perro\n\n## Control 6\n### El aro de la mirada\nCuando el aro se asienta, el perro te mira (es el ojo de arriba): ese es el momento de Marcar. Si te mueves, o la correa se pone en tirón rígido, el aro se abre de golpe y empiezas de nuevo. Al principio el botón Marcar se ilumina y suenan tres tics; se apagan a medida que mejoras, y puedes mantenerlos en Ajustes.\n- alt: Captura de la primera fijación del paseo con el aro alrededor del perro numerado\n- caption: Toca Marcar cuando el aro se asienta\n\n## tip\nPrueba los controles sin prisa: el primer paseo es para aprender, no para puntuar.\n\n"
       },
       "files": [
         "media/howto-walking-1.png",
         "media/howto-walking-2.png",
         "media/howto-walking-3.png",
-        "media/howto-walking-4.png"
+        "media/howto-walking-4.png",
+        "media/howto-walking-5.png",
+        "media/howto-walking-6.png"
       ]
     },
     "howto-yield-pressure": {
@@ -2804,6 +2808,11 @@ export const BASELINE_PACK: ContentPack = {
         "id": "leave-it-intro",
         "mode": "stage",
         "prerequisites": [],
+        "introduces": [
+          "wrong-cue",
+          "leave-it-food",
+          "food-eaten"
+        ],
         "simulation": {
           "scenario": {
             "world": 4,
@@ -4738,6 +4747,11 @@ export const BASELINE_PACK: ContentPack = {
         "prerequisites": [
           "park-mix"
         ],
+        "introduces": [
+          "granted-sniff",
+          "empty-sniff",
+          "scent-dragged-past"
+        ],
         "simulation": {
           "scenario": {
             "world": 6,
@@ -5982,6 +5996,14 @@ export const BASELINE_PACK: ContentPack = {
         "prerequisites": [
           "park-keep-fresh"
         ],
+        "introduces": [
+          "waited-plant",
+          "dragged-plant",
+          "waited-marking",
+          "interrupted-marking",
+          "smart-jackpot",
+          "wasted-jackpot"
+        ],
         "simulation": {
           "scenario": {
             "world": 6,
@@ -6600,6 +6622,14 @@ export const BASELINE_PACK: ContentPack = {
         "mode": "stage",
         "prerequisites": [
           "park-nose-on"
+        ],
+        "introduces": [
+          "followed-turn",
+          "fresh-move",
+          "repeated-move-ignored",
+          "check-in-after-change",
+          "chain",
+          "sintonia"
         ],
         "simulation": {
           "scenario": {
@@ -7221,6 +7251,10 @@ export const BASELINE_PACK: ContentPack = {
         "id": "poste-practice",
         "mode": "minigame",
         "prerequisites": [],
+        "introduces": [
+          "poste",
+          "harsh-stop"
+        ],
         "simulation": {
           "minigame": "poste-hold"
         },
@@ -8688,7 +8722,70 @@ export const BASELINE_PACK: ContentPack = {
         "prerequisites": [
           "poste-practice"
         ],
-        "simulation": {},
+        "introduces": [
+          "go-sniff",
+          "go-sniff-cut-short"
+        ],
+        "simulation": {
+          "encounters": [
+            {
+              "id": "loose-start",
+              "aim": "keep-slack",
+              "scenario": {
+                "waypoint": {
+                  "x": 20,
+                  "y": 0
+                },
+                "distractor": {
+                  "kind": "skateboard",
+                  "speed": 4,
+                  "activateAfterMeters": 50,
+                  "startOffset": 12,
+                  "triggerRadius": 14
+                }
+              }
+            },
+            {
+              "id": "skate-far",
+              "aim": "stay-calm",
+              "scenario": {
+                "waypoint": {
+                  "x": 25,
+                  "y": 0
+                },
+                "distractor": {
+                  "kind": "skateboard",
+                  "speed": 2,
+                  "activateAfterMeters": 4,
+                  "startOffset": 25,
+                  "triggerRadius": 10
+                }
+              }
+            },
+            {
+              "id": "skate-poste",
+              "aim": "mark-disengagement",
+              "scenario": {
+                "waypoint": {
+                  "x": 24,
+                  "y": 0
+                },
+                "distractor": {
+                  "kind": "skateboard",
+                  "speed": 4,
+                  "activateAfterMeters": 4,
+                  "startOffset": 12,
+                  "triggerRadius": 14
+                },
+                "markBudget": 3,
+                "endCondition": {
+                  "kind": "time-limit",
+                  "seconds": 18
+                }
+              }
+            }
+          ]
+        },
         "exercises": [
           {
             "metric": "tension",
@@ -8722,8 +8819,8 @@ export const BASELINE_PACK: ContentPack = {
         ]
       },
       "text": {
-        "en": "# Walk with Distraction\n\n## primer\n### card 1\nRemember: look ahead into the distance, use Poste if the leash goes Taut, and reward a Slack leash with \"good\" or by letting the Dog sniff.\n- caption: Look far ahead: you spot it before the Dog does\n\n### card 2\nIn the game: use the joystick to walk, release it to use Poste, and use Go Sniff as a reward.\n\n## checkpoint\n### tq1\nYou only say something to your Dog when it pulls. What happens?\n- [x] Periods of Slack leash earn no reinforcement\n- [ ] It learns that pulling achieves nothing\n- [ ] It walks better because it senses you watching\n- why: What the Dog does right before a reward is what it learns; if you only react to pulling, good moments pass without reinforcement.\n\n### tq2\nYou spot a skateboard approaching in the distance. What do you do?\n- [x] Step aside before the leash goes Taut\n- [ ] Keep going the same way and use Poste if it lunges\n- [ ] Speed up to pass it as fast as possible\n- why: Looking far ahead lets you see it before your Dog does: step aside or slow down before the leash goes Taut. When in doubt, more distance.\n\n### tq3\nThe Dog wants to sniff a tree. When do you let it?\n- [x] When it arrives with the leash hanging Slack\n- [ ] When it arrives, even if it pulled\n- [ ] Never, because sniffing distracts from the walk\n- why: If it arrives pulling, the scent rewards the pull; if it arrives with a Slack leash, the scent rewards the Slack leash.\n\n## exercises\n- tension: Outside: during a walk, count how many times the leash goes Taut and lower that number each day.\n- timing: At home: reward with your voice right when your Dog looks away from a toy.\n- poste: Outside: when you see something disturbing, stop like a Poste before the leash goes Taut.\n- attention: At home: reward each time your Dog looks at you without being called.\n",
-        "es": "# Paseo con distracción\n\n## primer\n### card 1\nRecuerda: mira lejos, haz poste si la correa se tensa y paga la correa floja con un «bien» o dejándole oler.\n- caption: Mira lejos: lo ves llegar antes que él\n\n### card 2\nEn el juego: joystick para caminar, suéltalo para hacer poste y usa Olfatear como premio.\n\n## checkpoint\n### tq1\nSolo le dices algo cuando tira. ¿Qué pasa?\n- [x] Los ratos de correa floja no ganan nada\n- [ ] Aprende que tirar no le sirve de nada\n- [ ] Camina mejor porque nota que le vigilas\n- why: Lo que hace justo antes de un premio es lo que aprende; si solo reaccionas a los tirones, los ratos buenos pasan sin que nada los premie.\n\n### tq2\nVes llegar un monopatín al fondo. ¿Qué haces?\n- [x] Me aparto a un lado antes de que tense\n- [ ] Sigo igual y hago poste si se lanza\n- [ ] Acelero para pasarlo cuanto antes\n- why: Mirar lejos te deja verlo antes que él: apártate o frena antes de que la correa se tense. Si dudas, más distancia.\n\n### tq3\nQuiere oler un árbol. ¿Cuándo le dejas?\n- [x] Cuando llega con la correa colgando\n- [ ] Cuando llega, aunque haya tirado\n- [ ] Nunca, porque oler le distrae del paseo\n- why: Si llega tirando, el olor le paga el tirón; si llega con la correa floja, el olor premia la correa floja.\n\n## exercises\n- tension: En la calle: durante un paseo, cuenta cuántas veces se tensa la correa y baja esa cifra cada día.\n- timing: En casa: premia con la voz justo cuando tu perro aparta la vista de un juguete.\n- poste: En la calle: cuando veas algo que lo altere, párate antes de que la correa se tense.\n- attention: En casa: premia cada vez que tu perro te mira sin que lo llames.\n\n"
+        "en": "# Walk with Distraction\n\n## primer\n### card 1\nRemember: look ahead into the distance, use Poste if the leash goes Taut, and reward a Slack leash with \"good\" or by letting the Dog sniff.\n- caption: Look far ahead: you spot it before the Dog does\n\n### card 2\nIn the game: use the joystick to walk, release it to use Poste, and use Go Sniff as a reward.\n\n## checkpoint\n### tq1\nYou only say something to your Dog when it pulls. What happens?\n- [x] Periods of Slack leash earn no reinforcement\n- [ ] It learns that pulling achieves nothing\n- [ ] It walks better because it senses you watching\n- why: What the Dog does right before a reward is what it learns; if you only react to pulling, good moments pass without reinforcement.\n\n### tq2\nYou spot a skateboard approaching in the distance. What do you do?\n- [x] Step aside before the leash goes Taut\n- [ ] Keep going the same way and use Poste if it lunges\n- [ ] Speed up to pass it as fast as possible\n- why: Looking far ahead lets you see it before your Dog does: step aside or slow down before the leash goes Taut. When in doubt, more distance.\n\n### tq3\nThe Dog wants to sniff a tree. When do you let it?\n- [x] When it arrives with the leash hanging Slack\n- [ ] When it arrives, even if it pulled\n- [ ] Never, because sniffing distracts from the walk\n- why: If it arrives pulling, the scent rewards the pull; if it arrives with a Slack leash, the scent rewards the Slack leash.\n\n## exercises\n- tension: Outside: during a walk, count how many times the leash goes Taut and lower that number each day.\n- timing: At home: reward with your voice right when your Dog looks away from a toy.\n- poste: Outside: when you see something disturbing, stop like a Poste before the leash goes Taut.\n- attention: At home: reward each time your Dog looks at you without being called.\n\n## encounters\n### loose-start\nLoose Leash\n\n### skate-far\nWatch It Come\n\n### skate-poste\nPoste and Mark\n\n",
+        "es": "# Paseo con distracción\n\n## primer\n### card 1\nRecuerda: mira lejos, haz poste si la correa se tensa y paga la correa floja con un «bien» o dejándole oler.\n- caption: Mira lejos: lo ves llegar antes que él\n\n### card 2\nEn el juego: joystick para caminar, suéltalo para hacer poste y usa Olfatear como premio.\n\n## checkpoint\n### tq1\nSolo le dices algo cuando tira. ¿Qué pasa?\n- [x] Los ratos de correa floja no ganan nada\n- [ ] Aprende que tirar no le sirve de nada\n- [ ] Camina mejor porque nota que le vigilas\n- why: Lo que hace justo antes de un premio es lo que aprende; si solo reaccionas a los tirones, los ratos buenos pasan sin que nada los premie.\n\n### tq2\nVes llegar un monopatín al fondo. ¿Qué haces?\n- [x] Me aparto a un lado antes de que tense\n- [ ] Sigo igual y hago poste si se lanza\n- [ ] Acelero para pasarlo cuanto antes\n- why: Mirar lejos te deja verlo antes que él: apártate o frena antes de que la correa se tense. Si dudas, más distancia.\n\n### tq3\nQuiere oler un árbol. ¿Cuándo le dejas?\n- [x] Cuando llega con la correa colgando\n- [ ] Cuando llega, aunque haya tirado\n- [ ] Nunca, porque oler le distrae del paseo\n- why: Si llega tirando, el olor le paga el tirón; si llega con la correa floja, el olor premia la correa floja.\n\n## exercises\n- tension: En la calle: durante un paseo, cuenta cuántas veces se tensa la correa y baja esa cifra cada día.\n- timing: En casa: premia con la voz justo cuando tu perro aparta la vista de un juguete.\n- poste: En la calle: cuando veas algo que lo altere, párate antes de que la correa se tense.\n- attention: En casa: premia cada vez que tu perro te mira sin que lo llames.\n\n## encounters\n### loose-start\nCorrea floja\n\n### skate-far\nMíralo venir\n\n### skate-poste\nPoste y marca\n\n\n"
       },
       "files": [
         "media/theory-loose-leash-2.png"
