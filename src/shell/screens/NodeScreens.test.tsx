@@ -182,6 +182,17 @@ describe('Node and Mission screens - ShopLinkCard recommendations (Task 7.1)', (
     mockPressables.length = 0;
   });
 
+  it('shows the picture of the guided first Stage overview card, not a placeholder', () => {
+    const { INTRO_NODE } = require('../onboarding/introNode');
+    const run = { ...startNode(INTRO_NODE), card: INTRO_NODE.primerCards.findIndex((c: any) => typeof c !== 'string' && c.media?.art === 'howto-walking-signs') };
+    expect(run.card).toBeGreaterThanOrEqual(0);
+    const markup = renderToStaticMarkup(<PrimerScreen t={t} run={run} onNext={() => {}} onExit={() => {}} />);
+    expect(markup).toContain(es['node.intro.cardSigns.caption']);
+    expect(markup).toContain('<img');
+    expect(markup).not.toContain(es['media.pending']);
+    expect(markup).not.toContain(es['media.unavailable']);
+  });
+
   it('renders ShopLinkCard on PrimerScreen and handles tap', () => {
     const baseContent = getActiveContent();
     setActiveContent({
