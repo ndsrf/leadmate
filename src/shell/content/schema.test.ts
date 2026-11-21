@@ -199,6 +199,28 @@ describe('node.yaml validation', () => {
     expect(validateNodeYaml({ id: 'walk', mode: 'stage', prerequisites: [], introduces: 'not-an-array' }).valid).toBe(false);
     expect(validateNodeYaml({ id: 'walk', mode: 'stage', prerequisites: [], introduces: [123] }).valid).toBe(false);
   });
+
+  it('accepts minigame: cafe-settle and rejects unknown minigame kinds', () => {
+    const valid = {
+      id: 'cafe-settle',
+      mode: 'minigame',
+      prerequisites: ['cafe-arrive'],
+      simulation: { minigame: 'cafe-settle' },
+    };
+    const res = validateNodeYaml(valid);
+    expect(res.valid).toBe(true);
+    expect(res.errors).toEqual([]);
+
+    const invalid = {
+      id: 'cafe-settle',
+      mode: 'minigame',
+      prerequisites: [],
+      simulation: { minigame: 'unknown-minigame' },
+    };
+    const invalidRes = validateNodeYaml(invalid);
+    expect(invalidRes.valid).toBe(false);
+    expect(invalidRes.errors.some((e) => e.field === 'simulation.minigame')).toBe(true);
+  });
 });
 
 describe('mission.yaml validation', () => {

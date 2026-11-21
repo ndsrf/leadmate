@@ -24,6 +24,7 @@ export const SUPPORTED_MINIGAMES = [
   'destroy',
   'eat-objects',
   'alone',
+  'cafe-settle',
 ] as const;
 export type MinigameKind = (typeof SUPPORTED_MINIGAMES)[number];
 

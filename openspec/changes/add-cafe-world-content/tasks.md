@@ -2,7 +2,7 @@
 
 ## 1. Terrace scene in the choose-the-action Minigame
 
-- [ ] 1.1 Add Minigame kind `cafe-settle` to `SUPPORTED_MINIGAMES` (`src/shell/content/schema.ts`) and `MinigameKind` (`src/shell/nodes/node.ts`); regenerate the `content/FORMAT.md` tables; verify a schema test accepts `minigame: cafe-settle` and still rejects an unknown kind.
+- [x] 1.1 Add Minigame kind `cafe-settle` to `SUPPORTED_MINIGAMES` (`src/shell/content/schema.ts`) and `MinigameKind` (`src/shell/nodes/node.ts`); regenerate the `content/FORMAT.md` tables; verify a schema test accepts `minigame: cafe-settle` and still rejects an unknown kind.
 - [ ] 1.2 In `src/shell/nodes/readDog.ts`, add the scene `cafe` (5 beats, `SCENE_ACTIONS` = ignore, wait, marker, feed), the action `feed`, the states `begging_table` and `staring_waiter`, the `CORRECT_ACTION` map, `SCENE_OF_MINIGAME['cafe-settle']`, the salt and the script from design.md. Verify with `readDog.test.ts` cases for the correct actions, 5 beats, seeded variation, ending relaxed and at least three distinct buttons needed.
 - [ ] 1.3 Make `feed` always a mistake with the hints `minigame.cafe.hint.feed` and `minigame.cafe.hint.feedCalm`, and per-action hints `minigame.cafe.hint.<action>`; verify with `readDog.test.ts` cases for feed while begging, feed while relaxed and a wrong Wait.
 - [ ] 1.4 Report `timing` and `tension` plus the handling score for the scene; verify with a perfect run (100/100) and a run with two feeds (lower `tension`).

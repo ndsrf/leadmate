@@ -54,7 +54,7 @@ export function primerCardOf(card: PrimerCard): PrimerCardDef {
   return typeof card === 'string' ? { kind: 'real-world', text: card } : card;
 }
 
-export type MinigameKind = 'poste-hold' | 'harness-ritual' | 'doorbell-mat' | 'barkdoku' | 'dog-as-dog' | 'home-rest' | 'calm-first' | 'bark-home' | 'destroy' | 'eat-objects' | 'alone';
+export type MinigameKind = 'poste-hold' | 'harness-ritual' | 'doorbell-mat' | 'barkdoku' | 'dog-as-dog' | 'home-rest' | 'calm-first' | 'bark-home' | 'destroy' | 'eat-objects' | 'alone' | 'cafe-settle';
 
 export interface EncounterDef {
   id: string;
