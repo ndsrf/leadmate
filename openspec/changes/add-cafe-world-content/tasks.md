@@ -19,12 +19,12 @@
 
 ## 3. World 7 content, Stretches 1 and 2
 
-- [ ] 3.1 Create `theory-cafe-setup` (`lesson.yaml`, `es.md`, `en.md`, media) on choosing the table, arriving after a sniffing walk, the mat, a first visit of about 10 minutes, and "ask the venue" for access. Verify `npm run content:validate -- --channel beta` and the Lesson conformance test (word bounds, voice rules).
-- [ ] 3.2 Create the Node `cafe-arrive` (`stage`, `urban_street`, waypoint route ending at benches and a kiosk, `food` on the route, Leave-it available, density check met). Give it primer cards and a 3-question Checkpoint (the `duel-wall` / `duel-aisle` Image Duel and two text questions) in ES and EN. Verify validation and that it plays in the simulator preview.
-- [ ] 3.3 Create `mission-cafe-short-visit` (target, success, problems with fixes) in ES and EN; verify validation and the Mission brief.
-- [ ] 3.4 Create `theory-cafe-settle` (mat, chew, treats dropped while calm, never paying begging, the calm scale) in ES and EN; verify validation and the conformance test.
-- [ ] 3.5 Create the Node `cafe-settle` (`minigame: cafe-settle`, help text, primer cards, a Checkpoint with the `duel-calm` / `duel-asking` Image Duel and two text questions) in ES and EN. Verify validation and that the Node plays the Terrace scene from the map.
-- [ ] 3.6 Create `mission-cafe-settle` (stay settled through one coffee) in ES and EN; verify validation.
+- [x] 3.1 Create `theory-cafe-setup` (`lesson.yaml`, `es.md`, `en.md`, media) on choosing the table, arriving after a sniffing walk, the mat, a first visit of about 10 minutes, and "ask the venue" for access. Verify `npm run content:validate -- --channel beta` and the Lesson conformance test (word bounds, voice rules).
+- [x] 3.2 Create the Node `cafe-arrive` (`stage`, `urban_street`, waypoint route ending at benches and a kiosk, `food` on the route, Leave-it available, density check met). Give it primer cards and a 3-question Checkpoint (the `duel-wall` / `duel-aisle` Image Duel and two text questions) in ES and EN. Verify validation and that it plays in the simulator preview.
+- [x] 3.3 Create `mission-cafe-short-visit` (target, success, problems with fixes) in ES and EN; verify validation and the Mission brief.
+- [x] 3.4 Create `theory-cafe-settle` (mat, chew, treats dropped while calm, never paying begging, the calm scale) in ES and EN; verify validation and the conformance test.
+- [x] 3.5 Create the Node `cafe-settle` (`minigame: cafe-settle`, help text, primer cards, a Checkpoint with the `duel-calm` / `duel-asking` Image Duel and two text questions) in ES and EN. Verify validation and that the Node plays the Terrace scene from the map.
+- [x] 3.6 Create `mission-cafe-settle` (stay settled through one coffee) in ES and EN; verify validation.
 
 ## 4. World 7 content, Stretches 3 and 4, and the World
 
