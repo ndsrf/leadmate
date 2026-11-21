@@ -21,6 +21,7 @@
     "content:publish": "node scripts/content-publish.mjs",
     "content:shop-import": "node scripts/content-shop-import.mjs",
     "content:release-check": "node scripts/content-release-check.mjs",
+    "gen:baseline": "node scripts/gen-baseline.mjs",
     "release:prepare": "npm run sim:embed && node scripts/gen-baseline.mjs && npm run content:release-check",
     "eas-build-post-install": "npm run release:prepare"
   },
