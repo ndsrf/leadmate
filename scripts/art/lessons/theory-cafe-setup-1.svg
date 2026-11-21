@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-cafe-setup.image.1.caption" data-alt="trail.theory-cafe-setup.image.1.alt">
+  <!-- concept, top view: the corner table by the wall keeps the dog out of the lane; the table on the lane puts the dog under the waiters' feet -->
+  <rect x="0" y="0" width="640" height="360" fill="#EDE3CC"/>
+  <path d="M0 120H640M0 200H640M0 280H640M96 58V360M224 58V360M352 58V360M480 58V360M608 58V360" stroke="#D8CFB8" stroke-width="3"/>
+  <use href="#top-wall"/>
+  <use href="#top-lane" transform="translate(0 250)"/>
+  <path d="M340 66V242" fill="none" stroke="#1E2A3A" stroke-width="3.5" stroke-dasharray="14 10" stroke-linecap="round"/>
+  <use href="#top-planter" transform="translate(60 330)"/>
+  <use href="#top-planter" transform="translate(580 330)"/>
+  <use href="#top-mat" transform="translate(66 82)"/>
+  <use href="#top-dog-down" transform="translate(64 82)"/>
+  <use href="#top-cafe-chair" transform="translate(76 138)"/>
+  <use href="#top-person" transform="translate(76 138)"/>
+  <use href="#top-cafe-chair" transform="translate(186 138) rotate(180)"/>
+  <path d="M80 126C86 108 78 90 74 82" fill="none" stroke="#1E2A3A" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M80 126C86 108 78 90 74 82" fill="none" stroke="#6FAF73" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <use href="#top-cafe-table" transform="translate(130 138)"/>
+  <use href="#top-cafe-chair" transform="translate(446 186)"/>
+  <use href="#top-person" transform="translate(446 186)"/>
+  <use href="#top-cafe-chair" transform="translate(556 186) rotate(180)"/>
+  <use href="#top-cafe-table" transform="translate(500 186)"/>
+  <path d="M454 198C460 230 490 254 506 252" fill="none" stroke="#1E2A3A" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M454 198C460 230 490 254 506 252" fill="none" stroke="#6FAF73" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <use href="#top-dog-down" transform="translate(494 254)"/>
+  <use href="#top-waiter" transform="translate(600 250) rotate(-90)"/>
+  <use href="#attention" transform="translate(452 262) rotate(180) scale(0.8)"/>
+  <use href="#badge-check" transform="translate(236 96) scale(1.2)"/>
+  <use href="#badge-cross" transform="translate(600 140) scale(1.2)"/>
+</svg>

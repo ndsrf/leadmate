@@ -712,7 +712,7 @@
     <path d="M0 0H640" fill="none" stroke="#1E2A3A" stroke-width="3.5" stroke-dasharray="14 10" stroke-linecap="round"/>
   </symbol>
   <symbol id="pant" overflow="visible">
-    <path d="M0 -10q8 2 14 -4M2 2q10 2 18 0M0 14q8 -2 14 4" fill="none" stroke="#1E2A3A" stroke-width="3" stroke-linecap="round"/>
+    <path d="M0 0q8 -4 14 0M2 10q8 -4 14 0" fill="none" stroke="#1E2A3A" stroke-width="3" stroke-linecap="round"/>
   </symbol>
 </defs>
 </svg>

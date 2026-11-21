@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-cafe-settle.image.2.caption" data-alt="trail.theory-cafe-settle.image.2.alt">
+  <!-- scale of calm: sitting on alert, lying down, head resting on the paws; each step toward calm earns a dropped treat -->
+  <use href="#cafe-front"/>
+  <use href="#ground-terrace"/>
+  <use href="#mat" transform="translate(110 306)"/>
+  <use href="#dog-sit-alert" transform="translate(104 304)"/>
+  <use href="#arrow-ink" transform="translate(184 230) scale(0.8)"/>
+  <use href="#mat" transform="translate(324 306)"/>
+  <use href="#dog-down" transform="translate(316 304)"/>
+  <use href="#treat-drop" transform="translate(374 294)"/>
+  <use href="#heart" transform="translate(330 204)"/>
+  <use href="#arrow-ink" transform="translate(404 230) scale(0.8)"/>
+  <use href="#mat" transform="translate(540 306)"/>
+  <use href="#dog-rest" transform="translate(530 304)"/>
+  <use href="#treat-drop" transform="translate(596 294)"/>
+  <use href="#heart" transform="translate(548 214)"/>
+  <use href="#heart" transform="translate(580 196) scale(0.8)"/>
+</svg>
