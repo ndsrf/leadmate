@@ -234,78 +234,178 @@ export function LivingRoomScene({ t, posture, sending, coat }: { t: Translate; p
 
 const TERRACE_DOG_X = 64;
 /** Scene x of the waiter at the start and end of a crossing, and of the treat's landing point on the mat. */
-const WAITER_FROM = -40;
+const WAITER_FROM = -60;
 const WAITER_TO = 330;
 const TREAT_X = 112;
 const TREAT_FROM_Y = 40;
 const TREAT_TO_Y = 150;
 
-/** The café front, the table with its cup, the chair and the mat of the Terrace scene (the canvas "Kit de terraza" shapes). */
+const KIT_INK = lightColor.ink;
+const KIT_W = 2.5;
+const coat = theme.coat;
+
+/** Ports of the kit symbols (scripts/art/lessons/_kit/kit.mjs, canvas board "Mundo 7 — Kit de terraza"): side views stand on y = 0 facing +x, at kit scale (2 kit units per scene unit). */
+function KitCup() {
+  return (
+    <G>
+      <Ellipse cx={0} cy={-1} rx={13} ry={3.5} fill={lightColor.surface} stroke={KIT_INK} strokeWidth={2} />
+      <Path d="M8 -12q8 0 7 5q-1 4 -8 3" fill="none" stroke={KIT_INK} strokeWidth={2.2} />
+      <Path d="M-8 -15H8V-9Q8 -3 0 -3Q-8 -3 -8 -9z" fill={lightColor.surface} stroke={KIT_INK} strokeWidth={2} strokeLinejoin="round" />
+      <Ellipse cx={0} cy={-15} rx={8} ry={2} fill={coat.chocolate} stroke={KIT_INK} strokeWidth={1.5} />
+    </G>
+  );
+}
+
+function KitTable() {
+  return (
+    <G>
+      <Ellipse cx={0} cy={1} rx={40} ry={5} fill={KIT_INK} opacity={0.14} />
+      <Path d="M-28 0Q0 -16 28 0z" fill={lightColor.inkMuted} stroke={KIT_INK} strokeWidth={KIT_W} strokeLinejoin="round" />
+      <Rect x={-5} y={-98} width={10} height={94} rx={3} fill={lightColor.inkMuted} stroke={KIT_INK} strokeWidth={KIT_W} />
+      <Rect x={-58} y={-108} width={116} height={12} rx={6} fill={lightColor.surface} stroke={KIT_INK} strokeWidth={KIT_W} />
+    </G>
+  );
+}
+
+function KitChair() {
+  return (
+    <G>
+      <Ellipse cx={0} cy={1} rx={30} ry={4} fill={KIT_INK} opacity={0.14} />
+      <Path d="M-20 0L-16 -60M20 0L16 -60M-28 -60L-30 -124" fill="none" stroke={KIT_INK} strokeWidth={8} strokeLinecap="round" />
+      <Path d="M-20 0L-16 -60M20 0L16 -60M-28 -60L-30 -124" fill="none" stroke={lightColor.inkMuted} strokeWidth={4} strokeLinecap="round" />
+      <Rect x={-38} y={-126} width={14} height={44} rx={6} fill={lightColor.brand} stroke={KIT_INK} strokeWidth={KIT_W} />
+      <Rect x={-30} y={-66} width={56} height={10} rx={5} fill={lightColor.brand} stroke={KIT_INK} strokeWidth={KIT_W} />
+    </G>
+  );
+}
+
+function KitPlanter() {
+  return (
+    <G>
+      <Ellipse cx={0} cy={1} rx={46} ry={4} fill={KIT_INK} opacity={0.14} />
+      <Path d="M-36 -30C-44 -64 -10 -70 0 -52C12 -74 46 -62 36 -30z" fill={lightColor.brand} stroke={KIT_INK} strokeWidth={KIT_W} strokeLinejoin="round" />
+      <Path d="M-14 -40C-14 -54 6 -56 8 -44" fill="none" stroke={lightColor.brandDeep} strokeWidth={5} strokeLinecap="round" />
+      <Rect x={-42} y={-34} width={84} height={34} rx={5} fill={theme.world.home.deep} stroke={KIT_INK} strokeWidth={KIT_W} />
+      <Path d="M-42 -24H42" stroke={coat.canela} strokeWidth={4} />
+    </G>
+  );
+}
+
+/** The Guide seated, hand on the table (person-seated). */
+function KitPersonSeated() {
+  return (
+    <G>
+      <Rect x={30} y={-64} width={14} height={64} rx={7} fill={lightColor.inkMuted} stroke={KIT_INK} strokeWidth={KIT_W} />
+      <Ellipse cx={42} cy={0} rx={11} ry={5} fill={KIT_INK} />
+      <Rect x={-10} y={-76} width={56} height={16} rx={8} fill={lightColor.inkMuted} stroke={KIT_INK} strokeWidth={KIT_W} />
+      <G transform="translate(-4 -68)">
+        <Rect x={-22} y={-66} width={44} height={70} rx={18} fill={lightColor.coral} stroke={KIT_INK} strokeWidth={KIT_W} />
+        <Circle cx={2} cy={-84} r={17} fill={coat.crema} stroke={KIT_INK} strokeWidth={KIT_W} />
+        <Path d="M-15 -86C-16 -104 12 -108 18 -92C10 -96 -2 -94 -6 -86z" fill={coat.negro} stroke={KIT_INK} strokeWidth={KIT_W} strokeLinejoin="round" />
+        <Circle cx={10} cy={-84} r={2.4} fill={KIT_INK} />
+      </G>
+      <G transform="translate(0 -124) rotate(-78)">
+        <Rect x={-6.5} y={-4} width={13} height={52} rx={6.5} fill={lightColor.coral} stroke={KIT_INK} strokeWidth={KIT_W} />
+        <Circle cx={0} cy={50} r={7} fill={coat.crema} stroke={KIT_INK} strokeWidth={KIT_W} />
+      </G>
+    </G>
+  );
+}
+
+/** The waiter with a tray of two cups (waiter); origin at the feet, so the SVG viewBox is -40 -200 110 206. */
+function KitWaiter() {
+  return (
+    <G>
+      <Ellipse cx={0} cy={1} rx={34} ry={5} fill={KIT_INK} opacity={0.14} />
+      <G transform="translate(-2 -80) rotate(16)">
+        <Rect x={-7} y={0} width={14} height={80} rx={7} fill={coat.negro} stroke={KIT_INK} strokeWidth={KIT_W} />
+        <Ellipse cx={4} cy={80} rx={11} ry={5} fill={KIT_INK} />
+      </G>
+      <G transform="translate(2 -80) rotate(-16)">
+        <Rect x={-7} y={0} width={14} height={80} rx={7} fill={coat.negro} stroke={KIT_INK} strokeWidth={KIT_W} />
+        <Ellipse cx={4} cy={80} rx={11} ry={5} fill={KIT_INK} />
+      </G>
+      <G transform="translate(-4 -126) rotate(22)">
+        <Rect x={-6.5} y={-4} width={13} height={50} rx={6.5} fill={coat.blanco} stroke={KIT_INK} strokeWidth={KIT_W} />
+        <Circle cx={0} cy={48} r={7} fill={coat.crema} stroke={KIT_INK} strokeWidth={KIT_W} />
+      </G>
+      <G transform="translate(0 -76)">
+        <Rect x={-22} y={-66} width={44} height={70} rx={18} fill={coat.blanco} stroke={KIT_INK} strokeWidth={KIT_W} />
+        <Path d="M-20 -30H20V-8Q20 4 0 4Q-20 4 -20 -8z" fill={coat.negro} stroke={KIT_INK} strokeWidth={KIT_W} strokeLinejoin="round" />
+        <Path d="M-4 -64L2 -56L8 -64" fill="none" stroke={KIT_INK} strokeWidth={KIT_W} strokeLinejoin="round" />
+        <Circle cx={2} cy={-84} r={17} fill={coat.atigrado} stroke={KIT_INK} strokeWidth={KIT_W} />
+        <Path d="M-15 -88C-14 -106 14 -108 18 -92C8 -98 -4 -96 -8 -86z" fill={KIT_INK} stroke={KIT_INK} strokeWidth={KIT_W} strokeLinejoin="round" />
+        <Circle cx={10} cy={-84} r={2.4} fill={KIT_INK} />
+      </G>
+      <G transform="translate(6 -130) rotate(-160)">
+        <Rect x={-6.5} y={-4} width={13} height={50} rx={6.5} fill={coat.blanco} stroke={KIT_INK} strokeWidth={KIT_W} />
+        <Circle cx={0} cy={48} r={7} fill={coat.atigrado} stroke={KIT_INK} strokeWidth={KIT_W} />
+      </G>
+      <Ellipse cx={26} cy={-182} rx={32} ry={5} fill={lightColor.edge} stroke={KIT_INK} strokeWidth={KIT_W} />
+      <G transform="translate(12 -186) scale(0.9)">
+        <KitCup />
+      </G>
+      <G transform="translate(40 -186) scale(0.9)">
+        <KitCup />
+      </G>
+    </G>
+  );
+}
+
+/** The terrace: café front with awning (cafe-front), the terrace floor and kerb (ground-terrace), planter, mat, chair, the seated Guide, table with a cup. */
 function TerraceBackdrop() {
   return (
     <G>
-      <Rect x={0} y={0} width={SCENE.w} height={130} fill={lightColor.sky} />
-      {/* café front: wall, window, door and awning */}
-      <Rect x={150} y={14} width={170} height={118} fill={lightColor.accentSoft} />
-      <Rect x={160} y={44} width={60} height={50} rx={3} fill={lightColor.surface} stroke={lightColor.lockedText} strokeWidth={3} />
-      <Line x1={190} y1={44} x2={190} y2={94} stroke={lightColor.lockedText} strokeWidth={2} />
-      <Rect x={238} y={44} width={40} height={88} rx={3} fill={lightColor.infoSoft} stroke={lightColor.lockedText} strokeWidth={3} />
-      <Circle cx={270} cy={90} r={2.5} fill={lightColor.accent} />
-      <Path d="M144 18 L326 18 L326 38 Q314 48 302 38 Q290 48 278 38 Q266 48 254 38 Q242 48 230 38 Q218 48 206 38 Q194 48 182 38 Q170 48 158 38 L144 38 Z" fill={lightColor.coral} />
-      {/* pavement */}
-      <Rect x={0} y={130} width={SCENE.w} height={60} fill={lightColor.edge} />
-      <Rect x={0} y={130} width={SCENE.w} height={4} fill={lightColor.surface} />
-      {/* planter */}
-      <Rect x={6} y={104} width={30} height={26} rx={4} fill={lightColor.coral} />
-      <Circle cx={14} cy={98} r={9} fill={lightColor.brandDeep} />
-      <Circle cx={28} cy={96} r={10} fill={lightColor.brand} />
-      {/* the mat the Dog rests on */}
-      <Rect x={58} y={160} width={110} height={16} rx={7} fill={lightColor.info} />
-      <Rect x={64} y={164} width={98} height={8} rx={4} fill={lightColor.infoSoft} />
-      {/* chair */}
-      <Rect x={252} y={92} width={6} height={52} rx={3} fill={lightColor.lockedText} />
-      <Rect x={252} y={116} width={38} height={7} rx={3} fill={lightColor.lockedText} />
-      <Rect x={254} y={123} width={5} height={30} fill={lightColor.lockedText} />
-      <Rect x={284} y={123} width={5} height={30} fill={lightColor.lockedText} />
+      <Rect x={0} y={0} width={SCENE.w} height={SCENE.h} fill={lightColor.surfaceSunken} />
+      <G transform="scale(0.5)">
+        <Rect x={0} y={0} width={640} height={288} fill={theme.world.home.sky} />
+        <Rect x={-4} y={22} width={648} height={20} fill={theme.world.home.deep} stroke={KIT_INK} strokeWidth={3} />
+        <Rect x={40} y={92} width={220} height={150} rx={6} fill={lightColor.sky} stroke={KIT_INK} strokeWidth={3.5} />
+        <Path d="M150 92V242M40 150H260" stroke={KIT_INK} strokeWidth={3} />
+        <Path d="M60 110l30 26M180 110l30 26" stroke={lightColor.surface} strokeWidth={5} strokeLinecap="round" />
+        <Rect x={300} y={100} width={90} height={188} rx={6} fill={coat.chocolate} stroke={KIT_INK} strokeWidth={3.5} />
+        <Rect x={314} y={116} width={62} height={70} rx={4} fill={lightColor.sky} stroke={KIT_INK} strokeWidth={2.5} />
+        <Circle cx={376} cy={210} r={4} fill={lightColor.accent} stroke={KIT_INK} strokeWidth={2} />
+        <Rect x={440} y={92} width={200} height={150} rx={6} fill={lightColor.sky} stroke={KIT_INK} strokeWidth={3.5} />
+        <Path d="M540 92V242M440 150H640" stroke={KIT_INK} strokeWidth={3} />
+        <Path d="M462 110l30 26M570 110l30 26" stroke={lightColor.surface} strokeWidth={5} strokeLinecap="round" />
+        <Path d="M-4 42H644V70H-4z" fill={lightColor.surface} stroke={KIT_INK} strokeWidth={3} />
+        <Path d="M0 42h40v28h-40zM80 42h40v28h-40zM160 42h40v28h-40zM240 42h40v28h-40zM320 42h40v28h-40zM400 42h40v28h-40zM480 42h40v28h-40zM560 42h40v28h-40z" fill={lightColor.coral} />
+        <Path d="M-4 70Q16 86 36 70Q56 86 76 70Q96 86 116 70Q136 86 156 70Q176 86 196 70Q216 86 236 70Q256 86 276 70Q296 86 316 70Q336 86 356 70Q376 86 396 70Q416 86 436 70Q456 86 476 70Q496 86 516 70Q536 86 556 70Q576 86 596 70Q616 86 636 70Q646 78 644 70" fill={lightColor.coral} stroke={KIT_INK} strokeWidth={3} strokeLinejoin="round" />
+        <Rect x={-4} y={288} width={648} height={52} fill={lightColor.surfaceSunken} stroke={KIT_INK} strokeWidth={3.5} />
+        <Path d="M64 288v52M160 288v52M256 288v52M352 288v52M448 288v52M544 288v52M-4 314H644" stroke={lightColor.edge} strokeWidth={3} />
+        <Rect x={-4} y={340} width={648} height={60} fill={coat.grisAzulado} stroke={KIT_INK} strokeWidth={3.5} />
+      </G>
+      {/* planter against the café front */}
+      <G transform="translate(300 170) scale(0.5)">
+        <KitPlanter />
+      </G>
+      {/* the mat the Dog rests on (top-mat colours) */}
+      <Rect x={36} y={165} width={118} height={12} rx={5} fill={lightColor.accentSoft} stroke={KIT_INK} strokeWidth={1.5} />
+      <Path d="M62 165v12M92 165v12M122 165v12" stroke={lightColor.accent} strokeWidth={3} />
+      {/* chair with the seated Guide, facing the table */}
+      <G transform="translate(176 172) scale(0.5)">
+        <KitChair />
+      </G>
+      <G transform="translate(176 171) scale(0.5)">
+        <KitPersonSeated />
+      </G>
       {/* table with a cup */}
-      <Rect x={198} y={112} width={10} height={44} fill={lightColor.lockedText} />
-      <Ellipse cx={203} cy={158} rx={18} ry={4} fill={lightColor.lockedText} />
-      <Ellipse cx={203} cy={112} rx={34} ry={7} fill={lightColor.surface} stroke={lightColor.lockedText} strokeWidth={3} />
-      <Path d="M192 98 L192 108 Q192 112 197 112 L207 112 Q212 112 212 108 L212 98 Z" fill={lightColor.surface} stroke={lightColor.ink} strokeWidth={2} />
-      <Path d="M212 101 Q219 101 219 106 Q219 110 212 109" fill="none" stroke={lightColor.ink} strokeWidth={2} />
-      <Rect x={193} y={99} width={18} height={3} fill={lightColor.coral} />
+      <G transform="translate(246 172) scale(0.5)">
+        <KitTable />
+      </G>
+      <G transform="translate(244 118) scale(0.5)">
+        <KitCup />
+      </G>
     </G>
   );
 }
 
-/** The Handler seated on the chair, arms resting on the table, in the Handler palette. */
-function SeatedHandler() {
-  const skin = HANDLER_PALETTE;
-  return (
-    <G>
-      <Line x1={266} y1={124} x2={254} y2={124} stroke={skin.trousers} strokeWidth={9} strokeLinecap="round" />
-      <Line x1={254} y1={124} x2={254} y2={152} stroke={skin.trousers} strokeWidth={9} strokeLinecap="round" />
-      <Ellipse cx={250} cy={154} rx={8} ry={3.5} fill={skin.shoes} />
-      <Rect x={262} y={86} width={22} height={40} rx={9} fill={skin.shirt} />
-      <Line x1={266} y1={96} x2={248} y2={112} stroke={skin.shirt} strokeWidth={6} strokeLinecap="round" />
-      <Circle cx={273} cy={74} r={11} fill={skin.skin} />
-      <Path d="M262 73 Q262 60 273 60 Q284 60 284 73 Q279 67 273 67 Q267 67 262 73 Z" fill={skin.hair} />
-    </G>
-  );
-}
-
-/** A waiter with a tray, seen from the side; drawn at x 0 and moved across the scene. */
+/** The waiter, drawn from the kit symbol; the view is 110 kit units wide with the feet at x 40. */
 function Waiter() {
   return (
-    <Svg width="100%" height="100%" viewBox="0 0 40 70" aria-hidden>
-      <Line x1={17} y1={44} x2={15} y2={66} stroke={lightColor.ink} strokeWidth={6} strokeLinecap="round" />
-      <Line x1={23} y1={44} x2={26} y2={66} stroke={lightColor.ink} strokeWidth={6} strokeLinecap="round" />
-      <Rect x={11} y={20} width={18} height={28} rx={7} fill={lightColor.surface} stroke={lightColor.ink} strokeWidth={2} />
-      <Circle cx={20} cy={12} r={8} fill={HANDLER_PALETTE.skin} />
-      <Path d="M12 11 Q12 3 20 3 Q28 3 28 11 Q24 7 20 7 Q16 7 12 11 Z" fill={HANDLER_PALETTE.hair} />
-      <Line x1={24} y1={26} x2={34} y2={22} stroke={lightColor.surface} strokeWidth={5} strokeLinecap="round" />
-      <Rect x={26} y={18} width={13} height={3} rx={1.5} fill={lightColor.lockedText} />
-      <Circle cx={32} cy={15} r={3} fill={lightColor.accent} />
+    <Svg width="100%" height="100%" viewBox="-40 -200 110 206" aria-hidden>
+      <KitWaiter />
     </Svg>
   );
 }
@@ -333,13 +433,12 @@ export function TerraceScene({ t, posture, waiter, treat, coat }: { t: Translate
     <Stage onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
       <Svg style={fill} viewBox={`0 0 ${SCENE.w} ${SCENE.h}`} accessibilityLabel={t('minigame.terrace')}>
         <TerraceBackdrop />
-        <SeatedHandler />
       </Svg>
-      <View accessible={false} style={{ position: 'absolute', left: pctX(TERRACE_DOG_X - 10), top: pctY(170 - GROUND_Y), width: pctX(DOG_W) }}>
+      <View accessible={false} style={{ position: 'absolute', left: pctX(TERRACE_DOG_X - 36), top: pctY(170 - GROUND_Y), width: pctX(DOG_W) }}>
         <CanineMinigameAvatar t={t} posture={posture} coat={coat} width={(width * DOG_W) / SCENE.w} facing="right" />
       </View>
       {waiter ? (
-        <Animated.View accessible={false} pointerEvents="none" testID="terrace-waiter" style={[{ position: 'absolute', left: 0, top: pctY(56), width: pctX(40), height: pctY(70) }, cross]}>
+        <Animated.View accessible={false} pointerEvents="none" testID="terrace-waiter" style={[{ position: 'absolute', left: 0, top: pctY(68), width: pctX(55), height: pctY(103) }, cross]}>
           <Waiter />
         </Animated.View>
       ) : null}
