@@ -2412,7 +2412,7 @@ export default function App() {
             )}
             {playingStage && bundle === 'error' && <ErrorOverlay t={t} onRetry={retry} />}
             <DevPerfOverlay />
-            <StatusBar style="dark" hidden />
+            <StatusBar style="dark" />
           </PaletteRoot>
         </PaletteProvider>
       </AnalyticsProvider>
