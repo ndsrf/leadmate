@@ -162,3 +162,27 @@ describe('feedback seen kinds', () => {
     expect((await loadDogRecord(store)).seenHints).toEqual(['feedback:poste']);
   });
 });
+
+describe('Hints for the guided first Stage', () => {
+  it('explains the "!" and the ring in one Hint at the first Fixation, and records the rhythm and Marker Hints with it', () => {
+    expect(hintFor('first-fixation', [], 'full', undefined, { guided: true })).toBe('fixation-ring');
+    expect(hintFor('first-fixation', [], 'full')).toBe('marker-rhythm');
+    const r = markHintSeen(newDogRecord(), 'fixation-ring');
+    expect([...r.seenHints].sort()).toEqual(['fixation-ring', 'marker', 'marker-rhythm']);
+    expect(hintFor('first-fixation', r.seenHints, 'full', undefined, { guided: true })).toBeNull();
+  });
+
+  it('keeps the Marker Hint when the ring is not shown', () => {
+    expect(hintFor('first-fixation', [], 'ring', undefined, { guided: true })).toBe('marker');
+  });
+
+  it('explains the Alert circle, the eye and the bark arcs once, in the guided first Stage only', () => {
+    expect(hintFor('dog-sign', [], undefined, undefined, { guided: true, sign: 'alert' })).toBe('sign-alert');
+    expect(hintFor('dog-sign', [], undefined, undefined, { guided: true, sign: 'eye' })).toBe('sign-eye');
+    expect(hintFor('dog-sign', [], undefined, undefined, { guided: true, sign: 'bark' })).toBe('sign-bark');
+    expect(hintFor('dog-sign', ['sign-eye'], undefined, undefined, { guided: true, sign: 'eye' })).toBeNull();
+    expect(hintFor('dog-sign', [], undefined, undefined, { sign: 'eye' })).toBeNull();
+    expect(hintFor('dog-sign', [], undefined, undefined, { guided: true, sign: 'scent' })).toBeNull();
+    expect(hintFor('dog-sign-gone', [], undefined, undefined, { guided: true, sign: 'eye' })).toBeNull();
+  });
+});

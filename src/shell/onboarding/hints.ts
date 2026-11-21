@@ -1,6 +1,6 @@
 import type { TextKey } from '../../i18n';
 import type { FeedbackActionKind } from '../../sim/feedbackKinds';
-import type { StageControl, StageSignal } from '../../sim/messages';
+import type { DogSign, StageControl, StageSignal } from '../../sim/messages';
 import type { AssistLevel } from '../../hud/markerAssist';
 import type { DogRecord } from '../dogRecord';
 
@@ -12,6 +12,13 @@ const HINT_FOR_SIGNAL: Partial<Record<StageSignal, HintId>> = {
   'first-fixation': 'marker',
   'leash-limit': 'poste',
   'dog-approaching': 'dog-approaching',
+};
+
+/** The Hint of each Dog sign the guided first Stage explains; the Fixation "!" has its own (`fixation-ring`), and the scent dots and the Sintonía glow cannot occur in it. */
+export const HINT_FOR_DOG_SIGN: Partial<Record<DogSign, HintId>> = {
+  alert: 'sign-alert',
+  eye: 'sign-eye',
+  bark: 'sign-bark',
 };
 
 export const HINT_TEXT: Record<HintId, TextKey> = {
@@ -83,16 +90,28 @@ export function closeMarksOn(
   return { gather: on('gather'), poste: on('poste'), marker: on('close-mark') };
 }
 
+/** What `hintFor` needs beyond the signal: the guided first Stage (the only one that explains Dog signs) and the sign a `dog-sign` signal names. */
+export interface HintContext {
+  guided?: boolean;
+  sign?: DogSign;
+}
+
 /** The hint a Stage signal calls for, or null when that hint was already seen or its action is not Introduced. */
 export function hintFor(
   signal: StageSignal,
   seenHints: readonly string[],
   assist?: AssistLevel,
   introducedKinds?: readonly string[],
+  context: HintContext = {},
 ): HintId | null {
+  if (signal === 'dog-sign') {
+    const id = context.guided && context.sign ? HINT_FOR_DOG_SIGN[context.sign] : undefined;
+    return id === undefined || seenHints.includes(id) ? null : id;
+  }
   if (signal === 'first-fixation') {
     if (assist === 'full' && !seenHints.includes('marker-rhythm')) {
-      return 'marker-rhythm';
+      // the guided first Stage explains the "!" and the ring in one Hint that ends with the Marker instruction
+      return context.guided ? 'fixation-ring' : 'marker-rhythm';
     }
     return seenHints.includes('marker') ? null : 'marker';
   }
@@ -110,8 +129,9 @@ export function hintsRemain(seenHints: readonly string[]): boolean {
 }
 
 export function markHintSeen(record: DogRecord, id: HintId): DogRecord {
-  if (id === 'marker-rhythm') {
+  if (id === 'marker-rhythm' || id === 'fixation-ring') {
     const next = new Set(record.seenHints);
+    next.add(id);
     next.add('marker-rhythm');
     next.add('marker');
     return { ...record, seenHints: [...next] };
