@@ -11,11 +11,13 @@ import type { Fix, MissionDef, MissionProblem } from '../missions/mission';
 import type { Stop, WorldDef } from '../world';
 import {
   buildLessonBlocks,
+  parseGameMarkdown,
   parseLessonMarkdown,
   parseMissionMarkdown,
   parseNodeMarkdown,
   parseWorldMarkdown,
   parseShopItemMarkdown,
+  type ParsedGameContent,
   type ParsedLessonContent,
   type ParsedMissionContent,
   type ParsedMissionFix,
@@ -24,7 +26,7 @@ import {
   type ParsedShopText,
   type ParsedWorldContent,
 } from './parser';
-import { duelImageFile, isDuelQuestionYaml, type DuelCheckpointQuestionYaml } from './schema';
+import { duelImageFile, isDuelQuestionYaml, type DuelCheckpointQuestionYaml, type GameDifficulty, type GameYaml } from './schema';
 import type {
   LessonYaml,
   MissionYaml,
@@ -75,6 +77,38 @@ export interface ResolvedRecommendation {
   explanation: TextKey;
 }
 
+export interface ResolvedGameShopLink {
+  target: string;
+  targetKind: ShopItemKind;
+  note?: TextKey;
+}
+
+export interface ResolvedGameImage {
+  file: string;
+  path: string;
+  alt: TextKey;
+  caption?: TextKey;
+}
+
+export interface ResolvedGame {
+  id: string;
+  order: number;
+  free?: boolean;
+  difficulty?: GameDifficulty;
+  minutes?: number;
+  materialsKinds?: string[];
+  youtubeId?: string;
+  video?: { type: 'youtube'; id: string };
+  title: TextKey;
+  intro: TextKey;
+  materials?: TextKey[];
+  safety?: TextKey;
+  steps: TextKey[];
+  tips?: TextKey[];
+  images: ResolvedGameImage[];
+  needs?: ResolvedGameShopLink[];
+}
+
 export interface ResolvedPack {
   worlds: WorldDef[];
   lessons: LessonDef[];
@@ -82,6 +116,7 @@ export interface ResolvedPack {
   missions: MissionDef[];
   catalog: Record<string, string>;
   shop: ResolvedShop;
+  games: ResolvedGame[];
 }
 
 // Canonical mappings from IDs to existing catalog slugs for exact backward compatibility
@@ -725,6 +760,146 @@ export function resolvePack(pack: ContentPack, language: string = 'es', options?
     return missionDef;
   });
 
+  // 5. Resolve Games
+  const games: ResolvedGame[] = Object.entries(pack.games ?? {})
+    .sort(([idA, entryA], [idB, entryB]) => {
+      const orderA = entryA.config.order ?? 0;
+      const orderB = entryB.config.order ?? 0;
+      if (orderA !== orderB) return orderA - orderB;
+      return idA.localeCompare(idB);
+    })
+    .map(([id, entry]) => {
+      const cfg = entry.config;
+      const textEsRaw = entry.text?.['es'] ?? '';
+      const textLangRaw = language !== 'es' ? entry.text?.[language] : undefined;
+
+      const parsedEs: ParsedGameContent = typeof textEsRaw === 'string' ? parseGameMarkdown(textEsRaw) : (textEsRaw as ParsedGameContent);
+      const parsedLang: Partial<ParsedGameContent> | undefined = textLangRaw ? (typeof textLangRaw === 'string' ? parseGameMarkdown(textLangRaw) : textLangRaw) : undefined;
+
+      const keyPrefix = `game.${id}`;
+      const pick = (l: string | undefined, e: string | undefined) => (l && l.trim() ? l : e || '');
+
+      const titleKey = `${keyPrefix}.title` as TextKey;
+      const introKey = `${keyPrefix}.intro` as TextKey;
+
+      catalog[titleKey] = pick(parsedLang?.title, parsedEs.title) || id;
+      catalog[introKey] = pick(parsedLang?.intro, parsedEs.intro);
+
+      // Steps (ordered list of steps with fallback to Spanish)
+      const stepsRaw = (parsedLang?.steps && parsedLang.steps.length > 0) ? parsedLang.steps : parsedEs.steps ?? [];
+      const steps: TextKey[] = stepsRaw.map((stepText, idx) => {
+        const stepKey = `${keyPrefix}.step.${idx + 1}` as TextKey;
+        catalog[stepKey] = stepText;
+        return stepKey;
+      });
+
+      const resolvedGame: ResolvedGame = {
+        id,
+        order: cfg.order ?? 0,
+        title: titleKey,
+        intro: introKey,
+        steps,
+        images: [],
+      };
+
+      if (cfg.free !== undefined) resolvedGame.free = cfg.free;
+      if (cfg.difficulty !== undefined) resolvedGame.difficulty = cfg.difficulty;
+      if (cfg.minutes !== undefined) resolvedGame.minutes = cfg.minutes;
+      if (cfg.materials && cfg.materials.length > 0) resolvedGame.materialsKinds = cfg.materials;
+
+      // Optional text sections: materials, safety, tips
+      const matRaw = (parsedLang?.materials && parsedLang.materials.length > 0) ? parsedLang.materials : parsedEs.materials;
+      if (matRaw && matRaw.length > 0) {
+        resolvedGame.materials = matRaw.map((matText, idx) => {
+          const matKey = `${keyPrefix}.material.${idx + 1}` as TextKey;
+          catalog[matKey] = matText;
+          return matKey;
+        });
+      }
+
+      const safetyText = pick(parsedLang?.safety, parsedEs.safety);
+      if (safetyText) {
+        const safetyKey = `${keyPrefix}.safety` as TextKey;
+        catalog[safetyKey] = safetyText;
+        resolvedGame.safety = safetyKey;
+      }
+
+      const tipsRaw = (parsedLang?.tips && parsedLang.tips.length > 0) ? parsedLang.tips : parsedEs.tips;
+      if (tipsRaw && tipsRaw.length > 0) {
+        resolvedGame.tips = tipsRaw.map((tipText, idx) => {
+          const tipKey = `${keyPrefix}.tip.${idx + 1}` as TextKey;
+          catalog[tipKey] = tipText;
+          return tipKey;
+        });
+      }
+
+      // Images
+      if (Array.isArray(cfg.images)) {
+        for (const img of cfg.images) {
+          const rawImg = duelImageFile(img);
+          const altKey = `${keyPrefix}.image.${rawImg}.alt` as TextKey;
+          const esImg = parsedEs.images?.[rawImg] ?? parsedEs.images?.[img];
+          const langImg = parsedLang?.images?.[rawImg] ?? parsedLang?.images?.[img];
+          catalog[altKey] = (langImg?.alt && langImg.alt.trim()) ? langImg.alt : esImg?.alt || '';
+
+          const resolvedImage: ResolvedGameImage = {
+            file: rawImg,
+            path: `games/${id}/media/${rawImg}`,
+            alt: altKey,
+          };
+
+          if (langImg?.caption || esImg?.caption) {
+            const capKey = `${keyPrefix}.image.${rawImg}.caption` as TextKey;
+            catalog[capKey] = (langImg?.caption && langImg.caption.trim()) ? langImg.caption : esImg?.caption || '';
+            resolvedImage.caption = capKey;
+          }
+
+          resolvedGame.images.push(resolvedImage);
+        }
+      }
+
+      // Shop links (needs)
+      if (Array.isArray(cfg.needs) && cfg.needs.length > 0) {
+        const resolvedNeeds: ResolvedGameShopLink[] = [];
+        for (const targetId of cfg.needs) {
+          const targetKind = shop.idToKind[targetId];
+          if (!targetKind) {
+            // Target is either missing in pack or hidden by the shop for this language!
+            continue;
+          }
+          const esNote = parsedEs.shop?.[targetId];
+          const langNote = parsedLang?.shop?.[targetId];
+          const noteText = (langNote && langNote.trim()) ? langNote : esNote;
+
+          let noteKey: TextKey | undefined;
+          if (noteText) {
+            noteKey = `${keyPrefix}.shop.${targetId}.note` as TextKey;
+            catalog[noteKey] = noteText;
+          }
+
+          resolvedNeeds.push({
+            target: targetId,
+            targetKind,
+            ...(noteKey ? { note: noteKey } : {}),
+          });
+        }
+        if (resolvedNeeds.length > 0) {
+          resolvedGame.needs = resolvedNeeds;
+        }
+      }
+
+      // Video (youtube)
+      if (cfg.youtube) {
+        const ytid = cfg.youtube[language] || cfg.youtube['es'] || cfg.youtube['default'] || Object.values(cfg.youtube)[0];
+        if (ytid) {
+          resolvedGame.youtubeId = ytid;
+          resolvedGame.video = { type: 'youtube', id: ytid };
+        }
+      }
+
+      return resolvedGame;
+    });
+
   return {
     worlds,
     lessons,
@@ -732,6 +907,7 @@ export function resolvePack(pack: ContentPack, language: string = 'es', options?
     missions,
     catalog,
     shop,
+    games,
   };
 }
 

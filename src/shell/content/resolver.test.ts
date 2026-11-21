@@ -315,8 +315,10 @@ describe('resolvePack', () => {
     expect(resolvedEn.catalog[nodeEn.simulation.encounters![3].title]).toBe('Turn and Look');
   });
 
+  let makeShopFixturePack: () => ContentPack;
+
   describe('Shop and Recommendation resolution', () => {
-    function makeShopFixturePack(): ContentPack {
+    makeShopFixturePack = function (): ContentPack {
       const pack = makeFixturePack();
       pack.shop = {
         config: {
@@ -569,6 +571,204 @@ describe('resolvePack', () => {
 
       expect(nodeWithout.introduces).toBeUndefined();
       expect(nodeWith.introduces).toEqual(['go-sniff', 'go-sniff-cut-short']);
+    });
+  });
+
+  describe('Dog Games resolution (Task 2.1)', () => {
+    it('sorts games by order ascending, breaking ties by id', () => {
+      const pack = makeFixturePack();
+      pack.games = {
+        'game-c': {
+          config: { id: 'game-c', order: 2, images: ['c.png'] },
+          text: { es: { title: 'Game C', intro: 'Intro C', steps: ['Step C'] } },
+        },
+        'game-b': {
+          config: { id: 'game-b', order: 1, images: ['b.png'] },
+          text: { es: { title: 'Game B', intro: 'Intro B', steps: ['Step B'] } },
+        },
+        'game-a': {
+          config: { id: 'game-a', order: 1, images: ['a.png'] },
+          text: { es: { title: 'Game A', intro: 'Intro A', steps: ['Step A'] } },
+        },
+      };
+
+      const resolved = resolvePack(pack, 'es');
+      expect(resolved.games.map((g) => g.id)).toEqual(['game-a', 'game-b', 'game-c']);
+    });
+
+    it('resolves Spanish game with full fields, media, and catalog keys', () => {
+      const pack = makeFixturePack();
+      pack.games = {
+        'find-treat': {
+          config: {
+            id: 'find-treat',
+            order: 1,
+            free: true,
+            difficulty: 'easy',
+            minutes: 5,
+            materials: ['fabric', 'food'],
+            images: ['step-1.png'],
+            youtube: { es: 'yt-es-123' },
+          },
+          text: {
+            es: {
+              title: 'Encuentra el premio',
+              intro: 'Un juego olfativo divertido.',
+              materials: ['Una manta', 'Premios sabrosos'],
+              safety: 'Supervisa al perro con la manta.',
+              steps: ['Esconde el premio', 'Pide buscar', 'Felicita'],
+              tips: ['Empieza fácil', 'Aumenta la dificultad poco a poco'],
+              images: {
+                'step-1.png': { alt: 'Perro buscando bajo la manta', caption: 'Primer intento' },
+              },
+            },
+          },
+        },
+      };
+
+      const resolved = resolvePack(pack, 'es');
+      expect(resolved.games).toHaveLength(1);
+      const game = resolved.games[0];
+
+      expect(game.id).toBe('find-treat');
+      expect(game.free).toBe(true);
+      expect(game.difficulty).toBe('easy');
+      expect(game.minutes).toBe(5);
+      expect(game.materialsKinds).toEqual(['fabric', 'food']);
+      expect(game.youtubeId).toBe('yt-es-123');
+      expect(game.video).toEqual({ type: 'youtube', id: 'yt-es-123' });
+
+      expect(resolved.catalog[game.title]).toBe('Encuentra el premio');
+      expect(resolved.catalog[game.intro]).toBe('Un juego olfativo divertido.');
+      expect(game.materials).toBeDefined();
+      expect(game.materials!.map((k) => resolved.catalog[k])).toEqual(['Una manta', 'Premios sabrosos']);
+      expect(game.safety).toBeDefined();
+      expect(resolved.catalog[game.safety!]).toBe('Supervisa al perro con la manta.');
+      expect(game.steps.map((k) => resolved.catalog[k])).toEqual(['Esconde el premio', 'Pide buscar', 'Felicita']);
+      expect(game.tips).toBeDefined();
+      expect(game.tips!.map((k) => resolved.catalog[k])).toEqual(['Empieza fácil', 'Aumenta la dificultad poco a poco']);
+
+      expect(game.images).toHaveLength(1);
+      expect(game.images[0].file).toBe('step-1.png');
+      expect(game.images[0].path).toBe('games/find-treat/media/step-1.png');
+      expect(resolved.catalog[game.images[0].alt]).toBe('Perro buscando bajo la manta');
+      expect(game.images[0].caption).toBeDefined();
+      expect(resolved.catalog[game.images[0].caption!]).toBe('Primer intento');
+    });
+
+    it('resolves English translation with fallback to Spanish for missing text fields, media alts, and shop notes', () => {
+      const pack = makeFixturePack();
+      pack.games = {
+        'game-fallback': {
+          config: {
+            id: 'game-fallback',
+            order: 1,
+            images: ['pic.png'],
+          },
+          text: {
+            es: {
+              title: 'Título en español',
+              intro: 'Intro en español',
+              materials: ['Material español'],
+              safety: 'Nota de seguridad en español',
+              steps: ['Paso 1 español', 'Paso 2 español'],
+              tips: ['Consejo en español'],
+              images: {
+                'pic.png': { alt: 'Alt en español', caption: 'Pie en español' },
+              },
+            },
+            en: {
+              // English only translates title and steps; intro, materials, safety, tips, and image alt fall back to Spanish!
+              title: 'Title in English',
+              steps: ['Step 1 English', 'Step 2 English'],
+            },
+          },
+        },
+      };
+
+      const resolved = resolvePack(pack, 'en');
+      const game = resolved.games[0];
+
+      // Translated fields use English
+      expect(resolved.catalog[game.title]).toBe('Title in English');
+      expect(game.steps.map((k) => resolved.catalog[k])).toEqual(['Step 1 English', 'Step 2 English']);
+
+      // Untranslated fields fall back to Spanish
+      expect(resolved.catalog[game.intro]).toBe('Intro en español');
+      expect(game.materials!.map((k) => resolved.catalog[k])).toEqual(['Material español']);
+      expect(resolved.catalog[game.safety!]).toBe('Nota de seguridad en español');
+      expect(game.tips!.map((k) => resolved.catalog[k])).toEqual(['Consejo en español']);
+      expect(resolved.catalog[game.images[0].alt]).toBe('Alt en español');
+      expect(resolved.catalog[game.images[0].caption!]).toBe('Pie en español');
+    });
+
+    it('resolves needs through ResolvedShop.idToKind, dropping missing targets and language-hidden targets', () => {
+      // makeShopFixturePack provides:
+      // - 'arnes-front': product present in both 'es' and 'en'
+      // - 'collar-es-only': product present ONLY in 'es' (has no English buy link, so hidden in 'en')
+      const pack = makeShopFixturePack();
+      pack.games = {
+        'snuffle-game': {
+          config: {
+            id: 'snuffle-game',
+            order: 1,
+            images: ['mat.png'],
+            needs: [
+              'arnes-front',           // valid in both es and en
+              'nonexistent-shop-id',   // missing target -> always dropped
+              'collar-es-only',        // present in es, hidden in en
+            ],
+          },
+          text: {
+            es: {
+              title: 'Juego de olfato',
+              intro: 'Intro',
+              steps: ['Paso 1'],
+              images: { 'mat.png': { alt: 'Manta', caption: '' } },
+              shop: {
+                'arnes-front': 'Usa este arnés durante el juego.',
+                'collar-es-only': 'Collar fijo de paseo.',
+              },
+            },
+            en: {
+              title: 'Scent game',
+              intro: 'Intro en',
+              steps: ['Step 1 en'],
+              shop: {
+                'arnes-front': 'Use this harness during the game.',
+              },
+            },
+          },
+        },
+      };
+
+      // 1. Spanish resolution: 'arnes-front' and 'collar-es-only' exist, 'nonexistent-shop-id' dropped
+      const resolvedEs = resolvePack(pack, 'es');
+      const gameEs = resolvedEs.games.find((g) => g.id === 'snuffle-game')!;
+      expect(gameEs.needs).toHaveLength(2);
+
+      const link1Es = gameEs.needs![0];
+      expect(link1Es.target).toBe('arnes-front');
+      expect(link1Es.targetKind).toBe('product');
+      expect(link1Es.note).toBeDefined();
+      expect(resolvedEs.catalog[link1Es.note!]).toBe('Usa este arnés durante el juego.');
+
+      const link2Es = gameEs.needs![1];
+      expect(link2Es.target).toBe('collar-es-only');
+      expect(link2Es.targetKind).toBe('product');
+      expect(link2Es.note).toBeDefined();
+      expect(resolvedEs.catalog[link2Es.note!]).toBe('Collar fijo de paseo.');
+
+      // 2. English resolution: 'collar-es-only' is hidden in English shop -> dropped from needs!
+      const resolvedEn = resolvePack(pack, 'en');
+      const gameEn = resolvedEn.games.find((g) => g.id === 'snuffle-game')!;
+      expect(gameEn.needs).toHaveLength(1);
+
+      const link1En = gameEn.needs![0];
+      expect(link1En.target).toBe('arnes-front');
+      expect(link1En.targetKind).toBe('product');
+      expect(link1En.note).toBeDefined();
+      expect(resolvedEn.catalog[link1En.note!]).toBe('Use this harness during the game.');
     });
   });
 });
