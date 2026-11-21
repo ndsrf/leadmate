@@ -13,7 +13,7 @@ A dog gets tired of staying still among so much going on, just like a person in 
 1. Watch {name} between sips. The signals are getting off the mat, panting, whining, staring at food or refusing a treat.
 2. Decide your leaving time before you sit down, for example at 10 minutes, and do not wait until {name} is overwhelmed.
 3. If you see a signal and {name} is still calm, say "good", give a treat and pack up without hurrying.
-4. Ask for the bill, gather the mat and stand up calmly. If you must leave now, pay inside or later, without pulling on the leash.
+4. Ask for the bill, gather the mat and stand up calmly. If you must leave now, pay at the counter with {name} beside you, without pulling on the leash.
 
 ## example
 ### {name} and the second coffee

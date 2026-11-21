@@ -4,7 +4,7 @@
 You want to finish your coffee in peace
 
 ## hook
-You sit down with your coffee and {name} stares at the table. {name} sits, looks at you, rests a snout on your knee. You hand over a little bite to stop it and, as soon as it is eaten, the begging starts again, a bit stronger each time. You cannot enjoy your coffee and {name} cannot rest: on guard, waiting for the next crumb.
+You sit down with your coffee and {name} stares at the table. {name} sits, looks at you and rests their snout on your knee. You hand over a little bite to stop the begging and, as soon as it is eaten, the begging starts again, a bit stronger each time. You cannot enjoy your coffee and {name} cannot rest: on guard, waiting for the next crumb.
 
 ## why
 Begging at the table is learned. If a fixed stare or a snout on your knee gets food, {name} learns that insisting pays, and will do it more. If what pays is lying down on the mat, that is what gets learned. So begging is never paid: not with food from the table and not with attention. Calm is paid, with small treats that arrive quietly, and a chew gives the Dog something good to do meanwhile.

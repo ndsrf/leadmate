@@ -32,7 +32,7 @@ Os vais con {name} relajado y la correa floja.
 - reassure: Irse deprisa es normal si la visita se tuerce. No pasa nada.
 - cause: Te quedaste hasta que fue urgente.
 - c1: Pide la cuenta con tiempo, antes de la hora que te marcaste.
-- c2: Si hay que irse ya, paga dentro o más tarde, sin tirar de la correa.
+- c2: Si hay que irse ya, paga en la barra con {name} a tu lado, sin tirar de la correa.
 - easier: Pedir la cuenta cuando {name} aún está tranquilo, 1 vez.
 - alt: Una persona recoge la manta con calma
 - caption: Recoge con calma

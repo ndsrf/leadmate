@@ -32,7 +32,7 @@ You leave with {name} relaxed on a slack leash.
 - reassure: Leaving fast is normal if the visit goes wrong. It is fine.
 - cause: You stayed until it became urgent.
 - c1: Ask for the bill early, before the time you set.
-- c2: If you must leave now, pay inside or later, without pulling on the leash.
+- c2: If you must leave now, pay at the counter with {name} beside you, without pulling on the leash.
 - easier: Ask for the bill while {name} is still calm, 1 time.
 - alt: A person gathers the mat calmly
 - caption: Pack up calmly

@@ -13,7 +13,7 @@ Un perro se cansa de estar quieto con tanto estímulo, igual que una persona en 
 1. Vigila a {name} entre sorbo y sorbo. Las señales son levantarse de la manta, jadear, gemir, mirar fijo la comida o rechazar una golosina.
 2. Decide tu hora de irte antes de sentarte, por ejemplo a los 10 minutos, y no esperes a que {name} se desborde.
 3. Si ves una señal y {name} sigue tranquilo, di «bien», dale una golosina y recoge sin prisa.
-4. Pide la cuenta, recoge la manta y levántate con calma. Si hay que irse ya, pagas dentro o más tarde, sin tirar de la correa.
+4. Pide la cuenta, recoge la manta y levántate con calma. Si hay que irse ya, paga en la barra con {name} a tu lado, sin tirar de la correa.
 
 ## example
 ### {name} y el segundo café

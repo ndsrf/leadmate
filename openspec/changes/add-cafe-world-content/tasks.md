@@ -33,7 +33,7 @@
 - [x] 4.3 Create `mission-cafe-waiters` (waiters and passers-by at a real terrace) in ES and EN; verify validation.
 - [x] 4.4 Create `theory-cafe-leave-early` (overload signals, leave while calm, an exit) and `mission-cafe-leave-early` (trains `cafe-settle`; target: get up and leave while the Dog still lies calm) in ES and EN; verify validation.
 - [x] 4.5 Wire the four Stretches into `content/beta/worlds/cafe.yaml` in order, removing `preview` and `nodeCount`, and update `cafe/{es,en}.md` topics. Verify `world.test.ts` and progression tests: World 7 unlocks after World 6, Plus gate, completion unlocks World 8 as Coming-soon.
-- [ ] 4.6 Review every World 7 text against the method rules (no paying begging, no corrections, an exit wherever triggers appear, no legal claims) and the ES/EN voice rules; verify `i18n.test.ts`, the Lesson conformance tests and a read-through checklist in the change.
+- [x] 4.6 Review every World 7 text against the method rules (no paying begging, no corrections, an exit wherever triggers appear, no legal claims) and the ES/EN voice rules; verify `i18n.test.ts`, the Lesson conformance tests and a read-through checklist in the change.
 
 ## 5. Map copy and versioning
 

@@ -429,7 +429,7 @@ describe('Terrace scene', () => {
     expect(hintKey('cafe', 'staring_waiter', 'feed')).toBe('minigame.cafe.hint.feed');
     expect(hintKey('cafe', 'relaxed_lying', 'feed')).toBe('minigame.cafe.hint.feedCalm');
     expect(es['minigame.cafe.hint.feed']).toMatch(/paga que pida/);
-    expect(es['minigame.cafe.hint.feedCalm']).toMatch(/alfombra/);
+    expect(es['minigame.cafe.hint.feedCalm']).toMatch(/manta/);
   });
 
   it('hints a wrong choice by the right action of the beat', () => {
