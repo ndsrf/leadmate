@@ -17,7 +17,7 @@ The leash hangs green when Slack, turns straight and yellow when Taut, and turns
 
 ## Control 3
 ### Poste
-If you release the joystick when the leash goes Taut, you perform Poste: a light ring appears at your feet. Wait until the Dog returns and the leash goes Slack.
+If you release the joystick when the leash goes Taut, you perform Poste: a light ring appears at your feet. Wait until the Dog returns and the leash goes Slack. While you hold still, a ring closes around the Dog.
 - alt: Screenshot of the walk with the joystick released and the Poste ring at the Handler's feet, highlighted
 - caption: Performing Poste
 
@@ -26,6 +26,12 @@ If you release the joystick when the leash goes Taut, you perform Poste: a light
 When your Dog has walked nicely, the Go Sniff button appears for a short time with a depleting ring. Tap it before it expires: sniffing is their reward.
 - alt: Screenshot of the walk with the Go Sniff button highlighted
 - caption: Allow sniffing
+
+## Control 5
+### The Gaze Ring
+Stay still and a ring closes around the Dog. When it lands, the Dog looks at you: that is the moment to tap Marker. If you move, or the leash becomes a Rigid Pull, the ring snaps open and you start again. At first the Marker button lights up and three ticks play; both fade as you improve, and you can keep them on in Settings.
+- alt: Screenshot of the walk with the ring closed around the Dog, highlighted
+- caption: Tap Marker when the ring lands
 
 ## tip
 Test the controls without rushing: the first walk is for learning, not scoring.

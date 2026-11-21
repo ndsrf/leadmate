@@ -53,10 +53,10 @@
 
 ## 9. How-to-play update
 
-- [ ] 9.1 Edit `content/beta/lessons/howto-walking/en.md` and `es.md`: add a sentence on the ring to the "Poste" control and a new Control 5 "El aro de la mirada" / "The Gaze Ring" (stay still, the ring closes, the Dog looks at you, tap Marker; moving or a Rigid Pull snaps it open; the highlight and ticks fade as you improve; Settings can keep them on). Update `lesson.yaml` to `controls: 5` and add `howto-walking-5`. Verify: `npx jest src/shell/lessons` passes.
-- [ ] 9.2 Edit `content/beta/lessons/howto-tap-hold/en.md` and `es.md`: explain the Poste practice ring (closes while Stop is held, lands when the Dog settles, snaps open on an early release). Verify: `npx jest src/shell/lessons` passes.
+- [x] 9.1 Edit `content/beta/lessons/howto-walking/en.md` and `es.md`: add a sentence on the ring to the "Poste" control and a new Control 5 "El aro de la mirada" / "The Gaze Ring" (stay still, the ring closes, the Dog looks at you, tap Marker; moving or a Rigid Pull snaps it open; the highlight and ticks fade as you improve; Settings can keep them on). Update `lesson.yaml` to `controls: 5` and add `howto-walking-5`. Verify: `npx jest src/shell/lessons` passes.
+- [x] 9.2 Edit `content/beta/lessons/howto-tap-hold/en.md` and `es.md`: explain the Poste practice ring (closes while Stop is held, lands when the Dog settles, snaps open on an early release). Verify: `npx jest src/shell/lessons` passes.
 - [ ] 9.3 Add the capture for `howto-walking-5` (ring around the Dog, annotated) with `scripts/capture-controls.mjs`, regenerate the other captures if the screen changed, and register the art in `src/shell/lessons/lessonArtRegistry.ts`. Verify: the script runs without hand editing and the image is legible at 320 points wide.
-- [ ] 9.4 Regenerate the baseline and its hashes (`baseline.generated.ts`, `baseline.hashes.generated.ts`) with the repo's content build script. Verify: `npx jest src/shell/content src/shell/lessons` passes.
+- [x] 9.4 Regenerate the baseline and its hashes (`baseline.generated.ts`, `baseline.hashes.generated.ts`) with the repo's content build script. Verify: `npx jest src/shell/content src/shell/lessons` passes.
 - [ ] 9.5 Open both Lessons in the app in Spanish and English. Verify: the ring control reads clearly, the capture matches the real screen, and no text names the Dog.
 
 ## Workflow follow-up

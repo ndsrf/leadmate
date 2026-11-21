@@ -17,7 +17,7 @@ La correa cuelga verde cuando va floja, se pone recta y amarilla cuando se tensa
 
 ## Control 3
 ### El Poste
-Si sueltas el joystick cuando la correa se tensa, haces poste: aparece un aro claro a tus pies. Espera a que el perro vuelva y la correa se afloje.
+Si sueltas el joystick cuando la correa se tensa, haces poste: aparece un aro claro a tus pies. Espera a que el perro vuelva y la correa se afloje. Mientras te quedas quieto, un aro se cierra alrededor del perro.
 - alt: Captura del paseo con el joystick suelto y el aro de poste a los pies de la persona, rodeado
 - caption: Hacer poste
 
@@ -26,6 +26,12 @@ Si sueltas el joystick cuando la correa se tensa, haces poste: aparece un aro cl
 Cuando tu perro ha caminado bien, aparece un rato el botón Olfatear, con un aro que se va vaciando. Tócalo antes de que se acabe: oler es su premio.
 - alt: Captura del paseo con el botón Olfatear resaltado
 - caption: Dejar olfatear
+
+## Control 5
+### El aro de la mirada
+Quédate quieto y un aro se cierra alrededor del perro. Cuando se asienta, el perro te mira: ese es el momento de tocar Marcar. Si te mueves, o la correa se pone en tirón rígido, el aro se abre de golpe y empiezas de nuevo. Al principio el botón Marcar se ilumina y suenan tres tics; ambos se apagan a medida que mejoras, y puedes mantenerlos en Ajustes.
+- alt: Captura del paseo con el aro cerrado alrededor del perro, rodeado
+- caption: Toca Marcar cuando el aro se asienta
 
 ## tip
 Prueba los controles sin prisa: el primer paseo es para aprender, no para puntuar.
