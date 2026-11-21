@@ -25,7 +25,7 @@
 - [ ] 4.2 Build `GamesScreen.tsx` (random button first, then rows with title, thumbnail, duration, difficulty, Plus marker for locked games); verify with `GamesScreen.test.tsx`: order follows `order`, row press opens the game, random press opens a game, Plus marker only for a non-Plus user on a non-Free game.
 - [ ] 4.3 Build `GameDetailScreen.tsx` (title, first illustration, intro always; materials, safety, steps, tips, further illustrations, shop links and video only when allowed; locked bars and Plus button otherwise; safety note in the materials block); verify with tests for Free user locked, Plus user open, Free-flag game open, and that locked text is absent from the render tree and hidden from accessibility.
 - [ ] 4.4 Reuse `ShopLinkCard`/`RecommendationCard` for each `needs` target and verify a test that its action opens the Shop at the target level and id.
-- [ ] 4.5 Add `es.ts` and `en.ts` strings (Juegos, random button, Plus lock label, duration and difficulty labels, safety heading); verify the i18n key-parity test passes.
+- [x] 4.5 Add `es.ts` and `en.ts` strings (Juegos, random button, Plus lock label, duration and difficulty labels, safety heading); verify the i18n key-parity test passes.
 
 ## 5. Map entry, navigation and paywall resume
 
