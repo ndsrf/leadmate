@@ -40,9 +40,9 @@
 ## 7. Illustrations and seed content
 
 - [x] 7.1 Port the 6 scenes from the "Juegos con tu perro — primer lote" artboard into `scripts/art/games/` using the Lesson art kit; verify the render command produces 6 PNGs and the palette and no-text checks pass (adding the blue and croquette tones to the palette list only after reviewing the contact sheet).
-- [ ] 7.2 Render the PNGs to `content/beta/games/<id>/media/<id>-1.png` at 960×540 within the weight limit; verify `npm run content:validate -- beta` accepts every image.
-- [ ] 7.3 Author the 6 seed games in Spanish and English (`eleccion-mano` as the Free sample, `manta-enrollada`, `pienso-a-oscuras`, `manta-buscadora`, `trilero`, `escalon-azul`) with materials, steps, tips, safety notes and alt text; verify content validation passes and a manual read of each Spanish file against the artboard captions.
-- [ ] 7.4 Add the `mantas-olfativas` Subcategory (text es/en) and link `manta-buscadora` to it; add real Products only when the author supplies buy links; verify the game's link is hidden while the Subcategory has no visible product and appears once one exists.
+- [x] 7.2 Render the PNGs to `content/beta/games/<id>/media/<id>-1.png` at 960×540 within the weight limit; verify `npm run content:validate -- beta` accepts every image.
+- [x] 7.3 Author the 6 seed games in Spanish and English (`eleccion-mano` as the Free sample, `manta-enrollada`, `pienso-a-oscuras`, `manta-buscadora`, `trilero`, `escalon-azul`) with materials, steps, tips, safety notes and alt text; verify content validation passes and a manual read of each Spanish file against the artboard captions.
+- [x] 7.4 Add the `mantas-olfativas` Subcategory (text es/en) and link `manta-buscadora` to it; add real Products only when the author supplies buy links; verify the game's link is hidden while the Subcategory has no visible product and appears once one exists.
 - [ ] 7.5 Record the remaining 16 games from the author's list as a content backlog in `docs/content/dog-games-backlog.md` with their families and material needs; verify the file lists all 22 games exactly once.
 
 ## 8. Vocabulary and integration
