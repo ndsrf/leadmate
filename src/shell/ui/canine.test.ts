@@ -184,3 +184,25 @@ describe('Basics Dog states', () => {
     expect(wrongReaction('zoomies', 'cue')).toBe('zoomies');
   });
 });
+
+describe('Terrace Dog states', () => {
+  it('covers that begging_table and staring_waiter differ from sitting_attentive in head direction and ears, tail or mouth', () => {
+    const sitting = postureSpec('sitting_attentive');
+    for (const posture of ['begging_table', 'staring_waiter'] as const) {
+      const spec = postureSpec(posture);
+      // Head direction differs
+      expect(spec.leanDeg).not.toBe(sitting.leanDeg);
+      // At least one of ears, tail, or mouth differs
+      const differsBody = spec.earsUp !== sitting.earsUp || spec.tail !== sitting.tail || spec.mouthOpen !== sitting.mouthOpen;
+      expect(differsBody).toBe(true);
+    }
+  });
+
+  it('reads begging_table and staring_waiter with their own caption and cue', () => {
+    for (const state of ['begging_table', 'staring_waiter'] as const) {
+      expect(READABLE_POSTURES).toContain(state);
+      expect(es[postureSpec(state).cue]).toBeTruthy();
+      expect(es[postureSpec(state).label]).toBeTruthy();
+    }
+  });
+});

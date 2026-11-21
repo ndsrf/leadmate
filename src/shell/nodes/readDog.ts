@@ -23,7 +23,8 @@ export type DogState =
   | 'jumping' | 'alert_barking' | 'staring_door' | 'sniffing' | 'sitting_attentive' | 'unsettled_on_mat' | 'relaxed_lying'
   | 'begging_lift' | 'on_furniture' | 'nudging_attention' | 'toy_indoors' | 'resting' | 'barking_nonstop' | 'zoomies'
   | 'barking_window' | 'barking_at_you' | 'chewing_object' | 'eyeing_item' | 'holding_item'
-  | 'whining_door' | 'panic_door' | 'tense_alone';
+  | 'whining_door' | 'panic_door' | 'tense_alone'
+  | 'begging_table' | 'staring_waiter';
 
 /** The buttons of a scene, in the order they are laid out. */
 export const SCENE_ACTIONS: Record<ReadDogScene, readonly ReadDogAction[]> = {

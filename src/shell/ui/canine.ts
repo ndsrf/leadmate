@@ -31,7 +31,9 @@ export type CaninePosture =
   | 'holding_item'
   | 'whining_door'
   | 'panic_door'
-  | 'tense_alone';
+  | 'tense_alone'
+  | 'begging_table'
+  | 'staring_waiter';
 
 export const CANINE_POSTURES: readonly CaninePosture[] = [
   'standing_waiting',
@@ -62,6 +64,8 @@ export const CANINE_POSTURES: readonly CaninePosture[] = [
   'whining_door',
   'panic_door',
   'tense_alone',
+  'begging_table',
+  'staring_waiter',
 ];
 
 /** The postures the user reads in the action Minigames; they must tell apart at a glance. */
@@ -70,6 +74,7 @@ export const READABLE_POSTURES: readonly DogState[] = [
   'begging_lift', 'on_furniture', 'nudging_attention', 'toy_indoors', 'resting', 'barking_nonstop', 'zoomies',
   'barking_window', 'barking_at_you', 'chewing_object', 'eyeing_item', 'holding_item',
   'whining_door', 'panic_door', 'tense_alone',
+  'begging_table', 'staring_waiter',
 ];
 
 export type Eyes = 'open' | 'wide' | 'closed';
@@ -124,6 +129,9 @@ const SPECS: Record<CaninePosture, PostureSpec> = {
   panic_door: { leanDeg: 14, height: 1.1, tail: 'down', earsUp: true, mouthOpen: true, eyes: 'wide', emote: 'alert', label: 'minigame.dog.panic_door', cue: 'minigame.cue.panic_door' },
   tense_alone: { leanDeg: -2, height: 0.85, tail: 'down', earsUp: true, mouthOpen: false, eyes: 'wide', emote: 'distracted', label: 'minigame.dog.tense_alone', cue: 'minigame.cue.tense_alone' },
   zoomies: { leanDeg: 20, height: 0.85, tail: 'up', earsUp: false, mouthOpen: true, eyes: 'wide', emote: 'zoom', label: 'minigame.dog.zoomies', cue: 'minigame.cue.zoomies' },
+  // Terrace states: begging aimed at the table, staring at the passing waiter
+  begging_table: { leanDeg: 14, height: 1.15, tail: 'up', earsUp: false, mouthOpen: true, eyes: 'open', emote: 'please', label: 'minigame.dog.begging_table', cue: 'minigame.cue.begging_table' },
+  staring_waiter: { leanDeg: 8, height: 1, tail: 'up', earsUp: true, mouthOpen: false, eyes: 'open', emote: 'alert', label: 'minigame.dog.staring_waiter', cue: 'minigame.cue.staring_waiter' },
 };
 
 export function postureSpec(posture: CaninePosture): PostureSpec {
@@ -134,7 +142,7 @@ export function postureSpec(posture: CaninePosture): PostureSpec {
 export const AGITATION_SECONDS = 1.2;
 
 /** States in which the Dog is aroused: a wrong action leaves it so instead of changing its posture. */
-const AROUSED: readonly DogState[] = ['jumping', 'alert_barking', 'staring_door', 'barking_nonstop', 'zoomies', 'barking_window', 'barking_at_you'];
+const AROUSED: readonly DogState[] = ['jumping', 'alert_barking', 'staring_door', 'barking_nonstop', 'zoomies', 'barking_window', 'barking_at_you', 'staring_waiter'];
 
 /**
  * How the Dog answers a wrong action for `AGITATION_SECONDS`: a harness is refused (the Dog backs away
@@ -203,6 +211,8 @@ export const COLLAR_POINT: Record<CaninePosture, { x: number; y: number }> = {
   whining_door: { x: 108, y: 60 },
   panic_door: { x: 114, y: 42 },
   tense_alone: { x: 108, y: 56 },
+  begging_table: { x: 112, y: 34 },
+  staring_waiter: { x: 112, y: 48 },
 };
 
 /** Where an emote bubble sits, in `DOG_VIEW` units: the top-right corner, clear of the head, and higher for a Dog that stands taller. */
