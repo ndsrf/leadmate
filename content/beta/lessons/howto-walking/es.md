@@ -27,6 +27,12 @@ Cuando tu perro ha caminado bien, aparece un rato el botón Olfatear, con un aro
 - alt: Captura del paseo con el botón Olfatear resaltado
 - caption: Dejar olfatear
 
+## Control 5
+### Las señales del perro
+La «!» amarilla significa que tu perro se ha quedado fijo en algo. Detente, espera a que el anillo se cierre y toca Marcar. El círculo sobre la cabeza de tu perro indica que está en alerta. Mantén la correa floja y dale espacio. El ojo significa que tu perro te mira. Toca Marcar para premiarlo. Las líneas curvas son ladridos: tu perro se ha pasado de su límite. Detente, quédate quieto y deja que se calme.
+- alt: Captura de la primera fijación del paseo con los controles, la correa, la «!» y el anillo numerados
+- caption: Las señales alrededor de tu perro
+
 ## tip
 Prueba los controles sin prisa: el primer paseo es para aprender, no para puntuar.
 

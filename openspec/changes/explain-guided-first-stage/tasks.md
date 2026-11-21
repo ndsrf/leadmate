@@ -19,7 +19,7 @@
 - [x] 3.2 Extend the existing capture script to run the guided scenario with a fixed seed to the first Fixation and capture it with labels on the controls and Dog signs, then register the art. Verify: the script regenerates it without hand editing and it reads at 320 points wide.
 - [x] 3.3 Add a test that every sign with an `overview` line has a label in the card. Verify: test passes.
 
-- [ ] 3.4 Add the control "Las señales del perro" to `content/beta/lessons/howto-walking` (es and en, `controls` and images updated), reusing the capture and the catalog text of the Hints. Verify: a test that the Lesson text matches the catalog entries, `npx jest src/shell/lessons` passes and the baseline is regenerated. Coordinate with `telegraph-marker-timing` section 9, which edits the same lesson.
+- [x] 3.4 Add the control "Las señales del perro" to `content/beta/lessons/howto-walking` (es and en, `controls` and images updated), reusing the capture and the catalog text of the Hints. Verify: a test that the Lesson text matches the catalog entries, `npx jest src/shell/lessons` passes and the baseline is regenerated. Coordinate with `telegraph-marker-timing` section 9, which edits the same lesson.
 
 ## 4. Integration checks
 

@@ -27,5 +27,11 @@ When your Dog has walked nicely, the Go Sniff button appears for a short time wi
 - alt: Screenshot of the walk with the Go Sniff button highlighted
 - caption: Allow sniffing
 
+## Control 5
+### The Dog's signs
+The yellow "!" means your Dog locked onto something. Stop, wait for the ring to close, then tap Marker. The circle over your Dog's head means it is on alert. Keep the leash slack and give it space. The eye means your Dog is looking at you. Tap Marker to reward it. The curved lines are barking: your Dog is over its limit. Stop, stay still and let it calm down.
+- alt: Screenshot of the first Fixation of the walk with the controls, the leash, the "!" and the ring numbered
+- caption: The signs around your Dog
+
 ## tip
 Test the controls without rushing: the first walk is for learning, not scoring.
