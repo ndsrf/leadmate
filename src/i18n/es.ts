@@ -492,6 +492,7 @@ export const ES_INTERFACE = {
   'minigame.cue.resting': 'Duerme hecho un ovillo',
   'minigame.cue.barking_nonstop': 'Ladra sin parar',
   'minigame.cue.zoomies': 'Corre como loco',
+  'minigame.terrace': 'Una terraza de café con una mesa, una silla y el perro en su alfombra',
   'minigame.livingRoom': 'Un salón con un sofá, la puerta del jardín y la cama del perro',
   'minigame.sendingAway': 'Caminas tranquilo hacia el perro, sin tocarlo, y él se va a su cama',
   'minigame.handler': 'Tú, con la correa en la mano',

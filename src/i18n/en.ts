@@ -493,6 +493,7 @@ export const EN_INTERFACE = {
   'minigame.cue.resting': 'Sleeping curled up',
   'minigame.cue.barking_nonstop': 'Barking non-stop',
   'minigame.cue.zoomies': 'Running wildly',
+  'minigame.terrace': 'A café terrace with a table, a chair and the Dog on its mat',
   'minigame.livingRoom': 'Living Room',
   'minigame.sendingAway': 'Yielding space',
   'minigame.handler': 'Handler',

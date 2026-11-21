@@ -232,6 +232,128 @@ export function LivingRoomScene({ t, posture, sending, coat }: { t: Translate; p
   );
 }
 
+const TERRACE_DOG_X = 64;
+/** Scene x of the waiter at the start and end of a crossing, and of the treat's landing point on the mat. */
+const WAITER_FROM = -40;
+const WAITER_TO = 330;
+const TREAT_X = 112;
+const TREAT_FROM_Y = 40;
+const TREAT_TO_Y = 150;
+
+/** The café front, the table with its cup, the chair and the mat of the Terrace scene (the canvas "Kit de terraza" shapes). */
+function TerraceBackdrop() {
+  return (
+    <G>
+      <Rect x={0} y={0} width={SCENE.w} height={130} fill={lightColor.sky} />
+      {/* café front: wall, window, door and awning */}
+      <Rect x={150} y={14} width={170} height={118} fill={lightColor.accentSoft} />
+      <Rect x={160} y={44} width={60} height={50} rx={3} fill={lightColor.surface} stroke={lightColor.lockedText} strokeWidth={3} />
+      <Line x1={190} y1={44} x2={190} y2={94} stroke={lightColor.lockedText} strokeWidth={2} />
+      <Rect x={238} y={44} width={40} height={88} rx={3} fill={lightColor.infoSoft} stroke={lightColor.lockedText} strokeWidth={3} />
+      <Circle cx={270} cy={90} r={2.5} fill={lightColor.accent} />
+      <Path d="M144 18 L326 18 L326 38 Q314 48 302 38 Q290 48 278 38 Q266 48 254 38 Q242 48 230 38 Q218 48 206 38 Q194 48 182 38 Q170 48 158 38 L144 38 Z" fill={lightColor.coral} />
+      {/* pavement */}
+      <Rect x={0} y={130} width={SCENE.w} height={60} fill={lightColor.edge} />
+      <Rect x={0} y={130} width={SCENE.w} height={4} fill={lightColor.surface} />
+      {/* planter */}
+      <Rect x={6} y={104} width={30} height={26} rx={4} fill={lightColor.coral} />
+      <Circle cx={14} cy={98} r={9} fill={lightColor.brandDeep} />
+      <Circle cx={28} cy={96} r={10} fill={lightColor.brand} />
+      {/* the mat the Dog rests on */}
+      <Rect x={58} y={160} width={110} height={16} rx={7} fill={lightColor.info} />
+      <Rect x={64} y={164} width={98} height={8} rx={4} fill={lightColor.infoSoft} />
+      {/* chair */}
+      <Rect x={252} y={92} width={6} height={52} rx={3} fill={lightColor.lockedText} />
+      <Rect x={252} y={116} width={38} height={7} rx={3} fill={lightColor.lockedText} />
+      <Rect x={254} y={123} width={5} height={30} fill={lightColor.lockedText} />
+      <Rect x={284} y={123} width={5} height={30} fill={lightColor.lockedText} />
+      {/* table with a cup */}
+      <Rect x={198} y={112} width={10} height={44} fill={lightColor.lockedText} />
+      <Ellipse cx={203} cy={158} rx={18} ry={4} fill={lightColor.lockedText} />
+      <Ellipse cx={203} cy={112} rx={34} ry={7} fill={lightColor.surface} stroke={lightColor.lockedText} strokeWidth={3} />
+      <Path d="M192 98 L192 108 Q192 112 197 112 L207 112 Q212 112 212 108 L212 98 Z" fill={lightColor.surface} stroke={lightColor.ink} strokeWidth={2} />
+      <Path d="M212 101 Q219 101 219 106 Q219 110 212 109" fill="none" stroke={lightColor.ink} strokeWidth={2} />
+      <Rect x={193} y={99} width={18} height={3} fill={lightColor.coral} />
+    </G>
+  );
+}
+
+/** The Handler seated on the chair, arms resting on the table, in the Handler palette. */
+function SeatedHandler() {
+  const skin = HANDLER_PALETTE;
+  return (
+    <G>
+      <Line x1={266} y1={124} x2={254} y2={124} stroke={skin.trousers} strokeWidth={9} strokeLinecap="round" />
+      <Line x1={254} y1={124} x2={254} y2={152} stroke={skin.trousers} strokeWidth={9} strokeLinecap="round" />
+      <Ellipse cx={250} cy={154} rx={8} ry={3.5} fill={skin.shoes} />
+      <Rect x={262} y={86} width={22} height={40} rx={9} fill={skin.shirt} />
+      <Line x1={266} y1={96} x2={248} y2={112} stroke={skin.shirt} strokeWidth={6} strokeLinecap="round" />
+      <Circle cx={273} cy={74} r={11} fill={skin.skin} />
+      <Path d="M262 73 Q262 60 273 60 Q284 60 284 73 Q279 67 273 67 Q267 67 262 73 Z" fill={skin.hair} />
+    </G>
+  );
+}
+
+/** A waiter with a tray, seen from the side; drawn at x 0 and moved across the scene. */
+function Waiter() {
+  return (
+    <Svg width="100%" height="100%" viewBox="0 0 40 70" aria-hidden>
+      <Line x1={17} y1={44} x2={15} y2={66} stroke={lightColor.ink} strokeWidth={6} strokeLinecap="round" />
+      <Line x1={23} y1={44} x2={26} y2={66} stroke={lightColor.ink} strokeWidth={6} strokeLinecap="round" />
+      <Rect x={11} y={20} width={18} height={28} rx={7} fill={lightColor.surface} stroke={lightColor.ink} strokeWidth={2} />
+      <Circle cx={20} cy={12} r={8} fill={HANDLER_PALETTE.skin} />
+      <Path d="M12 11 Q12 3 20 3 Q28 3 28 11 Q24 7 20 7 Q16 7 12 11 Z" fill={HANDLER_PALETTE.hair} />
+      <Line x1={24} y1={26} x2={34} y2={22} stroke={lightColor.surface} strokeWidth={5} strokeLinecap="round" />
+      <Rect x={26} y={18} width={13} height={3} rx={1.5} fill={lightColor.lockedText} />
+      <Circle cx={32} cy={15} r={3} fill={lightColor.accent} />
+    </Svg>
+  );
+}
+
+/**
+ * The Terrace scene: a café front, a table with a cup, the Handler seated on a chair and the Dog on its mat. While
+ * `waiter`, a waiter crosses in front of the café; on a correct Marker `treat` drops a treat onto the mat.
+ * Under reduced motion the waiter and the treat simply appear in place.
+ */
+export function TerraceScene({ t, posture, waiter, treat, coat }: { t: Translate; posture: CaninePosture; waiter: boolean; treat: boolean; coat: DogCoat }) {
+  const [width, setWidth] = useState(0);
+  const { reduced } = useMotion();
+  const waiterX = useSharedValue<number>(WAITER_FROM);
+  const treatY = useSharedValue<number>(TREAT_FROM_Y);
+  useEffect(() => {
+    waiterX.value = waiter ? (reduced ? 150 : WAITER_FROM) : WAITER_FROM;
+    if (waiter && !reduced) waiterX.value = withTiming(WAITER_TO, { duration: 2600 });
+  }, [waiter, reduced, waiterX]);
+  useEffect(() => {
+    treatY.value = treat ? (reduced ? TREAT_TO_Y : withTiming(TREAT_TO_Y, { duration: 450 })) : TREAT_FROM_Y;
+  }, [treat, reduced, treatY]);
+  const cross = useAnimatedStyle(() => ({ transform: [{ translateX: (waiterX.value / SCENE.w) * width }] }));
+  const drop = useAnimatedStyle(() => ({ transform: [{ translateY: (treatY.value / SCENE.h) * ((width * SCENE.h) / SCENE.w) }] }));
+  return (
+    <Stage onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+      <Svg style={fill} viewBox={`0 0 ${SCENE.w} ${SCENE.h}`} accessibilityLabel={t('minigame.terrace')}>
+        <TerraceBackdrop />
+        <SeatedHandler />
+      </Svg>
+      <View accessible={false} style={{ position: 'absolute', left: pctX(TERRACE_DOG_X - 10), top: pctY(170 - GROUND_Y), width: pctX(DOG_W) }}>
+        <CanineMinigameAvatar t={t} posture={posture} coat={coat} width={(width * DOG_W) / SCENE.w} facing="right" />
+      </View>
+      {waiter ? (
+        <Animated.View accessible={false} pointerEvents="none" testID="terrace-waiter" style={[{ position: 'absolute', left: 0, top: pctY(56), width: pctX(40), height: pctY(70) }, cross]}>
+          <Waiter />
+        </Animated.View>
+      ) : null}
+      {treat ? (
+        <Animated.View accessible={false} pointerEvents="none" testID="terrace-treat" style={[{ position: 'absolute', left: pctX(TREAT_X), top: 0, width: pctX(10), height: pctY(10) }, drop]}>
+          <Svg width="100%" height="100%" viewBox="0 0 10 10" aria-hidden>
+            <Circle cx={5} cy={5} r={4.5} fill={lightColor.accent} stroke={lightColor.ink} strokeWidth={1} />
+          </Svg>
+        </Animated.View>
+      ) : null}
+    </Stage>
+  );
+}
+
 const DOG_LEFT = 168;
 
 /**
@@ -458,6 +580,14 @@ function ButtonIcon({ icon, tint }: { icon: ActionIcon; tint: string }) {
         <G>
           <Rect x={4} y={4} width={16} height={28} rx={2} fill="none" stroke={tint} strokeWidth={2.8} />
           <Path d="M16 18 L32 18 M26 12 L32 18 L26 24" stroke={tint} strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        </G>
+      ) : icon === 'feed' ? (
+        <G>
+          <Path d="M4 20 L32 20 Q32 30 18 30 Q4 30 4 20 Z" fill={tint} />
+          <Rect x={14} y={29} width={8} height={4} rx={2} fill={tint} />
+          <Circle cx={18} cy={9} r={4.5} fill={tint} />
+          <Path d="M18 15 L18 20" stroke={tint} strokeWidth={2.5} strokeLinecap="round" />
+          <Path d="M10 14 L13 17 M26 14 L23 17" stroke={tint} strokeWidth={2.5} strokeLinecap="round" />
         </G>
       ) : icon === 'cuddle' ? (
         <Path d="M18 31 C2 20 4 6 13 7 C16 7 18 10 18 12 C18 10 20 7 23 7 C32 6 34 20 18 31 Z" fill={tint} />
