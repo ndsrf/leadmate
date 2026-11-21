@@ -32,13 +32,13 @@
 - [ ] 4.2 Create the Node `cafe-passing-dog` (`close_exercise`, `leash_drill`, a `dog` distractor walking past the table, `urban_street`), with primer, debrief text and a Checkpoint (`duel-short` / `duel-long` plus two text questions) that names a passing dog, in ES and EN. Verify validation and that the close view plays.
 - [ ] 4.3 Create `mission-cafe-waiters` (waiters and passers-by at a real terrace) in ES and EN; verify validation.
 - [ ] 4.4 Create `theory-cafe-leave-early` (overload signals, leave while calm, an exit) and `mission-cafe-leave-early` (trains `cafe-settle`; target: get up and leave while the Dog still lies calm) in ES and EN; verify validation.
-- [ ] 4.5 Wire the four Stretches into `content/beta/worlds/cafe.yaml` in order, removing `preview` and `nodeCount`, and update `cafe/{es,en}.md` topics. Verify `world.test.ts` and progression tests: World 7 unlocks after World 6, Plus gate, completion unlocks World 8 as Coming-soon.
+- [x] 4.5 Wire the four Stretches into `content/beta/worlds/cafe.yaml` in order, removing `preview` and `nodeCount`, and update `cafe/{es,en}.md` topics. Verify `world.test.ts` and progression tests: World 7 unlocks after World 6, Plus gate, completion unlocks World 8 as Coming-soon.
 - [ ] 4.6 Review every World 7 text against the method rules (no paying begging, no corrections, an exit wherever triggers appear, no legal claims) and the ES/EN voice rules; verify `i18n.test.ts`, the Lesson conformance tests and a read-through checklist in the change.
 
 ## 5. Map copy and versioning
 
-- [ ] 5.1 Update the map copy and tests so World 7 is playable, World 8 is the first Coming-soon World and the "Más próximamente" card refers to Worlds 8-9. Verify `WorldMapScreen.test.tsx`, `mapModel.test.ts` and `mapText.test.ts`, fixing tests that name World 7 as Coming-soon.
-- [ ] 5.2 Bump the app version to 1.4.0 (`app.json`, `package.json`), and set `minAppVersion: 1.4.0` and the next `contentVersion` in `content/beta/pack.yaml`. Verify an older-version load test keeps the bundled baseline with World 7 as a Preview.
+- [x] 5.1 Update the map copy and tests so World 7 is playable, World 8 is the first Coming-soon World and the "Más próximamente" card refers to Worlds 8-9. Verify `WorldMapScreen.test.tsx`, `mapModel.test.ts` and `mapText.test.ts`, fixing tests that name World 7 as Coming-soon.
+- [x] 5.2 Bump the app version to 1.4.0 (`app.json`, `package.json`), and set `minAppVersion: 1.4.0` and the next `contentVersion` in `content/beta/pack.yaml`. Verify an older-version load test keeps the bundled baseline with World 7 as a Preview.
 
 ## 6. Release integration
 
