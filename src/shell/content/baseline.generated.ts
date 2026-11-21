@@ -4,7 +4,7 @@ import type { ContentPack } from './validator';
 export const BASELINE_PACK: ContentPack = {
   "pack": {
     "formatVersion": 1,
-    "contentVersion": 5,
+    "contentVersion": 6,
     "minAppVersion": "1.3.0",
     "languages": [
       "es",
@@ -587,8 +587,8 @@ export const BASELINE_PACK: ContentPack = {
           "howto-walking-2",
           "howto-walking-3",
           "howto-walking-4",
-          "howto-walking-5",
-          "howto-walking-6"
+          "howto-walking-signs",
+          "howto-walking-signs"
         ],
         "controls": 6
       },
@@ -600,9 +600,7 @@ export const BASELINE_PACK: ContentPack = {
         "media/howto-walking-1.png",
         "media/howto-walking-2.png",
         "media/howto-walking-3.png",
-        "media/howto-walking-4.png",
-        "media/howto-walking-5.png",
-        "media/howto-walking-6.png"
+        "media/howto-walking-4.png"
       ]
     },
     "howto-yield-pressure": {

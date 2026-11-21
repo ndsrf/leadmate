@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { en, es, type TextKey } from '../../i18n';
+import { LESSON_ART } from './lessonArtRegistry';
 
 const LESSON = join(__dirname, '..', '..', '..', 'content', 'beta', 'lessons', 'howto-walking');
 
@@ -25,12 +26,12 @@ describe('the "Las señales del perro" control of the walking How-to-play Lesson
     expect(controlFive('es').heading).toBe('Las señales del perro');
   });
 
-  it('declares six controls and has the fifth and sixth pictures', () => {
+  it('declares six controls, the last two sharing the bundled signs picture', () => {
     const yaml = readFileSync(join(LESSON, 'lesson.yaml'), 'utf8');
     expect(yaml).toMatch(/^controls: 6$/m);
-    expect(yaml).toContain('- howto-walking-5');
-    expect(yaml).toContain('- howto-walking-6');
-    expect(existsSync(join(LESSON, 'media', 'howto-walking-5.png'))).toBe(true);
-    expect(existsSync(join(LESSON, 'media', 'howto-walking-6.png'))).toBe(true);
+    expect(yaml.match(/- howto-walking-signs/g)).toHaveLength(2);
+    // the picture is bundled with the app (lessonArtRegistry), so it never has to be downloaded
+    expect(existsSync(join(__dirname, '..', '..', '..', 'assets', 'lessons', 'howto-walking-signs.png'))).toBe(true);
+    expect(LESSON_ART['howto-walking-signs']).toBeDefined();
   });
 });

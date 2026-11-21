@@ -3,6 +3,7 @@ import { ContentUpdater, type HttpFetcher, type HttpResponse } from './updater';
 import { ContentStore, type FileStorage, type KeyValueStorage } from './store';
 import { type ContentManifest } from './build';
 import { sha256Hex } from './hash';
+import { BASELINE_PACK } from './baseline.generated';
 
 class FakeHttpServer implements HttpFetcher {
   routes: Map<string, { status: number; body: string | Uint8Array }> = new Map();
@@ -299,7 +300,9 @@ Tip
   });
 
   it('Scenario: dev on Stable stages a newer pack and activates it at the next launch', async () => {
-    await hostDevBetaPack(6, 'Stable Lesson Title', 'stable');
+    // one version above the bundled baseline, whatever that is, so the test does not break when stable is bumped
+    const newer = (BASELINE_PACK.pack.contentVersion ?? 1) + 1;
+    await hostDevBetaPack(newer, 'Stable Lesson Title', 'stable');
 
     const first = await initContentRuntime({
       isDev: true,
@@ -310,7 +313,7 @@ Tip
       updater,
     });
     // Not applied in this session
-    expect(first.contentVersion).not.toBe(6);
+    expect(first.contentVersion).not.toBe(newer);
     await updater.checkAndDownloadUpdate({ channel: 'stable', currentAppVersion: '1.0.0', contentBase: DEV_SERVER_URL, immediateActivate: false });
 
     const second = await initContentRuntime({
@@ -321,7 +324,7 @@ Tip
       kvStorage,
       updater,
     });
-    expect(second.contentVersion).toBe(6);
+    expect(second.contentVersion).toBe(newer);
     expect(second.resolved.catalog['trail.test-lesson.title']).toBe('Stable Lesson Title');
   });
 });
