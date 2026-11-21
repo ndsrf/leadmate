@@ -52,6 +52,12 @@ if (published > baselineVersion) {
   fail(`baseline is older than published stable (baseline v${baselineVersion}, published v${published}). Rebuild the baseline from the published stable pack.`);
 }
 if (baselineVersion > published) {
+  // a test build may ship content that is not published yet (the bundled baseline then needs no download);
+  // ALLOW_BASELINE_AHEAD=1 downgrades only this case to a warning, and the build stays unverified
+  if (process.env.ALLOW_BASELINE_AHEAD === '1') {
+    console.warn(`⚠ baseline v${baselineVersion} is newer than published stable v${published}: allowed by ALLOW_BASELINE_AHEAD=1. Publish stable before a production release.`);
+    process.exit(0);
+  }
   fail(`baseline is newer than published stable (baseline v${baselineVersion}, published v${published}). Publish stable before releasing.`);
 }
 
