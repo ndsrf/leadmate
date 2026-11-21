@@ -53,7 +53,7 @@ export type BundleMessage =
    * `first-input` is not a hint: the Handler first moves or presses a button. `control-used` says which
    * control (`control`), and `dog-approaching` where the dog comes from on screen (`bearing`, radians).
    */
-  | { type: 'stage-signal'; signal: StageSignal; time: number; control?: StageControl; bearing?: number; assist?: MarkerAssistLevel }
+  | { type: 'stage-signal'; signal: StageSignal; time: number; control?: StageControl; bearing?: number; assist?: MarkerAssistLevel; sign?: DogSign }
   /** A count-in tick of the Approach ring (beat 1 to 3, Full assist only); the shell plays it (fire and forget). */
   | { type: 'telegraph-tick'; beat: 1 | 2 | 3 }
   /** The Timing assist changed; the shell writes it to the Dog record in recorded Stages. */
@@ -115,8 +115,20 @@ function isFeedbackMessage(v: Record<string, unknown>): boolean {
   );
 }
 
-export const STAGE_SIGNALS = ['first-taut', 'first-fixation', 'leash-limit', 'first-input', 'dog-approaching', 'control-used'] as const;
+export const STAGE_SIGNALS = ['first-taut', 'first-fixation', 'leash-limit', 'first-input', 'dog-approaching', 'control-used', 'dog-sign', 'dog-sign-gone'] as const;
 export type StageSignal = (typeof STAGE_SIGNALS)[number];
+
+/**
+ * The signs the Stage draws over or around the Dog besides the Fixation "!" (which has its own `first-fixation` signal):
+ * the Alert circle, the eye of eye contact, the bark arcs, the scent dots and the Sintonía glow. `dog-sign` carries the
+ * sign the first time it is drawn; `dog-sign-gone` says it went off screen, so a Hint still waiting for it is dropped.
+ */
+export const DOG_SIGNS = ['alert', 'eye', 'bark', 'scent', 'sintonia'] as const;
+export type DogSign = (typeof DOG_SIGNS)[number];
+
+export function isDogSign(v: unknown): v is DogSign {
+  return (DOG_SIGNS as readonly unknown[]).includes(v);
+}
 
 /**
  * The controls a Coach mark can point at: the joystick (`move`) and the Marker button (`mark`) of the walking Stage,
@@ -124,11 +136,11 @@ export type StageSignal = (typeof STAGE_SIGNALS)[number];
  */
 export type StageControl = 'move' | 'mark' | 'gather' | 'poste' | 'close-mark';
 
-/** Lets each signal through once per Stage; `control-used` once per control. */
-export function createSignalGate(): (signal: StageSignal, control?: StageControl) => boolean {
+/** Lets each signal through once per Stage; `control-used` once per control and `dog-sign` once per sign. */
+export function createSignalGate(): (signal: StageSignal, detail?: StageControl | DogSign) => boolean {
   const sent = new Set<string>();
-  return (signal, control) => {
-    const key = control ? `${signal}:${control}` : signal;
+  return (signal, detail) => {
+    const key = detail ? `${signal}:${detail}` : signal;
     if (sent.has(key)) return false;
     sent.add(key);
     return true;
@@ -149,6 +161,11 @@ export function decode<T extends { type: string }>(raw: unknown, types: readonly
       if (v.type === 'telegraph-tick' && ![1, 2, 3].includes(v.beat as number)) return null;
       if (v.type === 'marker-assist' && !isMarkerAssistState(v.state)) return null;
       if (v.type === 'stage-signal' && v.assist !== undefined && !(ASSIST_LEVELS as readonly unknown[]).includes(v.assist)) return null;
+      if (v.type === 'stage-signal') {
+        // a dog-sign signal names a known sign; no other signal carries one
+        const needsSign = v.signal === 'dog-sign' || v.signal === 'dog-sign-gone';
+        if (needsSign ? !isDogSign(v.sign) : v.sign !== undefined) return null;
+      }
       if (v.type === 'start') {
         if (v.markerAssist !== undefined && !isMarkerAssistState(v.markerAssist)) return null;
         if (v.alwaysTimingHelp !== undefined && typeof v.alwaysTimingHelp !== 'boolean') return null;

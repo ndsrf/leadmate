@@ -5,7 +5,7 @@ import { closeMarksOn, COACH_ID, hintFor, HINT_IDS, hintsRemain, isControlIntrod
 
 describe('hints', () => {
   it('maps each Stage signal to one hint', () => {
-    expect(STAGE_SIGNALS.map((s) => hintFor(s, []))).toEqual(['leash-colors', 'marker', 'poste', null, 'dog-approaching', null]);
+    expect(STAGE_SIGNALS.map((s) => hintFor(s, []))).toEqual(['leash-colors', 'marker', 'poste', null, 'dog-approaching', null, null, null]);
   });
 
   it('never turns the first input into a hint', () => {

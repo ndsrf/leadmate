@@ -31,6 +31,14 @@ describe('signal gate', () => {
     expect(gate('control-used', 'close-mark')).toBe(false);
   });
 
+  it('lets dog-sign through once per sign', () => {
+    const gate = createSignalGate();
+    expect(gate('dog-sign', 'eye')).toBe(true);
+    expect(gate('dog-sign', 'eye')).toBe(false);
+    expect(gate('dog-sign', 'bark')).toBe(true);
+    expect(gate('dog-sign-gone', 'eye')).toBe(true);
+  });
+
   it('starts fresh for a new Stage', () => {
     expect(createSignalGate()('control-used', 'move')).toBe(true);
   });
@@ -152,5 +160,25 @@ describe('telegraph bridge messages', () => {
     for (const bad of [{ markerAssist: { level: 'x', successRun: 0, failRun: 0 } }, { alwaysTimingHelp: 'yes' }, { guidedFirstStage: 1 }]) {
       expect(decode<ShellMessage>({ type: 'start', ...bad }, SHELL_MESSAGE_TYPES)).toBeNull();
     }
+  });
+});
+
+describe('dog-sign stage signals', () => {
+  const read = (m: object) => decode<BundleMessage>(JSON.stringify({ type: 'stage-signal', time: 1, ...m }), BUNDLE_MESSAGE_TYPES);
+
+  it('accepts a known sign on dog-sign and dog-sign-gone', () => {
+    expect(read({ signal: 'dog-sign', sign: 'eye' })).not.toBeNull();
+    expect(read({ signal: 'dog-sign-gone', sign: 'sintonia' })).not.toBeNull();
+  });
+
+  it('rejects a missing or unknown sign', () => {
+    expect(read({ signal: 'dog-sign' })).toBeNull();
+    expect(read({ signal: 'dog-sign', sign: 'tail' })).toBeNull();
+    expect(read({ signal: 'dog-sign-gone', sign: 7 })).toBeNull();
+  });
+
+  it('rejects a sign on any other signal', () => {
+    expect(read({ signal: 'first-taut', sign: 'eye' })).toBeNull();
+    expect(read({ signal: 'first-taut' })).not.toBeNull();
   });
 });
