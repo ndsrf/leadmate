@@ -1,6 +1,10 @@
 id: leave-it-intro
 mode: stage
 prerequisites: []
+introduces:
+  - wrong-cue
+  - leave-it-food
+  - food-eaten
 simulation:
   scenario:
     world: 4

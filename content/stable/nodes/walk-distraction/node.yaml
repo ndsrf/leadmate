@@ -2,7 +2,28 @@ id: walk-distraction
 mode: stage
 prerequisites:
   - poste-practice
-simulation: {}
+introduces:
+  - go-sniff
+  - go-sniff-cut-short
+simulation:
+  encounters:
+    - id: loose-start
+      aim: keep-slack
+      scenario:
+        waypoint: { x: 20, y: 0 }
+        distractor: { kind: skateboard, speed: 4, activateAfterMeters: 50, startOffset: 12, triggerRadius: 14 }
+    - id: skate-far
+      aim: stay-calm
+      scenario:
+        waypoint: { x: 25, y: 0 }
+        distractor: { kind: skateboard, speed: 2, activateAfterMeters: 4, startOffset: 25, triggerRadius: 10 }
+    - id: skate-poste
+      aim: mark-disengagement
+      scenario:
+        waypoint: { x: 24, y: 0 }
+        distractor: { kind: skateboard, speed: 4, activateAfterMeters: 4, startOffset: 12, triggerRadius: 14 }
+        markBudget: 3
+        endCondition: { kind: time-limit, seconds: 18 }
 exercises:
   - metric: tension
     key: node.walk.exerciseTension
