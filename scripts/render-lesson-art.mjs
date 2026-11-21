@@ -4,7 +4,7 @@
 // media drawn with the same kit, every scripts/art/nodes/<node-id>/<file>.svg, to assets/nodes/<node-id>/<file>.png and
 // writes src/shell/content/nodeMediaRegistry.ts, so the bundled baseline shows a Node's pictures (an Image Duel pair)
 // with no content host. Fails on a colour outside tokens.json, on any <text>, on an unknown kit symbol, or when the
-// PNGs together pass 7 MB. See docs/content/lesson-guide.md.
+// PNGs together pass 8 MB. See docs/content/lesson-guide.md.
 // Run: node scripts/render-lesson-art.mjs [name ...] [--src dir] [--out dir] [--registry file]
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
@@ -94,7 +94,7 @@ if (defaultRun) {
 }
 console.log(`${(bundled / 1024 / 1024).toFixed(2)} MB bundled of ${(BUDGET / 1024 / 1024).toFixed(0)} MB`);
 if (bundled > BUDGET) {
-  console.error('over the 7 MB budget: simplify the art or lower the resolution');
+  console.error('over the 8 MB budget: simplify the art or lower the resolution');
   failed = true;
 }
 process.exit(failed ? 1 : 0);
