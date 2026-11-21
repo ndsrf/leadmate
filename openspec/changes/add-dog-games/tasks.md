@@ -21,7 +21,7 @@
 
 ## 4. Screens
 
-- [ ] 4.1 Add a Games glyph in `src/shell/ui/components.tsx` next to `GearGlyph` and `BasketGlyph`; verify with a render test that it draws with the ink outline at 20 points.
+- [x] 4.1 Add a Games glyph in `src/shell/ui/components.tsx` next to `GearGlyph` and `BasketGlyph`; verify with a render test that it draws with the ink outline at 20 points.
 - [ ] 4.2 Build `GamesScreen.tsx` (random button first, then rows with title, thumbnail, duration, difficulty, Plus marker for locked games); verify with `GamesScreen.test.tsx`: order follows `order`, row press opens the game, random press opens a game, Plus marker only for a non-Plus user on a non-Free game.
 - [ ] 4.3 Build `GameDetailScreen.tsx` (title, first illustration, intro always; materials, safety, steps, tips, further illustrations, shop links and video only when allowed; locked bars and Plus button otherwise; safety note in the materials block); verify with tests for Free user locked, Plus user open, Free-flag game open, and that locked text is absent from the render tree and hidden from accessibility.
 - [ ] 4.4 Reuse `ShopLinkCard`/`RecommendationCard` for each `needs` target and verify a test that its action opens the Shop at the target level and id.
