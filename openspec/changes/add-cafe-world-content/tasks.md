@@ -3,12 +3,12 @@
 ## 1. Terrace scene in the choose-the-action Minigame
 
 - [x] 1.1 Add Minigame kind `cafe-settle` to `SUPPORTED_MINIGAMES` (`src/shell/content/schema.ts`) and `MinigameKind` (`src/shell/nodes/node.ts`); regenerate the `content/FORMAT.md` tables; verify a schema test accepts `minigame: cafe-settle` and still rejects an unknown kind.
-- [ ] 1.2 In `src/shell/nodes/readDog.ts`, add the scene `cafe` (5 beats, `SCENE_ACTIONS` = ignore, wait, marker, feed), the action `feed`, the states `begging_table` and `staring_waiter`, the `CORRECT_ACTION` map, `SCENE_OF_MINIGAME['cafe-settle']`, the salt and the script from design.md. Verify with `readDog.test.ts` cases for the correct actions, 5 beats, seeded variation, ending relaxed and at least three distinct buttons needed.
-- [ ] 1.3 Make `feed` always a mistake with the hints `minigame.cafe.hint.feed` and `minigame.cafe.hint.feedCalm`, and per-action hints `minigame.cafe.hint.<action>`; verify with `readDog.test.ts` cases for feed while begging, feed while relaxed and a wrong Wait.
-- [ ] 1.4 Report `timing` and `tension` plus the handling score for the scene; verify with a perfect run (100/100) and a run with two feeds (lower `tension`).
+- [x] 1.2 In `src/shell/nodes/readDog.ts`, add the scene `cafe` (5 beats, `SCENE_ACTIONS` = ignore, wait, marker, feed), the action `feed`, the states `begging_table` and `staring_waiter`, the `CORRECT_ACTION` map, `SCENE_OF_MINIGAME['cafe-settle']`, the salt and the script from design.md. Verify with `readDog.test.ts` cases for the correct actions, 5 beats, seeded variation, ending relaxed and at least three distinct buttons needed.
+- [x] 1.3 Make `feed` always a mistake with the hints `minigame.cafe.hint.feed` and `minigame.cafe.hint.feedCalm`, and per-action hints `minigame.cafe.hint.<action>`; verify with `readDog.test.ts` cases for feed while begging, feed while relaxed and a wrong Wait.
+- [x] 1.4 Report `timing` and `tension` plus the handling score for the scene; verify with a perfect run (100/100) and a run with two feeds (lower `tension`).
 - [x] 1.5 Add the postures `begging_table` and `staring_waiter` with captions and cues to `src/shell/ui/canine.ts`; verify `canine.test.ts` covers that the states differ from `sitting_attentive` in head direction and ears, tail or mouth.
 - [ ] 1.6 Draw `TerraceScene` in `src/shell/ui/MinigameProps.tsx` (café front, table with cup, chair with the seated Handler, mat; a waiter crossing on `staring_waiter`; a treat dropping on a correct Marker) using the canvas "Kit de terraza" shapes and tokens only. Choose it in `ReadDogView.tsx`. Verify with a render test and `noRawColors.test.ts`, and by eye in the web build.
-- [ ] 1.7 Add the ES and EN i18n keys: help text, action labels and accessibility labels for `feed`, state captions, cues and hints. Verify `i18n.test.ts` (parity and voice rules) and a screen-reader label test on the action row.
+- [x] 1.7 Add the ES and EN i18n keys: help text, action labels and accessibility labels for `feed`, state captions, cues and hints. Verify `i18n.test.ts` (parity and voice rules) and a screen-reader label test on the action row.
 
 ## 2. World 7 art
 

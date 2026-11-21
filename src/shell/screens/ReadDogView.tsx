@@ -24,6 +24,7 @@ const HELP_KEYS = {
   destroy: 'minigame.destroy.help',
   'eat-objects': 'minigame.eat-objects.help',
   alone: 'minigame.alone.help',
+  cafe: 'minigame.cafe.help',
 } as const satisfies Record<ReadDogScene, string>;
 
 export interface ReadDogResult {

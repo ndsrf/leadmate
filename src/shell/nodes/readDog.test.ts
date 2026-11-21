@@ -3,7 +3,7 @@ import { BASICS_SCENES, buildScript, correctAction, CORRECT_ACTION, currentState
 import { es } from '../../i18n';
 import { starsFor } from '../stars';
 
-const SCENES: ReadDogScene[] = ['harness', 'doorbell', 'affection', 'rest', 'calm', 'bark-home', 'destroy', 'eat-objects', 'alone'];
+const SCENES: ReadDogScene[] = ['harness', 'doorbell', 'affection', 'rest', 'calm', 'bark-home', 'destroy', 'eat-objects', 'alone', 'cafe'];
 const HOME: ReadDogScene[] = ['bark-home', 'destroy', 'eat-objects', 'alone'];
 const BASICS: ReadDogScene[] = ['affection', 'rest', 'calm'];
 
@@ -52,7 +52,7 @@ describe('Read the Dog scripts', () => {
   it('makes each of the four actions of a scene right for at least one state, so no button is right every time', () => {
     for (const scene of SCENES) {
       const needed = new Set(buildScripts(scene).flatMap((script) => script.map((s) => correctAction(scene, s))));
-      for (const action of SCENE_ACTIONS[scene].filter((a) => a !== 'cuddle')) expect(needed.has(action)).toBe(true);
+      for (const action of SCENE_ACTIONS[scene].filter((a) => a !== 'cuddle' && a !== 'feed')) expect(needed.has(action)).toBe(true);
       expect(SCENE_ACTIONS[scene]).toHaveLength(4);
     }
   });
@@ -91,8 +91,11 @@ describe('per-scene rules', () => {
     expect(correctAction('calm', 'sitting_attentive')).toBe('cue');
   });
 
-  it('never makes Cuddle right', () => {
-    for (const scene of SCENES) expect(Object.values(CORRECT_ACTION[scene])).not.toContain('cuddle');
+  it('never makes Cuddle or Feed from the table right', () => {
+    for (const scene of SCENES) {
+      expect(Object.values(CORRECT_ACTION[scene])).not.toContain('cuddle');
+      expect(Object.values(CORRECT_ACTION[scene])).not.toContain('feed');
+    }
   });
 
   it('gives each Basics scene four beats ending calm, with an order that changes by seed', () => {
@@ -382,3 +385,91 @@ describe('Being alone scene', () => {
   });
 });
 
+
+describe('Terrace scene', () => {
+  it('runs the cafe-settle Minigame with Ignore, Wait, Marker and Feed from the table', () => {
+    expect(readDogSceneOf('cafe-settle')).toBe('cafe');
+    expect(SCENE_ACTIONS.cafe).toEqual(['ignore', 'wait', 'marker', 'feed']);
+  });
+
+  it('maps begging, staring at the waiter, looking back and lying relaxed to Ignore, Wait, Marker and Marker', () => {
+    expect(CORRECT_ACTION.cafe).toEqual({ begging_table: 'ignore', staring_waiter: 'wait', sitting_attentive: 'marker', relaxed_lying: 'marker' });
+  });
+
+  it('has five beats: begging and staring in a seeded order, looking back, one of them again, then relaxed', () => {
+    expect(READ_DOG.beats.cafe).toBe(5);
+    const scripts = buildScripts('cafe');
+    for (const script of scripts) {
+      expect(script).toHaveLength(5);
+      expect([...script.slice(0, 2)].sort()).toEqual(['begging_table', 'staring_waiter']);
+      expect(script[2]).toBe('sitting_attentive');
+      expect(['begging_table', 'staring_waiter']).toContain(script[3]);
+      expect(script[4]).toBe('relaxed_lying');
+    }
+    expect(new Set(scripts.map((x) => x.slice(0, 2).join())).size).toBe(2);
+    expect(new Set(scripts.map((x) => x[3])).size).toBe(2);
+  });
+
+  it('needs at least three different buttons to answer every beat', () => {
+    for (const script of buildScripts('cafe')) expect(new Set(script.map((s) => correctAction('cafe', s))).size).toBeGreaterThanOrEqual(3);
+  });
+
+  it('counts Feed from the table as a mistake on every beat', () => {
+    let run = newReadDog('cafe', 5);
+    while (!run.done) {
+      const next = stepReadDog(run, 0.05, 'feed');
+      expect(next.last?.kind === 'wrong' || next.last?.kind === 'failed').toBe(true);
+      run = next;
+    }
+    expect(run.outcomes.every((o) => o === 'failed')).toBe(true);
+  });
+
+  it('says food from the table pays the begging, and that calm is paid on the mat', () => {
+    expect(hintKey('cafe', 'begging_table', 'feed')).toBe('minigame.cafe.hint.feed');
+    expect(hintKey('cafe', 'staring_waiter', 'feed')).toBe('minigame.cafe.hint.feed');
+    expect(hintKey('cafe', 'relaxed_lying', 'feed')).toBe('minigame.cafe.hint.feedCalm');
+    expect(es['minigame.cafe.hint.feed']).toMatch(/paga que pida/);
+    expect(es['minigame.cafe.hint.feedCalm']).toMatch(/alfombra/);
+  });
+
+  it('hints a wrong choice by the right action of the beat', () => {
+    expect(hintKey('cafe', 'staring_waiter', 'marker')).toBe('minigame.cafe.hint.wait');
+    expect(hintKey('cafe', 'begging_table', 'wait')).toBe('minigame.cafe.hint.ignore');
+    expect(hintKey('cafe', 'sitting_attentive', 'wait')).toBe('minigame.cafe.hint.marker');
+    expect(hintKey('cafe', 'relaxed_lying', null)).toBe('minigame.cafe.hint.marker');
+    for (const action of ['ignore', 'wait', 'marker', 'feed', 'feedCalm']) expect(es[`minigame.cafe.hint.${action}` as keyof typeof es]).toBeTruthy();
+  });
+
+  it('shows no state without a posture, a label and a hint for every choice', () => {
+    const touch = /\b(pega|pegar|golpe|patada|empuj|zarande|cachete|agarr|sujeta)/i;
+    for (const state of Object.keys(CORRECT_ACTION.cafe) as never[]) {
+      expect(es[postureSpec(state).label]).toBeTruthy();
+      for (const action of [null, ...SCENE_ACTIONS.cafe]) {
+        const text = es[hintKey('cafe', state, action)];
+        expect(text).toBeTruthy();
+        expect(text).not.toMatch(touch);
+      }
+    }
+  });
+
+  it('reports a perfect run as timing 1, tension 1 and 1000', () => {
+    const run = play('cafe');
+    expect(readDogMetrics(run)).toEqual({ timing: 1, tension: 1 });
+    expect(readDogHandlingScore(run)).toBe(1000);
+    expect(starsFor(readDogHandlingScore(run))).toBe(3);
+  });
+
+  it('lowers tension after two feeds', () => {
+    let run = newReadDog('cafe', 3);
+    let feeds = 0;
+    while (!run.done) {
+      if (feeds < 2 && correctAction('cafe', currentState(run)) !== undefined) {
+        run = stepReadDog(run, 0.05, 'feed');
+        feeds++;
+      } else run = right(run);
+    }
+    expect(run.wrongChoices).toBe(2);
+    expect(readDogMetrics(run).tension).toBeLessThan(readDogMetrics(play('cafe')).tension);
+    expect(readDogMetrics(run).tension).toBeCloseTo(0.6);
+  });
+});

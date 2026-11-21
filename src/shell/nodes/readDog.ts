@@ -11,12 +11,12 @@ export const READ_DOG = {
   /** Seconds the user has to decide on a beat; generous, nobody should panic. */
   decisionSeconds: 5,
   /** Beats in a scene. */
-  beats: { harness: 4, doorbell: 5, affection: 4, rest: 4, calm: 4, 'bark-home': 4, destroy: 4, 'eat-objects': 4, alone: 4 },
+  beats: { harness: 4, doorbell: 5, affection: 4, rest: 4, calm: 4, 'bark-home': 4, destroy: 4, 'eat-objects': 4, alone: 4, cafe: 5 },
 } as const;
 
-/** `affection` is "Dog as a dog", `rest` is "Home rest", `calm` is "Calm first": the Basics World scenes. */
-export type ReadDogScene = 'harness' | 'doorbell' | 'affection' | 'rest' | 'calm' | 'bark-home' | 'destroy' | 'eat-objects' | 'alone';
-export type ReadDogAction = 'wait' | 'cue' | 'marker' | 'harness' | 'mat' | 'ignore' | 'send-bed' | 'send-away' | 'go-outside' | 'cuddle' | 'block-view' | 'tidy' | 'swap' | 'open' | 'shorten';
+/** `affection` is "Dog as a dog", `rest` is "Home rest", `calm` is "Calm first": the Basics World scenes. `cafe` is the Terrace scene. */
+export type ReadDogScene = 'harness' | 'doorbell' | 'affection' | 'rest' | 'calm' | 'bark-home' | 'destroy' | 'eat-objects' | 'alone' | 'cafe';
+export type ReadDogAction = 'wait' | 'cue' | 'marker' | 'harness' | 'mat' | 'ignore' | 'send-bed' | 'send-away' | 'go-outside' | 'cuddle' | 'block-view' | 'tidy' | 'swap' | 'open' | 'shorten' | 'feed';
 
 /** What the Dog shows in a beat; each is also a posture in `ui/canine.ts`. */
 export type DogState =
@@ -37,12 +37,13 @@ export const SCENE_ACTIONS: Record<ReadDogScene, readonly ReadDogAction[]> = {
   destroy: ['tidy', 'swap', 'ignore', 'marker'],
   'eat-objects': ['tidy', 'swap', 'wait', 'marker'],
   alone: ['wait', 'open', 'shorten', 'marker'],
+  cafe: ['ignore', 'wait', 'marker', 'feed'],
 };
 
 /**
  * The right action for each Dog state a scene shows, defined once per scene: the same state can mean different
  * things in different scenes (sitting and looking up is Put on harness in the Harness Ritual, Cue in Calm first).
- * A script is only a list of states. Cuddle is right for no state.
+ * A script is only a list of states. Cuddle and Feed from the table are right for no state.
  */
 export const CORRECT_ACTION: { readonly [S in ReadDogScene]: Partial<Record<DogState, ReadDogAction>> } = {
   harness: { jumping: 'wait', sniffing: 'cue', sitting_attentive: 'harness', relaxed_lying: 'marker' },
@@ -54,6 +55,7 @@ export const CORRECT_ACTION: { readonly [S in ReadDogScene]: Partial<Record<DogS
   destroy: { sniffing: 'tidy', chewing_object: 'swap', resting: 'ignore', relaxed_lying: 'marker' },
   'eat-objects': { eyeing_item: 'tidy', holding_item: 'swap', zoomies: 'wait', relaxed_lying: 'marker' },
   alone: { whining_door: 'wait', panic_door: 'open', tense_alone: 'shorten', relaxed_lying: 'marker' },
+  cafe: { begging_table: 'ignore', staring_waiter: 'wait', sitting_attentive: 'marker', relaxed_lying: 'marker' },
 };
 
 /** The right action for a state in a scene; undefined for a state the scene never shows. */
@@ -72,6 +74,7 @@ export const SCENE_OF_MINIGAME = {
   destroy: 'destroy',
   'eat-objects': 'eat-objects',
   alone: 'alone',
+  'cafe-settle': 'cafe',
 } as const satisfies Partial<Record<MinigameKind, ReadDogScene>>;
 
 /** The read-dog scene a Minigame runs, or undefined for a Minigame on another engine. */
@@ -92,6 +95,9 @@ export const isHomeScene = (scene: ReadDogScene) => HOME_SCENES.includes(scene);
 /** Scenes drawn in the living room and hinted per scene and right action. */
 export const isLivingRoomScene = (scene: ReadDogScene) => isBasicsScene(scene) || isHomeScene(scene);
 
+/** Scenes hinted per scene and right action (`minigame.<scene>.hint.<action>`): the living-room scenes and the Terrace. */
+const hintsPerAction = (scene: ReadDogScene) => isLivingRoomScene(scene) || scene === 'cafe';
+
 /** The how-to-play Lesson that explains "read the Dog, pick the action"; every living-room Node needs it read. */
 export const HOWTO_ACTION_LESSON = 'howto-choose-action';
 
@@ -109,16 +115,19 @@ const OVER_AROUSED: readonly DogState[] = ['barking_nonstop', 'zoomies'];
  * The one-line hint after a wrong choice or a missed beat. The Harness Ritual and Doorbell Mat name what to look
  * for in the state (`minigame.hint.<state>`). A Basics or Home Behaviour scene names it per scene and right action
  * (`minigame.<scene>.hint.<action>`), except that a Cuddle says it treats the Dog like a toy and a Cue to a Dog
- * barking nonstop or racing around says it cannot learn yet.
+ * barking nonstop or racing around says it cannot learn yet. The Terrace scene is hinted the same way, except
+ * that Feed from the table says food from the plate pays the begging, or, on a relaxed beat, that calm is paid
+ * with a treat dropped on the mat.
  */
 export function hintKey(scene: ReadDogScene, state: DogState, action: ReadDogAction | null): TextKey {
-  if (!isLivingRoomScene(scene)) return `minigame.hint.${state}` as TextKey;
+  if (!hintsPerAction(scene)) return `minigame.hint.${state}` as TextKey;
   if (action === 'cuddle') return 'minigame.hint.cuddle';
+  if (scene === 'cafe' && action === 'feed') return state === 'relaxed_lying' ? 'minigame.cafe.hint.feedCalm' : 'minigame.cafe.hint.feed';
   if (scene === 'calm' && action === 'cue' && OVER_AROUSED.includes(state)) return 'minigame.calm.hint.tooAroused';
   return `minigame.${scene}.hint.${correctAction(scene, state)}` as TextKey;
 }
 
-const SCENE_SALT: Record<ReadDogScene, number> = { harness: 7, doorbell: 13, affection: 17, rest: 19, calm: 23, 'bark-home': 29, destroy: 31, 'eat-objects': 37, alone: 41 };
+const SCENE_SALT: Record<ReadDogScene, number> = { harness: 7, doorbell: 13, affection: 17, rest: 19, calm: 23, 'bark-home': 29, destroy: 31, 'eat-objects': 37, alone: 41, cafe: 43 };
 
 /**
  * The beats of a scene for a seed. Harness Ritual: jumping (Wait), sniffing (Cue), sitting and looking
@@ -133,7 +142,9 @@ const SCENE_SALT: Record<ReadDogScene, number> = { harness: 7, doorbell: 13, aff
  * (Put away) and chewing one (Swap) in some order, resting (Ignore), then relaxed (Marker). Eating non-food things:
  * eyeing an item (Put away), holding one (Swap) and running off with it (Wait, never chase) in a seeded order, then
  * relaxed (Marker). Being alone: whining at the door (Wait), in panic at the door (Open) and tense after a close
- * (Shorten the step) in a seeded order, then lying relaxed (Marker).
+ * (Shorten the step) in a seeded order, then lying relaxed (Marker). Terrace: begging at the table (Ignore) and
+ * staring at a passing waiter (Wait) in some order, looking back at the Handler (Marker), one of the first two
+ * again (seeded), then lying relaxed on the mat (Marker).
  * The seed changes the order and the opening state; every scene ends with the Dog calm.
  */
 export function buildScript(scene: ReadDogScene, seed: number): DogState[] {
@@ -166,6 +177,11 @@ export function buildScript(scene: ReadDogScene, seed: number): DogState[] {
       return [...shuffle(['eyeing_item', 'holding_item', 'zoomies']), 'relaxed_lying'];
     case 'alone':
       return [...shuffle(['whining_door', 'panic_door', 'tense_alone']), 'relaxed_lying'];
+    case 'cafe': {
+      const opening = pair('begging_table', 'staring_waiter');
+      const again: DogState = rng.next() < 0.5 ? 'begging_table' : 'staring_waiter';
+      return [...opening, 'sitting_attentive', again, 'relaxed_lying'];
+    }
     case 'doorbell':
       break;
   }
@@ -254,7 +270,7 @@ const failedBeats = (run: ReadDogRun) => run.outcomes.filter((o) => o !== 'corre
 
 /**
  * Metrics for the Debrief: the share of correct beats (`poste` for the Harness Ritual, `timing` for the
- * Doorbell Mat and the Basics scenes, the names the Debrief already uses) and `tension`, which falls with every wrong choice.
+ * Doorbell Mat, the Basics, Home Behaviour and Terrace scenes, the names the Debrief already uses) and `tension`, which falls with every wrong choice.
  */
 export function readDogMetrics(run: ReadDogRun): { poste?: number; timing?: number; tension: number } {
   const beats = Math.max(1, run.script.length);
