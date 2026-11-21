@@ -509,7 +509,8 @@ export function buildLessonBlocks(
       const n = idx + 1;
       blocks.push({ type: 'heading', text: textRef(`c${n}.heading`, c.heading) });
       blocks.push({ type: 'text', text: textRef(`c${n}.text`, c.text) });
-      const art = `${config.id}-${n}`;
+      // the Lesson's own picture list wins (two controls may share a picture); otherwise `<id>-<n>`
+      const art = config.images?.[idx] ?? `${config.id}-${n}`;
       blocks.push({
         type: 'image',
         art,

@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { en, es, type TextKey } from '../../i18n';
 import { LESSON_ART } from './lessonArtRegistry';
+import { getActiveContent } from '../content/runtime';
 
 const LESSON = join(__dirname, '..', '..', '..', 'content', 'beta', 'lessons', 'howto-walking');
 
@@ -33,5 +34,23 @@ describe('the "Las señales del perro" control of the walking How-to-play Lesson
     // the picture is bundled with the app (lessonArtRegistry), so it never has to be downloaded
     expect(existsSync(join(__dirname, '..', '..', '..', 'assets', 'lessons', 'howto-walking-signs.png'))).toBe(true);
     expect(LESSON_ART['howto-walking-signs']).toBeDefined();
+  });
+});
+
+describe('How-to-play pictures of the bundled content', () => {
+  const howTo = () => getActiveContent().resolved.lessons.filter((l) => l.kind === 'how-to-play');
+
+  it('are all bundled with the app, so the first run never needs to download one', () => {
+    const missing: string[] = [];
+    for (const lesson of howTo())
+      for (const block of lesson.blocks) if (block.type === 'image' && !(block.art in LESSON_ART)) missing.push(`${lesson.id}: ${block.art}`);
+    expect(howTo().length).toBeGreaterThan(0);
+    expect(missing).toEqual([]);
+  });
+
+  it('gives the signs and the Gaze Ring controls the shared signs picture', () => {
+    const walking = howTo().find((l) => l.id === 'howto-walking');
+    const arts = (walking?.blocks ?? []).flatMap((b) => (b.type === 'image' ? [b.art] : []));
+    expect(arts).toEqual(['howto-walking-1', 'howto-walking-2', 'howto-walking-3', 'howto-walking-4', 'howto-walking-signs', 'howto-walking-signs']);
   });
 });
