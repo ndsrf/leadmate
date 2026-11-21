@@ -42,7 +42,7 @@
 
 ## 6. Release integration
 
-- [ ] 6.1 Run the full test suite and `npm run content:validate -- --channel beta`; verify all green.
+- [x] 6.1 Run the full test suite and `npm run content:validate -- --channel beta`; verify all green.
 - [ ] 6.2 Promote beta to stable and run `npm run release:prepare` (sim embed, baseline, release check); verify baseline parity passes.
 - [ ] 6.3 Play World 7 end to end in ES and EN on a device or emulator with a 1.4.0 build. Verify each Stretch: the Stage with Leave-it, the Terrace Minigame including a Feed mistake, the close-view passing dog, all three Image Duels and every Mission brief.
 
