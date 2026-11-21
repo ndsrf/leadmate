@@ -8,7 +8,7 @@
 ## 2. Hints for signs
 
 - [x] 2.1 Add the new `StageSignal`s and their `decode` validation in `src/sim/messages.ts`, with tests that reject malformed shapes. Verify: `npx jest src/sim/messages` passes and no other file under `src/sim/` changes.
-- [ ] 2.2 Emit each new signal from `StageScene` and `effectsView` the first time its sign is drawn, through the signal gate. Verify: build the bundle with no type errors, and a test with a fake scene shows each signal once per Stage.
+- [x] 2.2 Emit each new signal from `StageScene` and `effectsView` the first time its sign is drawn, through the signal gate. Verify: build the bundle with no type errors, and a test with a fake scene shows each signal once per Stage.
 - [ ] 2.3 Add the Hint ids, `HINT_FOR_SIGNAL` entries and es/en text (no `{name}` unless needed). Verify: `npx jest src/shell/onboarding/hints src/i18n` passes, including parity.
 - [ ] 2.4 Add the Hint queue (one at a time, fixed priority, drop stale, pause with the Stage) and tests for two close signs, a stale sign and a paused Stage. Verify: tests pass.
 - [ ] 2.5 Show the Hints in the guided first Stage only and record them in `seenHints` (not in the Taste Stage). Verify: tests cover first Stage, replay and Taste, and the record is unchanged in Taste.

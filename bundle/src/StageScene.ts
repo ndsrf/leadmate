@@ -18,7 +18,8 @@ import type { CueType, ScenarioConfig } from '../../src/sim/config';
 import { leashCurve, leashPoint, type TensionState } from '../../src/sim/leash';
 import { buildPayload, type SimulationDebriefPayload } from '../../src/sim/payload';
 import { activeDistractor, createState, isDogLooking, routeOf, setPaused, tick, noInput, wrappedLeash, type ReactionTier, type SimEvent, type SimInput, type SimState } from '../../src/sim/sim';
-import { createOutbox, createSignalGate, type Outbox, type StageControl, type StageSignal } from '../../src/sim/messages';
+import { createOutbox, createSignalGate, type Outbox, type DogSign, type StageControl, type StageSignal } from '../../src/sim/messages';
+import { createDogSignTracker, dogSignsShown, type DogSignsShown } from '../../src/hud/dogSigns';
 import { add, length, scale, sub, type Vec2 } from '../../src/sim/vec';
 import { TEXTURES, TILE_ORIGIN_Y } from './assets';
 import { drawDecor, drawGroundPatch, drawProp, groundBounds, propLook, wallQuad, WALL_COLORS, WALL_HEIGHT } from './props';
@@ -39,7 +40,7 @@ export interface StageOptions {
   onCue?: (cue: CueType) => void;
   /** The Dog crossed a Reaction Tier threshold; the shell plays a vocalization. */
   onTier?: (tier: ReactionTier, time: number) => void;
-  onSignal?: (signal: StageSignal, time: number, detail?: { control?: StageControl; bearing?: number; assist?: AssistLevel }) => void;
+  onSignal?: (signal: StageSignal, time: number, detail?: { control?: StageControl; bearing?: number; assist?: AssistLevel; sign?: DogSign }) => void;
   /** The Dog record's Timing assist, "always show timing help", and the guided first Stage (telegraph-marker-timing). */
   markerAssist?: AssistState;
   alwaysTimingHelp?: boolean;
@@ -188,6 +189,7 @@ export class StageScene extends Phaser.Scene {
     this.reducedMotion = options.reducedMotion ?? (typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
     this.ended = false;
     this.signalGate = createSignalGate();
+    this.trackDogSigns = this.newDogSignTracker();
     this.accumulator = 0;
     const seenKinds = options.seenKinds ?? lastStartMessage?.seenKinds ?? [];
     const isTasteStage = options.isTasteStage ?? lastStartMessage?.isTasteStage ?? false;
@@ -754,9 +756,16 @@ export class StageScene extends Phaser.Scene {
     return this.reducedMotion ? 0 : Math.round(0.5 + 0.5 * Math.sin(this.sim.time * 10)) ;
   }
 
+  /** The first time each Dog sign is drawn (and the first time it goes) the shell hears of it, so it can explain it. */
+  private trackDogSigns = this.newDogSignTracker();
+
+  private newDogSignTracker(): (shown: DogSignsShown) => void {
+    return createDogSignTracker((signal, sign) => this.signal(signal, this.sim.time, { sign }));
+  }
+
   /** Each signal goes to the shell once per Stage. */
-  private signal(signal: StageSignal, time: number, detail?: { control?: StageControl; bearing?: number; assist?: AssistLevel }): void {
-    if (!this.signalGate(signal, detail?.control)) return;
+  private signal(signal: StageSignal, time: number, detail?: { control?: StageControl; bearing?: number; assist?: AssistLevel; sign?: DogSign }): void {
+    if (!this.signalGate(signal, detail?.control ?? detail?.sign)) return;
     this.options.onSignal?.(signal, time, detail);
   }
 
@@ -899,6 +908,7 @@ export class StageScene extends Phaser.Scene {
       for (const pos of [handlerPos, dogPos]) g.fillStyle(0x4ade80, 0.22 * pulse).fillEllipse(pos.x, pos.y, 78, 39).lineStyle(2, 0x86efac, 0.6 * pulse).strokeEllipse(pos.x, pos.y, 78, 39);
     }
     this.drawActors(s, pose, dogFace);
+    this.trackDogSigns(dogSignsShown(s, pose));
     if (s.dogMode === 'fixated') {
       g.fillStyle(0xfacc15).fillRoundedRect(dogPos.x - 3, dogPos.y - 46, 6, 14, 2).fillCircle(dogPos.x, dogPos.y - 26, 3);
     } else if (pose.tier === 'alert' && !pose.headDown) {

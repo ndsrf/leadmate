@@ -19,3 +19,16 @@ export function dogSignsShown(state: SimState, pose: DogPose = dogPose(state)): 
   if (!fixated && isDogLooking(state)) signs.add('eye');
   return { fixation: fixated, signs };
 }
+
+/**
+ * Turns the Dog signs drawn each frame into `dog-sign` (the first time a sign is drawn) and `dog-sign-gone` (the first time
+ * it stops being drawn) calls. The signal gate of the scene lets each through once per Stage; this only reports the changes.
+ */
+export function createDogSignTracker(emit: (signal: 'dog-sign' | 'dog-sign-gone', sign: DogSign) => void): (shown: DogSignsShown) => void {
+  let before: ReadonlySet<DogSign> = new Set();
+  return (shown) => {
+    for (const sign of shown.signs) if (!before.has(sign)) emit('dog-sign', sign);
+    for (const sign of before) if (!shown.signs.has(sign)) emit('dog-sign-gone', sign);
+    before = shown.signs;
+  };
+}
