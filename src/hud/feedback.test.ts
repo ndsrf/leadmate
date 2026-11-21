@@ -351,3 +351,130 @@ describe('scent-walk kinds', () => {
     }
   });
 });
+
+describe('perfectRun (task 3.1)', () => {
+  it('increments on Perfect hits regardless of time between them', () => {
+    const d = new FeedbackDecider();
+    const m1 = step(d, 0, hit(0, 'perfect'));
+    expect(m1?.perfectRun).toBe(1);
+
+    // 20 seconds later
+    const m2 = step(d, 20, hit(20, 'perfect'));
+    expect(m2?.perfectRun).toBe(2);
+
+    // Another 30 seconds later with check-in hit
+    const m3 = step(d, 50, checkIn(50, 'perfect'));
+    expect(m3?.perfectRun).toBe(3);
+  });
+
+  it('starts at 0 in a new decider', () => {
+    const d = new FeedbackDecider();
+    const m = step(d, 0, hit(0, 'perfect'));
+    expect(m?.perfectRun).toBe(1);
+  });
+
+  it('resets on Good Marker hit', () => {
+    const d = new FeedbackDecider();
+    step(d, 0, hit(0, 'perfect'));
+    step(d, 1, hit(1, 'perfect'));
+
+    const good = step(d, 2, hit(2, 'good'));
+    expect(good?.perfectRun).toBeUndefined();
+
+    const nextPerfect = step(d, 3, hit(3, 'perfect'));
+    expect(nextPerfect?.perfectRun).toBe(1);
+  });
+
+  it('resets on marker-miss, marker-late, marker-reactive, and marker-wasted', () => {
+    for (const wrongEvent of [
+      { type: 'marker-miss', time: 10 } as SimEvent,
+      { type: 'marker-late', time: 10 } as SimEvent,
+      reactive(10),
+      { type: 'marker-wasted', time: 10 } as SimEvent,
+    ]) {
+      const d = new FeedbackDecider();
+      step(d, 0, hit(0, 'perfect'));
+      step(d, 1, hit(1, 'perfect'));
+
+      step(d, 10, wrongEvent);
+
+      const next = step(d, 20, hit(20, 'perfect'));
+      expect(next?.perfectRun).toBe(1);
+    }
+  });
+
+  it('is not touched by missed-opportunity', () => {
+    const d = new FeedbackDecider();
+    step(d, 0, hit(0, 'perfect'));
+    step(d, 1, hit(1, 'perfect'));
+
+    step(d, 10, { type: 'missed-opportunity', time: 10 });
+
+    const next = step(d, 20, hit(20, 'perfect'));
+    expect(next?.perfectRun).toBe(3);
+  });
+
+  it('carries perfectRun on change-check-in when graded Perfect', () => {
+    const d = new FeedbackDecider();
+    const m = step(
+      d,
+      0,
+      checkIn(0, 'perfect'),
+      { type: 'change-check-in', time: 0, change: 'left-turn', grade: 'perfect' } as SimEvent
+    );
+    expect(m?.kind).toBe('check-in-after-change');
+    expect(m?.perfectRun).toBe(1);
+
+    const m2 = step(
+      d,
+      10,
+      checkIn(10, 'perfect'),
+      { type: 'change-check-in', time: 10, change: 'right-turn', grade: 'perfect' } as SimEvent
+    );
+    expect(m2?.kind).toBe('check-in-after-change');
+    expect(m2?.perfectRun).toBe(2);
+  });
+});
+
+
+describe('Introduced actions (introduce-walk-feedback-gradually)', () => {
+  const STARTING = ['marker-hit', 'check-in-hit', 'disengagement', 'missed-reward-window', 'late-marker-press', 'reactive-marker', 'wasted-marker', 'missed-opportunity', 'rigid-pull'];
+  const harsh = (time: number): SimEvent => ({ type: 'poste-stop', time, abrupt: true } as SimEvent);
+
+  it('answers a followed turn and a harsh stop with nothing when they are not Introduced', () => {
+    const d = new FeedbackDecider({ introducedKinds: STARTING });
+    expect(step(d, 0, follow(0))).toBeNull();
+    expect(d.current(0)).toBeNull();
+    expect(step(d, 5, harsh(5))).toBeNull();
+  });
+
+  it('does not join or end a Check-in Combo', () => {
+    const d = new FeedbackDecider({ introducedKinds: STARTING, seenKinds: ['check-in-hit'] });
+    expect(step(d, 0, checkIn(0))).toMatchObject({ combo: 1 });
+    step(d, 1, follow(1));
+    step(d, 1.5, harsh(1.5)); // a wrong kind would clear the Combo if it counted
+    expect(step(d, 2, checkIn(2))).toMatchObject({ kind: 'check-in-hit', combo: 2 });
+  });
+
+  it('reports no Hint as newly seen for a kind that is not Introduced', () => {
+    const d = new FeedbackDecider({ introducedKinds: STARTING });
+    step(d, 0, follow(0));
+    // once Introduced the Hint is still the first one: it was never marked seen
+    const later = new FeedbackDecider({ introducedKinds: [...STARTING, 'followed-turn'] });
+    expect(step(later, 0, follow(0))).toMatchObject({ kind: 'followed-turn', firstTime: true });
+  });
+
+  it('shows a kind once it is in the set', () => {
+    const d = new FeedbackDecider({ introducedKinds: [...STARTING, 'followed-turn'] });
+    expect(step(d, 0, follow(0))).toMatchObject({ kind: 'followed-turn' });
+  });
+
+  it('behaves as before when the set is absent', () => {
+    expect(step(new FeedbackDecider(), 0, follow(0))).toMatchObject({ kind: 'followed-turn' });
+  });
+
+  it('keeps the Taste Stage rule: wrong kinds dropped even when Introduced', () => {
+    const d = new FeedbackDecider({ isTasteStage: true, introducedKinds: [...STARTING, 'harsh-stop'] });
+    expect(step(d, 0, harsh(0))).toBeNull();
+  });
+});

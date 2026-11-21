@@ -1,5 +1,6 @@
-import { defaultScenario } from '../../sim/config';
+import { defaultScenario, scentSpotsOf } from '../../sim/config';
 import { validateScenario } from '../../sim/scenery';
+import { FEEDBACK_ACTION_KINDS, isFeedbackActionKind, STARTING_KINDS } from '../../sim/feedbackKinds';
 import {
   parseLessonMarkdown,
   parseMissionMarkdown,
@@ -15,6 +16,7 @@ import {
 import {
   compareAppVersions,
   duelImageFile,
+  ENCOUNTERS_MIN_APP_VERSION,
   IMAGE_DUEL_MIN_APP_VERSION,
   isContentId,
   isDuelQuestionYaml,
@@ -23,6 +25,7 @@ import {
   isRelativeMediaPath,
   isSemver,
   isYouTubeId,
+  SUPPORTED_ENCOUNTER_AIMS,
   SUPPORTED_METRICS,
   SUPPORTED_MINIGAMES,
   validateCategoryYaml,
@@ -181,6 +184,7 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
   const lessonIds = new Set<string>();
   const nodeIds = new Set<string>();
   const duelNodes: string[] = []; // Nodes holding an Image Duel question
+  const seriesNodes: string[] = []; // Nodes holding an Encounter Series
   const missionIds = new Set<string>();
   const categoryIds = new Set<string>();
   const subcategoryIds = new Set<string>();
@@ -388,6 +392,148 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
           });
         }
       }
+
+      if (cfg.simulation.encounters) {
+        seriesNodes.push(id);
+        const encounters = cfg.simulation.encounters;
+
+        if (cfg.mode !== 'stage') {
+          errors.push({
+            file,
+            field: 'simulation.encounters',
+            message: `Node "${id}": Encounter Series is only supported for walking Nodes (mode "stage"), got "${cfg.mode}"`,
+          });
+        }
+
+        if (cfg.simulation.scenario || cfg.simulation.scenarioName) {
+          errors.push({
+            file,
+            field: 'simulation.encounters',
+            message: `Node "${id}": Encounter Series and single scenario are mutually exclusive`,
+          });
+        }
+
+        if (!Array.isArray(encounters) || encounters.length < 3 || encounters.length > 5) {
+          errors.push({
+            file,
+            field: 'simulation.encounters',
+            message: `Node "${id}": Encounter Series must contain 3 to 5 Encounters, got ${Array.isArray(encounters) ? encounters.length : 0}`,
+          });
+        }
+
+        if (Array.isArray(encounters)) {
+          const seenEncounterIds = new Set<string>();
+
+          encounters.forEach((rawEnc: unknown, encIdx) => {
+            const encFieldPrefix = `simulation.encounters[${encIdx}]`;
+
+            if (rawEnc === null || typeof rawEnc !== 'object' || Array.isArray(rawEnc)) {
+              errors.push({
+                file,
+                field: encFieldPrefix,
+                message: `Node "${id}": Encounter #${encIdx + 1} must be an object with an id, an aim and a scenario`,
+              });
+              return;
+            }
+            const enc = rawEnc as any;
+
+            if (!enc.id || !isContentId(enc.id)) {
+              errors.push({
+                file,
+                field: `${encFieldPrefix}.id`,
+                message: `Node "${id}": Encounter has invalid ID "${String(enc?.id)}" (expected lowercase kebab-case)`,
+              });
+            } else if (seenEncounterIds.has(enc.id)) {
+              errors.push({
+                file,
+                field: `${encFieldPrefix}.id`,
+                message: `Node "${id}": Duplicate Encounter ID "${enc.id}"`,
+              });
+            } else {
+              seenEncounterIds.add(enc.id);
+            }
+
+            const encIdStr = enc?.id ?? `#${encIdx + 1}`;
+
+            if (!SUPPORTED_ENCOUNTER_AIMS.includes(enc.aim as any)) {
+              errors.push({
+                file,
+                field: `${encFieldPrefix}.aim`,
+                message: `Node "${id}": Encounter "${encIdStr}" has unknown Aim "${String(enc?.aim)}". Supported Aims are: ${SUPPORTED_ENCOUNTER_AIMS.join(', ')}`,
+              });
+            }
+
+            const sc = enc.scenario ?? {};
+
+            if (sc.endCondition?.kind === 'time-limit') {
+              const seconds = sc.endCondition.seconds;
+              if (typeof seconds !== 'number' || seconds < 10 || seconds > 20) {
+                errors.push({
+                  file,
+                  field: `${encFieldPrefix}.scenario.endCondition.seconds`,
+                  message: `Node "${id}": Encounter "${encIdStr}" time limit must be 10 to 20 seconds, got ${seconds}`,
+                });
+              }
+            }
+
+            if ((enc.aim === 'keep-slack' || enc.aim === 'stay-calm') && sc.endCondition && sc.endCondition.kind !== 'reach-waypoint') {
+              errors.push({
+                file,
+                field: `${encFieldPrefix}.scenario.endCondition`,
+                message: `Node "${id}": Encounter "${encIdStr}" with aim "${enc.aim}" must be waypoint-ended (got ${sc.endCondition.kind})`,
+              });
+            }
+
+            if (sc.meters && sc.meters.length > 0) {
+              errors.push({
+                file,
+                field: `${encFieldPrefix}.scenario.meters`,
+                message: `Node "${id}": Encounter "${encIdStr}" cannot declare Stage Meters`,
+              });
+            }
+
+            if (sc.jackpotBudget !== undefined && sc.jackpotBudget > 0) {
+              errors.push({
+                file,
+                field: `${encFieldPrefix}.scenario.jackpotBudget`,
+                message: `Node "${id}": Encounter "${encIdStr}" cannot declare Jackpots`,
+              });
+            }
+
+            if (sc.scents && sc.scents.length > 0) {
+              errors.push({
+                file,
+                field: `${encFieldPrefix}.scenario.scents`,
+                message: `Node "${id}": Encounter "${encIdStr}" cannot declare Scent Spots`,
+              });
+            } else if (scentSpotsOf({ scents: sc.scents, scenery: Array.isArray(sc.scenery) ? sc.scenery.filter(Boolean) : [] }).length > 0) {
+              errors.push({
+                file,
+                field: `${encFieldPrefix}.scenario.scenery`,
+                message: `Node "${id}": Encounter "${encIdStr}" cannot declare Scent Spots (carried by scenery)`,
+              });
+            }
+
+            try {
+              const simErrors = validateScenario({ ...defaultScenario, ...sc } as any);
+              for (const sErr of simErrors) {
+                errors.push({
+                  file,
+                  field: `${encFieldPrefix}.scenario`,
+                  message: `Node "${id}": Encounter "${encIdStr}" scenario validation error: ${sErr}`,
+                  hint: 'Adjust scenario configuration to meet physical constraints',
+                });
+              }
+            } catch (err: unknown) {
+              errors.push({
+                file,
+                field: `${encFieldPrefix}.scenario`,
+                message: `Node "${id}": Encounter "${encIdStr}" scenario failed validation: ${err instanceof Error ? err.message : String(err)}`,
+              });
+            }
+          });
+        }
+      }
     }
 
     // Text: Spanish required
@@ -403,6 +549,18 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
         const parsedNode = typeof textRecord['es'] === 'string' ? parseNodeMarkdown(textRecord['es']) : textRecord['es'];
         if (!parsedNode.title) {
           errors.push({ file: `nodes/${id}/es.md`, field: 'title', message: `Node "${id}" missing title in Spanish`, hint: 'Add # Title' });
+        }
+        if (cfg.simulation?.encounters && Array.isArray(cfg.simulation.encounters)) {
+          for (const enc of cfg.simulation.encounters) {
+            if (enc && enc.id && (!parsedNode.encounters?.[enc.id] || !parsedNode.encounters[enc.id].trim())) {
+              errors.push({
+                file: `nodes/${id}/es.md`,
+                field: `encounters.${enc.id}`,
+                message: `Node "${id}": Encounter "${enc.id}" is missing required Spanish title`,
+                hint: `Add "### ${enc.id}" under "## encounters" in nodes/${id}/es.md`,
+              });
+            }
+          }
         }
       } catch (err: unknown) {
         errors.push({
@@ -426,6 +584,17 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
         field: 'minAppVersion',
         message: `Node "${nodeId}" uses an Image Duel question, which needs minAppVersion ${IMAGE_DUEL_MIN_APP_VERSION} or later (pack declares ${pack.pack.minAppVersion})`,
         hint: `Set minAppVersion: ${IMAGE_DUEL_MIN_APP_VERSION} in pack.yaml so older apps keep their bundled content`,
+      });
+    }
+  }
+
+  if (seriesNodes.length > 0 && isSemver(pack.pack?.minAppVersion) && compareAppVersions(pack.pack.minAppVersion, ENCOUNTERS_MIN_APP_VERSION) < 0) {
+    for (const nodeId of seriesNodes) {
+      errors.push({
+        file: 'pack.yaml',
+        field: 'minAppVersion',
+        message: `Node "${nodeId}" uses an Encounter Series, which needs minAppVersion ${ENCOUNTERS_MIN_APP_VERSION} or later (pack declares ${pack.pack.minAppVersion})`,
+        hint: `Set minAppVersion: ${ENCOUNTERS_MIN_APP_VERSION} in pack.yaml so older apps keep their bundled content`,
       });
     }
   }
@@ -915,6 +1084,127 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
           hint: `Add "${prevId}" to "retired" in pack.yaml to protect user progress`,
         });
       }
+    }
+  }
+
+  // 9. Validate Introductions and Stage Meters (Design Decision 5)
+  const introducedBy = new Map<string, string>(); // kind -> firstNodeId
+  const allChannelIntroducedKinds = new Set<string>();
+
+  // Check introduces on each Node
+  for (const [nodeId, nodeEntry] of Object.entries(pack.nodes ?? {})) {
+    const file = `nodes/${nodeId}/node.yaml`;
+    const introduces = nodeEntry.config?.introduces;
+    if (Array.isArray(introduces)) {
+      for (const kind of introduces) {
+        if (!isFeedbackActionKind(kind)) {
+          errors.push({
+            file,
+            field: 'introduces',
+            message: `Node "${nodeId}": introduces unknown action kind "${kind}"`,
+            hint: `Allowed action kinds are: ${Object.keys(FEEDBACK_ACTION_KINDS).join(', ')}`,
+          });
+        } else if ((STARTING_KINDS as readonly string[]).includes(kind)) {
+          errors.push({
+            file,
+            field: 'introduces',
+            message: `Node "${nodeId}": introduces "${kind}" which is already in the starting set`,
+            hint: 'Starting action kinds are always introduced and cannot be listed in introduces',
+          });
+        } else if (introducedBy.has(kind)) {
+          const firstNodeId = introducedBy.get(kind)!;
+          errors.push({
+            file,
+            field: 'introduces',
+            message: `Node "${nodeId}": action kind "${kind}" is already Introduced by Node "${firstNodeId}"`,
+            hint: `Each action kind outside the starting set can only be Introduced by one Node. Both "${firstNodeId}" and "${nodeId}" list it.`,
+          });
+        } else {
+          introducedBy.set(kind, nodeId);
+          allChannelIntroducedKinds.add(kind);
+        }
+      }
+    }
+  }
+
+  // Walk the trail to compute cumulative introduced kinds per Node
+  const sortedWorlds = Object.values(pack.worlds ?? {})
+    .map((w) => w.config)
+    .filter((w): w is WorldYaml => !!w && typeof w.worldNumber === 'number')
+    .sort((a, b) => a.worldNumber - b.worldNumber);
+
+  const cumulativePerNode = new Map<string, Set<string>>();
+  const cumulative = new Set<string>(STARTING_KINDS);
+
+  for (const world of sortedWorlds) {
+    for (const stretch of world.stretches ?? []) {
+      for (const stop of stretch ?? []) {
+        if (stop.kind === 'node') {
+          const nodeCfg = pack.nodes?.[stop.id]?.config;
+          if (Array.isArray(nodeCfg?.introduces)) {
+            for (const k of nodeCfg.introduces) {
+              if (isFeedbackActionKind(k)) {
+                cumulative.add(k);
+              }
+            }
+          }
+          cumulativePerNode.set(stop.id, new Set(cumulative));
+        }
+      }
+    }
+  }
+
+  // For off-trail nodes (library, home, or intro nodes not in any stretch)
+  for (const [nodeId, nodeEntry] of Object.entries(pack.nodes ?? {})) {
+    if (!cumulativePerNode.has(nodeId)) {
+      const offTrailSet = new Set<string>(STARTING_KINDS);
+      if (Array.isArray(nodeEntry.config?.introduces)) {
+        for (const k of nodeEntry.config.introduces) {
+          if (isFeedbackActionKind(k)) {
+            offTrailSet.add(k);
+          }
+        }
+      }
+      cumulativePerNode.set(nodeId, offTrailSet);
+    }
+  }
+
+  // Check Stage Meters: every action kind a Node's meter gives Meter Points for must be Introduced at that Node
+  // Only enforced in channels that have adopted introductions (allChannelIntroducedKinds.size > 0)
+  if (allChannelIntroducedKinds.size > 0) {
+    for (const [nodeId, nodeEntry] of Object.entries(pack.nodes ?? {})) {
+      const file = `nodes/${nodeId}/node.yaml`;
+      const meters = nodeEntry.config?.simulation?.scenario?.meters;
+      if (Array.isArray(meters)) {
+        const allowedKinds = cumulativePerNode.get(nodeId) ?? new Set(STARTING_KINDS);
+        for (const meter of meters) {
+          const meterId = meter?.id ?? 'unknown';
+          const points = meter?.meterPoints;
+          if (points && typeof points === 'object') {
+            for (const kind of Object.keys(points)) {
+              if (!allowedKinds.has(kind)) {
+                errors.push({
+                  file,
+                  field: 'simulation.scenario.meters',
+                  message: `Node "${nodeId}": meter "${meterId}" gives Meter Points for "${kind}" which is not yet Introduced at this Node`,
+                  hint: `Only Introduced action kinds can add Meter Points. Introduced at this Node: ${[...allowedKinds].join(', ')}`,
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Warning: each kind neither in STARTING_KINDS nor Introduced anywhere in the channel
+  for (const kind of Object.keys(FEEDBACK_ACTION_KINDS)) {
+    if (!(STARTING_KINDS as readonly string[]).includes(kind) && !allChannelIntroducedKinds.has(kind)) {
+      warnings.push({
+        file: 'pack.yaml',
+        field: 'introduces',
+        message: `Action kind "${kind}" is never Introduced by any Node in the channel`,
+      });
     }
   }
 

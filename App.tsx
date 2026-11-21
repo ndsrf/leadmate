@@ -6,8 +6,9 @@ import { AccessibilityInfo, AppState, BackHandler, useColorScheme, View } from '
 import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Fredoka_600SemiBold } from '@expo-google-fonts/fredoka';
-import { createTranslator, detectDeviceLanguage, getCatalog } from './src/i18n';
+import { createTranslator, detectDeviceLanguage, getCatalog, type TextKey } from './src/i18n';
 import { feedback } from './src/shell/ui/feedback';
+import { recordMarkerAssist, telegraphStartFields } from './src/shell/markerAssistWiring';
 import { installFeedback } from './src/shell/ui/feedbackBackends';
 import { useUiSettings } from './src/shell/ui/useUiSettings';
 import { DevPerfOverlay } from './src/shell/ui/DevPerfOverlay';
@@ -29,7 +30,9 @@ import { lookOf } from './src/shell/onboarding/look';
 import { INTRO_NODE } from './src/shell/onboarding/introNode';
 import { celebrationsFor, starsShown, type Celebration } from './src/shell/celebrations';
 import { completeDaily, dateSeed, generateDailyStage, todayString, warmupAfterDaily, type DailyCompletion } from './src/shell/daily';
-import { CloseCoachMarksOverlay, CoachMarksOverlay, DogWarningOverlay, ErrorOverlay, HintOverlay, LoadingOverlay, ResumeOverlay, SimulatorBackButton } from './src/shell/Overlays';
+import { CloseCoachMarksOverlay, CoachMarksOverlay, DogWarningOverlay, EncounterResultOverlay, ErrorOverlay, HintOverlay, LoadingOverlay, ResumeOverlay, SeriesProgressStrip, SimulatorBackButton } from './src/shell/Overlays';
+import { pawHintKey } from './src/shell/nodes/encounterHint';
+import { keptAttempt, pawsFor } from './src/shell/nodes/encounters';
 import { findNode, nodeForDog, POSTE_PRACTICE } from './src/shell/nodes/content';
 import { withPull } from './src/shell/nodes/scenarios';
 import { readDogSceneOf } from './src/shell/nodes/readDog';
@@ -51,6 +54,7 @@ import { applyBillingSubscription, canStartTrial, computeTrialRecap, isPlus, pen
 import { FixScreen, MissionBriefScreen, MissionCheckInScreen, MissionCheckScreen, MissionPassedScreen, MissionProblemScreen, MissionWaitingScreen } from './src/shell/screens/MissionScreens';
 import type { Concern } from './src/shell/concerns';
 import { WORLDS, worldsFor, type Stop } from './src/shell/world';
+import { introducedKinds, type IntroductionContext } from './src/shell/introductions';
 import { lessonDay, markLessonRead, todaysLesson } from './src/shell/lessons/lesson';
 import { LessonScreen, LibraryScreen } from './src/shell/screens/LessonScreens';
 import { WorldMapScreen } from './src/shell/screens/WorldMapScreen';
@@ -58,7 +62,7 @@ import { CheckpointScreen, DebriefScreen, PrimerScreen } from './src/shell/scree
 import { PosteMinigameView } from './src/shell/screens/PosteMinigameView';
 import { getAdService } from './src/shell/ads';
 import { ReadDogView } from './src/shell/screens/ReadDogView';
-import { DiagnosticView } from './src/shell/screens/DiagnosticView';
+import { ReadTheDogView } from './src/shell/screens/ReadTheDogView';
 import { PaywallScreen } from './src/shell/screens/PaywallScreen';
 import { ValueRecapScreen } from './src/shell/screens/ValueRecapScreen';
 import { PlanScreen } from './src/shell/screens/PlanScreen';
@@ -78,7 +82,8 @@ import { dogStore, loadStoredLanguage, saveStoredLanguage } from './src/shell/st
 import { completeFirstStage } from './src/shell/onboarding/firstStage';
 import { nextStep } from './src/shell/onboarding/flow';
 import { recordDiagnostic } from './src/shell/onboarding/diagnostic';
-import { closeMarksOn, COACH_ID, feedbackKindSeen, HINT_TEXT, hintFor, markFeedbackKindSeen, markHintSeen, type HintId } from './src/shell/onboarding/hints';
+import { dropStale, elapseHint, EMPTY_HINT_QUEUE, offerHint, type HintQueue } from './src/shell/onboarding/hintQueue';
+import { closeMarksOn, COACH_ID, feedbackKindSeen, HINT_TEXT, hintFor, isControlIntroduced, markFeedbackKindSeen, markHintSeen, type HintId } from './src/shell/onboarding/hints';
 import { completeTaste, leaveWelcome, namedTranslator, saveMainConcerns, saveNameAndLook, withDogName } from './src/shell/onboarding/intro';
 import { passPaywall } from './src/shell/onboarding/paywall';
 import { TASTE_LINGER_MS, tasteKind, tasteScenarioFor, tasteSnapshot } from './src/shell/onboarding/taste';
@@ -90,6 +95,33 @@ import { AccountBanner, AuthScreen, ChooseDogScreen, RegisterPrompt } from './sr
 import { resolveCue, type Language } from './src/shell/voice';
 import { backAction, isReadyToLeaveSplash, trialModalOwnsBack, onStageViewFailure, routeFor, stageViewWanted, type BackActionParams, type Route } from './src/shell/navigation';
 import { resetProgress } from './src/shell/reset';
+import {
+  initAnalytics,
+  track,
+  getAnalyticsState,
+  updateAnalyticsRecord,
+  updateAnalyticsFlags,
+  ANALYTICS_STATE_KEY,
+  readAnalyticsState,
+  PlayTracker,
+  type StageMode,
+  type StartStageInfo,
+  LessonTimer,
+  type LessonSource,
+  stopsNewlyDone,
+  type StopCompletedProps,
+  setAnalyticsScreen,
+  setAnalyticsForeground,
+  setAnalyticsSignedIn,
+  startAnalyticsSession,
+  trackAppBackgrounded,
+  screenOf,
+  ScreenViews,
+} from './src/shell/analytics';
+import { daysSince, shouldStartSession } from './src/shell/analytics/session';
+import { FunnelTracker, funnelStepOf } from './src/shell/analytics/funnel';
+import { AnalyticsProvider } from './src/shell/analytics/AnalyticsProvider';
+import type { SetupPart } from './src/shell/onboarding/setup';
 import { ShopScreen, type ShopLevel } from './src/shell/screens/ShopScreen';
 import { ShopPopup } from './src/shell/screens/ShopPopup';
 import {
@@ -117,7 +149,7 @@ type Flow =
   | { name: 'library' }
   | { name: 'diary' }
   /** A Lesson from the Library, or from its Stop on the map; Done and Back return there. */
-  | { name: 'lesson'; id: string; returnTo: 'map' | 'library'; autoPlayVideo?: boolean }
+  | { name: 'lesson'; id: string; returnTo: 'map' | 'library'; autoPlayVideo?: boolean; source?: LessonSource }
   /** A Mission Stop's screens; a Fix opened from "Tus ajustes" returns to the Library. */
   | { name: 'mission'; id: string; view: MissionView; fixId?: string; returnTo?: 'map' | 'library' }
   /** The paywall from the map, or from a Plus-only action (`then`) that "Empezar prueba" completes. */
@@ -140,8 +172,94 @@ function isHandDrillFlow(route: Route<Flow>): boolean {
   return route.name === 'flow' && route.flow.name === 'node' && route.flow.run.node.mode === 'close_exercise' && route.flow.run.node.simulation.closeScenario?.controls === 'hand_drill';
 }
 
+function getStartStageInfo(
+  currentRoute: Route<Flow>,
+  currentFlow: Flow | null,
+  mode: StageMode = 'stage'
+): StartStageInfo {
+  if (currentRoute.name === 'taste') {
+    return {
+      type: 'stage',
+      stage_kind: 'taste',
+      stage_id: 'taste',
+      mode,
+      attempt: 1,
+    };
+  }
+  if (currentRoute.name === 'first-stage') {
+    return {
+      type: 'stage',
+      stage_kind: 'first',
+      stage_id: 'intro-node',
+      mode,
+      attempt: 1,
+    };
+  }
+  if (currentRoute.name === 'flow' && currentRoute.flow.name === 'warmup') {
+    return {
+      type: 'stage',
+      stage_kind: 'warmup',
+      stage_id: 'warmup',
+      mode,
+      attempt: 1,
+    };
+  }
+  if (currentRoute.name === 'flow' && currentRoute.flow.name === 'daily') {
+    return {
+      type: 'stage',
+      stage_kind: 'daily',
+      stage_id: `daily:${todayString()}`,
+      mode,
+      attempt: currentRoute.flow.attempt + 1,
+    };
+  }
+  const activeNodeFlow =
+    currentFlow?.name === 'node'
+      ? currentFlow
+      : currentRoute.name === 'flow' && currentRoute.flow.name === 'node'
+      ? currentRoute.flow
+      : null;
+
+  if (activeNodeFlow) {
+    const node = activeNodeFlow.run.node;
+    const encounters = node.simulation.encounters;
+    let encounter_id: string | undefined;
+    let encounter_attempt: number | undefined;
+
+    if (encounters && encounters.length > 0) {
+      const series = activeNodeFlow.run.series;
+      const index = series ? series.index : 0;
+      const enc = encounters[index];
+      if (enc) {
+        encounter_id = enc.id;
+        const attempts = series?.attempts[index];
+        encounter_attempt = (attempts ? attempts.length : 0) + 1;
+      }
+    }
+
+    return {
+      type: 'stage',
+      stage_kind: 'node',
+      stage_id: node.id,
+      mode,
+      attempt: activeNodeFlow.attempt + 1,
+      ...(encounter_id !== undefined ? { encounter_id } : {}),
+      ...(encounter_attempt !== undefined ? { encounter_attempt } : {}),
+    };
+  }
+  return {
+    type: 'stage',
+    stage_kind: 'node',
+    stage_id: 'node',
+    mode,
+    attempt: 1,
+  };
+}
+
 const LOAD_TIMEOUT_MS = 20000;
 const HINT_MS = 7000;
+/** How often the guided first Stage's Hint queue counts time. */
+const HINT_QUEUE_TICK_MS = 250;
 /** The Marker Coach mark gives up after this long without a press. */
 const COACH_MARK_MS = 20000;
 const MIN_SPLASH_MS = 2200;
@@ -173,6 +291,8 @@ export default function App() {
   // System follows the phone (or browser); one that reports no preference gets Light
   const systemScheme = useColorScheme();
   const scheme: ColorScheme = ui.settings.appearance === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : ui.settings.appearance;
+  const uiSettingsRef = useRef(ui.settings);
+  uiSettingsRef.current = ui.settings;
   const sim = useRef<SimViewHandle>(null);
   const { record, update, replace } = useDog(dogStore);
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -259,12 +379,16 @@ export default function App() {
   }, []);
   const [flow, setFlow] = useState<Flow | null>(null);
   const [hint, setHint] = useState<HintId | null>(null);
+  // the guided first Stage shows one Hint at a time: the ones due wait here in a fixed order
+  const [hintQueue, setHintQueue] = useState<HintQueue>(EMPTY_HINT_QUEUE);
   // the approaching-dog warning: where the dog comes from on screen, while it is shown
   const [dogWarning, setDogWarning] = useState<{ bearing: number | null } | null>(null);
   // Coach marks: which controls were used in this Stage, and the Stage's run number (restarts the Marker timeout)
   const [controlsUsed, setControlsUsed] = useState<Partial<Record<StageControl, boolean>>>({});
   const [markExpired, setMarkExpired] = useState(false);
   const [stageRun, setStageRun] = useState(0);
+  const [stageIntroducedKinds, setStageIntroducedKinds] = useState<readonly string[] | undefined>(undefined);
+  const stageIntroducedKindsRef = useRef<readonly string[] | undefined>(undefined);
   const [warmup, setWarmup] = useState<WarmupOutcome>('none');
   // celebrations are diffed once when a result opens and then only displayed, so each shows once
   const [celebrations, setCelebrations] = useState<{ id: string; list: Celebration[] } | null>(null);
@@ -288,9 +412,91 @@ export default function App() {
 
   const flowRef = useRef(flow);
   flowRef.current = flow;
+  const hintQueueActive = useRef(false);
   const recordRef = useRef(record);
   recordRef.current = record;
   const vocalizer = useRef(createVocalizer(playDogSound));
+
+  const [setupPart, setSetupPart] = useState<SetupPart | null>(null);
+  const funnelTracker = useRef(new FunnelTracker());
+  const screenViews = useRef(new ScreenViews());
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>('dog');
+  const playTracker = useRef(new PlayTracker());
+  const lessonTimer = useRef<LessonTimer | null>(null);
+  const checkpointShownAt = useRef<number>(Date.now());
+  const lastBackgroundAt = useRef<Date | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const raw = await dogStore.getItem(ANALYTICS_STATE_KEY);
+        const isFirst = !raw || !readAnalyticsState(raw);
+        const state = await initAnalytics(dogStore, recordRef.current);
+        if (!alive) return;
+        funnelTracker.current.syncState({
+          funnelDoneOnce: state.funnelDoneOnce,
+          funnelOpen: state.funnelOpen,
+        });
+        track('session_started', {
+          days_since_install: daysSince(state.installedAt),
+          first_session: isFirst,
+          upgraded_install: state.upgradedInstall,
+        });
+      } catch {
+        // swallow
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    updateAnalyticsRecord(record);
+  }, [record]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        playTracker.current.resume();
+        lessonTimer.current?.resume();
+        setAnalyticsForeground(true);
+        if (shouldStartSession(lastBackgroundAt.current, new Date())) {
+          const state = getAnalyticsState();
+          if (state) {
+            startAnalyticsSession();
+            track('session_started', {
+              days_since_install: daysSince(state.installedAt),
+              first_session: false,
+              upgraded_install: state.upgradedInstall,
+            });
+          }
+        }
+        lastBackgroundAt.current = null;
+      } else {
+        playTracker.current.pause();
+        lessonTimer.current?.pause();
+        if (nextState === 'background') {
+          // inactive also fires for Control Center and system dialogs on iOS: not a departure
+          trackAppBackgrounded();
+          setAnalyticsForeground(false);
+        }
+        if (!lastBackgroundAt.current) {
+          lastBackgroundAt.current = new Date();
+        }
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
+  useEffect(() => {
+    if (paused) {
+      playTracker.current.pause();
+    } else {
+      playTracker.current.resume();
+    }
+  }, [paused]);
   const pendingStart = useRef<ShellMessage | null>(null);
   const bundleReady = useRef(false);
   // the Stage view is created on demand (see stageViewWanted): one silent remount is allowed before play
@@ -349,6 +555,34 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [hint]);
 
+  // the guided first Stage's Hint queue: its clock runs only while the Stage does, and the next Hint shows when one ends
+  useEffect(() => {
+    if (!hintQueue.current || paused) return;
+    const timer = setInterval(() => setHintQueue((q) => elapseHint(q, HINT_QUEUE_TICK_MS, false, HINT_MS)), HINT_QUEUE_TICK_MS);
+    return () => clearInterval(timer);
+  }, [hintQueue.current, paused]);
+
+  // a Hint that takes its turn is shown, and recorded as seen only now: one that was dropped while waiting never is
+  useEffect(() => {
+    const current = hintQueue.current;
+    if (!current) {
+      if (hintQueueActive.current) {
+        setHint(null);
+        setDogWarning(null);
+      }
+      return;
+    }
+    hintQueueActive.current = true;
+    if (current.id === 'dog-approaching') {
+      setHint(null);
+      setDogWarning({ bearing: current.bearing ?? null });
+    } else {
+      setDogWarning(null);
+      setHint(current.id);
+    }
+    update((r) => markHintSeen(r, current.id));
+  }, [hintQueue.current]);
+
   useEffect(() => {
     if (!dogWarning) return;
     const timer = setTimeout(() => setDogWarning(null), HINT_MS);
@@ -366,7 +600,8 @@ export default function App() {
 
   const resume = useCallback(() => {
     setPaused(false);
-    send({ type: 'resume' });
+    // an ended Stage behind a result card has nothing to resume
+    if (!cardShowingRef.current) send({ type: 'resume' });
   }, [send]);
 
   /** Starts a Stage with the Dog's snapshot; waits for the bundle if it is still loading. */
@@ -378,6 +613,23 @@ export default function App() {
         .filter((id) => id.startsWith('feedback:'))
         .map((id) => id.slice('feedback:'.length));
       const isTasteStage = routeRef.current.name === 'taste';
+      let context: IntroductionContext | undefined;
+      if (routeRef.current.name === 'taste') {
+        context = { kind: 'taste' };
+      } else if (
+        routeRef.current.name === 'first-stage' ||
+        (flowRef.current?.name === 'node' && flowRef.current.run.node.id === 'intro-node')
+      ) {
+        context = { kind: 'first' };
+      } else if (flowRef.current?.name === 'daily') {
+        context = { kind: 'daily', completedNodes: current.completedNodes };
+      } else if (flowRef.current?.name === 'node') {
+        context = { kind: 'node', nodeId: flowRef.current.run.node.id };
+      }
+      const worlds = current ? worldsFor(current.onboarding.plan, current) : WORLDS;
+      const introduced = context ? introducedKinds(context, worlds) : undefined;
+      setStageIntroducedKinds(introduced);
+      stageIntroducedKindsRef.current = introduced;
       const message: ShellMessage = {
         type: 'start',
         seed,
@@ -385,14 +637,23 @@ export default function App() {
         scenario: { ...withPull(scenario, current.weights), learning: snapshot ?? toSnapshot(current, capacityRef.current), look: lookOf(current) },
         seenKinds,
         isTasteStage,
+        introducedKinds: introduced,
         reducedMotion,
+        // the telegraph (walking Stages only; close exercises start through startCloseExercise and send none)
+        ...telegraphStartFields(current, uiSettingsRef.current, routeRef.current.name),
       };
       setPaused(false);
       setHint(null);
       setDogWarning(null);
+      setHintQueue(EMPTY_HINT_QUEUE);
+      hintQueueActive.current = false;
       setControlsUsed({});
       setStageRun((n) => n + 1);
       feedback.preloadStage();
+      const startInfo = getStartStageInfo(routeRef.current, flowRef.current, 'stage');
+      const startRes = playTracker.current.start(startInfo);
+      if (startRes.ended) track(startRes.ended.name, startRes.ended.props);
+      track(startRes.name, startRes.props);
       if (bundleReady.current) send(message);
       else pendingStart.current = message;
     },
@@ -415,7 +676,13 @@ export default function App() {
       setHint(null);
       setDogWarning(null);
       setControlsUsed({});
+      setStageIntroducedKinds(undefined);
+      stageIntroducedKindsRef.current = undefined;
       setStageRun((n) => n + 1);
+      const startInfo = getStartStageInfo(routeRef.current, flowRef.current, 'close_exercise');
+      const startRes = playTracker.current.start(startInfo);
+      if (startRes.ended) track(startRes.ended.name, startRes.ended.props);
+      track(startRes.name, startRes.props);
       if (bundleReady.current) send(message);
       else pendingStart.current = message;
     },
@@ -425,8 +692,57 @@ export default function App() {
   const act = useCallback((action: NodeAction) => {
     const f = flowRef.current;
     if (f?.name !== 'node') return;
-    setFlow({ ...f, run: advance(f.run, action) });
+    if (f.run.step === 'checkpoint' && (action.type === 'answer' || action.type === 'timeout')) {
+      const qIndex = f.run.question;
+      const secondsToAnswer = Math.max(0, Math.floor((Date.now() - checkpointShownAt.current) / 1000));
+      const nextRun = advance(f.run, action);
+      const res = nextRun.checkpoint[qIndex];
+      if (res) {
+        track('checkpoint_answered', {
+          node_id: f.run.node.id,
+          question_index: qIndex,
+          result: res,
+          seconds_to_answer: secondsToAnswer,
+        });
+      }
+      flowRef.current = { ...f, run: nextRun };
+      setFlow({ ...f, run: nextRun });
+      return;
+    }
+    const run = advance(f.run, action);
+    // keep the ref current at once, so two actions in one tick (Next then a start) see the new state
+    flowRef.current = { ...f, run };
+    setFlow({ ...f, run });
   }, []);
+
+  /** The Dog as it was when the running Encounter Series started (the same for every Encounter and retry). */
+  const seriesSnapshot = useRef<LearningSnapshot | undefined>(undefined);
+  /** An Encounter's scenario: bundled, never replaced by a remote per-Node config. */
+  const encounterScenario = (scenario: Partial<ScenarioConfig>): Partial<ScenarioConfig> => ({ ...scenario, configVersion: 'bundled' });
+  /** True while an Encounter result card is shown: the Stage has ended, so nothing runs or pauses in the bundle. */
+  const cardShowing = route.name === 'flow' && route.flow.name === 'node' && route.flow.run.step === 'simulation' && route.flow.run.series?.showing === 'result';
+  const cardShowingRef = useRef(false);
+  cardShowingRef.current = cardShowing;
+
+  const retryEncounter = useCallback(() => {
+    const f = flowRef.current;
+    if (f?.name !== 'node' || !f.run.series) return;
+    const encounter = f.run.node.simulation.encounters?.[f.run.series.index];
+    const seed = f.run.series.seeds[f.run.series.index];
+    if (!encounter) return;
+    act({ type: 'retry' });
+    startStage(encounterScenario(encounter.scenario), seed, seriesSnapshot.current);
+  }, [act, startStage]);
+
+  const nextEncounter = useCallback(() => {
+    const f = flowRef.current;
+    if (f?.name !== 'node' || !f.run.series) return;
+    const encounters = f.run.node.simulation.encounters ?? [];
+    const next = encounters[f.run.series.index + 1];
+    act({ type: 'next-encounter' });
+    if (next) startStage(encounterScenario(next.scenario), newSeed(), seriesSnapshot.current);
+    else accountRef.current.countStage(); // the Series is over: one counted Stage for the whole Series
+  }, [act, startStage]);
 
   // entering an Interactive Simulation (walking stage or close exercise) starts the Stage
   const simulationKey =
@@ -441,6 +757,11 @@ export default function App() {
     const node = flowRef.current.run.node;
     if (node.mode === 'close_exercise') {
       startCloseExercise(node.simulation.closeScenario ?? {});
+    } else if (node.simulation.encounters && node.simulation.encounters.length > 0) {
+      // an Encounter Series: every Encounter and retry starts from the Dog as it was when the Series started
+      const current = recordRef.current;
+      seriesSnapshot.current = current ? toSnapshot(current, capacityRef.current) : undefined;
+      startStage(encounterScenario(node.simulation.encounters[0].scenario), newSeed(), seriesSnapshot.current);
     } else {
       startStage(resolveScenario(node.id, node.simulation.scenario ?? {}, accountRef.current.configs).scenario);
     }
@@ -469,6 +790,8 @@ export default function App() {
   const tastePayoffTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const showTastePayoff = useCallback(() => {
     if (tastePayoffTimer.current) return;
+    const endRes = playTracker.current.end('finished', new Date());
+    if (endRes) track(endRes.name, endRes.props);
     send({ type: 'focus' });
     tastePayoffTimer.current = setTimeout(() => setTastePayoff(true), TASTE_LINGER_MS);
   }, [send]);
@@ -490,6 +813,134 @@ export default function App() {
       setIntroRun(null);
     }
   }, [route.name]);
+
+  useEffect(() => {
+    const change = funnelTracker.current.stepChange({
+      route,
+      setupPart,
+      tasteBriefed,
+      tastePayoff,
+      introStep: introRun?.step,
+      flowName: flow?.name,
+      isFunnelAuth: flow?.name === 'auth' && (flow.returnTo === 'map' || record?.onboarding.step !== 'done'),
+    });
+    if (change) {
+      track('funnel_step_viewed', {
+        step: change.step,
+        repeat: change.repeat,
+      });
+      if (change.openChangedTo !== undefined || change.doneOnceChangedTo !== undefined) {
+        void updateAnalyticsFlags({
+          funnelOpen: change.openChangedTo,
+          funnelDoneOnce: change.doneOnceChangedTo,
+        });
+      }
+    }
+  }, [route, setupPart, tasteBriefed, tastePayoff, introRun?.step, flow?.name, record?.onboarding.step]);
+
+  useEffect(() => {
+    const funnelStep = funnelStepOf({
+      route,
+      setupPart,
+      tasteBriefed,
+      tastePayoff,
+      introStep: introRun?.step,
+      flowName: flow?.name,
+      isFunnelAuth: flow?.name === 'auth' && (flow.returnTo === 'map' || record?.onboarding.step !== 'done'),
+      funnelOpen: true,
+    });
+    const view = screenViews.current.view(screenOf({ route, funnelStep, flow, settingsTab }));
+    if (!view) return;
+    setAnalyticsScreen(view.screen);
+    track('screen_viewed', {
+      screen: view.screen,
+      previous_screen: view.previous_screen,
+      screen_item_id: view.itemId,
+    });
+  }, [route, flow, setupPart, tasteBriefed, tastePayoff, introRun?.step, settingsTab, record?.onboarding.step]);
+
+  useEffect(() => {
+    setAnalyticsSignedIn(account.signedIn);
+  }, [account.signedIn]);
+
+  const minigameSimulationKey =
+    route.name === 'flow' &&
+    route.flow.name === 'node' &&
+    route.flow.run.step === 'simulation' &&
+    route.flow.run.node.mode === 'minigame'
+      ? `${route.flow.run.node.id}:${route.flow.attempt}`
+      : null;
+  useEffect(() => {
+    if (minigameSimulationKey === null || flowRef.current?.name !== 'node') return;
+    const f = flowRef.current;
+    const startRes = playTracker.current.start({
+      type: 'minigame',
+      node_id: f.run.node.id,
+      attempt: f.attempt + 1,
+    });
+    if (startRes.ended) track(startRes.ended.name, startRes.ended.props);
+    track(startRes.name, startRes.props);
+  }, [minigameSimulationKey]);
+
+  const playKey =
+    (route.name === 'taste' && tasteBriefed)
+      ? 'taste:1'
+      : (route.name === 'first-stage' && introRun?.step === 'simulation')
+      ? 'first:1'
+      : (route.name === 'flow' && route.flow.name === 'warmup')
+      ? 'warmup:1'
+      : (route.name === 'flow' && route.flow.name === 'daily' && route.flow.result === null)
+      ? `daily:${route.flow.attempt}`
+      : (route.name === 'flow' && route.flow.name === 'node' && route.flow.run.step === 'simulation')
+      ? `${route.flow.run.node.id}:${route.flow.attempt}`
+      : null;
+
+  const previousPlayKey = useRef<string | null>(null);
+  useEffect(() => {
+    if (previousPlayKey.current !== null && previousPlayKey.current !== playKey) {
+      if (playTracker.current.isOpen) {
+        const left = playTracker.current.end('left');
+        if (left) track(left.name, left.props);
+      }
+    }
+    previousPlayKey.current = playKey;
+  }, [playKey]);
+
+  const checkpointKey =
+    route.name === 'first-stage' && introRun?.step === 'checkpoint'
+      ? `intro:${introRun.question}`
+      : route.name === 'flow' && route.flow.name === 'node' && route.flow.run.step === 'checkpoint'
+      ? `${route.flow.run.node.id}:${route.flow.run.question}`
+      : null;
+
+  useEffect(() => {
+    if (checkpointKey !== null) {
+      checkpointShownAt.current = Date.now();
+    }
+  }, [checkpointKey]);
+
+  const activeLessonId = route.name === 'flow' && route.flow.name === 'lesson' ? route.flow.id : null;
+  const previousLessonId = useRef<string | null>(null);
+  useEffect(() => {
+    if (previousLessonId.current !== null && previousLessonId.current !== activeLessonId) {
+      if (lessonTimer.current?.isOpen) {
+        const backProps = lessonTimer.current.close('back');
+        if (backProps) track('lesson_done', backProps);
+        lessonTimer.current = null;
+      }
+    }
+    if (activeLessonId !== null && activeLessonId !== previousLessonId.current) {
+      const source: LessonSource =
+        (route.name === 'flow' && route.flow.name === 'lesson' && route.flow.source)
+          ? route.flow.source
+          : (route.name === 'flow' && route.flow.name === 'lesson' && route.flow.returnTo === 'library')
+          ? 'library'
+          : 'trail';
+      track('lesson_opened', { lesson_id: activeLessonId, source });
+      lessonTimer.current = new LessonTimer({ lessonId: activeLessonId, source });
+    }
+    previousLessonId.current = activeLessonId;
+  }, [activeLessonId, route]);
 
   // the Stage view exists only while a Stage is being prepared or played; every shell screen runs without a browser engine behind it
   const viewWanted = stageViewWanted({ route: route as Parameters<typeof stageViewWanted>[0]['route'], introStep: introRun?.step ?? null });
@@ -531,13 +982,19 @@ export default function App() {
     }
     let diff: Celebration[] = [];
     let afterRecord: any = null;
+    let newlyDone: StopCompletedProps[] = [];
     update((r) => {
       const now = new Date();
       const after = onDebrief(r, f.run, now);
       afterRecord = after;
       diff = celebrationsFor(progressAt(r, now), progressAt(after, now), { kind: 'node', nodeId: f.run.node.id });
+      const worlds = worldsFor(after.onboarding?.plan ?? [], after);
+      newlyDone = stopsNewlyDone(r, after, worlds, now);
       return after;
     });
+    for (const stop of newlyDone) {
+      track('stop_completed', stop);
+    }
     setCelebrations({ id: debriefId, list: diff });
 
     const activeShop = getActiveContent()?.resolved?.shop;
@@ -591,7 +1048,14 @@ export default function App() {
       } else if (message.type === 'paused') setPaused(true);
       else if (message.type === 'stage-signal') {
         const inTaste = routeRef.current.name === 'taste';
-        if (message.signal === 'control-used' && message.control) {
+        // the guided first Stage explains every sign it shows, one Hint at a time
+        const guided = routeRef.current.name === 'first-stage';
+        if (message.signal === 'dog-sign-gone') {
+          if (guided && message.sign) {
+            const sign = message.sign;
+            setHintQueue((q) => dropStale(q, sign));
+          }
+        } else if (message.signal === 'control-used' && message.control) {
           // a Coach mark is gone once its control is used; the taste records this too, so the first guided Stage skips it
           const control = message.control;
           setControlsUsed((used) => ({ ...used, [control]: true }));
@@ -599,19 +1063,33 @@ export default function App() {
         } else if (message.signal === 'dog-approaching') {
           // the warning shows in the taste but is recorded only in recorded Stages
           const seen = recordRef.current?.seenHints ?? [];
-          if (inTaste || hintFor('dog-approaching', seen)) {
+          if (guided) {
+            if (hintFor('dog-approaching', seen)) {
+              const bearing = message.bearing;
+              setHintQueue((q) => offerHint(q, { id: 'dog-approaching', bearing }, HINT_MS));
+            }
+          } else if (inTaste || hintFor('dog-approaching', seen)) {
             setHint(null); // one panel at a time
             setDogWarning({ bearing: message.bearing ?? null });
             if (!inTaste) update((r) => markHintSeen(r, 'dog-approaching'));
           }
         } else {
-          // the taste shows no Hints and records none
-          const shown = recordRef.current && !inTaste ? hintFor(message.signal, recordRef.current.seenHints) : null;
-          if (shown) {
+          // the taste shows no Hints and records none; event Hints gate by introducedKinds
+          const shown = recordRef.current && !inTaste ? hintFor(message.signal, recordRef.current.seenHints, message.assist, stageIntroducedKindsRef.current, { guided, sign: message.sign }) : null;
+          if (shown && guided) {
+            const queued = { id: shown, sign: message.sign };
+            setHintQueue((q) => offerHint(q, queued, HINT_MS));
+          } else if (shown) {
             setHint(shown);
             update((r) => markHintSeen(r, shown));
           }
         }
+      } else if (message.type === 'telegraph-tick') {
+        feedback.telegraphTick();
+      } else if (message.type === 'marker-assist') {
+        // recorded Stages only, the same gate as firstTime Hints
+        const state = message.state;
+        if (routeRef.current.name !== 'taste') update((r) => recordMarkerAssist(r, state, routeRef.current.name));
       } else if (message.type === 'feedback') {
         const inTaste = routeRef.current.name === 'taste';
         feedback.stage(message);
@@ -630,6 +1108,17 @@ export default function App() {
       } else if (message.type === 'debrief') {
         const payload: SimulationDebriefPayload = message.payload;
         const f = flowRef.current;
+        let paws: number | undefined;
+        if (f?.name === 'node' && f.run.node.simulation.encounters?.length) {
+          const encounters = f.run.node.simulation.encounters;
+          const index = f.run.series?.index ?? 0;
+          const enc = encounters[index];
+          if (enc) {
+            paws = pawsFor(enc.aim, payload).paws;
+          }
+        }
+        const endRes = playTracker.current.end('finished', new Date(), payload.handlingScore, paws);
+        if (endRes) track(endRes.name, endRes.props);
         if (f?.name === 'daily' && f.result === null) {
           // the score and the Streak are kept; what the Dog has learned and the campaign are not touched
           const before = recordRef.current!;
@@ -651,6 +1140,9 @@ export default function App() {
           // ungraded: the warm-up never changes the Dog
           setWarmup('completed');
           goHome();
+        } else if (f?.name === 'node' && f.run.node.simulation.encounters?.length) {
+          // an Encounter ends: show its result card; the Node finishes only on the last Next or on Exit
+          act({ type: 'encounter-end', payload });
         } else if (f?.name === 'node') {
           accountRef.current.countStage();
           const kind = f.run.node.mode === 'close_exercise' ? 'close_exercise' : 'stage';
@@ -758,7 +1250,7 @@ export default function App() {
   /** Opens a Stop by kind: a Lesson Stop returns to the map, a Node starts, a Mission opens on its check, brief, wait or check-in. */
   const openStop = (stop: Stop) => {
     setSettingsOpen(false);
-    if (stop.kind === 'lesson') setFlow({ name: 'lesson', id: stop.id, returnTo: 'map' });
+    if (stop.kind === 'lesson') setFlow({ name: 'lesson', id: stop.id, returnTo: 'map', source: 'trail' });
     else if (stop.kind === 'node') {
       const node = findNode(stop.id);
       if (node) startNodeRun(node);
@@ -800,11 +1292,15 @@ export default function App() {
     if (!mission) return;
     const now = new Date();
     let diff: Celebration[] = [];
+    let newlyDone: StopCompletedProps[] = [];
     update((r) => {
       const after = passMissionDirectly(r, id, now);
       diff = celebrationsFor(progressAt(r, now), progressAt(after, now), { kind: 'mission', missionId: id });
+      const worlds = worldsFor(after.onboarding?.plan ?? [], after);
+      newlyDone = stopsNewlyDone(r, after, worlds, now);
       return after;
     });
+    for (const stop of newlyDone) track('stop_completed', stop);
     setCelebrations({ id: `mission:${id}`, list: diff });
     setFlow({ name: 'mission', id, view: 'passed' });
   };
@@ -819,11 +1315,15 @@ export default function App() {
     }
     const now = new Date();
     let diff: Celebration[] = [];
+    let newlyDone: StopCompletedProps[] = [];
     update((r) => {
       const after = applyMissionCheckIn(r, mission, outcome, problemId, now);
       diff = celebrationsFor(progressAt(r, now), progressAt(after, now), { kind: 'mission', missionId: id });
+      const worlds = worldsFor(after.onboarding?.plan ?? [], after);
+      newlyDone = stopsNewlyDone(r, after, worlds, now);
       return after;
     });
+    for (const stop of newlyDone) track('stop_completed', stop);
 
     if (outcome === 'struggled' && problemId !== undefined) {
       const activeShop = getActiveContent()?.resolved?.shop;
@@ -859,7 +1359,14 @@ export default function App() {
       setFlow({ name: 'paywall', then: { kind: 'skip', missionId: id } });
       return;
     }
-    update((rec) => applyDaySkip(rec, id, now));
+    let newlyDone: StopCompletedProps[] = [];
+    update((rec) => {
+      const after = applyDaySkip(rec, id, now);
+      const worlds = worldsFor(after.onboarding?.plan ?? [], after);
+      newlyDone = stopsNewlyDone(rec, after, worlds, now);
+      return after;
+    });
+    for (const stop of newlyDone) track('stop_completed', stop);
     mapScroll.current = undefined;
     goHome();
   };
@@ -867,11 +1374,15 @@ export default function App() {
   const moveOnMission = (id: string) => {
     let diff: Celebration[] = [];
     const now = new Date();
+    let newlyDone: StopCompletedProps[] = [];
     update((r) => {
       const after = updateMission(r, id, (m) => moveOn(m, now));
       diff = celebrationsFor(progressAt(r, now), progressAt(after, now), { kind: 'mission', missionId: id });
+      const worlds = worldsFor(after.onboarding?.plan ?? [], after);
+      newlyDone = stopsNewlyDone(r, after, worlds, now);
       return after;
     });
+    for (const stop of newlyDone) track('stop_completed', stop);
     setCelebrations({ id: `mission:${id}`, list: diff });
     setFlow({ name: 'mission', id, view: 'passed' });
   };
@@ -911,6 +1422,7 @@ export default function App() {
     resetting.current = true;
     try {
       const fresh = await resetProgress(dogStore, current);
+      funnelTracker.current.resetLastStep();
       account.resetSync();
       rusty.current = null;
       setWarmup('none');
@@ -918,6 +1430,7 @@ export default function App() {
       setReminder(false);
       setHint(null);
       setDogWarning(null);
+      setHintQueue(EMPTY_HINT_QUEUE);
       setPaused(false);
       setFlow(null);
       setSettingsOpen(false);
@@ -937,18 +1450,23 @@ export default function App() {
     return fn;
   };
   const backInput = useRef<BackActionParams | null>(null);
+  // an ended Stage behind a result card cannot answer a pause, so the shell opens the Pause Menu itself
+  const pauseStage = useCallback(() => {
+    if (cardShowingRef.current) setPaused(true);
+    else send({ type: 'pause' });
+  }, [send]);
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       const input = backInput.current;
       if (!input) return false;
       const action = backAction(input);
-      if (action === 'pause') send({ type: 'pause' });
+      if (action === 'pause') pauseStage();
       else if (action === 'resume') resume();
       else if (action === 'screen') screenBack.current?.();
       return action !== 'exit';
     });
     return () => sub.remove();
-  }, [send, resume]);
+  }, [send, resume, pauseStage]);
 
   useEffect(() => {
     if (!pendingTrouble) return;
@@ -1122,6 +1640,7 @@ export default function App() {
             contentChannel={contentSession.channel}
             onSwitchChannel={handleSwitchChannel}
             initialTab={settingsInitialTab}
+            onTab={setSettingsTab}
           />
         ) : (
           overlay
@@ -1159,9 +1678,9 @@ export default function App() {
         );
       else if (route.step === 'dog') screen = <DogLookScreen t={t} record={record} onDone={(name, coat, breed, ageBand) => update((r) => saveNameAndLook(r, name, coat, breed, ageBand))} />;
       else if (route.step === 'concern') screen = <ConcernScreen t={t} record={record} onDone={(concerns) => update((r) => saveMainConcerns(r, concerns))} />;
-      else if (route.step === 'setup') screen = <SetupScreen t={t} record={record} update={update} />;
+      else if (route.step === 'setup') screen = <SetupScreen t={t} record={record} update={update} onPart={setSetupPart} />;
       else if (route.step === 'diagnostic')
-        screen = <DiagnosticView key="diagnostic" t={t} record={record} seed={newSeed()} onFinish={(latency) => update((r) => recordDiagnostic(r, latency))} />;
+        screen = <ReadTheDogView key="diagnostic" t={t} record={record} seed={newSeed()} onFinish={(latency) => update((r) => recordDiagnostic(r, latency))} />;
       else if (route.step === 'plan')
         screen = <PlanScreen t={t} dog={record} latency={record.onboarding.diagnosticLatency ?? 0.5} plan={record.onboarding.plan} onContinue={() => update((r) => ({ ...r, onboarding: { ...r.onboarding, step: nextStep('plan') } }))} />;
       else if (route.step === 'method')
@@ -1188,8 +1707,36 @@ export default function App() {
           t={t}
           run={introRun}
           setting={record?.checkpointSeconds ?? 0}
-          onAnswer={(option) => setIntroRun((r) => (r ? advance(r, { type: 'answer', option }) : null))}
-          onTimeout={() => setIntroRun((r) => (r ? advance(r, { type: 'timeout' }) : null))}
+          onAnswer={(option) => {
+            const qIndex = introRun.question;
+            const secondsToAnswer = Math.max(0, Math.floor((Date.now() - checkpointShownAt.current) / 1000));
+            const nextRun = advance(introRun, { type: 'answer', option });
+            const res = nextRun.checkpoint[qIndex];
+            if (res) {
+              track('checkpoint_answered', {
+                node_id: 'intro-node',
+                question_index: qIndex,
+                result: res,
+                seconds_to_answer: secondsToAnswer,
+              });
+            }
+            setIntroRun(nextRun);
+          }}
+          onTimeout={() => {
+            const qIndex = introRun.question;
+            const secondsToAnswer = Math.max(0, Math.floor((Date.now() - checkpointShownAt.current) / 1000));
+            const nextRun = advance(introRun, { type: 'timeout' });
+            const res = nextRun.checkpoint[qIndex];
+            if (res) {
+              track('checkpoint_answered', {
+                node_id: 'intro-node',
+                question_index: qIndex,
+                result: res,
+                seconds_to_answer: secondsToAnswer,
+              });
+            }
+            setIntroRun(nextRun);
+          }}
         />
       );
     } else if (introRun?.step === 'simulation') {
@@ -1205,12 +1752,21 @@ export default function App() {
           onPosteLink={() => {}}
           best={starsFor(payload.handlingScore)}
           celebrations={[]}
+          introducedKinds={stageIntroducedKinds}
           onPlayAgain={() => {
             setIntroRun((r) => (r ? { ...r, step: 'simulation', result: null } : null));
           }}
           onDone={() => {
             const isSkipped = Boolean(introRun.result && 'skipped' in introRun.result && introRun.result.skipped);
-            update((r) => completeFirstStage(r, payload, new Date(), isSkipped));
+            const now = new Date();
+            let newlyDone: StopCompletedProps[] = [];
+            update((r) => {
+              const after = completeFirstStage(r, payload, now, isSkipped);
+              const worlds = worldsFor(after.onboarding?.plan ?? [], after);
+              newlyDone = stopsNewlyDone(r, after, worlds, now);
+              return after;
+            });
+            for (const stop of newlyDone) track('stop_completed', stop);
             accountRef.current.countStage();
             if (accountRef.current.configured && !accountRef.current.signedIn) {
               setFlow({ name: 'register' });
@@ -1353,7 +1909,7 @@ export default function App() {
           readIds={record.readLessons}
           day={lessonDay(record, new Date())}
           seenFixes={record.seenFixes}
-          onOpen={(lesson) => setFlow({ name: 'lesson', id: lesson.id, returnTo: 'library' })}
+          onOpen={(lesson) => setFlow({ name: 'lesson', id: lesson.id, returnTo: 'library', source: 'library' })}
           onOpenFix={(entry) => setFlow({ name: 'mission', id: entry.mission.id, view: 'fix', fixId: entry.fix.id, returnTo: 'library' })}
           onBack={withBack(goHome)}
         />,
@@ -1377,7 +1933,13 @@ export default function App() {
       const now = new Date();
       const plus = isPlus(record, now);
       const state = trialState(record, now);
-      const back = withBack(() => (f.returnTo === 'map' ? goHome() : setFlow({ name: 'library' })));
+      const back = withBack(() => {
+        const backProps = lessonTimer.current?.close('back');
+        if (backProps) track('lesson_done', backProps);
+        lessonTimer.current = null;
+        if (f.returnTo === 'map') goHome();
+        else setFlow({ name: 'library' });
+      });
       screen = mapWith(
         lesson ? (
           <LessonScreen
@@ -1387,9 +1949,21 @@ export default function App() {
             isPlus={plus}
             trialState={state}
             autoPlayVideo={f.autoPlayVideo}
+            onProgress={(percent) => lessonTimer.current?.updateProgress(percent)}
             onUnlockVideo={() => setFlow({ name: 'paywall', then: { kind: 'video', lessonId: lesson.id, returnTo: f.returnTo } })}
             onDone={() => {
-              update((r) => markLessonRead(r, lesson.id, new Date()));
+              const doneProps = lessonTimer.current?.close('done');
+              if (doneProps) track('lesson_done', doneProps);
+              lessonTimer.current = null;
+              const now = new Date();
+              let newlyDone: StopCompletedProps[] = [];
+              update((r) => {
+                const after = markLessonRead(r, lesson.id, now);
+                const worlds = worldsFor(after.onboarding?.plan ?? [], after);
+                newlyDone = stopsNewlyDone(r, after, worlds, now);
+                return after;
+              });
+              for (const stop of newlyDone) track('stop_completed', stop);
               // reading the Lesson of a biting Home Behaviour (it has no exercise) opens its Mission brief
               const next = f.returnTo === 'map' ? homeMissionAfter({ kind: 'lesson', id: lesson.id }, record) : null;
               if (next) setFlow({ name: 'mission', id: next, view: 'brief' });
@@ -1503,7 +2077,7 @@ export default function App() {
         }
         if ('kind' in action && action.kind === 'video') {
           const returnTo = action.returnTo ?? 'map';
-          setFlow({ name: 'lesson', id: action.lessonId, returnTo, autoPlayVideo: unlocked });
+          setFlow({ name: 'lesson', id: action.lessonId, returnTo, autoPlayVideo: unlocked, source: 'video_unlock' });
           return;
         }
         if ('kind' in action && action.kind === 'barkdoku') {
@@ -1647,8 +2221,11 @@ export default function App() {
       else if (run.step === 'checkpoint')
         screen = <CheckpointScreen t={t} run={run} setting={record.checkpointSeconds} onAnswer={(option) => act({ type: 'answer', option })} onTimeout={() => act({ type: 'timeout' })} />;
       else if (run.step === 'simulation' && run.node.mode === 'minigame') {
-        const finish = (metrics: Partial<Record<Metric, number>>, handlingScore?: number, puzzle?: PuzzleSummary) =>
+        const finish = (metrics: Partial<Record<Metric, number>>, handlingScore?: number, puzzle?: PuzzleSummary) => {
+          const endRes = playTracker.current.end('finished', new Date(), handlingScore);
+          if (endRes) track(endRes.name, endRes.props);
           act({ type: 'finish', result: { kind: 'minigame', metrics, handlingScore, ...(puzzle ? { puzzle } : {}) } });
+        };
         const minigame = run.node.simulation.minigame;
         const seed = f.attempt + 1 + (dateSeed(todayString()) % 1000);
         const playCue = () => playResolvedCue(resolveCue(record, language));
@@ -1684,8 +2261,9 @@ export default function App() {
             mission={findMission(missionForDebrief(run.node.id, worldsFor(record.onboarding.plan, record)) ?? '')?.title}
             best={starsShown(record, run.node.id) ?? 1}
             celebrations={celebrations?.id === `${run.node.id}:${f.attempt}` ? celebrations.list : []}
+            introducedKinds={stageIntroducedKinds}
             onPosteLink={() => startNodeRun(POSTE_PRACTICE)}
-            onPlayAgain={() => setFlow({ ...f, run: { ...run, step: 'simulation', result: null }, attempt: f.attempt + 1 })}
+            onPlayAgain={() => setFlow({ ...f, run: { ...run, step: 'simulation', result: null, series: undefined }, attempt: f.attempt + 1 })}
             onShop={(target) => openShop(target, { previousFlow: f })}
             onDone={withBack(async () => {
               // the Debrief of a Stretch's last Node opens its Mission brief
@@ -1706,99 +2284,138 @@ export default function App() {
     }
   }
 
+  // the running Encounter Series, if any: its progress strip and, while a result card shows, the card
+  const seriesRun = (() => {
+    if (route.name !== 'flow' || route.flow.name !== 'node' || route.flow.run.step !== 'simulation') return null;
+    const run = route.flow.run;
+    const encounters = run.node.simulation.encounters;
+    if (!encounters?.length) return null;
+    // a restarted Series (Play again) has no state until its first Encounter ends; the reducer creates it the same way
+    const series = run.series ?? { index: 0, attempts: encounters.map(() => []), seeds: [], showing: 'running' as const };
+    const kept: number[] = [];
+    for (const attempts of series.attempts) {
+      const k = keptAttempt(attempts);
+      if (!k) break;
+      kept.push(k.paws);
+    }
+    const encounter = encounters[series.index];
+    const here = series.attempts[series.index] ?? [];
+    const last = here[here.length - 1];
+    let card: { title: TextKey; paws: 1 | 2 | 3; hint: TextKey | null } | null = null;
+    if (series.showing === 'result' && last) {
+      const result = pawsFor(encounter.aim, last.payload);
+      card = { title: encounter.title, paws: result.paws, hint: pawHintKey(encounter.aim, result.next) };
+    }
+    return { series, total: encounters.length, kept, card };
+  })();
+
   backInput.current = { route, playingStage, paused, bundle, hasScreenBack: screenBack.current !== null, payoff: route.name === 'taste' && tastePayoff, briefing: route.name === 'taste' && !tasteBriefed, choosingDog };
 
   return (
     <SafeAreaProvider>
-      <PaletteProvider scheme={scheme}>
-        <PaletteRoot className="flex-1 bg-bg">
-          {viewWanted && <SimView key={attempt} ref={sim} onMessage={onMessage} onLoadError={() => viewFailedRef.current()} />}
-          {screen}
-          <ContentUpdateBanner t={t} />
-          {playingStage && !paused && !tastePayoff && (
-            <SimulatorBackButton
-              onPress={() => {
-                if (bundle === 'ready') {
-                  send({ type: 'pause' });
-                } else {
-                  screenBack.current?.();
-                }
-              }}
-              label={t('hud.back')}
-            />
-          )}
-          {playingStage && hint && !dogWarning && !paused && !isCloseExerciseFlow(route) && <HintOverlay text={t(HINT_TEXT[hint])} />}
-          {playingStage && record && !tastePayoff && !paused && bundle === 'ready' && !isCloseExerciseFlow(route) && (
-            <CoachMarksOverlay
-              moveText={t('coach.controls.move')}
-              markText={t('coach.controls.mark')}
-              showMove={!controlsUsed.move && !record.seenHints.includes(COACH_ID.move)}
-              showMark={!controlsUsed.mark && !markExpired && !record.seenHints.includes(COACH_ID.mark)}
-            />
-          )}
-          {playingStage && record && !paused && bundle === 'ready' && isHandDrillFlow(route) && (
-            <CloseCoachMarksOverlay
-              texts={{ gather: t('coach.close.gather'), poste: t('coach.close.poste'), marker: t('coach.close.mark') }}
-              show={closeMarksOn(record.seenHints, controlsUsed, markExpired)}
-            />
-          )}
-          {playingStage && record && dogWarning && !paused && (
-            <DogWarningOverlay text={withDogName(t('coach.dog.warning'), record.name, t('dog.neutral'))} bearing={dogWarning.bearing} />
-          )}
-          {route.name === 'taste' && tastePayoff && record && <PayoffOverlay t={t} name={record.name} mainConcerns={record.mainConcerns} onContinue={() => update(completeTaste)} />}
-          {playingStage && bundle === 'loading' && <LoadingOverlay t={t} />}
-          {playingStage && paused && (
-            <ResumeOverlay
-              t={t}
-              onResume={resume}
-              onExit={() => {
-                setPaused(false);
-                if (route.name === 'taste') {
-                  showTastePayoff();
-                } else if (route.name === 'first-stage') {
-                  const payload = skippedSimulationPayload(newSeed());
-                  setIntroRun((r) => (r ? advance(r, { type: 'finish', result: { kind: 'stage', payload, skipped: true } }) : null));
-                } else if (route.name === 'flow') {
-                  const f = route.flow;
-                  if (f.name === 'warmup') {
-                    setWarmup('completed');
-                    goHome();
-                  } else if (f.name === 'daily' && f.result === null) {
-                    const payload = skippedSimulationPayload(dateSeed(todayString()));
-                    const before = recordRef.current!;
-                    const now = new Date();
-                    const completion = completeDaily(before, payload, now);
-                    update(() => completion.record);
-                    setWarmup((w) => warmupAfterDaily(w));
-                    if (!isPlus(completion.record, now)) {
-                      getAdService().preloadInterstitial().catch(() => {});
+      <AnalyticsProvider>
+        <PaletteProvider scheme={scheme}>
+          <PaletteRoot className="flex-1 bg-bg">
+            {viewWanted && <SimView key={attempt} ref={sim} onMessage={onMessage} onLoadError={() => viewFailedRef.current()} />}
+            {screen}
+            <ContentUpdateBanner t={t} />
+            {playingStage && !paused && !tastePayoff && (
+              <SimulatorBackButton
+                onPress={() => {
+                  if (bundle === 'ready') {
+                    pauseStage();
+                  } else {
+                    screenBack.current?.();
+                  }
+                }}
+                label={t('hud.back')}
+              />
+            )}
+            {playingStage && seriesRun && (
+              <SeriesProgressStrip t={t} index={seriesRun.series.index + 1} total={seriesRun.total} kept={seriesRun.kept} />
+            )}
+            {playingStage && cardShowing && seriesRun?.card && (
+              <EncounterResultOverlay t={t} title={t(seriesRun.card.title)} paws={seriesRun.card.paws} hint={seriesRun.card.hint ? t(seriesRun.card.hint) : null} onRetry={retryEncounter} onNext={nextEncounter} />
+            )}
+            {playingStage && hint && !dogWarning && !paused && !isCloseExerciseFlow(route) && <HintOverlay text={t(HINT_TEXT[hint])} />}
+            {playingStage && record && !tastePayoff && !paused && bundle === 'ready' && !isCloseExerciseFlow(route) && (
+              <CoachMarksOverlay
+                moveText={t('coach.controls.move')}
+                markText={t('coach.controls.mark')}
+                showMove={!controlsUsed.move && !record.seenHints.includes(COACH_ID.move) && isControlIntroduced('move', stageIntroducedKinds)}
+                showMark={!controlsUsed.mark && !markExpired && !record.seenHints.includes(COACH_ID.mark) && isControlIntroduced('mark', stageIntroducedKinds)}
+              />
+            )}
+            {playingStage && record && !paused && bundle === 'ready' && isHandDrillFlow(route) && (
+              <CloseCoachMarksOverlay
+                texts={{ gather: t('coach.close.gather'), poste: t('coach.close.poste'), marker: t('coach.close.mark') }}
+                show={closeMarksOn(record.seenHints, controlsUsed, markExpired, stageIntroducedKinds)}
+              />
+            )}
+            {playingStage && record && dogWarning && !paused && (
+              <DogWarningOverlay text={withDogName(t('coach.dog.warning'), record.name, t('dog.neutral'))} bearing={dogWarning.bearing} />
+            )}
+            {route.name === 'taste' && tastePayoff && record && <PayoffOverlay t={t} name={record.name} mainConcerns={record.mainConcerns} onContinue={() => update(completeTaste)} />}
+            {playingStage && bundle === 'loading' && <LoadingOverlay t={t} />}
+            {playingStage && paused && (
+              <ResumeOverlay
+                t={t}
+                onResume={resume}
+                onExit={() => {
+                  const endRes = playTracker.current.end('skipped', new Date());
+                  if (endRes) track(endRes.name, endRes.props);
+                  setPaused(false);
+                  if (route.name === 'taste') {
+                    showTastePayoff();
+                  } else if (route.name === 'first-stage') {
+                    const payload = skippedSimulationPayload(newSeed());
+                    setIntroRun((r) => (r ? advance(r, { type: 'finish', result: { kind: 'stage', payload, skipped: true } }) : null));
+                  } else if (route.name === 'flow') {
+                    const f = route.flow;
+                    if (f.name === 'warmup') {
+                      setWarmup('completed');
+                      goHome();
+                    } else if (f.name === 'daily' && f.result === null) {
+                      const payload = skippedSimulationPayload(dateSeed(todayString()));
+                      const before = recordRef.current!;
+                      const now = new Date();
+                      const completion = completeDaily(before, payload, now);
+                      update(() => completion.record);
+                      setWarmup((w) => warmupAfterDaily(w));
+                      if (!isPlus(completion.record, now)) {
+                        getAdService().preloadInterstitial().catch(() => {});
+                      }
+                      const list = celebrationsFor(progressAt(before, now), progressAt(completion.record, now), {
+                        kind: 'daily',
+                        improved: completion.improved,
+                        firstOfDay: completion.firstOfDay,
+                        best: completion.best,
+                      });
+                      setFlow({ ...f, result: { payload, completion, celebrations: list } });
+                    } else if (f.name === 'node' && f.run.step === 'simulation' && f.run.node.simulation.encounters?.length) {
+                      // leaving a Series: the running attempt is dropped; every Encounter kept finishes it normally, else it is skipped
+                      accountRef.current.countStage();
+                      act({ type: 'exit-series' });
+                    } else if (f.name === 'node' && f.run.step === 'simulation') {
+                      accountRef.current.countStage();
+                      const kind = f.run.node.mode === 'close_exercise' ? 'close_exercise' : 'stage';
+                      const payload = skippedSimulationPayload(f.attempt + 1, f.run.node.mode);
+                      act({ type: 'finish', result: { kind, payload, skipped: true } });
+                    } else {
+                      goHome();
                     }
-                    const list = celebrationsFor(progressAt(before, now), progressAt(completion.record, now), {
-                      kind: 'daily',
-                      improved: completion.improved,
-                      firstOfDay: completion.firstOfDay,
-                      best: completion.best,
-                    });
-                    setFlow({ ...f, result: { payload, completion, celebrations: list } });
-                  } else if (f.name === 'node' && f.run.step === 'simulation') {
-                    accountRef.current.countStage();
-                    const kind = f.run.node.mode === 'close_exercise' ? 'close_exercise' : 'stage';
-                    const payload = skippedSimulationPayload(f.attempt + 1, f.run.node.mode);
-                    act({ type: 'finish', result: { kind, payload, skipped: true } });
                   } else {
                     goHome();
                   }
-                } else {
-                  goHome();
-                }
-              }}
-            />
-          )}
-          {playingStage && bundle === 'error' && <ErrorOverlay t={t} onRetry={retry} />}
-          <DevPerfOverlay />
-          <StatusBar style="dark" hidden />
-        </PaletteRoot>
-      </PaletteProvider>
+                }}
+              />
+            )}
+            {playingStage && bundle === 'error' && <ErrorOverlay t={t} onRetry={retry} />}
+            <DevPerfOverlay />
+            <StatusBar style="dark" hidden />
+          </PaletteRoot>
+        </PaletteProvider>
+      </AnalyticsProvider>
     </SafeAreaProvider>
   );
 }

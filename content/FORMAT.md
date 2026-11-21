@@ -107,12 +107,51 @@ content/<channel>/                 channel = beta | stable
 | `mode` | `string` | **Yes** | `stage`, `minigame`, `close_exercise` | Node mode ("stage", "minigame", "close_exercise") |
 | `prerequisites` | `string[]` | **Yes** | - | IDs of Nodes that must be completed before this one is available |
 | `opensAfterLesson` | `string` | No | - | Lesson ID whose reading alone unlocks this Node in its Stretch |
+| `introduces` | `string[]` | No | - | Action kinds Introduced by this Node |
 | `simulation` | `object` | No | - | Stage/close scenario config or scenario name, or minigame kind |
 | `exercises` | `object[]` | No | - | Array of exercises targeting metrics ({ metric, key? }) |
 | `primerCards` | `object[]` | No | - | Structured recap cards ({ kind, media?, tutorialUrl? }) |
 | `checkpoint` | `object[]` | No | - | Quiz questions ({ question, options, explanation }) |
 | `debrief` | `object` | No | - | Hand drill debrief text keys ({ calm, notCalm }) |
 | `recommendations` | `object[]` | No | - | Optional list of shop recommendations ({ id, target, when }) |
+
+#### Authoring Note: Introduced Actions
+A walking Stage answers only its Introduced actions: feedback and Stage Meter points arrive with the Node that teaches them.
+
+The **starting set** is always Introduced in every walk (do not list these in `introduces`):
+- `check-in-hit`
+- `disengagement`
+- `late-marker-press`
+- `marker-hit`
+- `missed-opportunity`
+- `missed-reward-window`
+- `reactive-marker`
+- `rigid-pull`
+- `wasted-marker`
+
+Every other kind is an **Introducible action kind**, Introduced by at most one Node on the trail via `introduces: [...]`:
+- `chain`
+- `check-in-after-change`
+- `dragged-plant`
+- `empty-sniff`
+- `followed-turn`
+- `food-eaten`
+- `fresh-move`
+- `go-sniff`
+- `go-sniff-cut-short`
+- `granted-sniff`
+- `harsh-stop`
+- `interrupted-marking`
+- `leave-it-food`
+- `poste`
+- `repeated-move-ignored`
+- `scent-dragged-past`
+- `sintonia`
+- `smart-jackpot`
+- `waited-marking`
+- `waited-plant`
+- `wasted-jackpot`
+- `wrong-cue`
 
 ### 3.5 `missions/<mission-id>/mission.yaml`
 
@@ -185,6 +224,37 @@ Any pack that includes one or more Image Duel questions MUST specify `minAppVers
 - **No right/wrong badges or hints**: Duel images must carry **NO badges (`#badge-check`, `#badge-cross`)**, words, or right/wrong hints. The app dynamically overlays check and cross badges after the user answers.
 - **Single image set**: One pair of images in `nodes/<node-id>/media/` serves both Spanish and English.
 - **Localized alt text**: Text descriptions are authored per language in `<lang>.md` so screen readers announce both options.
+
+### 3.12 Encounter Series (`encounters` in `node.yaml`)
+
+| Field | Type | Required | Allowed Values | Description |
+| --- | --- | --- | --- | --- |
+| `id` | `string` | **Yes** | - | Unique kebab-case identifier for the Encounter in this Node |
+| `aim` | `string` | **Yes** | `keep-slack`, `stay-calm`, `mark-disengagement`, `check-in` | Encounter Aim to train |
+| `scenario` | `object` | **Yes** | - | Simulation scenario config (Partial<ScenarioConfig>), validated like an embedded scenario |
+
+A walking Node (`mode: stage`) can define an **Encounter Series** under `simulation.encounters` instead of a single scenario. A Series breaks a long walk down into 3 to 5 bite-sized, sequential encounters (each typically 10 to 20 seconds) where each has a clear Aim and awards 1 to 3 Paws.
+
+#### Compatibility Rule (`minAppVersion`)
+Any pack that includes one or more Nodes with an Encounter Series MUST specify `minAppVersion: 1.3.0` or higher in `pack.yaml`. Older apps will reject the pack and keep their bundled baseline.
+
+#### Validation Rules for Encounter Series
+- **Node mode**: Must be a walking Node (`mode: stage`).
+- **Mutual exclusion**: Cannot set both `encounters` and a single `scenario` or `scenarioName`.
+- **Series length**: Must contain 3 to 5 Encounters.
+- **Encounter IDs**: Unique kebab-case identifier within the Node.
+- **Aims**: Must be one of `keep-slack`, `stay-calm`, `mark-disengagement`, `check-in`.
+- **Time limits**: If `endCondition` is `time-limit`, `seconds` must be between 10 and 20 seconds.
+- **Waypoint end**: `keep-slack` and `stay-calm` Encounters MUST be waypoint-ended (cannot use `time-limit`), to ensure the player must move forward rather than stand still.
+- **Excluded features**: Encounters CANNOT declare Stage Meters (`meters`), Scent Spots (`scents` or scenery items carrying `scent`), or Jackpots (`jackpotBudget`).
+- **Titles**: Each Encounter must have a Spanish title defined under `## encounters` in `nodes/<node-id>/es.md`.
+
+#### Authoring Guidance (Unvalidated)
+The following recommendations are not enforced by automated validation to preserve flexibility during playtesting, but represent design standards:
+- **One new thing per Encounter**: Introduce only one new skill or cue per Encounter (e.g. slack leash, looking far, Poste + Mark, Check-in).
+- **Single situation**: Keep at most one active Distractor per Encounter.
+- **Waypoint distance**: Waypoint routes should be approximately 20 to 28 meters so they complete in 10 to 20 seconds at normal walking speed.
+- **Empty route distractor idiom**: Because `distractor` is required by the simulation scenario configuration, an empty route with no active distractor places the distractor well past the route end (e.g. `activateAfterMeters: 50` on a 24 m route).
 
 ---
 
@@ -262,6 +332,18 @@ Nodes define Checkpoint questions under `## checkpoint` in `nodes/<node-id>/<lan
   - Exactly two alt-text description lines in the exact order declared in `node.yaml`'s `images` list. Each line is typically written as `- [ ]`, but an optional `- [x]` mark on the correct image's line is accepted by the validator (it must agree with `correct` in `node.yaml`).
   - `- why:` The explanation displayed after answering.
   - The correct answer index (`0` or `1`) is configured in `node.yaml` (the app shuffles presentation order at runtime).
+
+### Node Encounters Section (`## encounters`)
+Nodes with an Encounter Series define titles for each Encounter under `## encounters` in `nodes/<node-id>/<lang>.md`, matching the `id` declared in `node.yaml`:
+```markdown
+## encounters
+### loose-start
+Correa floja al inicio
+
+### skate-far
+Míralo venir de lejos
+```
+The first non-empty line of each `### <id>` subsection is the visible title of that Encounter on the HUD result card and Debrief list. Spanish titles (`es.md`) are required; other languages fall back to the Spanish title if omitted.
 
 ---
 
@@ -524,6 +606,56 @@ Cambia de dirección sin avisar y premia cuando {name} te mire.
 - why: Girar y mirar invita a {name} a buscarte.
 ```
 
+### Worked Node Example (with Encounter Series)
+
+#### `nodes/sample-series-walk/node.yaml`
+```yaml
+id: sample-series-walk
+mode: stage
+prerequisites: []
+simulation:
+  encounters:
+    - id: loose-start
+      aim: keep-slack
+      scenario:
+        waypoint: { x: 24, y: 0 }
+        distractor: { kind: skateboard, speed: 4, activateAfterMeters: 50, startOffset: 12, triggerRadius: 14 }
+    - id: skate-far
+      aim: stay-calm
+      scenario:
+        waypoint: { x: 25, y: 0 }
+        distractor: { kind: skateboard, speed: 3.5, activateAfterMeters: 5, startOffset: 16, triggerRadius: 14 }
+    - id: skate-poste
+      aim: mark-disengagement
+      scenario:
+        distractor: { kind: skateboard, speed: 4, activateAfterMeters: 4, startOffset: 12, triggerRadius: 14 }
+        markBudget: 3
+        endCondition: { kind: time-limit, seconds: 18 }
+    - id: turn-look
+      aim: check-in
+      scenario:
+        distractor: { kind: skateboard, speed: 4, activateAfterMeters: 50, startOffset: 12, triggerRadius: 14 }
+        endCondition: { kind: time-limit, seconds: 15 }
+```
+
+#### `nodes/sample-series-walk/es.md`
+```markdown
+# Paseo guiado por tramos
+
+## encounters
+### loose-start
+Correa floja al inicio
+
+### skate-far
+Míralo venir de lejos
+
+### skate-poste
+Poste y marca
+
+### turn-look
+Gira y te mira
+```
+
 ---
 
 ## 8. Agent Checklist
@@ -542,4 +674,7 @@ Before completing an edit or adding new content:
 - [ ] Image Duel entries in `node.yaml` define `kind: duel`, exactly two existing `media/` images, and `correct: 0` or `1`.
 - [ ] Each Image Duel in `<lang>.md` has a prompt, exactly two alt-text lines in image order (`- [ ]`, or optional `[x]` on the correct image agreeing with `node.yaml`), and `- why:`.
 - [ ] Duel images are 640x360, wordless, and free of badges or right/wrong hints.
+- [ ] Packs using Encounter Series declare `minAppVersion: 1.3.0` or higher in `pack.yaml`.
+- [ ] Encounter Series define 3 to 5 Encounters, valid Aims, 10-20 s time limits, waypoint-ended for `keep-slack`/`stay-calm`, and no meters/scents/jackpots.
+- [ ] Each Encounter has a Spanish title under `## encounters` / `### <id>` in `nodes/<node-id>/es.md`.
 - [ ] Run `npm run content:validate -- --channel beta` and ensure zero errors.

@@ -185,3 +185,43 @@ describe('feedback never changes the simulation', () => {
     expect(payloadOn).toEqual(payloadOff);
   });
 });
+
+describe('telegraph feedback', () => {
+  const msg = (over: object = {}) => ({ polarity: 'right' as const, tier: 'small' as const, combo: 1, ...over });
+
+  it('plays the count-in tick five semitones down at lower volume with no haptic', () => {
+    const { feedback, stageSound, haptic } = setup();
+    feedback.telegraphTick();
+    expect(stageSound).toHaveBeenCalledWith('tick', { rate: Math.pow(2, -5 / 12), volume: 0.5 });
+    expect(haptic).not.toHaveBeenCalled();
+  });
+
+  it('is silent with sounds off, quieter over a Cue, and never throws', () => {
+    const off = setup({}, { sounds: false, haptics: true });
+    off.feedback.telegraphTick();
+    expect(off.stageSound).not.toHaveBeenCalled();
+    const cue = setup({ cueAudioActive: () => true });
+    cue.feedback.telegraphTick();
+    expect(cue.stageSound).toHaveBeenCalledWith('tick', { rate: Math.pow(2, -5 / 12), volume: 0.5 * 0.35 });
+    const bad = setup({ stageSound: () => { throw new Error('x'); } });
+    expect(() => bad.feedback.telegraphTick()).not.toThrow();
+  });
+
+  it('raises the pitch of the Perfect message sound by the Perfect run, whichever tier plays', () => {
+    const { feedback, stageSound } = setup();
+    feedback.stage(msg({ tier: 'medium', perfectRun: 4 }));
+    expect(stageSound).toHaveBeenLastCalledWith('chime', { rate: Math.pow(2, 3 / 12), volume: 1 });
+    feedback.stage(msg({ tier: 'big', perfectRun: 20 }));
+    expect(stageSound).toHaveBeenLastCalledWith('fanfare', { rate: Math.pow(2, 7 / 12), volume: 1 });
+    feedback.stage(msg({ tier: 'medium', perfectRun: 1 }));
+    expect(stageSound).toHaveBeenLastCalledWith('chime', { rate: 1, volume: 1 });
+  });
+
+  it('leaves messages without a Perfect run on the existing Combo rule', () => {
+    const { feedback, stageSound } = setup();
+    feedback.stage(msg({ combo: 4 }));
+    expect(stageSound).toHaveBeenLastCalledWith('tick', { rate: Math.pow(2, 3 / 12), volume: 1 });
+    feedback.stage(msg({ tier: 'medium', combo: 4 }));
+    expect(stageSound).toHaveBeenLastCalledWith('chime', { rate: 1, volume: 1 });
+  });
+});

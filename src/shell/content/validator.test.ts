@@ -73,6 +73,30 @@ function makeValidPack(): ContentPack {
           prerequisites: [],
           simulation: { scenarioName: 'BLIND_CORNER' },
           exercises: [{ metric: 'tension' }],
+          introduces: [
+            'followed-turn',
+            'poste',
+            'sintonia',
+            'go-sniff',
+            'wrong-cue',
+            'harsh-stop',
+            'go-sniff-cut-short',
+            'granted-sniff',
+            'waited-plant',
+            'waited-marking',
+            'check-in-after-change',
+            'fresh-move',
+            'chain',
+            'leave-it-food',
+            'smart-jackpot',
+            'scent-dragged-past',
+            'dragged-plant',
+            'interrupted-marking',
+            'food-eaten',
+            'repeated-move-ignored',
+            'empty-sniff',
+            'wasted-jackpot',
+          ],
         },
         text: {
           es: {
@@ -545,6 +569,412 @@ describe('validatePack scenarios', () => {
       expect(report.warnings.some((w) => w.message.includes('has no subcategories'))).toBe(true);
       expect(report.warnings.some((w) => w.message.includes('checked more than 90 days ago'))).toBe(true);
       expect(report.warnings.some((w) => w.message.includes('instead of expected marketplace "amazon.es"'))).toBe(true);
+    });
+  });
+
+  describe('Encounter Series validation scenarios', () => {
+    function makePackWithSeries(): ContentPack {
+      const pack = makeValidPack();
+      pack.pack.minAppVersion = '1.3.0';
+      const node = pack.nodes!['node-1'];
+      node.config.simulation = {
+        encounters: [
+          {
+            id: 'loose-start',
+            aim: 'keep-slack',
+            scenario: { waypoint: { x: 24, y: 0 } },
+          },
+          {
+            id: 'skate-far',
+            aim: 'stay-calm',
+            scenario: { waypoint: { x: 25, y: 0 } },
+          },
+          {
+            id: 'skate-poste',
+            aim: 'mark-disengagement',
+            scenario: { endCondition: { kind: 'time-limit', seconds: 18 } },
+          },
+          {
+            id: 'turn-look',
+            aim: 'check-in',
+            scenario: { endCondition: { kind: 'time-limit', seconds: 15 } },
+          },
+        ],
+      };
+      (node.text!.es as any).encounters = {
+        'loose-start': 'Correa floja',
+        'skate-far': 'Míralo venir',
+        'skate-poste': 'Poste y marca',
+        'turn-look': 'Gira y te mira',
+      };
+      return pack;
+    }
+
+    it('Scenario: Valid series passes validation', () => {
+      const pack = makePackWithSeries();
+      const report = validatePack(pack);
+      expect(report.valid).toBe(true);
+      expect(report.errors).toHaveLength(0);
+    });
+
+    it('Scenario: Series too short (2 encounters) fails', () => {
+      const pack = makePackWithSeries();
+      const node = pack.nodes!['node-1'];
+      node.config.simulation!.encounters = node.config.simulation!.encounters!.slice(0, 2);
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.field?.includes('simulation.encounters'));
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('node-1');
+      expect(err?.message).toMatch(/3 to 5/i);
+    });
+
+    it('Scenario: Series too long (6 encounters) fails', () => {
+      const pack = makePackWithSeries();
+      const node = pack.nodes!['node-1'];
+      const encounters = node.config.simulation!.encounters!;
+      node.config.simulation!.encounters = [
+        ...encounters,
+        { id: 'extra-1', aim: 'check-in', scenario: { endCondition: { kind: 'time-limit', seconds: 12 } } },
+        { id: 'extra-2', aim: 'check-in', scenario: { endCondition: { kind: 'time-limit', seconds: 12 } } },
+      ];
+      (node.text!.es as any).encounters['extra-1'] = 'Extra 1';
+      (node.text!.es as any).encounters['extra-2'] = 'Extra 2';
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.field?.includes('simulation.encounters'));
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('node-1');
+      expect(err?.message).toMatch(/3 to 5/i);
+    });
+
+    it('Scenario: Duplicate encounter IDs fail', () => {
+      const pack = makePackWithSeries();
+      const node = pack.nodes!['node-1'];
+      node.config.simulation!.encounters![1].id = 'loose-start';
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.message.includes('Duplicate Encounter ID'));
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('node-1');
+      expect(err?.message).toContain('loose-start');
+    });
+
+    it('Scenario: Unknown Aim fails and lists supported Aims', () => {
+      const pack = makePackWithSeries();
+      const node = pack.nodes!['node-1'];
+      (node.config.simulation!.encounters![0] as any).aim = 'jump-around';
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.message.includes('unknown Aim'));
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('node-1');
+      expect(err?.message).toContain('loose-start');
+      expect(err?.message).toContain('jump-around');
+      expect(err?.message).toContain('keep-slack');
+      expect(err?.message).toContain('stay-calm');
+      expect(err?.message).toContain('mark-disengagement');
+      expect(err?.message).toContain('check-in');
+    });
+
+    it('Scenario: malformed encounter entries give validation errors instead of throwing', () => {
+      for (const bad of [null, 'oops', {}, { id: 'only-id' }, { aim: 'keep-slack' }]) {
+        const pack = makePackWithSeries();
+        const node = pack.nodes!['node-1'];
+        node.config.simulation!.encounters = [
+          ...node.config.simulation!.encounters!.slice(0, 2),
+          bad as any,
+        ];
+        let report: ReturnType<typeof validatePack> | undefined;
+        expect(() => {
+          report = validatePack(pack);
+        }).not.toThrow();
+        expect(report!.valid).toBe(false);
+        expect(report!.errors.some((e) => e.field?.includes('simulation.encounters[2]'))).toBe(true);
+      }
+    });
+
+    it('Scenario: Time limit too long (40s) fails', () => {
+      const pack = makePackWithSeries();
+      const node = pack.nodes!['node-1'];
+      node.config.simulation!.encounters![2].scenario = {
+        endCondition: { kind: 'time-limit', seconds: 40 },
+      };
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.message.includes('time limit'));
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('node-1');
+      expect(err?.message).toContain('skate-poste');
+      expect(err?.message).toMatch(/10 to 20/);
+    });
+
+    it('Scenario: Time limit too short (5s) fails', () => {
+      const pack = makePackWithSeries();
+      const node = pack.nodes!['node-1'];
+      node.config.simulation!.encounters![2].scenario = {
+        endCondition: { kind: 'time-limit', seconds: 5 },
+      };
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.message.includes('time limit'));
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('node-1');
+      expect(err?.message).toContain('skate-poste');
+      expect(err?.message).toMatch(/10 to 20/);
+    });
+
+    it('Scenario: keep-slack or stay-calm not waypoint-ended fails', () => {
+      const pack = makePackWithSeries();
+      const node = pack.nodes!['node-1'];
+      node.config.simulation!.encounters![0].scenario = {
+        endCondition: { kind: 'time-limit', seconds: 15 },
+      };
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.message.includes('waypoint-ended'));
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('node-1');
+      expect(err?.message).toContain('loose-start');
+      expect(err?.message).toContain('keep-slack');
+    });
+
+    it('Scenario: Stage Meters rejected in encounter', () => {
+      const pack = makePackWithSeries();
+      const node = pack.nodes!['node-1'];
+      node.config.simulation!.encounters![0].scenario = {
+        meters: [{ kind: 'tension-peak', target: 2 }],
+      };
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.message.includes('Stage Meters'));
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('node-1');
+      expect(err?.message).toContain('loose-start');
+      expect(err?.field).toContain('meters');
+    });
+
+    it('Scenario: Scent Spots rejected in encounter', () => {
+      const pack = makePackWithSeries();
+      const node = pack.nodes!['node-1'];
+      node.config.simulation!.encounters![0].scenario = {
+        scents: [{ pos: { x: 5, y: 0 }, strength: 'strong' }],
+      };
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.message.includes('Scent Spots'));
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('node-1');
+      expect(err?.message).toContain('loose-start');
+      expect(err?.field).toContain('scents');
+    });
+
+    it('Scenario: Scenery scent rejected in encounter', () => {
+      const pack = makePackWithSeries();
+      const node = pack.nodes!['node-1'];
+      node.config.simulation!.encounters![0].scenario = {
+        scenery: [
+          { type: 'hydrant', pos: { x: 5, y: 2 }, scent: { strength: 'strong' } },
+        ],
+      };
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.message.includes('Scent Spots'));
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('node-1');
+      expect(err?.message).toContain('loose-start');
+      expect(err?.field).toContain('scenery');
+    });
+
+    it('Scenario: Jackpots rejected in encounter', () => {
+      const pack = makePackWithSeries();
+      const node = pack.nodes!['node-1'];
+      node.config.simulation!.encounters![0].scenario = {
+        jackpotBudget: 2,
+      };
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.message.includes('Jackpot'));
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('node-1');
+      expect(err?.message).toContain('loose-start');
+      expect(err?.field).toContain('jackpotBudget');
+    });
+
+    it('Scenario: Series on a non-walking Node fails', () => {
+      const pack = makePackWithSeries();
+      const node = pack.nodes!['node-1'];
+      node.config.mode = 'minigame';
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.message.includes('walking Nodes'));
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('node-1');
+      expect(err?.field).toContain('simulation.encounters');
+    });
+
+    it('Scenario: Series plus single scenario mutually exclusive', () => {
+      const pack = makePackWithSeries();
+      const node = pack.nodes!['node-1'];
+      node.config.simulation!.scenario = { waypoint: { x: 50, y: 0 } };
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.message.includes('mutually exclusive'));
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('node-1');
+    });
+
+    it('Scenario: Missing Spanish title for an encounter fails', () => {
+      const pack = makePackWithSeries();
+      const node = pack.nodes!['node-1'];
+      delete (node.text!.es as any).encounters['skate-poste'];
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.message.includes('missing required Spanish title'));
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('node-1');
+      expect(err?.message).toContain('skate-poste');
+      expect(err?.file).toBe('nodes/node-1/es.md');
+    });
+
+    it('Scenario: Pack minAppVersion gate for Encounter Series', () => {
+      const pack = makePackWithSeries();
+      pack.pack.minAppVersion = '1.2.0'; // older than 1.3.0
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.field === 'minAppVersion' && e.message.includes('Encounter Series'));
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('node-1');
+      expect(err?.message).toContain('1.3.0');
+      expect(err?.hint).toContain('1.3.0');
+    });
+
+    it('Scenario: 40m waypoint route and moreDistractors still validate (authoring guidance only)', () => {
+      const pack = makePackWithSeries();
+      const node = pack.nodes!['node-1'];
+      node.config.simulation!.encounters![0].scenario = {
+        waypoint: { x: 40, y: 0 },
+        moreDistractors: [
+          { kind: 'cat', speed: 2, activateAfterMeters: 10, startOffset: 5, triggerRadius: 8 },
+        ],
+      };
+      const report = validatePack(pack);
+      expect(report.valid).toBe(true);
+      expect(report.errors).toHaveLength(0);
+    });
+  });
+
+  describe('Introductions and Stage Meters validation (Task 2.2)', () => {
+    it('Scenario: Node Introduces an unknown action kind', () => {
+      const pack = makeValidPack();
+      pack.nodes['node-1'].config.introduces = ['non-existent-action-kind'];
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find(
+        (e) => e.message.includes('node-1') && e.message.includes('non-existent-action-kind')
+      );
+      expect(err).toBeDefined();
+    });
+
+    it('Scenario: Node Introduces a starting set kind', () => {
+      const pack = makeValidPack();
+      pack.nodes['node-1'].config.introduces = ['marker-hit'];
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find(
+        (e) => e.message.includes('node-1') && e.message.includes('marker-hit')
+      );
+      expect(err).toBeDefined();
+    });
+
+    it('Scenario: Introduced twice (both Nodes named)', () => {
+      const pack = makeValidPack();
+      pack.nodes['node-1'].config.introduces = ['followed-turn'];
+      pack.nodes['node-2'] = {
+        config: {
+          id: 'node-2',
+          mode: 'stage',
+          prerequisites: ['node-1'],
+          introduces: ['followed-turn'],
+        },
+        text: {
+          es: { title: 'Node 2' },
+        },
+      };
+      pack.worlds.basics.config.stretches[0].push({ kind: 'node', id: 'node-2' });
+
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find(
+        (e) =>
+          e.message.includes('followed-turn') &&
+          e.message.includes('node-1') &&
+          e.message.includes('node-2')
+      );
+      expect(err).toBeDefined();
+    });
+
+    it('Scenario: Meter Points for an action not yet Introduced (Node, meter and kind named)', () => {
+      const pack = makeValidPack();
+      pack.nodes['node-1'].config.introduces = ['go-sniff'];
+      pack.nodes['node-1'].config.simulation = {
+        scenario: {
+          meters: [
+            {
+              id: 'focus-meter',
+              labelKey: 'meter.focus',
+              icon: 'eye',
+              target: 50,
+              meterPoints: {
+                'fresh-move': 10,
+              },
+            },
+          ],
+        },
+      };
+
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find(
+        (e) =>
+          e.message.includes('node-1') &&
+          e.message.includes('focus-meter') &&
+          e.message.includes('fresh-move')
+      );
+      expect(err).toBeDefined();
+    });
+
+    it('Scenario: Never Introduced kind as a warning only', () => {
+      const pack = makeValidPack();
+      pack.nodes['node-1'].config.introduces = ['go-sniff'];
+      const report = validatePack(pack);
+      expect(report.valid).toBe(true);
+      const warn = report.warnings.find((w) => w.message.includes('smart-jackpot'));
+      expect(warn).toBeDefined();
+    });
+
+    it('Scenario: Channel without introductions (no meter error; fresh-move listed as never Introduced)', () => {
+      const pack = makeValidPack();
+      // no Node in the channel has `introduces` (the shared fixture gives one Node a list; drop it)
+      for (const node of Object.values(pack.nodes)) delete node.config.introduces;
+      pack.nodes['node-1'].config.simulation = {
+        scenario: {
+          meters: [
+            {
+              id: 'focus-meter',
+              labelKey: 'meter.focus',
+              icon: 'eye',
+              target: 50,
+              meterPoints: { 'fresh-move': 10 },
+            },
+          ],
+        },
+      };
+
+      const report = validatePack(pack);
+      expect(report.errors.filter((e) => e.message.includes('focus-meter') || e.message.includes('fresh-move'))).toEqual([]);
+      expect(report.valid).toBe(true);
+      expect(report.warnings.some((w) => w.message.includes('fresh-move') && w.message.includes('never Introduced'))).toBe(true);
     });
   });
 });

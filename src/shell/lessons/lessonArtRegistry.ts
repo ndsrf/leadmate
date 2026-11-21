@@ -23,6 +23,7 @@ export const LESSON_ART: Readonly<Record<string, ImageSourcePropType>> = {
   'howto-walking-2': require('../../../assets/lessons/howto-walking-2.png'),
   'howto-walking-3': require('../../../assets/lessons/howto-walking-3.png'),
   'howto-walking-4': require('../../../assets/lessons/howto-walking-4.png'),
+  'howto-walking-signs': require('../../../assets/lessons/howto-walking-signs.png'),
   'howto-yield-pressure-1': require('../../../assets/lessons/howto-yield-pressure-1.png'),
   'howto-yield-pressure-2': require('../../../assets/lessons/howto-yield-pressure-2.png'),
   'howto-yield-pressure-do': require('../../../assets/lessons/howto-yield-pressure-do.png'),

@@ -2,6 +2,7 @@ import type { ScenarioConfig } from '../../sim/config';
 import type { CloseExerciseConfig } from '../../sim/closeExercise';
 import type { SimulationDebriefPayload } from '../../sim/payload';
 import type { TextKey } from '../../i18n';
+import { combineEncounterPayloads, pawsFor, type EncounterAim, type EncounterAttempt } from './encounters';
 import { activityAt, addActivity, stageSummary } from '../activity';
 import { bestStars, starsFor } from '../stars';
 import { applyActivity, applyStage, updateMission, type CheckpointSeconds, type DogRecord } from '../dogRecord';
@@ -55,6 +56,20 @@ export function primerCardOf(card: PrimerCard): PrimerCardDef {
 
 export type MinigameKind = 'poste-hold' | 'harness-ritual' | 'doorbell-mat' | 'barkdoku' | 'dog-as-dog' | 'home-rest' | 'calm-first' | 'bark-home' | 'destroy' | 'eat-objects' | 'alone';
 
+export interface EncounterDef {
+  id: string;
+  title: TextKey;
+  aim: EncounterAim;
+  scenario: Partial<ScenarioConfig>;
+}
+
+export interface SeriesRunState {
+  index: number;
+  attempts: EncounterAttempt[][];
+  seeds: number[];
+  showing: 'running' | 'result';
+}
+
 /** A Node as plain data (design decision 11); all text comes from the catalog. */
 export interface NodeDef {
   id: string;
@@ -68,6 +83,7 @@ export interface NodeDef {
   /** For a Stage: scenario overrides. For a close exercise: closeScenario. For a Minigame: which one to run. */
   simulation: {
     scenario?: Partial<ScenarioConfig>;
+    encounters?: EncounterDef[];
     closeScenario?: Partial<CloseExerciseConfig>;
     minigame?: MinigameKind;
   };
@@ -84,6 +100,8 @@ export interface NodeDef {
     when: string;
     explanation: TextKey;
   }>;
+  /** Action kinds Introduced by this Node (design decision 1). */
+  introduces?: string[];
 }
 
 export function missingPrerequisites(node: NodeDef, completed: readonly string[]): string[] {
@@ -150,13 +168,19 @@ export interface NodeRun {
   /** One answer per question asked so far; feedback for the Debrief only, it never blocks the simulation or touches the Dog. */
   checkpoint: CheckpointAnswer[];
   result: NodeResult | null;
+  /** Only when the Node is an Encounter Series. */
+  series?: SeriesRunState;
 }
 
 export type NodeAction =
   | { type: 'next' } // next Primer card
   | { type: 'answer'; option: number }
   | { type: 'timeout' }
-  | { type: 'finish'; result: NodeResult };
+  | { type: 'finish'; result: NodeResult }
+  | { type: 'encounter-end'; payload: SimulationDebriefPayload }
+  | { type: 'retry' }
+  | { type: 'next-encounter' }
+  | { type: 'exit-series' };
 
 export function startNode(node: NodeDef): NodeRun {
   return { node, step: 'primer', card: 0, question: 0, checkpoint: [], result: null };
@@ -182,21 +206,134 @@ export function advance(run: NodeRun, action: NodeAction): NodeRun {
       }
       if (action.type === 'timeout') return answered(run, 'missed');
       return run;
-    case 'simulation':
-      if (action.type !== 'finish') return run;
-      if (!resultMatchesMode(run.node, action.result)) return run;
-      return { ...run, step: 'debrief', result: action.result };
+    case 'simulation': {
+      const encounters = run.node.simulation.encounters;
+      const isSeries = !!encounters && encounters.length > 0;
+
+      if (!isSeries) {
+        if (action.type !== 'finish') return run;
+        if (!resultMatchesMode(run.node, action.result)) return run;
+        return { ...run, step: 'debrief', result: action.result };
+      }
+
+      // Inside a Series Node
+      const series = run.series ?? initialSeries(encounters);
+
+      if (action.type === 'encounter-end') {
+        if (series.showing !== 'running') return run;
+        const aim = encounters[series.index].aim;
+        const pawResult = pawsFor(aim, action.payload);
+        const attempt: EncounterAttempt = { payload: action.payload, paws: pawResult.paws };
+        const newAttempts = series.attempts.map((arr, i) => (i === series.index ? [...arr, attempt] : arr));
+        const newSeeds = [...series.seeds];
+        if (newSeeds[series.index] === undefined) {
+          newSeeds[series.index] = action.payload.seed;
+        }
+        return {
+          ...run,
+          series: {
+            ...series,
+            attempts: newAttempts,
+            seeds: newSeeds,
+            showing: 'result',
+          },
+        };
+      }
+
+      if (action.type === 'retry') {
+        if (series.showing !== 'result') return run;
+        return {
+          ...run,
+          series: {
+            ...series,
+            showing: 'running',
+          },
+        };
+      }
+
+      if (action.type === 'next-encounter') {
+        if (series.showing !== 'result') return run;
+        const nextIndex = series.index + 1;
+        if (nextIndex < encounters.length) {
+          return {
+            ...run,
+            series: {
+              ...series,
+              index: nextIndex,
+              showing: 'running',
+            },
+          };
+        }
+        // Last encounter finished -> transition to debrief with combined payload
+        const seriesEntries = encounters.map((enc, i) => ({
+          id: enc.id,
+          attempts: series.attempts[i] ?? [],
+        }));
+        const combined = combineEncounterPayloads(seriesEntries);
+        return {
+          ...run,
+          step: 'debrief',
+          result: { kind: 'stage', payload: combined },
+          series: { ...series, showing: 'running' },
+        };
+      }
+
+      if (action.type === 'exit-series') {
+        const allHaveKept = encounters.every((_, i) => (series.attempts[i]?.length ?? 0) > 0);
+        const seriesEntries = encounters.map((enc, i) => ({
+          id: enc.id,
+          attempts: series.attempts[i] ?? [],
+        }));
+
+        if (allHaveKept) {
+          const combined = combineEncounterPayloads(seriesEntries);
+          return {
+            ...run,
+            step: 'debrief',
+            result: { kind: 'stage', payload: combined },
+          };
+        } else {
+          const combined = combineEncounterPayloads(seriesEntries, { skipped: true });
+          return {
+            ...run,
+            step: 'debrief',
+            result: { kind: 'stage', payload: combined, skipped: true },
+          };
+        }
+      }
+
+      if (action.type === 'finish') {
+        if (!resultMatchesMode(run.node, action.result)) return run;
+        return { ...run, step: 'debrief', result: action.result };
+      }
+
+      return run;
+    }
     default:
       return run;
   }
 }
 
+function initialSeries(encounters: readonly EncounterDef[]): SeriesRunState {
+  return {
+    index: 0,
+    attempts: encounters.map(() => []),
+    seeds: [],
+    showing: 'running',
+  };
+}
+
 /** Records the current question's answer and shows the next question, or starts the simulation after the last. */
 function answered(run: NodeRun, answer: CheckpointAnswer): NodeRun {
   const checkpoint = [...run.checkpoint, answer];
-  return run.question + 1 < run.node.checkpoint.length
-    ? { ...run, question: run.question + 1, checkpoint }
-    : { ...run, step: 'simulation', checkpoint };
+  if (run.question + 1 < run.node.checkpoint.length) {
+    return { ...run, question: run.question + 1, checkpoint };
+  }
+  const next: NodeRun = { ...run, step: 'simulation', checkpoint };
+  if (run.node.simulation.encounters && run.node.simulation.encounters.length > 0) {
+    next.series = initialSeries(run.node.simulation.encounters);
+  }
+  return next;
 }
 
 function resultMatchesMode(node: NodeDef, result: NodeResult): boolean {

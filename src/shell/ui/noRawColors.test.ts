@@ -27,6 +27,7 @@ const LIGHT_ONLY = [
   'src/shell/ui/lessonArt.tsx',
   'src/shell/ui/BreedArt.tsx',
   'src/shell/ui/CanineMinigameAvatar.tsx',
+  'src/shell/ui/FeedbackBurst.tsx',
   'src/shell/ui/MinigameProps.tsx',
   'src/shell/ui/WorldSceneryBackground.tsx',
 ];

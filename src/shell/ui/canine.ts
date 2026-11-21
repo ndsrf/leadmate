@@ -170,11 +170,6 @@ export function holdPosture(tension: number, lunged: boolean): CaninePosture {
   return lunged || tension >= 0.5 ? 'straining' : 'slack';
 }
 
-/** The Diagnostic Dog: calm until the signal, then looking at the user with ears up and a fixed gaze while it is on. */
-export function diagnosticPosture(signalOn: boolean): CaninePosture {
-  return signalOn ? 'looking' : 'standing_waiting';
-}
-
 /** The Dog drawing's own coordinate space; the scene scales it. */
 export const DOG_VIEW = { w: 160, h: 110 } as const;
 

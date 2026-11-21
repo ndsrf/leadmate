@@ -755,3 +755,34 @@ describe('Concern profile', () => {
     expect(setHomeConcern(before, 'eat-objects', 3).triggerProfile).toEqual(before.triggerProfile);
   });
 });
+
+describe('markerAssist in DogRecord (task 5.1)', () => {
+  it('defaults to Full with empty runs in newDogRecord', () => {
+    const record = newDogRecord();
+    expect(record.markerAssist).toEqual({ level: 'full', successRun: 0, failRun: 0 });
+  });
+
+  it('reads missing markerAssist as Full with empty runs in migrateRecord', () => {
+    const migrated = migrateRecord({ version: 10, name: 'Toby' });
+    expect(migrated.markerAssist).toEqual({ level: 'full', successRun: 0, failRun: 0 });
+  });
+
+  it('repairs invalid markerAssist to Full with empty runs', () => {
+    expect(migrateRecord({ markerAssist: 'garbage' }).markerAssist).toEqual({
+      level: 'full',
+      successRun: 0,
+      failRun: 0,
+    });
+    expect(migrateRecord({ markerAssist: { level: 'invalid', successRun: -2 } }).markerAssist).toEqual({
+      level: 'full',
+      successRun: 0,
+      failRun: 0,
+    });
+  });
+
+  it('preserves valid stored markerAssist', () => {
+    const valid = { level: 'late' as const, successRun: 2, failRun: 0 };
+    expect(migrateRecord({ markerAssist: valid }).markerAssist).toEqual(valid);
+  });
+});
+

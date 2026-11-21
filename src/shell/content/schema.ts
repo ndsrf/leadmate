@@ -96,6 +96,7 @@ export const NODE_SCHEMA_FIELDS: readonly FieldDoc[] = [
   { name: 'mode', type: 'string', required: true, description: 'Node mode ("stage", "minigame", "close_exercise")', allowedValues: NODE_MODES },
   { name: 'prerequisites', type: 'string[]', required: true, description: 'IDs of Nodes that must be completed before this one is available' },
   { name: 'opensAfterLesson', type: 'string', required: false, description: 'Lesson ID whose reading alone unlocks this Node in its Stretch' },
+  { name: 'introduces', type: 'string[]', required: false, description: 'Action kinds Introduced by this Node' },
   { name: 'simulation', type: 'object', required: false, description: 'Stage/close scenario config or scenario name, or minigame kind' },
   { name: 'exercises', type: 'object[]', required: false, description: 'Array of exercises targeting metrics ({ metric, key? })' },
   { name: 'primerCards', type: 'object[]', required: false, description: 'Structured recap cards ({ kind, media?, tutorialUrl? })' },
@@ -146,6 +147,20 @@ export const PRODUCT_SCHEMA_FIELDS: readonly FieldDoc[] = [
   { name: 'price', type: 'string', required: false, description: 'Optional approximate display price (e.g. "24,99 €")' },
   { name: 'priceCheckedAt', type: 'string', required: false, description: 'Month price was checked in YYYY-MM format' },
   { name: 'image', type: 'string', required: false, description: 'Optional relative media path in media/' },
+];
+
+export const SUPPORTED_ENCOUNTER_AIMS = [
+  'keep-slack',
+  'stay-calm',
+  'mark-disengagement',
+  'check-in',
+] as const;
+export type EncounterAim = (typeof SUPPORTED_ENCOUNTER_AIMS)[number];
+
+export const ENCOUNTER_SCHEMA_FIELDS: readonly FieldDoc[] = [
+  { name: 'id', type: 'string', required: true, description: 'Unique kebab-case identifier for the Encounter in this Node' },
+  { name: 'aim', type: 'string', required: true, description: 'Encounter Aim to train', allowedValues: SUPPORTED_ENCOUNTER_AIMS },
+  { name: 'scenario', type: 'object', required: true, description: 'Simulation scenario config (Partial<ScenarioConfig>), validated like an embedded scenario' },
 ];
 
 export const RECOMMENDATION_SCHEMA_FIELDS: readonly FieldDoc[] = [
@@ -203,17 +218,25 @@ export interface LessonYaml {
   recommendations?: RecommendationYaml[];
 }
 
+export interface EncounterYaml {
+  id: string;
+  aim: EncounterAim;
+  scenario?: any;
+}
+
 export interface NodeYaml {
   id: string;
   mode: NodeMode;
   prerequisites: string[];
   opensAfterLesson?: string;
+  introduces?: string[];
   simulation?: {
     scenarioName?: string;
     scenario?: any;
     closeScenarioName?: string;
     closeScenario?: any;
     minigame?: MinigameKind;
+    encounters?: EncounterYaml[];
   };
   exercises?: Array<{
     metric: Metric;
@@ -284,6 +307,9 @@ export function isDuelQuestionYaml(q: unknown): q is DuelCheckpointQuestionYaml 
 
 /** The first app version that renders Image Duel questions; a pack using one must declare at least this `minAppVersion`. */
 export const IMAGE_DUEL_MIN_APP_VERSION = '1.1.0';
+
+/** The first app version that plays Encounter Series; a pack using one must declare at least this `minAppVersion`. */
+export const ENCOUNTERS_MIN_APP_VERSION = '1.3.0';
 
 /** Strips a leading `media/` so a duel image is named as a file of the Node's `media/` folder. */
 export function duelImageFile(image: string): string {
@@ -612,6 +638,18 @@ export function validateNodeYaml(raw: unknown, file: string = 'node.yaml'): Vali
 
   if (obj.opensAfterLesson !== undefined && !isContentId(obj.opensAfterLesson)) {
     errors.push({ file, field: 'opensAfterLesson', message: `Invalid opensAfterLesson ID "${String(obj.opensAfterLesson)}"`, hint: 'Must be a valid Lesson ID' });
+  }
+
+  if (obj.introduces !== undefined) {
+    if (!Array.isArray(obj.introduces)) {
+      errors.push({ file, field: 'introduces', message: 'introduces must be an array of action kind strings', hint: 'introduces: ["kind1", "kind2"]' });
+    } else {
+      for (let i = 0; i < obj.introduces.length; i++) {
+        if (typeof obj.introduces[i] !== 'string') {
+          errors.push({ file, field: `introduces[${i}]`, message: 'introduces items must be strings', hint: 'Provide action kind string' });
+        }
+      }
+    }
   }
 
   if (obj.simulation !== undefined) {

@@ -8,9 +8,9 @@ export const UI_SETTINGS_KEY = 'leadmate.ui';
 export type Appearance = 'system' | 'light' | 'dark';
 export const APPEARANCES: readonly Appearance[] = ['system', 'light', 'dark'];
 
-export type UiSettings = FeedbackSettings & { appearance: Appearance };
+export type UiSettings = FeedbackSettings & { appearance: Appearance; alwaysTimingHelp: boolean };
 
-export const DEFAULT_UI_SETTINGS: UiSettings = { ...DEFAULT_FEEDBACK_SETTINGS, appearance: 'system' };
+export const DEFAULT_UI_SETTINGS: UiSettings = { ...DEFAULT_FEEDBACK_SETTINGS, appearance: 'system', alwaysTimingHelp: false };
 
 export function readUiSettings(raw: unknown): UiSettings {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Partial<Record<keyof UiSettings, unknown>>;
@@ -18,6 +18,7 @@ export function readUiSettings(raw: unknown): UiSettings {
     sounds: typeof r.sounds === 'boolean' ? r.sounds : DEFAULT_FEEDBACK_SETTINGS.sounds,
     haptics: typeof r.haptics === 'boolean' ? r.haptics : DEFAULT_FEEDBACK_SETTINGS.haptics,
     appearance: APPEARANCES.includes(r.appearance as Appearance) ? (r.appearance as Appearance) : DEFAULT_UI_SETTINGS.appearance,
+    alwaysTimingHelp: typeof r.alwaysTimingHelp === 'boolean' ? r.alwaysTimingHelp : false,
   };
 }
 

@@ -111,6 +111,7 @@ describe('resetProgress', () => {
     legacyNodes: ['heel-turns'],
     activityLog: [{ at: '2026-05-01T10:00:00.000Z', date: '2026-05-01', kind: 'lesson', id: 'lesson-1' }, { at: '2026-05-02T10:00:00.000Z', date: '2026-05-02', kind: 'barkdoku', id: 'b-5', stars: 2, puzzle: { size: 5, durationSeconds: 130, mistakes: 0 } }],
     dailyBarkdoku: { '2026-05-02': { seconds: 130, at: '2026-05-02T10:00:00.000Z', targetSeconds: 120 } },
+    markerAssist: { level: 'off', successRun: 0, failRun: 0 },
   };
 
   it('createResetRecord produces first-run state with strictly later updatedAt', () => {
@@ -142,6 +143,7 @@ describe('resetProgress', () => {
     expect(reset.seenFixes).toEqual([]);
     expect(reset.legacyNodes).toEqual([]);
     expect(reset.activityLog).toEqual([]);
+    expect(reset.markerAssist).toEqual({ level: 'full', successRun: 0, failRun: 0 });
 
     expect(Date.parse(reset.updatedAt)).toBeGreaterThan(Date.parse(populatedRecord.updatedAt));
   });
@@ -168,7 +170,7 @@ describe('resetProgress', () => {
         paused: 'verify',
         stagesCompleted: 8,
       }),
-      'leadmate.ui': JSON.stringify({ sounds: false, haptics: true }),
+      'leadmate.ui': JSON.stringify({ sounds: false, haptics: true, alwaysTimingHelp: true }),
       'sb-auth-token': JSON.stringify({ access_token: 'xyz', user: { id: 'u1' } }),
       'leadmate.configs': JSON.stringify({ 'node-1': { id: 'node-1' } }),
     });
@@ -183,7 +185,7 @@ describe('resetProgress', () => {
     expect(Date.parse(fresh.updatedAt)).toBeGreaterThan(Date.parse(populatedRecord.updatedAt));
 
     // 3. UI settings, auth session, config cache keys are untouched
-    expect(store.storage['leadmate.ui']).toBe(JSON.stringify({ sounds: false, haptics: true }));
+    expect(store.storage['leadmate.ui']).toBe(JSON.stringify({ sounds: false, haptics: true, alwaysTimingHelp: true }));
     expect(store.storage['sb-auth-token']).toBe(JSON.stringify({ access_token: 'xyz', user: { id: 'u1' } }));
     expect(store.storage['leadmate.configs']).toBe(JSON.stringify({ 'node-1': { id: 'node-1' } }));
 
@@ -364,3 +366,25 @@ describe('reset and the hand drill (task 3.3)', () => {
     expect(reset.onboarding.step).toBe('welcome');
   });
 });
+
+describe('reset and analytics state (add-product-analytics 3.2)', () => {
+  it('leaves leadmate.analytics unchanged across resetProgress', async () => {
+    const analyticsState = {
+      installId: 'test-install-id-1234',
+      installedAt: '2026-05-01T12:00:00.000Z',
+      choice: 'off',
+      funnelDoneOnce: true,
+      funnelOpen: false,
+      upgradedInstall: false,
+    };
+    const store = createMemoryStore({
+      'leadmate.analytics': JSON.stringify(analyticsState),
+    });
+    const old = { ...newDogRecord(), name: 'Luna', updatedAt: '2026-06-15T10:00:00.000Z' };
+
+    await resetProgress(store, old);
+
+    expect(store.storage['leadmate.analytics']).toBe(JSON.stringify(analyticsState));
+  });
+});
+

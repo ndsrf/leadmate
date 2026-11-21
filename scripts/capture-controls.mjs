@@ -101,8 +101,16 @@ const APPS = [
   },
 ];
 
+/**
+ * The guided first Stage at its first Fixation (explain-guided-first-stage 3.2): the guided first scenario with a fixed seed,
+ * walked to the moment the Dog fixates and the Approach ring shows, with a numbered badge on each control and sign. The
+ * numbers are the ones the Primer overview card (`node.intro.cardSigns`) and the "Las señales del perro" control use, so one
+ * picture serves both languages. Not a lesson-style highlight: no arrow.
+ */
+const SIGNS = { name: 'howto-walking-signs', seed: 1 };
+
 const wanted = (c) => only.size === 0 || only.has(c.name);
-if (only.size > 0) for (const n of only) if (![...STAGES, ...APPS].some((c) => c.name === n)) console.error(`no such capture: ${n}`);
+if (only.size > 0) for (const n of only) if (![...STAGES, ...APPS, SIGNS].some((c) => c.name === n)) console.error(`no such capture: ${n}`);
 mkdirSync(out, { recursive: true });
 const browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'] });
 let failed = false;
@@ -214,6 +222,116 @@ for (const c of STAGES.filter(wanted)) {
     await compose(shot, { x: 0, y: 0, width: 640, height: 360 }, ring, c.arrow, join(out, `${c.name}.png`), 0);
   } catch (e) {
     console.error(`✗ ${c.name}: ${e.message}`);
+    failed = true;
+  }
+}
+
+/** Draws numbered badges and rings on a 640 by 360 point shot (at 2x) and writes it at 1280 by 720: big enough to read at 320 points wide. */
+async function composeMarks(shot, marks, file) {
+  const k = WIDTH / 640;
+  const R = 34;
+  const svg = marks
+    .map(({ n, box, badge }) => {
+      const cx = (box.x + box.width / 2) * k;
+      const cy = (box.y + box.height / 2) * k;
+      const rx = (box.width / 2) * k + 8;
+      const ry = (box.height / 2) * k + 8;
+      // the badge sits on the ring's edge, at `badge` (a unit direction; up and to the left by default)
+      const [dx, dy] = badge ?? [-0.7, -0.7];
+      const bx = Math.min(Math.max(cx + dx * rx, R + 4), WIDTH - R - 4);
+      const by = Math.min(Math.max(cy + dy * ry, R + 4), HEIGHT - R - 4);
+      return `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="none" stroke="${tokens.ink}" stroke-width="12"/>
+<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="none" stroke="${tokens.coral}" stroke-width="6"/>
+<circle cx="${bx}" cy="${by}" r="${R}" fill="${tokens.coral}" stroke="${tokens.ink}" stroke-width="6"/>
+<text x="${bx}" y="${by + 15}" text-anchor="middle" font-family="sans-serif" font-weight="700" font-size="44" fill="${tokens.ink}">${n}</text>`;
+    })
+    .join('\n');
+  const page = await browser.newPage({ viewport: { width: WIDTH, height: HEIGHT } });
+  const img = `data:image/png;base64,${shot.toString('base64')}`;
+  await page.setContent(`<html><body style="margin:0"><div style="position:relative;width:${WIDTH}px;height:${HEIGHT}px;overflow:hidden">
+<img src="${img}" style="position:absolute;left:0;top:0;width:${WIDTH}px;height:${HEIGHT}px"><svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" style="position:absolute;left:0;top:0">${svg}</svg></div></body></html>`);
+  await page.waitForLoadState('load');
+  const png = await page.screenshot({ clip: { x: 0, y: 0, width: WIDTH, height: HEIGHT } });
+  await page.close();
+  writeFileSync(file, png);
+  console.log(`✓ ${relative(ROOT, file)} (${(png.length / 1024).toFixed(0)} kB)`);
+}
+
+if (wanted(SIGNS)) {
+  try {
+    const page = await browser.newPage({ viewport: { width: 640, height: 360 }, deviceScaleFactor: 2 });
+    await page.goto(simUrl);
+    await page.waitForFunction(() => window.__leadmate?.scene()?.sim);
+    const marks = await page.evaluate(
+      async ([src, c]) => {
+        const { FIRST_WALK } = await import(src + 'shell/onboarding/introNode.ts');
+        const { STARTING_KINDS } = await import(src + 'sim/feedbackKinds.ts');
+        const { defaultScenario } = await import(src + 'sim/config.ts');
+        window.__leadmate.startStage({
+          type: 'start',
+          seed: c.seed,
+          scenario: { ...defaultScenario, ...FIRST_WALK },
+          guidedFirstStage: true,
+          markerAssist: { level: 'full', successRun: 0, failRun: 0 },
+          introducedKinds: [...new Set(STARTING_KINDS)].sort(),
+        });
+        await new Promise((r) => setTimeout(r, 1500));
+        const s = window.__leadmate.scene();
+        s.sys.sceneUpdate = () => {}; // frozen: only the ticks below move it
+        const { tick } = await import(src + 'sim/sim.ts');
+        const { routeDirection } = await import(src + 'sim/harness.ts');
+        const { project } = await import(src + 'hud/iso.ts');
+        const { JOY_RADIUS, CUE_RADIUS, MARKER_RADIUS } = await import(src + 'hud/layout.ts');
+        const step = s.sim.config.fixedStep;
+        let input = { direction: { x: 0, y: 0 }, strength: 0, marker: false };
+        let ringSeen = 0;
+        // walk the route until the Dog fixates, then stand still until the ring shows
+        for (let i = 0; i < 90 / step && ringSeen < 0.4 / step; i++) {
+          const fixated = s.sim.dogMode === 'fixated';
+          const r = routeDirection(s.sim.config, s.sim.handler);
+          input = fixated ? { direction: { x: 0, y: 0 }, strength: 0, marker: false } : { direction: r, strength: 1, marker: false };
+          const pre = { dogMode: s.sim.dogMode, calmElapsed: s.sim.calmElapsed };
+          const events = tick(s.sim, input, step);
+          s.stepTelegraph(events, pre);
+          // (no handleEvents: the picture shows the signs, not a Feedback Message on top of them)
+          if (fixated && s.telegraph?.frame?.ring) ringSeen++;
+        }
+        if (s.sim.dogMode !== 'fixated') throw new Error('the Dog never fixated');
+        s.joy = { base: { ...s.joyHome }, knob: { ...s.joyHome } };
+        for (let i = 0; i < 30; i++) s.followCamera(100);
+        s.draw(input);
+        s.drawHud();
+        s.drawTelegraph();
+        await new Promise((r) => setTimeout(r, 300));
+        const cam = s.cameras.main;
+        const screen = (p) => {
+          const q = project(p, 0);
+          return { x: (q.x - cam.worldView.x) * cam.zoom, y: (q.y - cam.worldView.y) * cam.zoom };
+        };
+        const disc = (p, r) => ({ x: p.x - r, y: p.y - r, width: 2 * r, height: 2 * r });
+        const hd = screen(s.sim.handler);
+        const dg = screen(s.sim.dog);
+        const z = cam.zoom;
+        const top = Math.min(hd.y - 40 * z, dg.y - 25 * z);
+        const { width, height } = s.scale;
+        const barW = Math.min(220, width * 0.4);
+        return [
+          { n: 1, box: disc(s.joyHome, JOY_RADIUS), badge: [0.7, -0.7] },
+          { n: 2, box: disc(s.markerHome, MARKER_RADIUS), badge: [-0.7, -0.7] },
+          { n: 3, box: disc(s.cueHome, CUE_RADIUS), badge: [-0.9, 0] },
+          { n: 4, box: { x: Math.min(hd.x, dg.x) - 10, y: top, width: Math.abs(hd.x - dg.x) + 20, height: Math.max(hd.y, dg.y) - top }, badge: [0, 1] },
+          { n: 5, box: { x: dg.x - 40 * z, y: dg.y - 60 * z, width: 80 * z, height: 70 * z }, badge: [0.8, -0.8] },
+          { n: 6, box: { x: (width - barW) / 2, y: height - 20, width: barW, height: 18 }, badge: [-1, 0] },
+        ];
+      },
+      [SRC, SIGNS],
+    );
+    await page.waitForTimeout(400);
+    const shot = await page.screenshot();
+    await page.close();
+    await composeMarks(shot, marks, join(out, `${SIGNS.name}.png`));
+  } catch (e) {
+    console.error(`✗ ${SIGNS.name}: ${e.message}`);
     failed = true;
   }
 }

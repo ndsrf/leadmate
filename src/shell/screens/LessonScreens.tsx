@@ -57,6 +57,7 @@ export function LibraryScreen({
           {fixes.map((entry) => (
             <Pressable
               key={entry.fix.id}
+              testID="library.fix"
               onPress={() => handlePress(() => onOpenFix?.(entry))}
               accessibilityRole="button"
               accessibilityLabel={`${t('fix.title')}. ${fixEntryLabel(entry, t)}.`}
@@ -80,6 +81,7 @@ export function LibraryScreen({
         return (
           <Pressable
             key={lesson.id}
+            testID="library.lesson"
             onPress={() => handlePress(() => onOpen(lesson))}
             accessibilityRole="button"
             accessibilityLabel={libraryEntryLabel(entry, t)}
@@ -134,7 +136,7 @@ function Item({
   }
   return (
     <View className="mt-8">
-      <Button label={t('lesson.done')} onPress={onDone} />
+      <Button label={t('lesson.done')} onPress={onDone} testID="lesson.done" />
     </View>
   );
 }
@@ -156,6 +158,7 @@ export function LessonScreen({
   onUnlockVideo,
   autoPlayVideo,
   onShop,
+  onProgress,
 }: {
   t: Translate;
   lesson: LessonDef;
@@ -168,12 +171,15 @@ export function LessonScreen({
   onUnlockVideo?: () => void;
   autoPlayVideo?: boolean;
   onShop?: (target: { level: 'home' | 'category' | 'subcategory' | 'product'; id?: string }) => void;
+  onProgress?: (percent: number) => void;
 }) {
   const [progress, setProgress] = useState(0);
   const gating: VideoGatingProps = videoGating ?? { isPlus, trialState, onUnlock: onUnlockVideo, autoPlay: autoPlayVideo };
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-    setProgress(readingProgress(contentOffset.y, contentSize.height, layoutMeasurement.height));
+    const next = readingProgress(contentOffset.y, contentSize.height, layoutMeasurement.height);
+    setProgress(next);
+    onProgress?.(next);
   };
   const place = lessonPlaceLabel(lesson, t);
   const header = (

@@ -5,7 +5,7 @@ import type { CloseExerciseConfig } from '../../sim/closeExercise';
 import { defaultCloseExerciseConfig } from '../../sim/closeExercise';
 import type { LessonBlock, LessonDef, LessonKind, VideoSource } from '../lessons/lesson';
 import { MEDIA_BASE } from '../ui/media';
-import type { CheckpointQuestion, Metric, NodeDef, NodeExercise, PrimerCardDef } from '../nodes/node';
+import type { CheckpointQuestion, EncounterDef, Metric, NodeDef, NodeExercise, PrimerCardDef } from '../nodes/node';
 import type { ImageDuelQuestion } from '../nodes/content';
 import type { Fix, MissionDef, MissionProblem } from '../missions/mission';
 import type { Stop, WorldDef } from '../world';
@@ -546,18 +546,36 @@ export function resolvePack(pack: ContentPack, language: string = 'es', options?
       return { metric: ex.metric, key: exKey };
     });
 
+    const simulation: NodeDef['simulation'] = { ...(cfg.simulation as any) };
+    if (cfg.simulation?.encounters) {
+      simulation.encounters = cfg.simulation.encounters.map((enc) => {
+        const encTitleKey = `${keyPrefix}.encounter.${enc.id}.title` as TextKey;
+        const titleText = (parsedLang?.encounters?.[enc.id] && parsedLang.encounters[enc.id].trim())
+          ? parsedLang.encounters[enc.id]
+          : (parsedEs.encounters?.[enc.id] || enc.id);
+        catalog[encTitleKey] = titleText;
+        return {
+          id: enc.id,
+          title: encTitleKey,
+          aim: enc.aim,
+          scenario: enc.scenario ?? {},
+        };
+      });
+    }
+
     const nodeDef: NodeDef = {
       id: cfg.id,
       title: titleKey,
       mode: cfg.mode,
       primerCards,
       checkpoint,
-      simulation: cfg.simulation ?? {},
+      simulation,
       exercises,
       prerequisites: cfg.prerequisites ?? [],
     };
 
     if (cfg.opensAfterLesson) nodeDef.opensAfterLesson = cfg.opensAfterLesson;
+    if (cfg.introduces) nodeDef.introduces = [...cfg.introduces];
 
     // Debrief
     const hasDebrief = cfg.debrief || (parsedEs.debrief && (parsedEs.debrief.calm || parsedEs.debrief.notCalm));

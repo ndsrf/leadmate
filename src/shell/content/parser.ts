@@ -108,12 +108,14 @@ export interface ParsedNodeCheckpointQuestion {
 
 export interface ParsedNodeContent {
   title: string;
+  introduces?: string[];
   primer?: Array<{
     text: string;
     caption?: string;
   }>;
   checkpoint?: ParsedNodeCheckpointQuestion[];
   exercises?: Record<string, string>;
+  encounters?: Record<string, string>;
   debrief?: {
     calm?: string;
     notCalm?: string;
@@ -507,7 +509,8 @@ export function buildLessonBlocks(
       const n = idx + 1;
       blocks.push({ type: 'heading', text: textRef(`c${n}.heading`, c.heading) });
       blocks.push({ type: 'text', text: textRef(`c${n}.text`, c.text) });
-      const art = `${config.id}-${n}`;
+      // the Lesson's own picture list wins (two controls may share a picture); otherwise `<id>-<n>`
+      const art = config.images?.[idx] ?? `${config.id}-${n}`;
       blocks.push({
         type: 'image',
         art,
@@ -664,6 +667,7 @@ export function parseNodeMarkdown(markdown: string): ParsedNodeContent {
   const primer: Array<{ text: string; caption?: string }> = [];
   const checkpoint: ParsedNodeCheckpointQuestion[] = [];
   const exercises: Record<string, string> = {};
+  const encounters: Record<string, string> = {};
   const debrief: { calm?: string; notCalm?: string } = {};
   let returnRecommendations: Record<string, string> | undefined;
 
@@ -707,6 +711,20 @@ export function parseNodeMarkdown(markdown: string): ParsedNodeContent {
     } else if (norm === 'exercises' || norm === 'ejercicios') {
       const kv = extractMetaKeyValues(sec.body);
       Object.assign(exercises, kv);
+    } else if (norm === 'encounters' || norm === 'encuentros') {
+      for (const sub of sec.subsections) {
+        const id = sub.heading.trim();
+        if (id) {
+          const title = sub.body.map((l) => l.trim()).find((l) => l.length > 0 && !l.startsWith('- alt:') && !l.startsWith('- caption:')) ?? '';
+          if (title) {
+            encounters[id] = title;
+          }
+        }
+      }
+      if (sec.subsections.length === 0 && sec.body.length > 0) {
+        const kv = extractMetaKeyValues(sec.body);
+        Object.assign(encounters, kv);
+      }
     } else if (norm === 'debrief') {
       const kv = extractMetaKeyValues(sec.body);
       if (kv.calm) debrief.calm = kv.calm;
@@ -726,7 +744,8 @@ export function parseNodeMarkdown(markdown: string): ParsedNodeContent {
     }
   }
 
-  return { title, primer, checkpoint, exercises, debrief, recommendations: returnRecommendations };
+  const returnEncounters = Object.keys(encounters).length > 0 ? encounters : undefined;
+  return { title, primer, checkpoint, exercises, encounters: returnEncounters, debrief, recommendations: returnRecommendations };
 }
 
 // -- Mission Markdown Parser -------------------------------------------------

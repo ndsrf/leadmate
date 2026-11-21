@@ -2,6 +2,10 @@ id: park-nose-on
 mode: stage
 prerequisites:
   - park-mix
+introduces:
+  - granted-sniff
+  - empty-sniff
+  - scent-dragged-past
 simulation:
   scenario:
     world: 6

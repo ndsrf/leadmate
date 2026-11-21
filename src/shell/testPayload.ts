@@ -22,6 +22,7 @@ export function payloadWith(over: Partial<SimulationDebriefPayload> = {}): Simul
     seed: 1,
     sintoniaTimeSeconds: 0,
     goSniffs: 0,
+    peakReactionTier: 'calm',
     handlingScore: 0,
     configVersion: 'bundled',
     ...over,

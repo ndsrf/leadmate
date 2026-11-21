@@ -3,7 +3,7 @@ import * as path from 'node:path';
 // @ts-ignore
 import { renderToStaticMarkup } from 'react-dom/server';
 import ReactTestRenderer, { act } from 'react-test-renderer';
-import { createTranslator, es } from '../../i18n';
+import { createTranslator, es, type TextKey } from '../../i18n';
 import { PrimerScreen, DebriefScreen, CheckpointScreen, ImageDuelQuestionView, DuelVerdictBadge } from './NodeScreens';
 import { MissionProblemScreen, FixScreen } from './MissionScreens';
 import { getActiveContent, setActiveContent } from '../content/runtime';
@@ -180,6 +180,17 @@ describe('Node and Mission screens - ShopLinkCard recommendations (Task 7.1)', (
 
   beforeEach(() => {
     mockPressables.length = 0;
+  });
+
+  it('shows the picture of the guided first Stage overview card, not a placeholder', () => {
+    const { INTRO_NODE } = require('../onboarding/introNode');
+    const run = { ...startNode(INTRO_NODE), card: INTRO_NODE.primerCards.findIndex((c: any) => typeof c !== 'string' && c.media?.art === 'howto-walking-signs') };
+    expect(run.card).toBeGreaterThanOrEqual(0);
+    const markup = renderToStaticMarkup(<PrimerScreen t={t} run={run} onNext={() => {}} onExit={() => {}} />);
+    expect(markup).toContain(es['node.intro.cardSigns.caption']);
+    expect(markup).toContain('<img');
+    expect(markup).not.toContain(es['media.pending']);
+    expect(markup).not.toContain(es['media.unavailable']);
   });
 
   it('renders ShopLinkCard on PrimerScreen and handles tap', () => {
@@ -831,6 +842,45 @@ describe('Node and Mission screens - ShopLinkCard recommendations (Task 7.1)', (
       expect(messageNode.props.children).toBe(t('feedback.food-eaten.short'));
       const timeNode = root.root.find((node: any) => node.type === 'span' && node.props.testID === 'timeline-selected-time');
       expect(timeNode.props.children).toContain('15');
+    });
+  });
+
+  describe('Node Debrief - Encounter list (encounters 6.1)', () => {
+    const encounters = ['a', 'b', 'c', 'd'].map((id, i) => ({ id, title: 'node.debrief.title' as TextKey, aim: 'check-in' as const, scenario: {} }));
+    const seriesNode: NodeDef = { ...sampleNode, simulation: { encounters } };
+    const t2 = createTranslator({});
+    const runOf = (payload: SimulationDebriefPayload, skipped?: boolean): NodeRun => ({
+      ...startNode(seriesNode),
+      step: 'debrief' as const,
+      result: { kind: 'stage', payload, ...(skipped ? { skipped: true } : {}) },
+    });
+    const render = (run: NodeRun) =>
+      renderToStaticMarkup(<DebriefScreen t={t2} run={run} showPosteLink={false} onPosteLink={() => {}} onDone={() => {}} onPlayAgain={() => {}} best={2} celebrations={[]} />);
+
+    it('lists each Encounter of a finished Series with Paws and attempts above the telemetry rows', () => {
+      const markup = render(
+        runOf(payloadWith({ encounters: [{ id: 'a', paws: 3, attempts: 1 }, { id: 'b', paws: 2, attempts: 3 }, { id: 'c', paws: 1, attempts: 2 }, { id: 'd', paws: 3, attempts: 1 }] })),
+      );
+      expect(markup).toContain(t2('encounter.list.title'));
+      expect(markup).toContain('3 intentos');
+      expect(markup).toContain('1 intento');
+      expect(markup).not.toContain(t2('encounter.notPlayed'));
+      expect(markup.indexOf(t2('encounter.list.title'))).toBeLessThan(markup.indexOf(t2('results.duration')));
+      expect(markup.match(/debrief-encounter-/g)).toHaveLength(4);
+    });
+
+    it('marks the Encounters of an exited Series that were not played', () => {
+      const markup = render(
+        runOf(payloadWith({ encounters: [{ id: 'a', paws: 3, attempts: 1 }, { id: 'b', paws: 2, attempts: 2 }, { id: 'c', paws: 0, attempts: 0 }, { id: 'd', paws: 0, attempts: 0 }] }), true),
+      );
+      expect(markup.split(t2('encounter.notPlayed'))).toHaveLength(3); // two "not played"
+    });
+
+    it('leaves a non-Series Debrief without an Encounter list', () => {
+      const markup = render(runOf(payloadWith()));
+      expect(markup).not.toContain(t2('encounter.list.title'));
+      expect(markup).not.toContain('debrief-encounter');
+      expect(markup).toContain(t2('results.duration'));
     });
   });
 });

@@ -26,6 +26,7 @@ import { Screen } from './Screen';
 import { RecommendationCardList } from './RecommendationCard';
 import { getActiveContent } from '../content/runtime';
 import { DebriefTimelineSection } from './DebriefTimeline';
+import { EncounterPaws } from '../ui/EncounterPaws';
 
 export function PrimerScreen({
   t,
@@ -62,8 +63,8 @@ export function PrimerScreen({
         t={t}
       />
       <Text className="text-center font-display text-label text-inkMuted">{`${run.card + 1} / ${total}`}</Text>
-      <Button label={t('node.next')} onPress={onNext} />
-      <Button label={t('node.back')} tone="quiet" onPress={onExit} />
+      <Button label={t('node.next')} onPress={onNext} testID="node.primer_next" />
+      <Button label={t('node.back')} tone="quiet" onPress={onExit} testID="node.primer_exit" />
       {guideOpen && card.tutorialUrl && <InAppBrowserModal t={t} url={card.tutorialUrl} onClose={() => setGuideOpen(false)} />}
     </Screen>
   );
@@ -419,6 +420,28 @@ function CheckpointReview({ t, run }: { t: Translate; run: NodeRun }) {
   );
 }
 
+/** The Encounters of a finished or skipped Series, in order: title, kept Paws (or "not played") and attempts. */
+function EncounterList({ t, run, encounters }: { t: Translate; run: NodeRun; encounters: NonNullable<SimulationDebriefPayload['encounters']> }) {
+  const defs = run.node.simulation.encounters ?? [];
+  return (
+    <Panel className="mb-3">
+      <Text className="mb-1 font-display text-label text-inkMuted">{t('encounter.list.title')}</Text>
+      {encounters.map((e) => {
+        const title = defs.find((d) => d.id === e.id)?.title;
+        const played = e.attempts > 0;
+        const pawsLabel = t('encounter.paws').split('{n}').join(String(e.paws));
+        return (
+          <View key={e.id} testID={`debrief-encounter-${e.id}`} className="flex-row items-center justify-between gap-3 py-2">
+            <Text className="flex-1 text-body text-ink">{title ? t(title) : e.id}</Text>
+            <Text className="text-caption text-inkMuted">{played ? t(e.attempts === 1 ? 'encounter.attempts.one' : 'encounter.attempts.other').split('{n}').join(String(e.attempts)) : ''}</Text>
+            {played ? <EncounterPaws paws={e.paws} size={22} label={pawsLabel} /> : <Text className="font-display text-caption text-inkMuted">{t('encounter.notPlayed')}</Text>}
+          </View>
+        );
+      })}
+    </Panel>
+  );
+}
+
 function StageRows({ t, p }: { t: Translate; p: SimulationDebriefPayload }) {
   return (
     <>
@@ -485,6 +508,7 @@ export function DebriefScreen({
   best,
   celebrations,
   onShop,
+  introducedKinds,
 }: {
   t: Translate;
   run: NodeRun;
@@ -499,10 +523,12 @@ export function DebriefScreen({
   /** Celebrations of this completion, computed once when the Debrief opened. */
   celebrations: readonly Celebration[];
   onShop?: (target: { level: 'home' | 'category' | 'subcategory' | 'product'; id?: string }) => void;
+  /** The Stage's Introduced actions (GLOSSARY: "Introduced action"); absent shows every moment. */
+  introducedKinds?: readonly string[];
 }) {
   const result = run.result;
   if (!result) return null;
-  return <DebriefBody t={t} run={run} result={result} showPosteLink={showPosteLink} mission={mission} onPosteLink={onPosteLink} onDone={onDone} onPlayAgain={onPlayAgain} best={best} celebrations={celebrations} onShop={onShop} />;
+  return <DebriefBody t={t} run={run} result={result} showPosteLink={showPosteLink} mission={mission} onPosteLink={onPosteLink} onDone={onDone} onPlayAgain={onPlayAgain} best={best} celebrations={celebrations} onShop={onShop} introducedKinds={introducedKinds} />;
 }
 
 function DebriefBody({
@@ -517,6 +543,7 @@ function DebriefBody({
   best,
   celebrations,
   onShop,
+  introducedKinds,
 }: {
   t: Translate;
   run: NodeRun;
@@ -529,6 +556,7 @@ function DebriefBody({
   best: Stars;
   celebrations: readonly Celebration[];
   onShop?: (target: { level: 'home' | 'category' | 'subcategory' | 'product'; id?: string }) => void;
+  introducedKinds?: readonly string[];
 }) {
   const exercise = pickExercise(run.node, result);
   const score = result.kind === 'stage' || result.kind === 'close_exercise' ? result.payload.handlingScore : result.handlingScore;
@@ -572,8 +600,9 @@ function DebriefBody({
           {result.kind === 'stage' || result.kind === 'close_exercise' ? (
             <>
               {result.kind === 'stage' && result.payload.timeline !== undefined && (
-                <DebriefTimelineSection t={t} payload={result.payload} />
+                <DebriefTimelineSection t={t} payload={result.payload} introducedKinds={introducedKinds} />
               )}
+              {result.kind === 'stage' && result.payload.encounters && <EncounterList t={t} run={run} encounters={result.payload.encounters} />}
               <Panel className="mb-1">
                 <StageRows t={t} p={result.payload} />
               </Panel>
@@ -609,8 +638,8 @@ function DebriefBody({
             onOpenShop={onShop}
             t={t}
           />
-          <Button label={t('results.playAgain')} onPress={onPlayAgain} />
-          <Button label={t('results.continue')} tone="secondary" onPress={onDone} />
+          <Button label={t('results.playAgain')} onPress={onPlayAgain} testID="node.play_again" />
+          <Button label={t('results.continue')} tone="secondary" onPress={onDone} testID="node.results_continue" />
         </>
       )}
     </Screen>

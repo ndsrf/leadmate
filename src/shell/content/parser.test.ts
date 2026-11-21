@@ -216,6 +216,29 @@ Practica frenadas cortas antes de giros.
       'image', // c2 image
       'tip', // tip
     ]);
+    // without a picture list each control uses `<id>-<n>`
+    expect(blocks.filter((b) => b.type === 'image').map((b) => (b as { art: string }).art)).toEqual(['howto-walking-1', 'howto-walking-2']);
+  });
+
+  it('uses the picture list of a how-to-play lesson, so two controls can share a picture', () => {
+    const md = `
+# Cómo pasear
+
+## c1
+### Señales
+Texto uno.
+- alt: Uno
+- caption: Uno
+
+## c2
+### Aro
+Texto dos.
+- alt: Dos
+- caption: Dos
+`;
+    const config: LessonYaml = { id: 'howto-walking', kind: 'how-to-play', controls: 2, images: ['howto-walking-signs', 'howto-walking-signs'] };
+    const blocks = buildLessonBlocks(parseLessonMarkdown(md, config), config, { keyPrefix: 'trail.howto-walking' });
+    expect(blocks.filter((b) => b.type === 'image').map((b) => (b as { art: string }).art)).toEqual(['howto-walking-signs', 'howto-walking-signs']);
   });
 });
 
@@ -273,6 +296,34 @@ En el simulador, observa la distancia al estímulo.
     expect(node.checkpoint?.[0].explanation).toContain('El tirón aumenta');
     expect(node.exercises?.tension).toBe('Mantén la correa destensada');
     expect(node.debrief?.calm).toContain('Muy bien');
+  });
+
+  it('parses node encounters with subsections per encounter id', () => {
+    const md = `
+# Paseo con distracciones
+
+## encounters
+### loose-start
+Correa floja
+
+### skate-far
+Míralo venir
+
+### skate-poste
+Poste y marca
+
+### turn-look
+Gira y te mira
+`;
+
+    const node = parseNodeMarkdown(md);
+    expect(node.title).toBe('Paseo con distracciones');
+    expect(node.encounters).toEqual({
+      'loose-start': 'Correa floja',
+      'skate-far': 'Míralo venir',
+      'skate-poste': 'Poste y marca',
+      'turn-look': 'Gira y te mira',
+    });
   });
 });
 

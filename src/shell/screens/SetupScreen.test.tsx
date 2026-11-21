@@ -141,4 +141,32 @@ describe('SetupScreen', () => {
     });
     expect(BackHandler.addEventListener).toHaveBeenCalledWith('hardwareBackPress', expect.any(Function));
   });
+
+  it('invokes onPart callback on mount and on each setup part change (Task 5.4)', () => {
+    const onPart = jest.fn();
+
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = ReactTestRenderer.create(
+        <SetupScreen
+          t={t}
+          record={newDogRecord()}
+          update={() => {}}
+          onPart={onPart}
+        />
+      );
+    });
+
+    expect(onPart).toHaveBeenCalledTimes(1);
+    expect(onPart).toHaveBeenLastCalledWith('equipment');
+
+    // Press next on equipment -> advances to weights
+    act(() => {
+      pressed[t('setup.next')]();
+    });
+
+    expect(onPart).toHaveBeenCalledTimes(2);
+    expect(onPart).toHaveBeenLastCalledWith('weights');
+  });
 });
+

@@ -19,6 +19,10 @@ jest.mock('react-native', () => {
       currentState: 'active',
       addEventListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
     },
+    AccessibilityInfo: {
+      isReduceMotionEnabled: jest.fn().mockResolvedValue(false),
+      addEventListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+    },
     Platform: { OS: 'web' },
   };
 });
@@ -51,6 +55,7 @@ jest.mock('react-native-reanimated', () => {
     withRepeat: (v: any) => v,
     withSequence: (...args: any[]) => args[0],
     cancelAnimation: () => {},
+    Easing: { bezier: () => ({}) },
   };
 });
 
@@ -64,6 +69,7 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 
 import React from 'react';
+import ReactTestRenderer, { act } from 'react-test-renderer';
 // @ts-ignore
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createTranslator, es } from '../../i18n';
@@ -133,6 +139,34 @@ describe('LessonScreen video gating and text readability', () => {
     );
     expect(markup).toContain('Desbloqueado con Plus');
     expect(markup).not.toContain('Desbloquear con');
+  });
+
+  it('calls onProgress when scrolled', () => {
+    const onProgress = jest.fn();
+    let testRenderer: ReactTestRenderer.ReactTestRenderer;
+    act(() => {
+      testRenderer = ReactTestRenderer.create(
+        <LessonScreen
+          t={t}
+          lesson={sampleLesson}
+          onDone={() => {}}
+          onBack={() => {}}
+          onProgress={onProgress}
+        />
+      );
+    });
+    const scrollView = testRenderer!.root.findAllByType('div').find((node) => typeof node.props.onScroll === 'function');
+    expect(scrollView).toBeDefined();
+    act(() => {
+      scrollView!.props.onScroll({
+        nativeEvent: {
+          contentOffset: { y: 250 },
+          contentSize: { height: 1000 },
+          layoutMeasurement: { height: 500 },
+        },
+      });
+    });
+    expect(onProgress).toHaveBeenCalledWith(50);
   });
 });
 

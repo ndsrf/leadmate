@@ -18,8 +18,16 @@ export type ShellMessage =
       seenKinds?: readonly string[];
       /** The Taste Stage: wrong kinds are dropped and no Hint is offered to be recorded. */
       isTasteStage?: boolean;
+      /** The Introduced actions of this Stage (GLOSSARY: "Introduced action"); absent means every kind. */
+      introducedKinds?: readonly string[];
       /** OS reduced-motion preference: animations switch to fades, static poses, or 0 particles. */
       reducedMotion?: boolean;
+      /** The Dog record's Timing assist (telegraph-marker-timing); absent in close exercises. */
+      markerAssist?: MarkerAssistState;
+      /** The "always show timing help" setting: the telegraph runs at Full and the stored assist is not updated. */
+      alwaysTimingHelp?: boolean;
+      /** The guided first Stage: the telegraph runs at Full, outcomes still count. */
+      guidedFirstStage?: boolean;
     }
   | { type: 'pause' }
   | { type: 'resume' }
@@ -45,7 +53,11 @@ export type BundleMessage =
    * `first-input` is not a hint: the Handler first moves or presses a button. `control-used` says which
    * control (`control`), and `dog-approaching` where the dog comes from on screen (`bearing`, radians).
    */
-  | { type: 'stage-signal'; signal: StageSignal; time: number; control?: StageControl; bearing?: number }
+  | { type: 'stage-signal'; signal: StageSignal; time: number; control?: StageControl; bearing?: number; assist?: MarkerAssistLevel; sign?: DogSign }
+  /** A count-in tick of the Approach ring (beat 1 to 3, Full assist only); the shell plays it (fire and forget). */
+  | { type: 'telegraph-tick'; beat: 1 | 2 | 3 }
+  /** The Timing assist changed; the shell writes it to the Dog record in recorded Stages. */
+  | { type: 'marker-assist'; state: MarkerAssistState }
   /**
    * A Feedback Message was shown in the Stage; the shell plays its sound and haptic (fire and forget). `combo` is the
    * run of right actions of this kind (1 for the first). `firstTime` says the Hint (full text) was shown, so the shell
@@ -53,6 +65,28 @@ export type BundleMessage =
    */
   | FeedbackMessage
   | { type: 'error'; message: string };
+
+export const ASSIST_LEVELS = ['full', 'ring', 'late', 'off'] as const;
+/** The Timing assist level (the same values as `AssistLevel` in `src/hud/markerAssist.ts`). */
+export type MarkerAssistLevel = (typeof ASSIST_LEVELS)[number];
+/** The Timing assist as stored in the Dog record (the same shape as `AssistState` in `src/hud/markerAssist.ts`). */
+export interface MarkerAssistState {
+  level: MarkerAssistLevel;
+  successRun: number;
+  failRun: number;
+}
+
+export function isMarkerAssistState(v: unknown): v is MarkerAssistState {
+  if (!v || typeof v !== 'object') return false;
+  const o = v as Record<string, unknown>;
+  return (
+    (ASSIST_LEVELS as readonly unknown[]).includes(o.level) &&
+    Number.isInteger(o.successRun) &&
+    (o.successRun as number) >= 0 &&
+    Number.isInteger(o.failRun) &&
+    (o.failRun as number) >= 0
+  );
+}
 
 export const FEEDBACK_TIERS = ['small', 'medium', 'big'] as const;
 export type FeedbackTier = (typeof FEEDBACK_TIERS)[number];
@@ -64,6 +98,8 @@ export interface FeedbackMessage {
   polarity: FeedbackPolarity;
   combo: number;
   firstTime: boolean;
+  /** Perfects in a row, set on the message shown for a Perfect press; the shell raises the sound's pitch by it. */
+  perfectRun?: number;
 }
 
 function isFeedbackMessage(v: Record<string, unknown>): boolean {
@@ -74,12 +110,25 @@ function isFeedbackMessage(v: Record<string, unknown>): boolean {
     v.polarity === FEEDBACK_ACTION_KINDS[v.kind] &&
     Number.isInteger(v.combo) &&
     (v.combo as number) >= 0 &&
-    typeof v.firstTime === 'boolean'
+    typeof v.firstTime === 'boolean' &&
+    (v.perfectRun === undefined || (Number.isInteger(v.perfectRun) && (v.perfectRun as number) >= 1))
   );
 }
 
-export const STAGE_SIGNALS = ['first-taut', 'first-fixation', 'leash-limit', 'first-input', 'dog-approaching', 'control-used'] as const;
+export const STAGE_SIGNALS = ['first-taut', 'first-fixation', 'leash-limit', 'first-input', 'dog-approaching', 'control-used', 'dog-sign', 'dog-sign-gone'] as const;
 export type StageSignal = (typeof STAGE_SIGNALS)[number];
+
+/**
+ * The signs the Stage draws over or around the Dog besides the Fixation "!" (which has its own `first-fixation` signal):
+ * the Alert circle, the eye of eye contact, the bark arcs, the scent dots and the Sintonía glow. `dog-sign` carries the
+ * sign the first time it is drawn; `dog-sign-gone` says it went off screen, so a Hint still waiting for it is dropped.
+ */
+export const DOG_SIGNS = ['alert', 'eye', 'bark', 'scent', 'sintonia'] as const;
+export type DogSign = (typeof DOG_SIGNS)[number];
+
+export function isDogSign(v: unknown): v is DogSign {
+  return (DOG_SIGNS as readonly unknown[]).includes(v);
+}
 
 /**
  * The controls a Coach mark can point at: the joystick (`move`) and the Marker button (`mark`) of the walking Stage,
@@ -87,11 +136,11 @@ export type StageSignal = (typeof STAGE_SIGNALS)[number];
  */
 export type StageControl = 'move' | 'mark' | 'gather' | 'poste' | 'close-mark';
 
-/** Lets each signal through once per Stage; `control-used` once per control. */
-export function createSignalGate(): (signal: StageSignal, control?: StageControl) => boolean {
+/** Lets each signal through once per Stage; `control-used` once per control and `dog-sign` once per sign. */
+export function createSignalGate(): (signal: StageSignal, detail?: StageControl | DogSign) => boolean {
   const sent = new Set<string>();
-  return (signal, control) => {
-    const key = control ? `${signal}:${control}` : signal;
+  return (signal, detail) => {
+    const key = detail ? `${signal}:${detail}` : signal;
     if (sent.has(key)) return false;
     sent.add(key);
     return true;
@@ -107,7 +156,21 @@ export function decode<T extends { type: string }>(raw: unknown, types: readonly
   try {
     const value = typeof raw === 'string' ? JSON.parse(raw) : raw;
     if (value && typeof value === 'object' && types.includes((value as { type: string }).type)) {
-      if ((value as { type: string }).type === 'feedback' && !isFeedbackMessage(value as Record<string, unknown>)) return null;
+      const v = value as Record<string, unknown>;
+      if (v.type === 'feedback' && !isFeedbackMessage(v)) return null;
+      if (v.type === 'telegraph-tick' && ![1, 2, 3].includes(v.beat as number)) return null;
+      if (v.type === 'marker-assist' && !isMarkerAssistState(v.state)) return null;
+      if (v.type === 'stage-signal' && v.assist !== undefined && !(ASSIST_LEVELS as readonly unknown[]).includes(v.assist)) return null;
+      if (v.type === 'stage-signal') {
+        // a dog-sign signal names a known sign; no other signal carries one
+        const needsSign = v.signal === 'dog-sign' || v.signal === 'dog-sign-gone';
+        if (needsSign ? !isDogSign(v.sign) : v.sign !== undefined) return null;
+      }
+      if (v.type === 'start') {
+        if (v.markerAssist !== undefined && !isMarkerAssistState(v.markerAssist)) return null;
+        if (v.alwaysTimingHelp !== undefined && typeof v.alwaysTimingHelp !== 'boolean') return null;
+        if (v.guidedFirstStage !== undefined && typeof v.guidedFirstStage !== 'boolean') return null;
+      }
       return value as T;
     }
   } catch {
@@ -117,7 +180,7 @@ export function decode<T extends { type: string }>(raw: unknown, types: readonly
 }
 
 export const SHELL_MESSAGE_TYPES: readonly ShellMessage['type'][] = ['start', 'pause', 'resume', 'focus', 'suspend', 'wake'];
-export const BUNDLE_MESSAGE_TYPES: readonly BundleMessage['type'][] = ['ready', 'paused', 'debrief', 'playCue', 'reaction-tier-change', 'stage-signal', 'feedback', 'error'];
+export const BUNDLE_MESSAGE_TYPES: readonly BundleMessage['type'][] = ['ready', 'paused', 'debrief', 'playCue', 'reaction-tier-change', 'stage-signal', 'feedback', 'telegraph-tick', 'marker-assist', 'error'];
 
 /** Where the bundle sends its messages: the native WebView bridge, the parent window, or nowhere. */
 export type Outbox = (message: BundleMessage) => void;

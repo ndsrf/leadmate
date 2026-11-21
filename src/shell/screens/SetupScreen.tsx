@@ -63,8 +63,22 @@ function WeightRow({
 }
 
 /** Dog setup: Equipment, weights (skippable) and the Trigger Profile chips. Equipment and triggers are saved as they are chosen. */
-export function SetupScreen({ t, record, update }: { t: Translate; record: DogRecord; update: (fn: (r: DogRecord) => DogRecord) => void }) {
+export function SetupScreen({
+  t,
+  record,
+  update,
+  onPart,
+}: {
+  t: Translate;
+  record: DogRecord;
+  update: (fn: (r: DogRecord) => DogRecord) => void;
+  onPart?: (part: SetupPart) => void;
+}) {
   const [part, setPart] = useState<SetupPart>(() => setupStart(record));
+
+  useEffect(() => {
+    onPart?.(part);
+  }, [part, onPart]);
   // the breed's typical weight only fills the Dog's field while no weight was ever entered
   const [dogText, setDogText] = useState(() => {
     if (record.weights.dogKg !== null) return kgText(record.weights.dogKg);
@@ -178,7 +192,7 @@ export function SetupScreen({ t, record, update }: { t: Translate; record: DogRe
               />
             </View>
           ))}
-          <Button label={t('setup.finish')} onPress={() => update(finishSetup)} />
+          <Button label={t('setup.finish')} onPress={() => update(finishSetup)} testID="funnel.setup_finish" />
         </Panel>
       )}
     </Screen>

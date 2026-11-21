@@ -103,6 +103,14 @@ _Avoid_: Accuracy rating, timing score
 A Marker press that comes just after a Reward Window or Check-in window closed. It spends a Mark and rewards nothing.
 _Avoid_: Late mark, miss
 
+**Approach ring**:
+A ring drawn around the Dog during a Fixation that closes onto the Dog as the Handler holds the calm, landing on the moment the Disengagement opens the Reward Window. It snaps back open when the calm is broken.
+_Avoid_: Timing circle, target ring, beat ring
+
+**Timing assist**:
+How much help the user gets to time the Marker during a Stage: Full, Ring only, Late ring or Off. It steps down after a run of Marker hits and back up after a run of misses or Late or early presses, and it is kept with the Dog.
+_Avoid_: Difficulty, assist mode, easy mode
+
 **Cue**:
 A signal the Handler gives the Dog before it reacts, such as "Let's go" or "Aquí", to steer its attention. Unlike the Marker, a Cue is proactive. "Let's Go" reorients a Dog on something that moves; "Leave It" (from World 3) lets a Dog go of food on the ground. Only the matching Cue works.
 _Avoid_: Command, call, order
@@ -118,8 +126,24 @@ _Avoid_: Body block, blocking, physical shield
 ### Training
 
 **Node**:
-One training unit: Theory Primer, Checkpoint, Interactive Simulation, Debrief. A Node's Interactive Simulation is one Stage (walking or close exercise) or one Minigame (static).
+One training unit: Theory Primer, Checkpoint, Interactive Simulation, Debrief. A Node's Interactive Simulation is one Stage (walking or close exercise), an Encounter Series (walking), or one Minigame (static).
 _Avoid_: Level
+
+**Encounter**:
+A short walking set piece of about 10 to 20 seconds built around one situation and one decision, its Aim. Each attempt at it is one Stage, and an attempt can be retried at once with the same seed.
+_Avoid_: Mini-stage, challenge, scene, level
+
+**Encounter Series**:
+The 3 to 5 Encounters, played in order, that make up a walking Node's Interactive Simulation in place of one long Stage. Not a Chain.
+_Avoid_: Encounter chain, chain, sequence, set
+
+**Aim**:
+The one decision an Encounter tests: keeping the leash Slack, keeping the Dog below Reactive, marking a Disengagement or marking a Check-in. Not the Goal the Dog's Drive heads for.
+_Avoid_: Goal, objective, task
+
+**Paw**:
+A 1 to 3 rating of one Encounter attempt: 1 for finishing it, 2 for meeting its Aim, 3 for meeting it cleanly. A Node played as an Encounter Series takes its Stars from the best attempt's Paws of each Encounter; Paws never unlock anything.
+_Avoid_: Star, point, score
 
 **Close Exercise Stage**:
 A specialized close-view Stage focused on close-quarters canine exercises (such as leash handling drills) with exercise-specific controls rather than open-route joystick movement.
@@ -186,11 +210,23 @@ An optional external URL declared on a Theory Primer card pointing to web-hosted
 _Avoid_: Webview modal, external resource
 
 **Minigame**:
-The static Interactive Simulation of a Node: a Tap & Hold exercise, a scene of Action beats in which the user reads the Dog and picks an action, or a spatial deduction puzzle. It is not a Stage and does not change the Dog's Learning Attributes.
+The static Interactive Simulation of a Node (a Tap & Hold exercise, a scene of Action beats in which the user reads the Dog and picks an action, or a spatial deduction puzzle), or a round of Read the Dog. It is not a Stage and does not change the Dog's Learning Attributes.
 
 **Action beat**:
 One step of an action Minigame: the Dog shows one Canine Posture and exactly one of the offered actions is right for it.
 _Avoid_: Round, turn, question
+
+**Read the Dog**:
+A short timed Minigame in which the Dog shows one Body Signal at a time and the user names its Signal Class before a timer runs out. The onboarding Diagnostic is played as a round of it.
+_Avoid_: Read Dog, readDog, reflex test, quiz
+
+**Body Signal**:
+One Canine Posture shown by the Dog in Read the Dog, such as a lip lick, a freeze or a play bow, with exactly one Signal Class.
+_Avoid_: Signal (alone), Cue, beat, state
+
+**Signal Class**:
+What a Body Signal usually means: Calm, Alert or About to react. It is the reading of a pose, not the Dog's Reaction Tier.
+_Avoid_: Reaction Tier, tier, category
 
 **Barkdoku**:
 A spatial deduction Minigame on an N x N partitioned grid where the Handler distributes Dogs across color zones to respect Reactivity Thresholds and break direct line-of-sight Fixation. Shown to Spanish users as "Guaudoku".
@@ -225,7 +261,7 @@ A Checkpoint question that shows two pictures stacked top and bottom, where the 
 _Avoid_: Picture quiz, A/B question
 
 **Pause Menu**:
-The menu shown over a paused Stage, offering Resume and Skip (which skips the Stage to its Debrief or results with completion credit).
+The menu shown over a paused Stage, offering Resume and Exit (which skips the Stage to its Debrief or results with completion credit).
 _Avoid_: Resume overlay, pause screen
 
 **Stage Back Control**:
@@ -260,7 +296,7 @@ A Concern that happens at home rather than on a walk: biting the owner, biting o
 The up to three Concerns the owner picks as their biggest problems, most worrying first. They are asked once, before the Taste Stage; the first outdoor one decides which Distractor the Taste Stage uses, and together they decide what the Personal Plan puts first.
 
 **Diagnostic**:
-The 15-second onboarding Minigame that measures the user's reaction latency. It seeds the Dog's starting reconnection latency once and is not a Stage.
+The onboarding Read the Dog round whose reaction latency seeds the Dog's starting reconnection latency once. Replays from its result never change that latency, and it is not a Stage.
 _Avoid_: Mini-playtest, test
 
 **Personal Plan**:
@@ -268,12 +304,20 @@ The ordered list of Stretches suggested to a new user after the Diagnostic, buil
 _Avoid_: Walk Plan, curriculum, schedule
 
 **Feedback Message**:
-A short, non-blocking message with an icon, effect and sound that tells the user, right after an action in a Stage, what they did right or wrong and what to try instead.
+A short, non-blocking message with an icon, effect and sound that tells the user, right after an action in a Stage or an answer in Read the Dog, what they did right or wrong and what to try instead.
 _Avoid_: Toast, popup, notification
 
 **Hint**:
 The first-time, fuller form of a Feedback Message, shown the first time that kind of action or event happens for the Dog (for example the leash first Taut). A seen Hint is not shown again; later the short form is shown.
 _Avoid_: Tutorial, tooltip
+
+**Introduced action**:
+A kind of handled action a walking Stage answers, with feedback and points, because it is in the starting set (leash tension and the Marker) or a Node at or before that Stage on the trail Introduces it. Before that, the walk shows nothing for it.
+_Avoid_: Unlocked feedback, enabled kind, taught action
+
+**Dog sign**:
+A mark drawn over or around the Dog in a Stage that shows its state: the yellow "!" of a Fixation, the circle of Alert, the eye and gaze line of looking at the Handler, the sound arcs of barking, the scent dots of sniffing and the green glow of Sintonía. It is not a Feedback Message (a reaction to the user's action) or a Hint (the first-time text that explains a sign).
+_Avoid_: Indicator, icon, emote, status icon
 
 **Coach mark**:
 A drawn, non-blocking pointer with a short label over a Stage control (the movement control, the Marker), shown to a new user from the start of a Stage rather than after an event, and dismissed by using that control. Not a Hint.
@@ -315,7 +359,7 @@ A state of handling flow achieved by keeping the leash in Slack through continuo
 _Avoid_: Sync combo, flow mode
 
 **Go Sniff**:
-The release Cue that ends structured walking and lets the Dog sniff freely, rapidly dissipating Arousal. A Handler may give it at any time on a real walk. In a Stage with Scent Spots it is available at any time with a Slack leash; in other Stages it is only offered after resolving a high-Arousal encounter.
+The release Cue that ends structured walking and lets the Dog sniff freely, rapidly dissipating Arousal. A Handler may give it at any time on a real walk. In a Stage with Scent Spots it is available at any time with a Slack leash; in other Stages it is only offered after resolving a high-Arousal moment with a Distractor.
 _Avoid_: Sniff button, treat break
 
 **Unpredictable Walk**:
@@ -335,7 +379,7 @@ The Dog stopping firmly at a strong Scent Spot to sniff, refusing to move on unt
 _Avoid_: Freeze, stall, refusal
 
 **Combo**:
-Right actions of the same kind made in quick succession inside a Stage, counted together in one Feedback Message (for example "Nice turn x3"). Not the daily Streak.
+Right actions of the same kind made in quick succession inside a Stage, or right answers in a row in Read the Dog, counted together in one Feedback Message (for example "Nice turn x3"). Not the daily Streak.
 _Avoid_: Streak, multiplier
 
 **Chain**:
@@ -573,7 +617,7 @@ A deliberate, confirmed return of this device's Dog to its first-run state, avai
 _Avoid_: Delete account, wipe, factory reset
 
 **Settings Area**:
-One of the three domain-specific groupings of options within the Settings screen: Perro (Dog attributes and reactivity), Preferencias (feedback, appearance, and audio cues), or Cuenta (subscription, sync, and system tools).
+One of the three domain-specific groupings of options within the Settings screen: Perro (Dog attributes and reactivity), Preferencias (feedback, appearance, audio cues and Usage Analytics), or Cuenta (subscription, sync, and system tools).
 _Avoid_: Settings category, section group, settings page
 
 **Area Tab**:
@@ -630,3 +674,16 @@ _Avoid_: Default content, embedded assets, fallback pack
 A versioned, compatibility-checked JSON document generated at build time (`manifest.json`) that records the channel, contentVersion, formatVersion, minAppVersion, build timestamp, and a deterministic map of every pack file to its SHA-256 hash and byte size.
 _Avoid_: File list, checksum index, lockfile
 
+### Usage Analytics
+
+**Usage Analytics**:
+The anonymous record of which screens and steps a user reaches and what they tap, sent from the Shell and never from a Stage, which the user can turn off in Settings.
+_Avoid_: Tracking, telemetry, metrics
+
+**Install Id**:
+The random id that identifies one app install to Usage Analytics and to nothing else; it is never linked to an account or a Dog.
+_Avoid_: User id, device id, distinct id
+
+**App Session**:
+One stretch of app use, starting at launch or on returning to the foreground after at least 30 minutes away. It is not a Stage and not a Stretch.
+_Avoid_: Session (alone), visit

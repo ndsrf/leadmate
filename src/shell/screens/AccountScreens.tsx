@@ -24,12 +24,14 @@ type Mode = 'signup' | 'login' | 'reset';
 /** After the first Stage: offer registration; "Not now" leaves the app fully playable. */
 export function RegisterPrompt({ t, onCreate, onNotNow }: { t: Translate; onCreate: () => void; onNotNow: () => void }) {
   return (
-    <Screen>
-      <Text className="mb-2 font-display text-displayM text-ink">{t('account.register.title')}</Text>
-      <Text className="mb-2 text-bodyL text-inkMuted">{t('account.register.body')}</Text>
-      <Button label={t('account.register.create')} onPress={onCreate} />
-      <Button label={t('account.register.notNow')} tone="quiet" onPress={onNotNow} />
-    </Screen>
+    <View ph-no-capture style={{ flex: 1 }}>
+      <Screen>
+        <Text className="mb-2 font-display text-displayM text-ink">{t('account.register.title')}</Text>
+        <Text className="mb-2 text-bodyL text-inkMuted">{t('account.register.body')}</Text>
+        <Button label={t('account.register.create')} onPress={onCreate} />
+        <Button label={t('account.register.notNow')} tone="quiet" onPress={onNotNow} />
+      </Screen>
+    </View>
   );
 }
 
@@ -60,6 +62,7 @@ export function AuthScreen({ t, auth, initial = 'signup', onDone, onBack }: { t:
 
   const title: TextKey = mode === 'signup' ? 'account.signUp' : mode === 'login' ? 'account.logIn' : 'account.reset';
   return (
+    <View ph-no-capture style={{ flex: 1 }}>
     <Screen>
       <Text className="mb-4 font-display text-displayM text-ink">{t(title)}</Text>
       <Panel>
@@ -80,6 +83,7 @@ export function AuthScreen({ t, auth, initial = 'signup', onDone, onBack }: { t:
       </Panel>
       <Button label={t('account.back')} tone="quiet" onPress={onBack} />
     </Screen>
+    </View>
   );
 }
 
@@ -145,6 +149,7 @@ export function AccountSection({
   const [message, setMessage] = useState<TextKey | null>(null);
   const { auth } = account;
   return (
+    <View ph-no-capture>
     <Panel className="mb-5">
       <Text className="mb-1 font-display text-title text-ink">{t('account.title')}</Text>
       {!auth ? (
@@ -189,5 +194,6 @@ export function AccountSection({
         </View>
       )}
     </Panel>
+    </View>
   );
 }

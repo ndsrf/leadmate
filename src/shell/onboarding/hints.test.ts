@@ -1,11 +1,11 @@
 import { STAGE_SIGNALS } from '../../sim/messages';
 import { loadDogRecord, newDogRecord, saveDogRecord, type KeyValueStore } from '../dogRecord';
 import { feedbackHintId, feedbackKindSeen, markFeedbackKindSeen } from './hints';
-import { closeMarksOn, COACH_ID, hintFor, HINT_IDS, hintsRemain, markHintSeen } from './hints';
+import { closeMarksOn, COACH_ID, hintFor, HINT_IDS, hintsRemain, isControlIntroduced, markHintSeen } from './hints';
 
 describe('hints', () => {
   it('maps each Stage signal to one hint', () => {
-    expect(STAGE_SIGNALS.map((s) => hintFor(s, []))).toEqual(['leash-colors', 'marker', 'poste', null, 'dog-approaching', null]);
+    expect(STAGE_SIGNALS.map((s) => hintFor(s, []))).toEqual(['leash-colors', 'marker', 'poste', null, 'dog-approaching', null, null, null]);
   });
 
   it('never turns the first input into a hint', () => {
@@ -35,10 +35,37 @@ describe('hints', () => {
   });
 
   it('counts the warning and both Coach marks among the hints left to show', () => {
-    const rest = ['leash-colors', 'marker', 'poste'];
+    const rest = ['leash-colors', 'marker', 'marker-rhythm', 'poste'];
     expect(hintsRemain(rest)).toBe(true);
     expect(hintsRemain([...rest, 'dog-approaching', 'coach-move'])).toBe(true);
-    expect(hintsRemain([...rest, 'dog-approaching', 'coach-move', 'coach-mark', 'coach-gather', 'coach-poste', 'coach-close-mark'])).toBe(false);
+    expect(hintsRemain([...rest, 'dog-approaching', 'coach-move', 'coach-mark', 'coach-gather', 'coach-poste', 'coach-close-mark', 'fixation-ring', 'sign-alert', 'sign-eye', 'sign-bark'])).toBe(false);
+  });
+
+  it('selects rhythm Hint at Full assist when unseen, otherwise follows marker rule', () => {
+    // New user at Full assist
+    expect(hintFor('first-fixation', [], 'full')).toBe('marker-rhythm');
+
+    // Existing dog that saw marker before this change, now at Full assist
+    expect(hintFor('first-fixation', ['marker'], 'full')).toBe('marker-rhythm');
+
+    // Rhythm hint already seen at Full assist
+    expect(hintFor('first-fixation', ['marker-rhythm', 'marker'], 'full')).toBeNull();
+
+    // Assist below Full (e.g. ring) when rhythm hint unseen: shows marker hint
+    expect(hintFor('first-fixation', [], 'ring')).toBe('marker');
+
+    // Assist below Full when marker already seen
+    expect(hintFor('first-fixation', ['marker'], 'ring')).toBeNull();
+    expect(hintFor('first-fixation', ['marker'], 'late')).toBeNull();
+    expect(hintFor('first-fixation', ['marker'], 'off')).toBeNull();
+  });
+
+  it('records both marker-rhythm and marker when marker-rhythm is marked seen', () => {
+    let r = newDogRecord();
+    expect(r.seenHints).toEqual([]);
+    r = markHintSeen(r, 'marker-rhythm');
+    expect(r.seenHints).toContain('marker-rhythm');
+    expect(r.seenHints).toContain('marker');
   });
 
   it('never turns a control-used signal into a hint', () => {
@@ -48,6 +75,30 @@ describe('hints', () => {
   it('knows when nothing is left to show', () => {
     expect(hintsRemain([])).toBe(true);
     expect(hintsRemain([...HINT_IDS])).toBe(false);
+  });
+
+  it('gates the poste hint by introducedKinds: null when not introduced, poste when introduced or absent', () => {
+    expect(hintFor('leash-limit', [], undefined, ['rigid-pull', 'marker-hit'])).toBeNull();
+    expect(hintFor('leash-limit', [], undefined, ['poste', 'marker-hit'])).toBe('poste');
+    expect(hintFor('leash-limit', [], undefined, undefined)).toBe('poste');
+    expect(hintFor('leash-limit', [])).toBe('poste');
+  });
+
+  describe('isControlIntroduced mapping', () => {
+    it('maps controls to their action kinds and always allows gather', () => {
+      expect(isControlIntroduced('gather', [])).toBe(true);
+      expect(isControlIntroduced('move', ['rigid-pull'])).toBe(true);
+      expect(isControlIntroduced('move', ['marker-hit'])).toBe(false);
+      expect(isControlIntroduced('poste', ['poste'])).toBe(true);
+      expect(isControlIntroduced('poste', ['rigid-pull'])).toBe(false);
+      expect(isControlIntroduced('mark', ['marker-hit'])).toBe(true);
+      expect(isControlIntroduced('mark', ['rigid-pull'])).toBe(false);
+      expect(isControlIntroduced('close-mark', ['marker-hit'])).toBe(true);
+      expect(isControlIntroduced('close-mark', ['rigid-pull'])).toBe(false);
+      // absent introducedKinds allows all
+      expect(isControlIntroduced('move', undefined)).toBe(true);
+      expect(isControlIntroduced('poste', undefined)).toBe(true);
+    });
   });
 });
 
@@ -71,6 +122,13 @@ describe('close-view Coach marks', () => {
 
   it('does not count the walking Marker mark for the close Marker', () => {
     expect(closeMarksOn([COACH_ID.mark, COACH_ID.move], { mark: true, move: true }, false).marker).toBe(true);
+  });
+
+  it('gates close-view Coach marks by introducedKinds', () => {
+    // without poste introduced
+    expect(closeMarksOn([], {}, false, ['marker-hit'])).toEqual({ gather: true, poste: false, marker: true });
+    // with poste introduced
+    expect(closeMarksOn([], {}, false, ['marker-hit', 'poste'])).toEqual({ gather: true, poste: true, marker: true });
   });
 
   it('records each in seenHints with its own id, and has ids in HINT_IDS', () => {
@@ -102,5 +160,29 @@ describe('feedback seen kinds', () => {
     const store: KeyValueStore = { getItem: async (k) => data.get(k) ?? null, setItem: async (k, v) => void data.set(k, v) };
     await saveDogRecord(store, markFeedbackKindSeen(newDogRecord(), 'poste'));
     expect((await loadDogRecord(store)).seenHints).toEqual(['feedback:poste']);
+  });
+});
+
+describe('Hints for the guided first Stage', () => {
+  it('explains the "!" and the ring in one Hint at the first Fixation, and records the rhythm and Marker Hints with it', () => {
+    expect(hintFor('first-fixation', [], 'full', undefined, { guided: true })).toBe('fixation-ring');
+    expect(hintFor('first-fixation', [], 'full')).toBe('marker-rhythm');
+    const r = markHintSeen(newDogRecord(), 'fixation-ring');
+    expect([...r.seenHints].sort()).toEqual(['fixation-ring', 'marker', 'marker-rhythm']);
+    expect(hintFor('first-fixation', r.seenHints, 'full', undefined, { guided: true })).toBeNull();
+  });
+
+  it('keeps the Marker Hint when the ring is not shown', () => {
+    expect(hintFor('first-fixation', [], 'ring', undefined, { guided: true })).toBe('marker');
+  });
+
+  it('explains the Alert circle, the eye and the bark arcs once, in the guided first Stage only', () => {
+    expect(hintFor('dog-sign', [], undefined, undefined, { guided: true, sign: 'alert' })).toBe('sign-alert');
+    expect(hintFor('dog-sign', [], undefined, undefined, { guided: true, sign: 'eye' })).toBe('sign-eye');
+    expect(hintFor('dog-sign', [], undefined, undefined, { guided: true, sign: 'bark' })).toBe('sign-bark');
+    expect(hintFor('dog-sign', ['sign-eye'], undefined, undefined, { guided: true, sign: 'eye' })).toBeNull();
+    expect(hintFor('dog-sign', [], undefined, undefined, { sign: 'eye' })).toBeNull();
+    expect(hintFor('dog-sign', [], undefined, undefined, { guided: true, sign: 'scent' })).toBeNull();
+    expect(hintFor('dog-sign-gone', [], undefined, undefined, { guided: true, sign: 'eye' })).toBeNull();
   });
 });

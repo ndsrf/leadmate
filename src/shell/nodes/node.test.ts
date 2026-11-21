@@ -514,3 +514,254 @@ describe('Home Behaviour Nodes', () => {
     expect(findNode('calm-hands')!.mode).toBe('close_exercise');
   });
 });
+
+describe('Encounter Series progression (Task 3.3)', () => {
+  const seriesNode: NodeDef = {
+    ...WALK_DISTRACTION,
+    id: 'series-test-node',
+    simulation: {
+      encounters: [
+        { id: 'enc-1', title: 'node.walk.title', aim: 'keep-slack', scenario: {} },
+        { id: 'enc-2', title: 'node.walk.title', aim: 'stay-calm', scenario: {} },
+        { id: 'enc-3', title: 'node.walk.title', aim: 'mark-disengagement', scenario: {} },
+      ],
+    },
+  };
+
+  it('retry keeps the index and seed and adds an attempt', () => {
+    let run = toSimulation(seriesNode);
+    expect(run.series).toBeDefined();
+    expect(run.series?.index).toBe(0);
+
+    // First attempt ends
+    run = advance(run, { type: 'encounter-end', payload: payloadWith({ seed: 10, pullPercentage: 10, peakReactionTier: 'calm' }) });
+    expect(run.series?.index).toBe(0);
+    expect(run.series?.seeds[0]).toBe(10);
+    expect(run.series?.attempts[0]).toHaveLength(1);
+    expect(run.series?.showing).toBe('result');
+
+    // Retry
+    run = advance(run, { type: 'retry' });
+    expect(run.series?.index).toBe(0);
+    expect(run.series?.seeds[0]).toBe(10);
+    expect(run.series?.showing).toBe('running');
+
+    // Second attempt ends (with same seed)
+    run = advance(run, { type: 'encounter-end', payload: payloadWith({ seed: 10, pullPercentage: 5, peakReactionTier: 'calm' }) });
+    expect(run.series?.index).toBe(0);
+    expect(run.series?.seeds[0]).toBe(10);
+    expect(run.series?.attempts[0]).toHaveLength(2);
+    expect(run.series?.showing).toBe('result');
+  });
+
+  it('ignores a duplicate encounter-end while the result card shows', () => {
+    let run = toSimulation(seriesNode);
+    run = advance(run, { type: 'encounter-end', payload: payloadWith({ seed: 10, peakReactionTier: 'calm' }) });
+    const again = advance(run, { type: 'encounter-end', payload: payloadWith({ seed: 11, peakReactionTier: 'calm' }) });
+    expect(again).toBe(run);
+    expect(again.series?.attempts[0]).toHaveLength(1);
+  });
+
+  it('ignores retry and next-encounter unless the result card shows', () => {
+    let run = toSimulation(seriesNode);
+    expect(advance(run, { type: 'next-encounter' })).toBe(run);
+    expect(advance(run, { type: 'retry' })).toBe(run);
+    run = advance(run, { type: 'encounter-end', payload: payloadWith({ seed: 10, peakReactionTier: 'calm' }) });
+    run = advance(run, { type: 'next-encounter' });
+    const doubled = advance(run, { type: 'next-encounter' });
+    expect(doubled).toBe(run);
+    expect(doubled.series?.index).toBe(1);
+  });
+
+  it('next moves to the following Encounter with a new seed slot', () => {
+    let run = toSimulation(seriesNode);
+    run = advance(run, { type: 'encounter-end', payload: payloadWith({ seed: 10, peakReactionTier: 'calm' }) });
+    expect(run.series?.index).toBe(0);
+
+    run = advance(run, { type: 'next-encounter' });
+    expect(run.series?.index).toBe(1);
+    expect(run.series?.showing).toBe('running');
+
+    run = advance(run, { type: 'encounter-end', payload: payloadWith({ seed: 20, peakReactionTier: 'calm' }) });
+    expect(run.series?.seeds[1]).toBe(20);
+    expect(run.series?.attempts[1]).toHaveLength(1);
+  });
+
+  it('next after the last finishes with a stage result carrying the combined payload', () => {
+    let run = toSimulation(seriesNode);
+    // enc-1
+    run = advance(run, { type: 'encounter-end', payload: payloadWith({ seed: 10, pullPercentage: 5, peakReactionTier: 'calm' }) });
+    run = advance(run, { type: 'next-encounter' });
+    // enc-2
+    run = advance(run, { type: 'encounter-end', payload: payloadWith({ seed: 20, pullPercentage: 5, peakReactionTier: 'calm' }) });
+    run = advance(run, { type: 'next-encounter' });
+    // enc-3
+    run = advance(run, {
+      type: 'encounter-end',
+      payload: payloadWith({ seed: 30, markerHits: 1, pullPercentage: 5, peakReactionTier: 'calm', markGrades: { perfect: 1, good: 0, late: 0 } }),
+    });
+    // Next after the last
+    run = advance(run, { type: 'next-encounter' });
+
+    expect(run.step).toBe('debrief');
+    expect(run.result?.kind).toBe('stage');
+    if (run.result?.kind === 'stage') {
+      expect(run.result.skipped).toBeFalsy();
+      expect(run.result.payload.encounters).toHaveLength(3);
+      expect(run.result.payload.encounters).toEqual([
+        { id: 'enc-1', paws: 3, attempts: 1, seed: 10 },
+        { id: 'enc-2', paws: 3, attempts: 1, seed: 20 },
+        { id: 'enc-3', paws: 3, attempts: 1, seed: 30 },
+      ]);
+      expect(run.result.payload.handlingScore).toBe(1000);
+    }
+  });
+
+  it('exit with an Encounter still unplayed finishes skipped with "not played" entries and discards the running attempt', () => {
+    let run = toSimulation(seriesNode);
+    // enc-1 played and earned 3 paws
+    run = advance(run, { type: 'encounter-end', payload: payloadWith({ seed: 10, pullPercentage: 5, peakReactionTier: 'calm' }) });
+    run = advance(run, { type: 'next-encounter' });
+    // enc-2 is running (attempt not completed, will be discarded)
+    run = advance(run, { type: 'exit-series' });
+
+    expect(run.step).toBe('debrief');
+    expect(run.result?.kind).toBe('stage');
+    if (run.result?.kind === 'stage') {
+      expect(run.result.skipped).toBe(true);
+      expect(run.result.payload.handlingScore).toBe(500);
+      expect(run.result.payload.encounters).toEqual([
+        { id: 'enc-1', paws: 3, attempts: 1, seed: 10 },
+        { id: 'enc-2', paws: 0, attempts: 0 },
+        { id: 'enc-3', paws: 0, attempts: 0 },
+      ]);
+    }
+  });
+
+  it('exit when every Encounter has a kept attempt finishes unskipped', () => {
+    let run = toSimulation(seriesNode);
+    // enc-1
+    run = advance(run, { type: 'encounter-end', payload: payloadWith({ seed: 10, pullPercentage: 5, peakReactionTier: 'calm' }) });
+    run = advance(run, { type: 'next-encounter' });
+    // enc-2
+    run = advance(run, { type: 'encounter-end', payload: payloadWith({ seed: 20, pullPercentage: 5, peakReactionTier: 'calm' }) });
+    run = advance(run, { type: 'next-encounter' });
+    // enc-3
+    run = advance(run, {
+      type: 'encounter-end',
+      payload: payloadWith({ seed: 30, markerHits: 1, pullPercentage: 5, peakReactionTier: 'calm', markGrades: { perfect: 1, good: 0, late: 0 } }),
+    });
+    // On enc-3 result card (or retrying), player chooses Exit
+    run = advance(run, { type: 'retry' }); // enc-3 running again
+    run = advance(run, { type: 'exit-series' });
+
+    expect(run.step).toBe('debrief');
+    expect(run.result?.kind).toBe('stage');
+    if (run.result?.kind === 'stage') {
+      expect(run.result.skipped).toBeFalsy();
+      expect(run.result.payload.handlingScore).toBe(1000);
+      expect(run.result.payload.encounters).toHaveLength(3);
+      expect(run.result.payload.encounters?.[2]).toEqual({ id: 'enc-3', paws: 3, attempts: 1, seed: 30 });
+    }
+  });
+
+  it('actions outside a Series Node are ignored', () => {
+    // the bundled `walk-distraction` is itself a Series, so a plain walk is built from it without its Encounters
+    const normalRun = toSimulation({ ...WALK_DISTRACTION, simulation: {} });
+    expect(advance(normalRun, { type: 'retry' })).toBe(normalRun);
+    expect(advance(normalRun, { type: 'next-encounter' })).toBe(normalRun);
+    expect(advance(normalRun, { type: 'exit-series' })).toBe(normalRun);
+    expect(advance(normalRun, { type: 'encounter-end', payload: payloadWith() })).toBe(normalRun);
+
+    const primerRun = startNode(seriesNode);
+    expect(advance(primerRun, { type: 'retry' })).toBe(primerRun);
+    expect(advance(primerRun, { type: 'next-encounter' })).toBe(primerRun);
+  });
+});
+
+describe('onDebrief with Encounter Series (Task 3.4)', () => {
+  const seriesNode: NodeDef = {
+    ...WALK_DISTRACTION,
+    id: 'series-test-node',
+    simulation: {
+      encounters: [
+        { id: 'enc-1', title: 'node.walk.title', aim: 'keep-slack', scenario: {} },
+        { id: 'enc-2', title: 'node.walk.title', aim: 'stay-calm', scenario: {} },
+      ],
+    },
+  };
+
+  it('applies the Dog update once from the combined payload without inflating calmEncounters by retries, earning Stars from Paw score', () => {
+    let run = toSimulation(seriesNode);
+    // enc-1 attempt 1: calmEncounters skateboard: 1, 2 paws
+    run = advance(run, {
+      type: 'encounter-end',
+      payload: payloadWith({ seed: 10, pullPercentage: 15, calmEncounters: { skateboard: 1 } }),
+    });
+    // enc-1 retry: attempt 2: calmEncounters skateboard: 1, 3 paws (kept attempt)
+    run = advance(run, { type: 'retry' });
+    run = advance(run, {
+      type: 'encounter-end',
+      payload: payloadWith({ seed: 10, pullPercentage: 5, calmEncounters: { skateboard: 1 } }),
+    });
+    run = advance(run, { type: 'next-encounter' });
+
+    // enc-2: 3 paws, calmEncounters child: 1
+    run = advance(run, {
+      type: 'encounter-end',
+      payload: payloadWith({ seed: 20, pullPercentage: 5, calmEncounters: { child: 1 }, followMarks: 2, checkInHits: 2 }),
+    });
+    run = advance(run, { type: 'next-encounter' });
+
+    expect(run.step).toBe('debrief');
+    // Both kept attempts had 3 paws: 1000 * 6 / 6 = 1000 -> 3 Stars!
+    const record = newDogRecord();
+    const after = onDebrief(record, run, new Date('2026-05-01T12:00:00Z'));
+    expect(after.completedNodes).toContain('series-test-node');
+    expect(after.stars['series-test-node']).toBe(3);
+    // Kept attempt of enc-1 had skateboard: 1 (not 2 from both attempts), so calmCounts is 1
+    expect(run.result?.kind).toBe('stage');
+    if (run.result?.kind === 'stage') {
+      expect(run.result.payload.calmEncounters).toEqual({ skateboard: 1, child: 1 });
+    }
+    expect(after.calmCounts.skateboard).toBe(1);
+    expect(after.attributes.followChance).toBeGreaterThan(record.attributes.followChance);
+  });
+
+  it('earns 1 Star and leaves the Dog unchanged when skipped', () => {
+    let run = toSimulation(seriesNode);
+    run = advance(run, {
+      type: 'encounter-end',
+      payload: payloadWith({ seed: 10, pullPercentage: 5, calmEncounters: { skateboard: 1 } }),
+    });
+    run = advance(run, { type: 'next-encounter' });
+    // enc-2 unplayed, exit
+    run = advance(run, { type: 'exit-series' });
+
+    const record = newDogRecord();
+    const after = onDebrief(record, run, new Date('2026-05-01T12:00:00Z'));
+    expect(after.completedNodes).toContain('series-test-node');
+    expect(after.stars['series-test-node']).toBe(1);
+    expect(after.attributes).toEqual(record.attributes);
+    expect(after.triggerProfile).toEqual(record.triggerProfile);
+  });
+
+  it('keeps earlier higher Stars on the Node', () => {
+    let run = toSimulation(seriesNode);
+    // 1 paw on both -> 1000 * 2 / 6 = 333 -> 1 Star
+    run = advance(run, {
+      type: 'encounter-end',
+      payload: payloadWith({ seed: 10, pullPercentage: 30, peakReactionTier: 'reactive' }),
+    });
+    run = advance(run, { type: 'next-encounter' });
+    run = advance(run, {
+      type: 'encounter-end',
+      payload: payloadWith({ seed: 20, pullPercentage: 30, peakReactionTier: 'reactive' }),
+    });
+    run = advance(run, { type: 'next-encounter' });
+
+    const record = { ...newDogRecord(), stars: { 'series-test-node': 3 as const } };
+    const after = onDebrief(record, run, new Date('2026-05-01T12:00:00Z'));
+    expect(after.stars['series-test-node']).toBe(3);
+  });
+});

@@ -17,6 +17,7 @@ const mockSim = { mounts: 0, unmounts: 0, live: 0, posts: [] as any[], props: nu
 const mockAppStateListeners: ((state: string) => void)[] = [];
 const mockBackHandlerListeners: (() => boolean | undefined | null)[] = [];
 const mockStore = new Map<string, string>();
+let mockOnDebrief: ((r: any, run: any, now: any) => any) | null = null;
 
 function mockStub(name: string) {
   const R = require('react');
@@ -81,6 +82,10 @@ jest.mock('react-native', () => ({
       };
     },
     exitApp: () => {},
+  },
+  Platform: {
+    OS: 'ios',
+    select: (obj: any) => obj.ios ?? obj.default,
   },
   useColorScheme: () => 'light',
 }));
@@ -162,9 +167,13 @@ jest.mock('./shell/sync/useAccount', () => {
   return { useAccount: () => account };
 });
 // the same seed every time, so "the next Stage starts with the same seed" can be asserted
-jest.mock('./sim/rng', () => ({ ...jest.requireActual('./sim/rng'), newSeed: () => 4242 }));
+const mockSeeds = { next: () => 4242 };
+jest.mock('./sim/rng', () => ({ ...jest.requireActual('./sim/rng'), newSeed: () => mockSeeds.next() }));
 // the Debrief's record update needs a real Stage payload; the lifecycle under test does not
-jest.mock('./shell/nodes/node', () => ({ ...jest.requireActual('./shell/nodes/node'), onDebrief: (r: unknown) => r }));
+jest.mock('./shell/nodes/node', () => ({
+  ...jest.requireActual('./shell/nodes/node'),
+  onDebrief: (r: any, run: any, now: any) => (mockOnDebrief ? mockOnDebrief(r, run, now) : r),
+}));
 jest.mock('./shell/SimView', () => {
   const R = require('react');
   const SimView = R.forwardRef((props: any, ref: any) => {
@@ -184,7 +193,7 @@ jest.mock('./shell/SimView', () => {
 });
 for (const m of [
   'DailyResultScreen', 'DiaryScreen', 'DoorbellMatView', 'BarkdokuView', 'MissionScreens', 'LessonScreens', 'WorldMapScreen',
-  'NodeScreens', 'PosteMinigameView', 'ReadDogView', 'DiagnosticView', 'PaywallScreen', 'ValueRecapScreen', 'PlanScreen',
+  'NodeScreens', 'PosteMinigameView', 'ReadDogView', 'ReadTheDogView', 'PaywallScreen', 'ValueRecapScreen', 'PlanScreen',
   'IntroScreens', 'SetupScreen', 'SettingsScreen', 'SplashScreen', 'AccountScreens', 'MethodOverviewScreen',
 ]) {
   jest.mock(`./shell/screens/${m}`, () => mockScreens());
@@ -231,10 +240,20 @@ import App from '../App';
 import { newDogRecord, NEW_ONBOARDING, RECORD_KEY, RECORD_VERSION } from './shell/dogRecord';
 import { todayString } from './shell/daily';
 import { BARKDOKU_INTRO_NODE, CALM_HANDS_NODE, CLOSE_PASS_NODE, WALK_DISTRACTION, findNode } from './shell/nodes/content';
+import * as path from 'path';
 import { getActiveContent, setActiveContent } from './shell/content/runtime';
-import type { ResolvedShop } from './shell/content/resolver';
+import { loadPackFromDisk } from './shell/content/loader';
+import { resolvePack, type ResolvedShop } from './shell/content/resolver';
 import { SHOP_STATE_STORAGE_KEY, DEFAULT_SHOP_STATE } from './shell/shop';
 import { POOR_SCORE_BELOW } from './shell/stars';
+import { getAnalytics, resetAnalyticsForTesting, MockAnalyticsService, ANALYTICS_STATE_KEY } from './shell/analytics';
+import { seedFromLatency } from './shell/onboarding/diagnostic';
+import { finishSetup } from './shell/onboarding/setup';
+import { payloadWith } from './shell/testPayload';
+import type { EncounterAim } from './shell/nodes/encounters';
+import type { SimulationDebriefPayload } from './sim/payload';
+import { STARTING_KINDS } from './sim/feedbackKinds';
+import { en, es, type TextKey } from './i18n';
 
 const LOAD_TIMEOUT_MS = 20000;
 const latest = (name: string) => mockProps[name];
@@ -282,8 +301,13 @@ beforeAll(() => {
 
 const baseIntl = global.Intl;
 beforeEach(() => {
+  resetAnalyticsForTesting();
   jest.useFakeTimers();
   setActiveContent(null);
+  // the bundled content ships `walk-distraction` as an Encounter Series; these tests treat it as a plain walk unless
+  // they build a Series themselves (`seriesContent`)
+  const bundled = getActiveContent();
+  setActiveContent({ ...bundled, resolved: { ...bundled.resolved, nodes: bundled.resolved.nodes.map((n) => (n.id === 'walk-distraction' ? { ...n, simulation: {} } : n)) } });
   global.Intl = {
     ...baseIntl,
     DateTimeFormat: (() => ({
@@ -297,8 +321,10 @@ beforeEach(() => {
   for (const k of Object.keys(mockProps)) delete mockProps[k];
   for (const k of Object.keys(mockMounted)) delete mockMounted[k];
   Object.assign(mockSim, { mounts: 0, unmounts: 0, live: 0, posts: [], props: null });
+  mockSeeds.next = () => 4242;
   mockAppStateListeners.length = 0;
   mockBackHandlerListeners.length = 0;
+  mockOnDebrief = null;
 });
 
 afterEach(() => {
@@ -378,6 +404,142 @@ describe('App - Stage view lifecycle', () => {
     const second = posted('start')[1];
     expect(second.seed).toBe(first.seed);
     expect(second.scenario).toEqual(first.scenario);
+  });
+
+  describe('Introduced actions in Stage start and Debrief (introduce-walk-feedback-gradually 4.1)', () => {
+    it('sends exactly the starting set of Introduced kinds for the guided first Stage', async () => {
+      const record = { ...newDogRecord(), onboarding: { ...NEW_ONBOARDING, step: 'first-stage' as const }, version: RECORD_VERSION };
+      mockStore.set(RECORD_KEY, JSON.stringify(record));
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+      expect(latest('PrimerScreen')).toBeDefined();
+      throughPrimerAndCheckpoint();
+      await sendFromView({ type: 'ready' });
+      const [start] = posted('start');
+      expect(start).toBeDefined();
+      expect(start.introducedKinds).toEqual([...new Set(STARTING_KINDS)].sort());
+    });
+
+    it('includes followed-turn in introducedKinds for park-unpredictable and passes them to DebriefScreen', async () => {
+      const betaPack = loadPackFromDisk(path.join(__dirname, '..', 'content', 'beta'));
+      setActiveContent({
+        channel: 'beta',
+        isBaseline: false,
+        contentVersion: 1,
+        pack: betaPack,
+        resolved: resolvePack(betaPack, 'es'),
+        language: 'es',
+      });
+      await openMap();
+      openStop('park-unpredictable');
+      throughPrimerAndCheckpoint();
+      await sendFromView({ type: 'ready' });
+      const [start] = posted('start');
+      expect(start).toBeDefined();
+      expect(start.introducedKinds).toContain('followed-turn');
+      await sendFromView({ type: 'debrief', payload: { timeline: [] } });
+      expect(latest('DebriefScreen')).toBeDefined();
+      expect(latest('DebriefScreen').introducedKinds).toEqual(start.introducedKinds);
+    });
+
+    it('in guided first Stage shows no Poste Hint and records none as seen, while move and mark marks still appear', async () => {
+      const record = { ...newDogRecord(), onboarding: { ...NEW_ONBOARDING, step: 'first-stage' as const }, version: RECORD_VERSION };
+      mockStore.set(RECORD_KEY, JSON.stringify(record));
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+      throughPrimerAndCheckpoint();
+      await sendFromView({ type: 'ready' });
+
+      // movement and Marker marks still appear there
+      expect(latest('CoachMarksOverlay')).toBeDefined();
+      expect(latest('CoachMarksOverlay').showMove).toBe(true);
+      expect(latest('CoachMarksOverlay').showMark).toBe(true);
+
+      // Leash limit signal arrives: Poste is not Introduced, so no Poste Hint is shown and none is recorded
+      await sendFromView({ type: 'stage-signal', signal: 'leash-limit', time: 1 });
+      expect(latest('HintOverlay')).toBeUndefined();
+      const saved = JSON.parse(mockStore.get(RECORD_KEY)!);
+      expect(saved.seenHints).not.toContain('poste');
+    });
+
+    describe('Hints for Dog signs (explain-guided-first-stage 2.5)', () => {
+      const startGuided = async (step: 'first-stage' | 'taste' = 'first-stage') => {
+        const record = { ...newDogRecord(), onboarding: { ...NEW_ONBOARDING, step }, version: RECORD_VERSION };
+        mockStore.set(RECORD_KEY, JSON.stringify(record));
+        await act(async () => {
+          renderer = create(<App />);
+        });
+        await act(async () => {
+          jest.advanceTimersByTime(2500);
+        });
+        throughPrimerAndCheckpoint();
+        await sendFromView({ type: 'ready' });
+      };
+      const hintText = () => latest('HintOverlay')?.text;
+      const seen = () => JSON.parse(mockStore.get(RECORD_KEY)!).seenHints as string[];
+
+      it('shows one Hint at a time in the guided first Stage, the second after the first ends, and records each when it shows', async () => {
+        await startGuided();
+        await sendFromView({ type: 'stage-signal', signal: 'dog-sign', time: 1, sign: 'eye' });
+        expect([en['onboarding.hint.sign.eye' as TextKey], es['onboarding.hint.sign.eye' as TextKey]]).toContain(hintText());
+        await sendFromView({ type: 'stage-signal', signal: 'dog-sign', time: 2, sign: 'alert' });
+        expect([en['onboarding.hint.sign.eye' as TextKey], es['onboarding.hint.sign.eye' as TextKey]]).toContain(hintText());
+        expect(seen()).toContain('sign-eye');
+        expect(seen()).not.toContain('sign-alert');
+        await act(async () => {
+          jest.advanceTimersByTime(8000);
+        });
+        expect([en['onboarding.hint.sign.alert' as TextKey], es['onboarding.hint.sign.alert' as TextKey]]).toContain(hintText());
+        expect(seen()).toContain('sign-alert');
+      });
+
+      it('drops a waiting Hint whose sign is gone, without recording it', async () => {
+        await startGuided();
+        await sendFromView({ type: 'stage-signal', signal: 'dog-sign', time: 1, sign: 'eye' });
+        await sendFromView({ type: 'stage-signal', signal: 'dog-sign', time: 2, sign: 'alert' });
+        await sendFromView({ type: 'stage-signal', signal: 'dog-sign-gone', time: 3, sign: 'alert' });
+        await act(async () => {
+          jest.advanceTimersByTime(8000);
+        });
+        expect(latest('HintOverlay')).toBeUndefined();
+        expect(seen()).not.toContain('sign-alert');
+      });
+
+      it('does not show a Dog sign Hint again on a replay', async () => {
+        await startGuided();
+        await sendFromView({ type: 'stage-signal', signal: 'dog-sign', time: 1, sign: 'eye' });
+        await act(async () => {
+          jest.advanceTimersByTime(8000);
+        });
+        await sendFromView({ type: 'stage-signal', signal: 'dog-sign', time: 9, sign: 'eye' });
+        expect(latest('HintOverlay')).toBeUndefined();
+      });
+
+      it('shows no Dog sign Hint in the Taste Stage and leaves the record unchanged', async () => {
+        await startGuided('taste');
+        const before = seen();
+        await sendFromView({ type: 'stage-signal', signal: 'dog-sign', time: 1, sign: 'eye' });
+        await sendFromView({ type: 'stage-signal', signal: 'first-fixation', time: 2, assist: 'full' });
+        expect(latest('HintOverlay')).toBeUndefined();
+        expect(seen()).toEqual(before);
+      });
+    });
+
+    it('close exercise still shows Gather, Poste and Marker marks', async () => {
+      await openMap();
+      openStop(CALM_HANDS_NODE.id);
+      throughPrimerAndCheckpoint();
+      await sendFromView({ type: 'ready' });
+      expect(latest('CloseCoachMarksOverlay').show).toEqual({ gather: true, poste: true, marker: true });
+    });
   });
 
   it('remounts once silently when the view fails while the player reads, then errors when the Stage needs it', async () => {
@@ -725,6 +887,240 @@ describe('App - Stage view lifecycle', () => {
       } finally {
         global.Intl = originalIntl;
       }
+    });
+  });
+
+  describe('Onboarding: Diagnostic as ReadTheDog (Tasks 6.2 & 6.3)', () => {
+    it('mounts ReadTheDogView for diagnostic step with no carry, records latency, and reaches diagnostic card and plan', async () => {
+      const record = { ...newDogRecord(), onboarding: { ...NEW_ONBOARDING, step: 'diagnostic' as const }, version: RECORD_VERSION };
+      mockStore.set(RECORD_KEY, JSON.stringify(record));
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+
+      // ReadTheDogView is mounted with no carry prop
+      expect(latest('ReadTheDogView')).toBeDefined();
+      expect(typeof latest('ReadTheDogView').seed).toBe('number');
+      expect(latest('ReadTheDogView').carry).toBeUndefined();
+
+      // Finishing round with latency 0.38
+      await act(async () => {
+        latest('ReadTheDogView').onFinish(0.38);
+      });
+
+      // Advances to PlanScreen (the diagnostic card and personal plan)
+      expect(latest('PlanScreen')).toBeDefined();
+      expect(latest('PlanScreen').latency).toBe(0.38);
+      expect(latest('PlanScreen').plan).toBeDefined();
+
+      // Latency is recorded in store and seeds reconnectionLatency once
+      const saved = JSON.parse(mockStore.get(RECORD_KEY)!);
+      expect(saved.onboarding.diagnosticLatency).toBe(0.38);
+      expect(saved.attributes.reconnectionLatency).toBe(seedFromLatency(0.38));
+      expect(saved.onboarding.plan).toBeDefined();
+    });
+
+    it('leaves a record that already has a latency unchanged on diagnostic finish', async () => {
+      const record = {
+        ...newDogRecord(),
+        onboarding: { ...NEW_ONBOARDING, step: 'diagnostic' as const, diagnosticLatency: 0.28 },
+        attributes: { ...newDogRecord().attributes, reconnectionLatency: 1 },
+        version: RECORD_VERSION,
+      };
+      mockStore.set(RECORD_KEY, JSON.stringify(record));
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+
+      expect(latest('ReadTheDogView')).toBeDefined();
+      await act(async () => {
+        latest('ReadTheDogView').onFinish(0.95);
+      });
+
+      const saved = JSON.parse(mockStore.get(RECORD_KEY)!);
+      expect(saved.onboarding.diagnosticLatency).toBe(0.28);
+      expect(saved.attributes.reconnectionLatency).toBe(1);
+    });
+
+    it('plays the diagnostic round again and seeds once after a progress reset', async () => {
+      const completedRecord = {
+        ...newDogRecord(),
+        onboarding: { ...NEW_ONBOARDING, step: 'done' as const, diagnosticLatency: 0.35 },
+        attributes: { ...newDogRecord().attributes, reconnectionLatency: 2 },
+        version: RECORD_VERSION,
+      };
+      mockStore.set(RECORD_KEY, JSON.stringify(completedRecord));
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+
+      // On World Map
+      expect(latest('WorldMapScreen')).toBeDefined();
+      act(() => latest('WorldMapScreen').onSettings());
+      expect(latest('SettingsScreen')).toBeDefined();
+
+      // Trigger reset
+      await act(async () => {
+        await latest('SettingsScreen').onReset();
+      });
+
+      // Returned to welcome with reset onboarding
+      expect(latest('SplashScreen')).toBeDefined();
+      const resetRecord = JSON.parse(mockStore.get(RECORD_KEY)!);
+      expect(resetRecord.onboarding.step).toBe('welcome');
+      expect(resetRecord.onboarding.diagnosticLatency).toBeNull();
+
+      // When the reset funnel reaches the diagnostic step again
+      const atDiagnostic = { ...resetRecord, onboarding: { ...resetRecord.onboarding, step: 'diagnostic' as const } };
+      mockStore.set(RECORD_KEY, JSON.stringify(atDiagnostic));
+      act(() => renderer.unmount());
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+
+      // Now ReadTheDogView is mounted again with no carry
+      expect(latest('ReadTheDogView')).toBeDefined();
+      expect(latest('ReadTheDogView').carry).toBeUndefined();
+
+      // Complete the round
+      await act(async () => {
+        latest('ReadTheDogView').onFinish(0.44);
+      });
+
+      // Diagnostic card and plan reached
+      expect(latest('PlanScreen')).toBeDefined();
+      expect(latest('PlanScreen').latency).toBe(0.44);
+
+      // Recorded in store and seeds reconnectionLatency once
+      const saved = JSON.parse(mockStore.get(RECORD_KEY)!);
+      expect(saved.onboarding.diagnosticLatency).toBe(0.44);
+      expect(saved.attributes.reconnectionLatency).toBe(seedFromLatency(0.44));
+    });
+
+    /** The reopened view is one new mount with a seed, no carry and nothing reported yet; the view itself starts at its start screen (ReadTheDogView.test.tsx, 6.3). */
+    function expectFreshRound() {
+      expect(mockMounted['ReadTheDogView']).toBe(1);
+      const props = latest('ReadTheDogView');
+      expect(typeof props.seed).toBe('number');
+      expect(props.carry).toBeUndefined();
+      expect(typeof props.onFinish).toBe('function');
+    }
+
+    it('restores diagnostic step with no latency recorded and starts a fresh round when closed mid-round', async () => {
+      const record = { ...newDogRecord(), onboarding: { ...NEW_ONBOARDING, step: 'diagnostic' as const }, version: RECORD_VERSION };
+      mockStore.set(RECORD_KEY, JSON.stringify(record));
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+
+      expect(latest('ReadTheDogView')).toBeDefined();
+
+      // Close app mid-round (unmount)
+      act(() => renderer.unmount());
+
+      // Stored record still has no latency
+      const saved = JSON.parse(mockStore.get(RECORD_KEY)!);
+      expect(saved.onboarding.step).toBe('diagnostic');
+      expect(saved.onboarding.diagnosticLatency).toBeNull();
+
+      // Reopen app
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+
+      // Restored diagnostic step, with a freshly mounted view (new seed, no carry) and still no latency stored
+      expectFreshRound();
+      const reopened = JSON.parse(mockStore.get(RECORD_KEY)!);
+      expect(reopened.onboarding.step).toBe('diagnostic');
+      expect(reopened.onboarding.diagnosticLatency).toBeNull();
+    });
+
+    it('restores diagnostic step with no latency recorded and starts a fresh round when closed on result before Continue', async () => {
+      const record = { ...newDogRecord(), onboarding: { ...NEW_ONBOARDING, step: 'diagnostic' as const }, version: RECORD_VERSION };
+      mockStore.set(RECORD_KEY, JSON.stringify(record));
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+
+      expect(latest('ReadTheDogView')).toBeDefined();
+      const firstSeed = latest('ReadTheDogView').seed;
+
+      // On result card before Continue: onFinish has not been called
+      // Close app
+      act(() => renderer.unmount());
+
+      const saved = JSON.parse(mockStore.get(RECORD_KEY)!);
+      expect(saved.onboarding.step).toBe('diagnostic');
+      expect(saved.onboarding.diagnosticLatency).toBeNull();
+
+      // Reopen app
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+
+      expectFreshRound();
+      expect(JSON.parse(mockStore.get(RECORD_KEY)!).onboarding.diagnosticLatency).toBeNull();
+      expect(typeof firstSeed).toBe('number');
+    });
+
+    it('leaves with System Back, restoring diagnostic step with no latency recorded on next launch', async () => {
+      const record = { ...newDogRecord(), onboarding: { ...NEW_ONBOARDING, step: 'diagnostic' as const }, version: RECORD_VERSION };
+      mockStore.set(RECORD_KEY, JSON.stringify(record));
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+
+      expect(latest('ReadTheDogView')).toBeDefined();
+
+      // System back on diagnostic step does not consume (returns false so OS exits app)
+      const handled = triggerBack();
+      expect(handled).toBe(false);
+
+      // App exits/unmounts
+      act(() => renderer.unmount());
+
+      // No latency recorded
+      const saved = JSON.parse(mockStore.get(RECORD_KEY)!);
+      expect(saved.onboarding.step).toBe('diagnostic');
+      expect(saved.onboarding.diagnosticLatency).toBeNull();
+
+      // Reopen app
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+
+      expectFreshRound();
+      expect(JSON.parse(mockStore.get(RECORD_KEY)!).onboarding.diagnosticLatency).toBeNull();
     });
   });
 
@@ -1302,6 +1698,806 @@ describe('App - Stage view lifecycle', () => {
       } finally {
         setActiveContent(baseContent);
       }
+    });
+  });
+
+  describe('App - Product Analytics (Sessions and Funnel)', () => {
+    it('captures one session_started on mount with MockAnalyticsService', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.runAllTicks();
+      });
+
+      const sessionEvents = analytics.events.filter((e) => e.name === 'session_started');
+      expect(sessionEvents.length).toBe(1);
+      expect(sessionEvents[0].properties).toMatchObject({
+        first_session: true,
+        days_since_install: 0,
+        upgraded_install: false,
+      });
+    });
+
+    it('keeps the first lastBackgroundAt until active (transitions inactive then background on iOS)', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.runAllTicks();
+      });
+
+      // Clear initial session_started
+      analytics.clear();
+
+      // App transitions to inactive (e.g. app switcher on iOS)
+      act(() => {
+        mockAppStateListeners.forEach((cb) => cb('inactive'));
+      });
+
+      // 10 seconds later, app transitions to background
+      act(() => {
+        jest.advanceTimersByTime(10 * 1000);
+        mockAppStateListeners.forEach((cb) => cb('background'));
+      });
+
+      // Exactly 30 minutes from the initial 'inactive' transition (i.e. 30m - 10s after 'background')
+      act(() => {
+        jest.advanceTimersByTime((30 * 60 - 10) * 1000);
+        mockAppStateListeners.forEach((cb) => cb('active'));
+      });
+
+      const sessionEvents = analytics.events.filter((e) => e.name === 'session_started');
+      expect(sessionEvents).toHaveLength(1);
+      expect(sessionEvents[0].properties.first_session).toBe(false);
+    });
+
+    it('welcome -> language sends screen_viewed for both, with previous_screen welcome (Task 11.4)', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+        jest.runAllTicks();
+      });
+      act(() => latest('SplashScreen').actions.onStart());
+
+      const views = analytics.events.filter((e) => e.name === 'screen_viewed');
+      const screens = views.map((e) => e.properties.screen);
+      expect(screens.slice(-2)).toEqual(['welcome', 'language']);
+      const language = views[views.length - 1];
+      expect(language.properties.previous_screen).toBe('welcome');
+      expect(typeof language.properties.seconds_in_session).toBe('number');
+      expect(views.filter((e) => e.properties.screen === 'welcome')).toHaveLength(1);
+      // the Funnel keeps its own event alongside
+      expect(analytics.events.filter((e) => e.name === 'funnel_step_viewed').map((e) => e.properties.step)).toEqual(['welcome', 'language']);
+    });
+
+    it('opening a Lesson from the map sends screen lesson with its id (Task 11.4)', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await openMap();
+      analytics.clear();
+
+      act(() => latest('WorldMapScreen').onOpenStop({ kind: 'lesson', id: 'body-language' }));
+      const view = analytics.events.find((e) => e.name === 'screen_viewed');
+      expect(view?.properties).toMatchObject({ screen: 'lesson', previous_screen: 'map', screen_item_id: 'body-language' });
+      const opened = analytics.events.find((e) => e.name === 'lesson_opened');
+      expect(opened?.properties.screen).toBe('lesson');
+      expect(analytics.registered.screen).toBe('lesson');
+    });
+
+    it('backgrounding sends app_backgrounded with the current screen, not on inactive (Task 11.4)', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await openMap();
+      act(() => latest('WorldMapScreen').onOpenStop({ kind: 'lesson', id: 'body-language' }));
+      analytics.clear();
+
+      act(() => mockAppStateListeners.forEach((cb) => cb('inactive')));
+      expect(analytics.events.filter((e) => e.name === 'app_backgrounded')).toHaveLength(0);
+
+      act(() => mockAppStateListeners.forEach((cb) => cb('background')));
+      const backgrounded = analytics.events.filter((e) => e.name === 'app_backgrounded');
+      expect(backgrounded).toHaveLength(1);
+      expect(backgrounded[0].properties.screen).toBe('lesson');
+      expect(typeof backgrounded[0].properties.seconds_in_session).toBe('number');
+      expect(analytics.flushed).toBe(true);
+    });
+
+    it('advancing welcome -> language sends both steps once each', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+        jest.runAllTicks();
+      });
+
+      expect(latest('SplashScreen')).toBeDefined();
+
+      // Welcome step viewed
+      let funnelEvents = analytics.events.filter((e) => e.name === 'funnel_step_viewed');
+      expect(funnelEvents.map((e) => e.properties.step)).toEqual(['welcome']);
+
+      // Advance to language
+      act(() => latest('SplashScreen').actions.onStart());
+      expect(latest('LanguageScreen')).toBeDefined();
+
+      funnelEvents = analytics.events.filter((e) => e.name === 'funnel_step_viewed');
+      expect(funnelEvents.map((e) => e.properties.step)).toEqual(['welcome', 'language']);
+      expect(funnelEvents[0].properties.repeat).toBe(false);
+      expect(funnelEvents[1].properties.repeat).toBe(false);
+    });
+
+    it('a skipped Node Stage sends exactly one stage_started and one stage_ended with outcome skipped', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await openMap();
+      analytics.clear();
+
+      openStop(WALK_DISTRACTION.id);
+      throughPrimerAndCheckpoint();
+      await sendFromView({ type: 'ready' });
+
+      // In simulation: stage_started sent
+      const started = analytics.events.filter((e) => e.name === 'stage_started');
+      expect(started.length).toBe(1);
+      expect(started[0].properties).toMatchObject({
+        stage_kind: 'node',
+        stage_id: WALK_DISTRACTION.id,
+        mode: 'stage',
+        attempt: 1,
+      });
+
+      // Pause and Exit (Skip)
+      act(() => latest('SimulatorBackButton').onPress());
+      await sendFromView({ type: 'paused' });
+      act(() => latest('ResumeOverlay').onExit());
+
+      const ended = analytics.events.filter((e) => e.name === 'stage_ended');
+      expect(ended.length).toBe(1);
+      expect(ended[0].properties).toMatchObject({
+        stage_kind: 'node',
+        stage_id: WALK_DISTRACTION.id,
+        mode: 'stage',
+        attempt: 1,
+        outcome: 'skipped',
+      });
+      expect(typeof ended[0].properties.duration_seconds).toBe('number');
+    });
+
+    it('backing out of a Minigame sends minigame_ended with outcome left', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await openMap();
+      analytics.clear();
+
+      openStop(BARKDOKU_INTRO_NODE.id);
+      throughPrimerAndCheckpoint();
+      expect(latest('BarkdokuView')).toBeDefined();
+
+      const started = analytics.events.filter((e) => e.name === 'minigame_started');
+      expect(started.length).toBe(1);
+      expect(started[0].properties).toMatchObject({
+        node_id: BARKDOKU_INTRO_NODE.id,
+        attempt: 1,
+      });
+
+      // Back out of Minigame
+      act(() => latest('BarkdokuView').onExit());
+      expect(latest('WorldMapScreen')).toBeDefined();
+
+      const ended = analytics.events.filter((e) => e.name === 'minigame_ended');
+      expect(ended.length).toBe(1);
+      expect(ended[0].properties).toMatchObject({
+        node_id: BARKDOKU_INTRO_NODE.id,
+        attempt: 1,
+        outcome: 'left',
+      });
+      expect(ended[0].properties.handling_score).toBeUndefined();
+    });
+
+    it('opening a Lesson from the map and pressing Done sends both events with source trail and closed_by done', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await openMap();
+      analytics.clear();
+
+      act(() => latest('WorldMapScreen').onOpenStop({ kind: 'lesson', id: 'body-language' }));
+      expect(latest('LessonScreen')).toBeDefined();
+
+      const opened = analytics.events.filter((e) => e.name === 'lesson_opened');
+      expect(opened.length).toBe(1);
+      expect(opened[0].properties).toMatchObject({
+        lesson_id: 'body-language',
+        source: 'trail',
+      });
+
+      // User scrolls and taps Done
+      act(() => latest('LessonScreen').onProgress?.(75));
+      act(() => latest('LessonScreen').onDone());
+
+      const done = analytics.events.filter((e) => e.name === 'lesson_done');
+      expect(done.length).toBe(1);
+      expect(done[0].properties).toMatchObject({
+        lesson_id: 'body-language',
+        closed_by: 'done',
+        scrolled_percent: 75,
+      });
+      expect(typeof done[0].properties.seconds_on_screen).toBe('number');
+    });
+
+    it('answering a Checkpoint sends checkpoint_answered with result correct, node_id, and question_index 0', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await openMap();
+      analytics.clear();
+
+      openStop(WALK_DISTRACTION.id);
+      for (let i = 0; i < 20 && latest('PrimerScreen'); i++) {
+        act(() => latest('PrimerScreen').onNext());
+      }
+      expect(latest('CheckpointScreen')).toBeDefined();
+
+      act(() => latest('CheckpointScreen').onAnswer(0));
+
+      const answered = analytics.events.filter((e) => e.name === 'checkpoint_answered');
+      expect(answered.length).toBe(1);
+      expect(answered[0].properties).toMatchObject({
+        node_id: WALK_DISTRACTION.id,
+        question_index: 0,
+        result: 'correct',
+      });
+      expect(typeof answered[0].properties.seconds_to_answer).toBe('number');
+    });
+
+    it('first completion of a Node sends one stop_completed and a replay sends none', async () => {
+      mockOnDebrief = (r, run) => ({
+        ...r,
+        completedNodes: r.completedNodes.includes(run.node.id) ? r.completedNodes : [...r.completedNodes, run.node.id],
+      });
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await openMap();
+      analytics.clear();
+
+      // First run to debrief
+      openStop(WALK_DISTRACTION.id);
+      throughPrimerAndCheckpoint();
+      await sendFromView({ type: 'ready' });
+      await sendFromView({ type: 'debrief', payload: { handlingScore: 85 } });
+      expect(latest('DebriefScreen')).toBeDefined();
+
+      const stopCompleted = analytics.events.filter((e) => e.name === 'stop_completed');
+      expect(stopCompleted.length).toBe(1);
+      expect(stopCompleted[0].properties).toMatchObject({
+        world_id: 'sidewalk',
+        stop_id: WALK_DISTRACTION.id,
+        stop_kind: 'node',
+        stop_index: 2,
+      });
+
+      // Exit debrief
+      await act(async () => {
+        await latest('DebriefScreen').onDone();
+      });
+      if (interstitialResolver) {
+        await act(async () => {
+          interstitialResolver?.();
+        });
+      }
+      if (latest('MissionCheckScreen')) {
+        act(() => latest('MissionCheckScreen').onClose());
+      } else if (latest('MissionBriefScreen')) {
+        act(() => latest('MissionBriefScreen').onClose());
+      }
+      expect(latest('WorldMapScreen')).toBeDefined();
+
+      analytics.clear();
+
+      // Replay the same node to debrief
+      openStop(WALK_DISTRACTION.id);
+      throughPrimerAndCheckpoint();
+      await sendFromView({ type: 'ready' });
+      await sendFromView({ type: 'debrief', payload: { handlingScore: 90 } });
+      expect(latest('DebriefScreen')).toBeDefined();
+
+      // Replay should NOT emit stop_completed
+      const replayCompleted = analytics.events.filter((e) => e.name === 'stop_completed');
+      expect(replayCompleted.length).toBe(0);
+    });
+
+    it('e2e privacy: sensitive fields (Dog name, email, ids) never appear in any captured event properties', async () => {
+      mockOnDebrief = (r, run) => ({
+        ...r,
+        completedNodes: r.completedNodes.includes(run.node.id) ? r.completedNodes : [...r.completedNodes, run.node.id],
+      });
+      const analytics = getAnalytics() as MockAnalyticsService;
+      analytics.clear();
+
+      const dogName = 'Luna';
+      const email = 'luna@example.com';
+      const dogId = 'c4b8b6e2-63b7-4c7b-9c3f-8c3b7a7c1234';
+      const accountId = 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d';
+      const installId = '77777777-8888-4444-9999-000000000000';
+
+      // Seed analytics state with known installId
+      mockStore.set(
+        ANALYTICS_STATE_KEY,
+        JSON.stringify({
+          installId,
+          installedAt: '2026-11-18T10:00:00.000Z',
+          choice: 'on',
+          funnelDoneOnce: false,
+          funnelOpen: false,
+          upgradedInstall: false,
+        })
+      );
+
+      // Seed sync state with dogId
+      mockStore.set(
+        'leadmate.sync',
+        JSON.stringify({
+          dogId,
+          lastSyncedAt: '2026-11-18T10:00:00.000Z',
+          lastReminderDate: null,
+          paused: null,
+          stagesCompleted: 5,
+        })
+      );
+
+      // Render app for fresh funnel
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+        jest.runAllTicks();
+      });
+
+      // 1. Play Funnel: welcome -> language
+      expect(latest('SplashScreen')).toBeDefined();
+      act(() => latest('SplashScreen').actions.onStart());
+      expect(latest('LanguageScreen')).toBeDefined();
+      act(() => latest('LanguageScreen').onDone('es'));
+
+      // Unmount welcome app and open map with Dog named Luna
+      act(() => renderer?.unmount());
+      const mapRecord = {
+        ...newDogRecord(),
+        name: dogName,
+        onboarding: { ...NEW_ONBOARDING, step: 'done' as const },
+        version: RECORD_VERSION,
+      };
+      mockStore.set(RECORD_KEY, JSON.stringify(mapRecord));
+      await act(async () => {
+        renderer = create(<App />);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2500);
+      });
+      expect(latest('WorldMapScreen')).toBeDefined();
+
+      // 2. Play a Lesson: open, scroll progress, done
+      act(() => latest('WorldMapScreen').onOpenStop({ kind: 'lesson', id: 'body-language' }));
+      expect(latest('LessonScreen')).toBeDefined();
+      act(() => latest('LessonScreen').onProgress?.(80));
+      act(() => latest('LessonScreen').onDone());
+
+      // 3. Play a Checkpoint & 4. Play a Stage
+      openStop(WALK_DISTRACTION.id);
+      expect(latest('PrimerScreen')).toBeDefined();
+      for (let i = 0; i < 20 && latest('PrimerScreen'); i++) act(() => latest('PrimerScreen').onNext());
+      expect(latest('CheckpointScreen')).toBeDefined();
+      act(() => latest('CheckpointScreen').onAnswer(0));
+      for (let i = 0; i < 20 && latest('CheckpointScreen'); i++) act(() => latest('CheckpointScreen').onAnswer(0));
+      await sendFromView({ type: 'ready' });
+      await sendFromView({ type: 'debrief', payload: { handlingScore: 88 } });
+      expect(latest('DebriefScreen')).toBeDefined();
+      await act(async () => {
+        await latest('DebriefScreen').onDone();
+      });
+      if (interstitialResolver) {
+        await act(async () => {
+          interstitialResolver?.();
+        });
+      }
+      if (latest('MissionCheckScreen')) {
+        act(() => latest('MissionCheckScreen').onClose());
+      } else if (latest('MissionBriefScreen')) {
+        act(() => latest('MissionBriefScreen').onClose());
+      }
+      expect(latest('WorldMapScreen')).toBeDefined();
+
+      // 5. Play a Minigame
+      openStop(BARKDOKU_INTRO_NODE.id);
+      throughPrimerAndCheckpoint();
+      expect(latest('BarkdokuView')).toBeDefined();
+      act(() => latest('BarkdokuView').onFinish({ timing: 1 }, 85));
+      expect(latest('DebriefScreen')).toBeDefined();
+      await act(async () => {
+        await latest('DebriefScreen').onDone();
+      });
+      if (interstitialResolver) {
+        await act(async () => {
+          interstitialResolver?.();
+        });
+      }
+      if (latest('MissionCheckScreen')) {
+        act(() => latest('MissionCheckScreen').onClose());
+      } else if (latest('MissionBriefScreen')) {
+        act(() => latest('MissionBriefScreen').onClose());
+      }
+
+      // Leave the app: app_backgrounded carries the last screen
+      act(() => mockAppStateListeners.forEach((cb) => cb('background')));
+
+      // Assert that we have captured events covering funnel, lesson, checkpoint, stage, minigame
+      expect(analytics.events.length).toBeGreaterThan(5);
+      const eventNames = new Set(analytics.events.map((e) => e.name));
+      expect(eventNames.has('funnel_step_viewed')).toBe(true);
+      expect(eventNames.has('session_started')).toBe(true);
+      expect(eventNames.has('lesson_opened')).toBe(true);
+      expect(eventNames.has('lesson_done')).toBe(true);
+      expect(eventNames.has('checkpoint_answered')).toBe(true);
+      expect(eventNames.has('stage_started')).toBe(true);
+      expect(eventNames.has('stage_ended')).toBe(true);
+      expect(eventNames.has('minigame_started')).toBe(true);
+      expect(eventNames.has('minigame_ended')).toBe(true);
+      expect(eventNames.has('stop_completed')).toBe(true);
+      expect(eventNames.has('screen_viewed')).toBe(true);
+      expect(eventNames.has('app_backgrounded')).toBe(true);
+
+      // Assert none of the sensitive values nor the installId appear in ANY event properties,
+      // the context properties of every event and screen_viewed / app_backgrounded included
+      const bannedValues = [dogName, email, dogId, accountId, installId];
+      for (const event of analytics.events) {
+        const propsStr = JSON.stringify(event.properties);
+        for (const banned of bannedValues) {
+          expect(propsStr).not.toContain(banned);
+        }
+        expect(event.properties.platform).toBeDefined();
+        expect(event.properties.runtime).toBeDefined();
+      }
+      // ...nor the super properties the SDK adds to every tap
+      for (const banned of bannedValues) {
+        expect(JSON.stringify(analytics.registered)).not.toContain(banned);
+      }
+    });
+  });
+});
+
+describe('App - Encounter Series flow', () => {
+  const AIMS: EncounterAim[] = ['mark-disengagement', 'stay-calm', 'check-in', 'keep-slack'];
+  /** Makes `walk-distraction` an Encounter Series of four Encounters, as a pack with a Series would. */
+  function seriesContent() {
+    const content = getActiveContent();
+    const encounters = AIMS.map((aim, i) => ({ id: `enc-${i}`, title: 'node.debrief.title' as const, aim, scenario: { waypoint: { x: 20 + i, y: 0 } } }));
+    setActiveContent({
+      ...content,
+      resolved: { ...content.resolved, nodes: content.resolved.nodes.map((n) => (n.id === 'walk-distraction' ? { ...n, simulation: { encounters } } : n)) },
+    });
+  }
+  const good = (seed: number): SimulationDebriefPayload => payloadWith({ seed, markerHits: 1, checkInHits: 1, markGrades: { perfect: 1, good: 0, late: 0 } });
+  const poor = (seed: number): SimulationDebriefPayload => payloadWith({ seed });
+  const card = () => latest('EncounterResultOverlay');
+  const starts = () => posted('start');
+
+  async function startSeries() {
+    await openMap();
+    seriesContent();
+    openStop(WALK_DISTRACTION.id);
+    throughPrimerAndCheckpoint();
+    await sendFromView({ type: 'ready' });
+  }
+
+  it('shows the result card on an Encounter end, and retries with the same seed and Dog snapshot without a remount or loading', async () => {
+    let n = 100;
+    mockSeeds.next = () => ++n;
+    await startSeries();
+    expect(starts()).toHaveLength(1);
+    const first = starts()[0];
+    expect(first.seed).toBe(101);
+    expect(latest('SeriesProgressStrip').index).toBe(1);
+    expect(latest('SeriesProgressStrip').total).toBe(4);
+
+    await sendFromView({ type: 'debrief', payload: poor(first.seed) });
+    expect(card()).toBeDefined();
+    expect(card().paws).toBe(1);
+    expect(latest('DebriefScreen')).toBeUndefined();
+    const mounts = mockSim.mounts;
+
+    act(() => card().onRetry());
+    expect(card()).toBeUndefined();
+    expect(starts()).toHaveLength(2);
+    expect(starts()[1].seed).toBe(first.seed);
+    expect(starts()[1].scenario).toEqual(first.scenario);
+    expect(mockSim.mounts).toBe(mounts); // no remount
+    expect(latest('LoadingOverlay')).toBeUndefined();
+    expect(latest('PrimerScreen')).toBeUndefined();
+    expect(latest('CheckpointScreen')).toBeUndefined();
+  });
+
+  it('starts the next Encounter with a new seed and the Series-start snapshot, and reaches the Debrief after the last Next', async () => {
+    let n = 100;
+    mockSeeds.next = () => ++n;
+    await startSeries();
+    const first = starts()[0];
+    for (let i = 0; i < 4; i++) {
+      const seed = starts()[starts().length - 1].seed;
+      await sendFromView({ type: 'debrief', payload: good(seed) });
+      expect(card().paws).toBe(3);
+      act(() => card().onNext());
+      if (i < 3) {
+        const s = starts()[starts().length - 1];
+        expect(s.seed).not.toBe(seed);
+        expect(s.scenario.learning).toEqual(first.scenario.learning);
+        expect(latest('SeriesProgressStrip').index).toBe(i + 2);
+        expect(latest('SeriesProgressStrip').kept).toHaveLength(i + 1);
+      }
+    }
+    expect(starts()).toHaveLength(4);
+    expect(latest('DebriefScreen')).toBeDefined();
+    expect(latest('DebriefScreen').run.result.payload.encounters).toHaveLength(4);
+    expect(latest('DebriefScreen').run.result.payload.handlingScore).toBe(1000);
+    expect(mockSim.live).toBe(0);
+  });
+
+  it('counts one Stage per Series and shows no advert between Encounters', async () => {
+    await startSeries();
+    for (let i = 0; i < 4; i++) {
+      await sendFromView({ type: 'debrief', payload: good(1) });
+      act(() => card().onNext());
+    }
+    expect(interstitialTriggered).toBe(false);
+  });
+
+  it('opens the Pause Menu over the card on back, and Resume returns to the same card', async () => {
+    await startSeries();
+    await sendFromView({ type: 'debrief', payload: poor(4242) });
+    const postsBefore = mockSim.posts.length;
+    act(() => void triggerBack());
+    expect(latest('ResumeOverlay')).toBeDefined();
+    expect(card()).toBeDefined();
+    act(() => latest('ResumeOverlay').onResume());
+    expect(latest('ResumeOverlay')).toBeUndefined();
+    expect(card()).toBeDefined();
+    expect(mockSim.posts).toHaveLength(postsBefore); // nothing was sent to the ended Stage
+  });
+
+  it('Exit on the third Encounter opens a skipped Debrief listing the kept Paws', async () => {
+    await startSeries();
+    const before = JSON.parse(mockStore.get(RECORD_KEY)!);
+    for (let i = 0; i < 2; i++) {
+      await sendFromView({ type: 'debrief', payload: good(1) });
+      act(() => card().onNext());
+    }
+    act(() => mockSim.props.onMessage({ type: 'paused' }));
+    expect(latest('ResumeOverlay')).toBeDefined();
+    act(() => latest('ResumeOverlay').onExit());
+    const result = latest('DebriefScreen').run.result;
+    expect(result.skipped).toBe(true);
+    expect(result.payload.handlingScore).toBe(500);
+    expect(result.payload.encounters.map((e: { paws: number }) => e.paws)).toEqual([3, 3, 0, 0]);
+    // a skipped Series earns 1 Star and leaves the Dog's learning untouched (App tests stub `onDebrief`, so the real one is applied to the Debrief's run)
+    const run = latest('DebriefScreen').run;
+    const { onDebrief } = jest.requireActual('./shell/nodes/node');
+    const applied = onDebrief(before, run, new Date());
+    expect(applied.stars[run.node.id]).toBe(1);
+    expect(applied.attributes).toEqual(before.attributes);
+    expect(applied.weights).toEqual(before.weights);
+    expect(latest('DebriefScreen').best).toBe(1);
+  });
+
+  it('Exit after every Encounter has a kept attempt finishes normally', async () => {
+    await startSeries();
+    for (let i = 0; i < 3; i++) {
+      await sendFromView({ type: 'debrief', payload: good(1) });
+      act(() => card().onNext());
+    }
+    await sendFromView({ type: 'debrief', payload: good(1) });
+    act(() => card().onRetry()); // retrying the last one, then Exit
+    act(() => mockSim.props.onMessage({ type: 'paused' }));
+    act(() => latest('ResumeOverlay').onExit());
+    const result = latest('DebriefScreen').run.result;
+    expect(result.skipped).toBeUndefined();
+    expect(result.payload.handlingScore).toBe(1000);
+  });
+
+  it('leaves the Dog record and completed Nodes unchanged when the flow is left mid-Series', async () => {
+    await openMap();
+    seriesContent();
+    const before = mockStore.get(RECORD_KEY);
+    openStop(WALK_DISTRACTION.id);
+    throughPrimerAndCheckpoint();
+    await sendFromView({ type: 'ready' });
+    await sendFromView({ type: 'debrief', payload: good(1) });
+    act(() => renderer.unmount());
+    expect(mockStore.get(RECORD_KEY)).toEqual(before);
+  });
+
+  it('a retry clears the hint, dog warning and controls-used state like a fresh Stage start', async () => {
+    await startSeries();
+    await sendFromView({ type: 'stage-signal', signal: 'dog-approaching', bearing: 1 });
+    expect(latest('DogWarningOverlay')).toBeDefined();
+    await sendFromView({ type: 'debrief', payload: poor(1) });
+    act(() => card().onRetry());
+    expect(latest('DogWarningOverlay')).toBeUndefined();
+    expect(latest('HintOverlay')).toBeUndefined();
+  });
+
+  it('Play again restarts the Series at Encounter 1 with new seeds, without the Primer or Checkpoint', async () => {
+    let n = 100;
+    mockSeeds.next = () => ++n;
+    await startSeries();
+    for (let i = 0; i < 4; i++) {
+      await sendFromView({ type: 'debrief', payload: good(1) });
+      act(() => card().onNext());
+    }
+    const seedsBefore = starts().map((s) => s.seed);
+    act(() => latest('DebriefScreen').onPlayAgain());
+    expect(latest('PrimerScreen')).toBeUndefined();
+    expect(latest('CheckpointScreen')).toBeUndefined();
+    await sendFromView({ type: 'ready' });
+    const again = starts()[starts().length - 1];
+    expect(seedsBefore).not.toContain(again.seed);
+    expect(latest('SeriesProgressStrip').index).toBe(1);
+    expect(card()).toBeUndefined();
+  });
+
+  it('a non-Series walking Node still goes straight to its Debrief', async () => {
+    await openMap();
+    openStop(WALK_DISTRACTION.id);
+    throughPrimerAndCheckpoint();
+    await sendFromView({ type: 'ready' });
+    await sendFromView({ type: 'debrief', payload: {} });
+    expect(card()).toBeUndefined();
+    expect(latest('DebriefScreen')).toBeDefined();
+  });
+
+  describe('Encounter Series analytics (Task 8.1)', () => {
+    it('a retry emits two stage_ended events with Encounter attempts 1 and 2 and the same Node attempt', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      analytics.clear();
+
+      await startSeries();
+
+      // First encounter start: attempt 1, encounter_attempt 1
+      const start1 = analytics.events.filter((e) => e.name === 'stage_started');
+      expect(start1).toHaveLength(1);
+      expect(start1[0].properties).toMatchObject({
+        stage_kind: 'node',
+        stage_id: WALK_DISTRACTION.id,
+        mode: 'stage',
+        attempt: 1,
+        encounter_id: 'enc-0',
+        encounter_attempt: 1,
+      });
+
+      // Finish attempt 1 with 1 paw
+      await sendFromView({ type: 'debrief', payload: poor(101) });
+      const end1 = analytics.events.filter((e) => e.name === 'stage_ended');
+      expect(end1).toHaveLength(1);
+      expect(end1[0].properties).toMatchObject({
+        stage_kind: 'node',
+        stage_id: WALK_DISTRACTION.id,
+        mode: 'stage',
+        attempt: 1,
+        encounter_id: 'enc-0',
+        encounter_attempt: 1,
+        outcome: 'finished',
+        paws: 1,
+      });
+
+      // Retry: same node attempt 1, encounter_attempt 2
+      act(() => card().onRetry());
+      const start2 = analytics.events.filter((e) => e.name === 'stage_started');
+      expect(start2).toHaveLength(2);
+      expect(start2[1].properties).toMatchObject({
+        stage_kind: 'node',
+        stage_id: WALK_DISTRACTION.id,
+        mode: 'stage',
+        attempt: 1,
+        encounter_id: 'enc-0',
+        encounter_attempt: 2,
+      });
+
+      // Finish attempt 2 with 3 paws
+      await sendFromView({ type: 'debrief', payload: good(101) });
+      const end2 = analytics.events.filter((e) => e.name === 'stage_ended');
+      expect(end2).toHaveLength(2);
+      expect(end2[1].properties).toMatchObject({
+        stage_kind: 'node',
+        stage_id: WALK_DISTRACTION.id,
+        mode: 'stage',
+        attempt: 1,
+        encounter_id: 'enc-0',
+        encounter_attempt: 2,
+        outcome: 'finished',
+        paws: 3,
+      });
+    });
+
+    it('Exit mid-Series emits outcome skipped for the running Encounter only', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await startSeries();
+      analytics.clear();
+
+      // Finish Encounter 0
+      await sendFromView({ type: 'debrief', payload: good(1) });
+      expect(card().paws).toBe(3);
+
+      // Start Encounter 1
+      act(() => card().onNext());
+
+      // Encounter 1 is running; user opens Pause menu and exits
+      act(() => mockSim.props.onMessage({ type: 'paused' }));
+      expect(latest('ResumeOverlay')).toBeDefined();
+      act(() => latest('ResumeOverlay').onExit());
+
+      const endedEvents = analytics.events.filter((e) => e.name === 'stage_ended');
+      // Encounter 0 finished, Encounter 1 skipped. No events for enc-2 or enc-3.
+      expect(endedEvents).toHaveLength(2);
+      expect(endedEvents[0].properties).toMatchObject({
+        encounter_id: 'enc-0',
+        encounter_attempt: 1,
+        outcome: 'finished',
+        paws: 3,
+      });
+      expect(endedEvents[1].properties).toMatchObject({
+        encounter_id: 'enc-1',
+        encounter_attempt: 1,
+        outcome: 'skipped',
+      });
+      expect(endedEvents[1].properties.paws).toBeUndefined();
+    });
+
+    it('opted-out installs emit none', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      mockStore.set(
+        ANALYTICS_STATE_KEY,
+        JSON.stringify({
+          installId: 'opted-out-id',
+          installedAt: '2026-01-01T00:00:00.000Z',
+          choice: 'off',
+          funnelDoneOnce: true,
+          funnelOpen: false,
+          upgradedInstall: false,
+        })
+      );
+
+      await startSeries();
+      analytics.clear();
+
+      await sendFromView({ type: 'debrief', payload: poor(1) });
+      act(() => card().onRetry());
+      await sendFromView({ type: 'debrief', payload: good(1) });
+      act(() => card().onNext());
+
+      const stageEvents = analytics.events.filter(
+        (e) => e.name === 'stage_started' || e.name === 'stage_ended'
+      );
+      expect(stageEvents).toHaveLength(0);
+    });
+
+    it('a non-Series Stage emits no encounter properties', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await openMap();
+      analytics.clear();
+
+      openStop(WALK_DISTRACTION.id);
+      throughPrimerAndCheckpoint();
+      await sendFromView({ type: 'ready' });
+      await sendFromView({ type: 'debrief', payload: good(1) });
+
+      const started = analytics.events.filter((e) => e.name === 'stage_started');
+      expect(started).toHaveLength(1);
+      expect(started[0].properties.encounter_id).toBeUndefined();
+      expect(started[0].properties.encounter_attempt).toBeUndefined();
+
+      const ended = analytics.events.filter((e) => e.name === 'stage_ended');
+      expect(ended).toHaveLength(1);
+      expect(ended[0].properties.encounter_id).toBeUndefined();
+      expect(ended[0].properties.encounter_attempt).toBeUndefined();
+      expect(ended[0].properties.paws).toBeUndefined();
     });
   });
 });

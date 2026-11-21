@@ -447,6 +447,7 @@ function NodeRow({
       )}
       {satellite && satVis && (
         <Pressable
+          testID="map.satellite"
           onPress={() => handlePress(() => onOpenSatellite?.(satellite))}
           accessibilityRole="button"
           accessibilityLabel={
@@ -531,6 +532,7 @@ function NodeRow({
         </>
       )}
       <Pressable
+        testID="map.stop"
         onPress={() => handlePress(() => onPress(entry))}
         accessibilityRole="button"
         accessibilityLabel={stopAccessibilityLabel(entry, t)}
@@ -629,6 +631,7 @@ function CloseWorldPanel({ t, owed, onPress }: { t: Translate; owed: MapStop[]; 
       {owed.map((entry) => (
         <Pressable
           key={entry.stop.id}
+          testID="map.owed_stop"
           onPress={() => handlePress(() => onPress(entry))}
           accessibilityRole="button"
           accessibilityLabel={`${owedItemLabel(entry, t)}. ${t('map.owed')}`}
@@ -697,6 +700,7 @@ worldPalette(entry.world.id);
   return (
     <View className="mb-3">
       <Pressable
+        testID="map.world_toggle"
         onPress={() => handlePress(onToggle)}
         accessibilityRole="button"
         accessibilityLabel={completed ? completedWorldLabel(entry, t, isExpanded) : `${worldTitle(entry.world, t)}. ${t(isExpanded ? 'map.collapsePreview' : 'map.openPreview')}`}
@@ -756,6 +760,7 @@ export function PreviewTeaser({ t, onPressPaywall }: { t: Translate; onPressPayw
       <Button
         label={t('paywall.badge')}
         onPress={onPressPaywall}
+        testID="map.plus_teaser"
       />
     </View>
   );
@@ -829,6 +834,7 @@ export function MoreComingCard({
             label={t('paywall.badge')}
             accessibilityLabel={t('paywall.badge')}
             onPress={onPressPaywall}
+            testID="map.plus_more"
           />
         </View>
       )}
@@ -956,6 +962,7 @@ worldPalette(entry.world.id);
           <Text className="font-display text-title text-ink">{worldTitle(entry.world, t)}</Text>
           {entry.tier === 'plus' && (
             <Pressable
+              testID="map.world_plus_badge"
               onPress={() => handlePress(onPressPaywall)}
               accessibilityRole="button"
               accessibilityLabel={t('world.plusBadge')}
@@ -980,6 +987,7 @@ worldPalette(entry.world.id);
     <>
       {entry.complete ? (
         <Pressable
+          testID="map.world_toggle"
           onPress={() => handlePress(onToggleCompleted)}
           accessibilityRole="button"
           accessibilityLabel={completedWorldLabel(entry, t, true)}
@@ -989,6 +997,7 @@ worldPalette(entry.world.id);
         </Pressable>
       ) : !entry.unlocked ? (
         <Pressable
+          testID="map.world_toggle"
           onPress={() => handlePress(onToggleExpand)}
           accessibilityRole="button"
           accessibilityLabel={`${worldTitle(entry.world, t)}. ${t('map.collapsePreview')}`}
@@ -1118,12 +1127,13 @@ worldPalette(entry.world.id);
 }
 
 /** The streak, which also opens the Diary. */
-function StreakChip({ t, status, onPress }: { t: Translate; status: StreakStatus; onPress: () => void }) {
+function StreakChip({ t, status, onPress, testID }: { t: Translate; status: StreakStatus; onPress: () => void; testID?: string }) {
   const running = status.mode === 'running';
   const dayText = t(status.days === 1 ? 'streak.day' : 'streak.days').replace('{count}', '').trim();
   return (
     <Chip
       compact
+      testID={testID}
       icon={<Flame lit={running} label={t('streak.flame')} />}
       value={
         running ? (
@@ -1144,14 +1154,14 @@ function StreakChip({ t, status, onPress }: { t: Translate; status: StreakStatus
 /** The Daily Barkdoku chip: "new" until today's first solve, then its Daily Solve Time against the Target Time. */
 export function BarkdokuChip({ t, solve, onPress }: { t: Translate; solve?: DailyBarkdokuSolve; onPress?: () => void }) {
   const name = t('map.barkdoku.daily');
-  if (!solve) return <Chip label={name} value={t('map.dailyNew')} highlight onPress={onPress} accessibilityLabel={`${name}. ${t('map.barkdoku.dailyHelp')}`} />;
+  if (!solve) return <Chip label={name} value={t('map.dailyNew')} highlight onPress={onPress} testID="map.barkdoku" accessibilityLabel={`${name}. ${t('map.barkdoku.dailyHelp')}`} />;
   const time = formatClock(solve.seconds);
   const met = solve.targetSeconds !== undefined && solve.seconds <= solve.targetSeconds;
   const spoken =
     solve.targetSeconds === undefined
       ? t('minigame.barkdoku.clockLabel').replace('{time}', time)
       : t('minigame.barkdoku.clockLabelTarget').replace('{time}', time).replace('{target}', formatClock(solve.targetSeconds));
-  return <Chip label={name} value={solveTimeText(solve.seconds, solve.targetSeconds)} onPress={onPress} accessibilityLabel={`${name}. ${spoken}${met ? `. ${t('minigame.barkdoku.targetMet')}` : ''}`} />;
+  return <Chip label={name} value={solveTimeText(solve.seconds, solve.targetSeconds)} onPress={onPress} testID="map.barkdoku" accessibilityLabel={`${name}. ${spoken}${met ? `. ${t('minigame.barkdoku.targetMet')}` : ''}`} />;
 }
 
 /**
@@ -1180,6 +1190,7 @@ export function PlusChip({
         value={t('map.plus.subscribed')}
         highlight
         onPress={onPress}
+        testID="map.plus_chip"
         accessibilityLabel={`${t('map.plus.chip')} · ${t('map.plus.subscribed')}`}
       />
     );
@@ -1191,6 +1202,7 @@ export function PlusChip({
         value={t('map.plus.trialChip')}
         highlight
         onPress={onPress}
+        testID="map.plus_chip"
         accessibilityLabel={`${t('map.plus.chip')}. ${t('paywall.badge')}`}
       />
     );
@@ -1204,6 +1216,7 @@ export function PlusChip({
         value={value}
         highlight
         onPress={onPress}
+        testID="map.plus_chip"
         accessibilityLabel={`${t('map.plus.chip')} · ${value}`}
       />
     );
@@ -1214,6 +1227,7 @@ export function PlusChip({
       value={t('map.plus.expired')}
       highlight
       onPress={onPress}
+      testID="map.plus_chip"
       accessibilityLabel={`${t('map.plus.chip')}. ${t('map.plus.expired')}`}
     />
   );
@@ -1260,7 +1274,7 @@ export function TrialStatusModal({
             </View>
           ))}
         </View>
-        <Button label={t('trialModal.dismiss')} onPress={onDismiss} />
+        <Button label={t('trialModal.dismiss')} onPress={onDismiss} testID="map.trial_dismiss" />
       </View>
     </Backdrop>
   );
@@ -1410,18 +1424,19 @@ export function WorldMapScreen({
       <BetaContentBadge t={t} />
       <View className="flex-row items-center justify-between" style={{ gap: theme.space[1] }}>
         <View className="flex-row items-center flex-shrink" style={{ gap: theme.space[1] }}>
-          <StreakChip t={t} status={streakStatus(streak, today)} onPress={onDiary} />
+          <StreakChip t={t} status={streakStatus(streak, today)} onPress={onDiary} testID="map.diary" />
           <Chip
             compact
             label={libraryToday ? t('library.chipToday') : undefined}
             value={t('library.chip')}
             icon={libraryToday ? <View className="mr-1.5 h-3 w-3 rounded-game-pill bg-accent" style={{ borderWidth: 2, borderColor: color.outline }} /> : undefined}
             onPress={onLibrary}
+            testID="map.library"
             accessibilityLabel={libraryToday ? `${t('library.chip')}. ${t('library.chipToday')}` : t('library.chip')}
           />
         </View>
         <View className="flex-row items-center flex-shrink-0" style={{ gap: theme.space[1] }}>
-          <IconChip icon={<GearGlyph />} onPress={onSettings} accessibilityLabel={t('map.settings')} />
+          <IconChip icon={<GearGlyph />} onPress={onSettings} accessibilityLabel={t('map.settings')} testID="map.settings" />
           {hasShop && (
             <IconChip
               icon={<BasketGlyph />}
@@ -1439,6 +1454,7 @@ export function WorldMapScreen({
           value={dailyBest === undefined ? t('map.dailyNew') : `${dailyBest} ${t('results.scoreOutOf')}`}
           highlight={dailyBest === undefined}
           onPress={onDaily}
+          testID="map.daily"
           accessibilityLabel={t('daily.title')}
         />
         <BarkdokuChip t={t} solve={barkdokuToday} onPress={onBarkdoku} />
@@ -1476,8 +1492,8 @@ export function WorldMapScreen({
         <Panel tone="warn" className="mb-4">
           <Text className="font-display text-title text-ink">{t('rusty.title')}</Text>
           <Text className="mt-1 text-body text-ink">{t('rusty.body')}</Text>
-          <Button label={t('rusty.warmup')} onPress={onWarmup} />
-          <Button label={t('rusty.skip')} tone="quiet" onPress={onSkipWarmup} />
+          <Button label={t('rusty.warmup')} onPress={onWarmup} testID="map.warmup" />
+          <Button label={t('rusty.skip')} tone="quiet" onPress={onSkipWarmup} testID="map.warmup_skip" />
         </Panel>
       )}
       {skippedWarmup && <Text className="mb-4 text-body text-ink">{t('rusty.skipped')}</Text>}

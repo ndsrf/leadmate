@@ -30,6 +30,8 @@ export interface FeedbackMessage {
   firstTime: boolean;
   /** Same-kind right actions within `COMBO_WINDOW_SECONDS`; 1 means no Combo. */
   combo: number;
+  /** Perfect Marker presses in a row inside this Stage (GLOSSARY: "Perfects in a row"). */
+  perfectRun?: number;
   meterPoints?: number;
   meter?: FeedbackMeter;
 }
@@ -121,6 +123,11 @@ export interface FeedbackOptions {
   seenKinds?: Iterable<string>;
   /** The Taste Stage: wrong kinds are dropped and no Hint is offered to be recorded. */
   isTasteStage?: boolean;
+  /**
+   * The Introduced actions of this Stage (GLOSSARY: "Introduced action"): kinds outside it are dropped before any
+   * Combo, Hint or seen logic. Absent means every kind is Introduced. Presentation only; the sim is unchanged.
+   */
+  introducedKinds?: Iterable<string>;
 }
 
 /**
@@ -131,14 +138,17 @@ export interface FeedbackOptions {
 export class FeedbackDecider {
   private readonly seen: Set<string>;
   private readonly isTasteStage: boolean;
+  private readonly introduced: ReadonlySet<string> | null;
   private readonly leashHints = new HintTracker();
   private readonly combos = new Map<FeedbackActionKind, { count: number; last: number }>();
   private readonly lastShown = new Map<FeedbackActionKind, number>();
   private showing: { message: FeedbackMessage; until: number } | null = null;
+  private perfectRun = 0;
 
   constructor(options: FeedbackOptions = {}) {
     this.seen = new Set(options.seenKinds ?? []);
     this.isTasteStage = options.isTasteStage ?? false;
+    this.introduced = options.introducedKinds ? new Set(options.introducedKinds) : null;
   }
 
   /** The message still on screen at `time`, if any. */
@@ -156,8 +166,29 @@ export class FeedbackDecider {
     const hintCoversRigidPull = hintKey === 'hint.rigid';
 
     for (const e of events) {
+      if (e.type === 'check-in-hit' && events.some((o) => o.type === 'change-check-in')) {
+        continue;
+      }
+      if (e.type === 'marker-hit' || e.type === 'check-in-hit' || e.type === 'change-check-in') {
+        if (e.grade === 'perfect') {
+          this.perfectRun += 1;
+        } else {
+          this.perfectRun = 0;
+        }
+      } else if (
+        e.type === 'marker-miss' ||
+        e.type === 'marker-late' ||
+        e.type === 'marker-reactive' ||
+        e.type === 'marker-wasted'
+      ) {
+        this.perfectRun = 0;
+      }
+    }
+
+    for (const e of events) {
       const kind = feedbackKindOf(e);
       if (!kind) continue;
+      if (this.introduced && !this.introduced.has(kind)) continue; // not Introduced: no message, Combo or Hint
       // the Marker on the look after a change reports both events; show only the more specific message
       if (kind === 'check-in-hit' && events.some((o) => o.type === 'change-check-in')) continue;
       if (kind === 'followed-turn' && events.some(isFollowedFreshMove)) continue; // the fresh move already says it
@@ -232,6 +263,9 @@ export class FeedbackDecider {
       firstTime,
       combo,
     };
+    if (grade === 'perfect' && this.perfectRun > 0) {
+      message.perfectRun = this.perfectRun;
+    }
     if (meter) {
       message.meterPoints = meterPoints;
       message.meter = meter;

@@ -300,13 +300,15 @@ export function PaywallScreen({
           label={t('paywall.plan.subscribe')}
           disabled={busy}
           onPress={handleSubscribe}
+          testID="paywall.subscribe"
         />
-        <Button label={t('paywall.later')} tone="quiet" onPress={onLater} />
+        <Button label={t('paywall.later')} tone="quiet" onPress={onLater} testID="paywall.later" />
 
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t('paywall.restore')}
           onPress={handleRestore}
+          testID="paywall.restore"
           disabled={busy}
           style={{ alignSelf: 'center', paddingVertical: theme.space[2] }}
         >
@@ -338,8 +340,8 @@ export function PaywallScreen({
       <Panel tone="info" className="mt-1">
         <Text className="text-body text-ink">{t('paywall.free')}</Text>
       </Panel>
-      <Button label={t('paywall.start')} onPress={() => onStartTrial?.()} />
-      <Button label={t('paywall.later')} tone="quiet" onPress={onLater} />
+      <Button label={t('paywall.start')} onPress={() => onStartTrial?.()} testID="paywall.start_trial" />
+      <Button label={t('paywall.later')} tone="quiet" onPress={onLater} testID="paywall.later" />
       {onRestore && (
         <Pressable
           accessibilityRole="button"

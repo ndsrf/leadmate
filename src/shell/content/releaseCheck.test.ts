@@ -41,9 +41,9 @@ beforeEach(() => {
   stub = {};
 });
 
-function run(args: string[], baseUrl = base) {
+function run(args: string[], baseUrl = base, env: Record<string, string> = {}) {
   return new Promise<{ code: number | null; out: string }>((resolve) => {
-    const p = spawn('node', ['scripts/content-release-check.mjs', '--base-url', baseUrl, ...args], { cwd: ROOT });
+    const p = spawn('node', ['scripts/content-release-check.mjs', '--base-url', baseUrl, ...args], { cwd: ROOT, env: { ...process.env, ...env } });
     let out = '';
     p.stdout.on('data', (d) => (out += d));
     p.stderr.on('data', (d) => (out += d));
@@ -71,6 +71,15 @@ describe('content:release-check', () => {
     const r = await run([]);
     expect(r.code).toBe(1);
     expect(r.out).toContain('Publish stable before releasing');
+  });
+
+  it('allows a newer baseline only with ALLOW_BASELINE_AHEAD=1, and never an older one', async () => {
+    stub.version = V - 1;
+    const ahead = await run([], base, { ALLOW_BASELINE_AHEAD: '1' });
+    expect(ahead.code).toBe(0);
+    expect(ahead.out).toContain('ALLOW_BASELINE_AHEAD=1');
+    stub.version = V + 1;
+    expect((await run([], base, { ALLOW_BASELINE_AHEAD: '1' })).code).toBe(1);
   });
 
   it('fails naming differing files for the same version', async () => {

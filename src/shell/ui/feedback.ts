@@ -19,6 +19,10 @@ export const CUE_ACTIVE_VOLUME = 0.35;
 /** The tick rises one semitone per Combo step, up to this many. */
 export const MAX_COMBO_SEMITONES = 7;
 
+/** The Approach ring's count-in tick: the tick sound five semitones down, at lower volume, with no haptic. */
+export const TELEGRAPH_TICK_SEMITONES = -5;
+export const TELEGRAPH_TICK_VOLUME = 0.5;
+
 export function comboSemitones(combo: number): number {
   return Math.max(0, Math.min(MAX_COMBO_SEMITONES, Math.floor(combo) - 1));
 }
@@ -39,6 +43,8 @@ export interface StageFeedbackCue {
   polarity: 'right' | 'wrong';
   tier: 'small' | 'medium' | 'big';
   combo: number;
+  /** Perfects in a row, present on the message shown for a Perfect press: its sound rises by it, whichever tier plays. */
+  perfectRun?: number;
 }
 
 export interface FeedbackSettings {
@@ -56,6 +62,8 @@ export interface Feedback {
   unlock(): void;
   /** Voices a Feedback Message: a sound (tick, chime, fanfare, bonk) and a light tick or soft thud haptic. */
   stage(cue: StageFeedbackCue): void;
+  /** The count-in tick of the Approach ring: sound only, under the sound setting. */
+  telegraphTick(): void;
   /** Call when a Stage starts. */
   preloadStage(): void;
 }
@@ -104,8 +112,19 @@ export function createFeedback(getBackends: () => FeedbackBackends, getSettings:
     if (!settings.sounds) return;
     try {
       const sound: StageSound = cue.polarity === 'wrong' ? 'bonk' : cue.tier === 'big' ? 'fanfare' : cue.tier === 'medium' ? 'chime' : 'tick';
-      const rate = sound === 'tick' ? Math.pow(2, comboSemitones(cue.combo) / 12) : 1;
+      const rate =
+        cue.perfectRun !== undefined ? Math.pow(2, comboSemitones(cue.perfectRun) / 12) : sound === 'tick' ? Math.pow(2, comboSemitones(cue.combo) / 12) : 1;
       backends.stageSound(sound, { rate, volume: backends.cueAudioActive() ? CUE_ACTIVE_VOLUME : 1 });
+    } catch {
+      // a sound that cannot play is silent
+    }
+  };
+  const telegraphTick = () => {
+    try {
+      if (!getSettings().sounds) return;
+      const backends = getBackends();
+      const volume = TELEGRAPH_TICK_VOLUME * (backends.cueAudioActive() ? CUE_ACTIVE_VOLUME : 1);
+      backends.stageSound('tick', { rate: Math.pow(2, TELEGRAPH_TICK_SEMITONES / 12), volume });
     } catch {
       // a sound that cannot play is silent
     }
@@ -119,6 +138,7 @@ export function createFeedback(getBackends: () => FeedbackBackends, getSettings:
   };
   return {
     stage,
+    telegraphTick,
     preloadStage,
     press: () => play('light', 'press'),
     success: () => play('success', 'success'),
