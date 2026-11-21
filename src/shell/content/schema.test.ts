@@ -381,7 +381,7 @@ describe('node.yaml checkpoint question kinds', () => {
     expect(isDuelQuestionYaml({})).toBe(false);
   });
 
-  it('every shipped node.yaml still validates, and holds a duel only in park-unpredictable', () => {
+  it('every shipped node.yaml still validates, and holds a duel only in the Image Duel Nodes of World 6 and World 7', () => {
     for (const channel of ['stable', 'beta']) {
       const dir = join(__dirname, '../../../content', channel, 'nodes');
       const withDuel: string[] = [];
@@ -391,7 +391,13 @@ describe('node.yaml checkpoint question kinds', () => {
         const checkpoint = Array.isArray(cfg.checkpoint) ? cfg.checkpoint : [];
         if (checkpoint.some(isDuelQuestionYaml)) withDuel.push(id);
       }
-      expect({ channel, withDuel }).toEqual({ channel, withDuel: ['park-unpredictable'] });
+      if (channel === 'stable') expect({ channel, withDuel }).toEqual({ channel, withDuel: ['park-unpredictable'] });
+      else {
+        // Beta also carries the World 7 Terrace Nodes that end in an Image Duel.
+        const allowed = ['park-unpredictable', 'cafe-arrive', 'cafe-settle', 'cafe-passing-dog'];
+        expect(withDuel.filter((id) => !allowed.includes(id))).toEqual([]);
+        expect(withDuel).toEqual(expect.arrayContaining(['park-unpredictable', 'cafe-arrive', 'cafe-settle']));
+      }
     }
   });
 
