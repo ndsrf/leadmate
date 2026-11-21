@@ -304,6 +304,10 @@ beforeEach(() => {
   resetAnalyticsForTesting();
   jest.useFakeTimers();
   setActiveContent(null);
+  // the bundled content ships `walk-distraction` as an Encounter Series; these tests treat it as a plain walk unless
+  // they build a Series themselves (`seriesContent`)
+  const bundled = getActiveContent();
+  setActiveContent({ ...bundled, resolved: { ...bundled.resolved, nodes: bundled.resolved.nodes.map((n) => (n.id === 'walk-distraction' ? { ...n, simulation: {} } : n)) } });
   global.Intl = {
     ...baseIntl,
     DateTimeFormat: (() => ({

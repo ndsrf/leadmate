@@ -54,7 +54,7 @@
 
 ## 10. Rollout
 
-- [ ] 10.1 Promote the Series to stable with stable `minAppVersion` raised to `ENCOUNTERS_MIN_APP_VERSION` only once that app version is the current store release and the long-walk baseline is collected; verify `content:validate --channel stable` passes.
+- [ ] 10.1 (Note 2026-11-21: beta was promoted to stable wholesale at the user's request, so the Series is already in stable at `minAppVersion` 1.3.0; the conditions below were not met first, so confirm the store release and the long-walk baseline before publishing.) Promote the Series to stable with stable `minAppVersion` raised to `ENCOUNTERS_MIN_APP_VERSION` only once that app version is the current store release and the long-walk baseline is collected; verify `content:validate --channel stable` passes.
 
 ## 11. Domain docs
 

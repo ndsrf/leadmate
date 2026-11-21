@@ -666,7 +666,8 @@ describe('Encounter Series progression (Task 3.3)', () => {
   });
 
   it('actions outside a Series Node are ignored', () => {
-    const normalRun = toSimulation(WALK_DISTRACTION);
+    // the bundled `walk-distraction` is itself a Series, so a plain walk is built from it without its Encounters
+    const normalRun = toSimulation({ ...WALK_DISTRACTION, simulation: {} });
     expect(advance(normalRun, { type: 'retry' })).toBe(normalRun);
     expect(advance(normalRun, { type: 'next-encounter' })).toBe(normalRun);
     expect(advance(normalRun, { type: 'exit-series' })).toBe(normalRun);
