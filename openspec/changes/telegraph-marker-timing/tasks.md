@@ -43,7 +43,7 @@
 ## 7. Poste practice ring
 
 - [x] 7.1 Add tests and then `posteRingProgress` (held / holdToSettle, landed on `settled`, snap on `released`) next to `src/shell/nodes/posteMinigame.ts`. Verify: tests pass.
-- [ ] 7.2 Draw the ring in `PosteMinigameView` around the Dog, with the reduced-motion form through the motion gate, without reading or writing the assist. Verify: run the Poste practice Node and see the ring close on hold and snap open on release.
+- [x] 7.2 Draw the ring in `PosteMinigameView` around the Dog, with the reduced-motion form through the motion gate, without reading or writing the assist. Verify: run the Poste practice Node and see the ring close on hold and snap open on release.
 
 ## 8. Integration checks
 
