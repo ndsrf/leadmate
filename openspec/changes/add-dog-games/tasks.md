@@ -16,8 +16,8 @@
 
 ## 3. Game logic
 
-- [ ] 3.1 Add `src/shell/games.ts` with `pickRandomGame(ids, lastId, rng)` and `canSeeGame(game, plus)`; verify with `games.test.ts`: no immediate repeat with several games, single game returns itself, Free game open to all, Plus game open only with Plus (including an active trial through `isPlus`).
-- [ ] 3.2 Add the locked-bars model (bar count and widths from hidden text length, bounded) as a pure function; verify with a test that no hidden text is in its output.
+- [x] 3.1 Add `src/shell/games.ts` with `pickRandomGame(ids, lastId, rng)` and `canSeeGame(game, plus)`; verify with `games.test.ts`: no immediate repeat with several games, single game returns itself, Free game open to all, Plus game open only with Plus (including an active trial through `isPlus`).
+- [x] 3.2 Add the locked-bars model (bar count and widths from hidden text length, bounded) as a pure function; verify with a test that no hidden text is in its output.
 
 ## 4. Screens
 
