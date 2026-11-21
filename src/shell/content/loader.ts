@@ -11,6 +11,7 @@ import {
 import {
   parseYaml,
   type CategoryYaml,
+  type GameYaml,
   type LessonYaml,
   type MissionYaml,
   type NodeYaml,
@@ -159,6 +160,7 @@ export function loadPackFromDisk(packDir: string): ContentPack {
     lessons: {},
     nodes: {},
     missions: {},
+    games: {},
   };
 
   // 1. Worlds
@@ -252,6 +254,7 @@ export function loadPackFromDisk(packDir: string): ContentPack {
   loadItems<LessonYaml>('lessons', 'lesson.yaml', result.lessons);
   loadItems<NodeYaml>('nodes', 'node.yaml', result.nodes);
   loadItems<MissionYaml>('missions', 'mission.yaml', result.missions);
+  loadItems<GameYaml>('games', 'game.yaml', result.games!);
 
   const shopDir = join(packDir, 'shop');
   if (existsSync(shopDir)) {

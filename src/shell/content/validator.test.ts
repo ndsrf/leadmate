@@ -977,4 +977,245 @@ describe('validatePack scenarios', () => {
       expect(report.warnings.some((w) => w.message.includes('fresh-move') && w.message.includes('never Introduced'))).toBe(true);
     });
   });
+
+  describe('Dog Games validation (tasks 1.2 and 1.3)', () => {
+    function makePngBuffer(width: number, height: number, sizeBytes?: number): Buffer {
+      const header = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+      const ihdr = Buffer.alloc(25);
+      ihdr.writeUInt32BE(13, 0);
+      ihdr.write('IHDR', 4, 'ascii');
+      ihdr.writeUInt32BE(width, 8);
+      ihdr.writeUInt32BE(height, 12);
+      ihdr[16] = 8;
+      ihdr[17] = 2;
+      ihdr[18] = 0;
+      ihdr[19] = 0;
+      ihdr[20] = 0;
+      ihdr.writeUInt32BE(0x12345678, 21);
+
+      const targetSize = sizeBytes ?? (header.length + ihdr.length);
+      if (targetSize > header.length + ihdr.length) {
+        const padding = Buffer.alloc(targetSize - header.length - ihdr.length);
+        return Buffer.concat([header, ihdr, padding]);
+      }
+      return Buffer.concat([header, ihdr]);
+    }
+
+    function makeGamePack() {
+      const pack = makeValidPack();
+      pack.shop = {
+        categories: {
+          'cat-1': {
+            config: { id: 'cat-1', subcategories: ['sub-1'] },
+            text: { es: { title: 'Cat 1', description: 'Desc 1' } },
+          },
+        },
+        subcategories: {
+          'sub-1': {
+            config: { id: 'sub-1', products: ['prod-1'] },
+            text: { es: { title: 'Sub 1', description: 'Desc 1' } },
+          },
+        },
+        products: {
+          'prod-1': {
+            config: { id: 'prod-1', urls: { es: 'https://example.com' } },
+            text: { es: { title: 'Prod 1', description: 'Desc 1' } },
+          },
+        },
+      };
+      pack.games = {
+        'game-1': {
+          config: {
+            id: 'game-1',
+            order: 1,
+            free: true,
+            difficulty: 'easy',
+            minutes: 5,
+            materials: ['food'],
+            images: ['game-1-1.png'],
+            needs: ['prod-1'],
+          },
+          text: {
+            es: {
+              title: 'Juego 1',
+              intro: 'Intro en español',
+              steps: ['Paso 1', 'Paso 2'],
+              images: {
+                'game-1-1.png': { alt: 'Alt visual', caption: 'Pie' },
+              },
+            },
+          },
+          files: ['media/game-1-1.png'],
+          mediaBuffers: {
+            'game-1-1.png': makePngBuffer(960, 540),
+          },
+        },
+      };
+      return pack;
+    }
+
+    it('Scenario: Valid Dog Game passes validation', () => {
+      const pack = makeGamePack();
+      const report = validatePack(pack);
+      expect(report.valid).toBe(true);
+      expect(report.errors).toEqual([]);
+    });
+
+    it('Rule 1: Unique ID across all items', () => {
+      const pack = makeGamePack();
+      // Use existing lesson id 'lesson-1'
+      pack.games!['lesson-1'] = {
+        ...pack.games!['game-1'],
+        config: { ...pack.games!['game-1'].config, id: 'lesson-1' },
+      };
+      delete pack.games!['game-1'];
+
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.file === 'games/lesson-1/game.yaml' && e.field === 'id');
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('Duplicate ID "lesson-1" already defined as a lesson');
+      expect(err?.hint).toBe('Use unique IDs across all content items');
+    });
+
+    it('Rule 2: Known difficulty', () => {
+      const pack = makeGamePack();
+      (pack.games!['game-1'].config as any).difficulty = 'extreme';
+
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.file === 'games/game-1/game.yaml' && e.field === 'difficulty');
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('Invalid game difficulty "extreme"');
+      expect(err?.hint).toContain('Expected one of: easy, medium, hard');
+    });
+
+    it('Rule 3: Positive minutes', () => {
+      const pack = makeGamePack();
+      pack.games!['game-1'].config.minutes = -3;
+
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.file === 'games/game-1/game.yaml' && e.field === 'minutes');
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('minutes must be a positive number');
+      expect(err?.hint).toContain('Set minutes');
+    });
+
+    it('Rule 4: needs IDs exist in shop index', () => {
+      const pack = makeGamePack();
+      pack.games!['game-1'].config.needs = ['unknown-product-xyz'];
+
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.file === 'games/game-1/game.yaml' && e.field === 'needs');
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('Dog Game "game-1" needs unknown shop target "unknown-product-xyz"');
+      expect(err?.hint).toBe('Target must be an existing Product, Subcategory, or Category in the shop');
+    });
+
+    it('Rule 5: Images exist in media/', () => {
+      const pack = makeGamePack();
+      pack.games!['game-1'].config.images = ['missing-photo.png'];
+
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.file === 'games/game-1/game.yaml' && e.field === 'images');
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('image "missing-photo.png" does not exist in games/game-1/media/');
+      expect(err?.hint).toBe('Export the image into the game media/ folder or fix the file name');
+    });
+
+    it('Rule 6: Images have Spanish alt text in es.md', () => {
+      const pack = makeGamePack();
+      pack.games!['game-1'].text = {
+        es: {
+          title: 'Juego 1',
+          intro: 'Intro',
+          steps: ['Paso 1'],
+          images: {}, // No alt text for game-1-1.png
+        },
+      };
+
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.file === 'games/game-1/es.md' && e.field === 'images');
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('illustration "game-1-1.png" is missing Spanish alt text');
+      expect(err?.hint).toContain('Add "### game-1-1.png" with "- alt: <description>" under "## images" in games/game-1/es.md');
+    });
+
+    it('Rule 7: Safety note required for fabric/plastic/bone materials', () => {
+      const pack = makeGamePack();
+      pack.games!['game-1'].config.materials = ['fabric', 'plastic'];
+      // No safety note in es.md
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.file === 'games/game-1/es.md' && e.field === 'safety');
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('uses swallowable materials (fabric, plastic) but has no safety note');
+      expect(err?.hint).toContain('Add a "## safety" section in es.md');
+
+      // Now add safety note: should pass!
+      (pack.games!['game-1'].text!.es as any).safety = 'Supervisa en todo momento para que no ingiera trozos.';
+      const validReport = validatePack(pack);
+      expect(validReport.valid).toBe(true);
+    });
+
+    it('Media limit: Oversized illustration (> 250 KB)', () => {
+      const pack = makeGamePack();
+      pack.games!['game-1'].mediaBuffers = {
+        'game-1-1.png': makePngBuffer(960, 540, 260 * 1024), // 260 KB > 250 KB
+      };
+
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.file === 'games/game-1/media/game-1-1.png' && e.field === 'images');
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('weighs 260.0 KB, which exceeds the limit of 250 KB');
+      expect(err?.hint).toContain('Reduce image quality or dimensions to stay under 250 KB');
+    });
+
+    it('Media limit: Wrong ratio (4:3 instead of 16:9)', () => {
+      const pack = makeGamePack();
+      pack.games!['game-1'].mediaBuffers = {
+        'game-1-1.png': makePngBuffer(800, 600), // 4:3
+      };
+
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.file === 'games/game-1/media/game-1-1.png' && e.field === 'images');
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('has aspect ratio 800:600, but 16:9 is required');
+      expect(err?.hint).toContain('Crop or pad illustration to 16:9 aspect ratio');
+    });
+
+    it('Media limit: Wider than 960 points', () => {
+      const pack = makeGamePack();
+      pack.games!['game-1'].mediaBuffers = {
+        'game-1-1.png': makePngBuffer(1280, 720), // 16:9 but 1280 > 960
+      };
+
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.file === 'games/game-1/media/game-1-1.png' && e.field === 'images');
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('width is 1280 points, exceeding the limit of 960 points');
+      expect(err?.hint).toContain('Scale image down to at most 960 points wide');
+    });
+
+    it('Media limit: Wrong format (not PNG)', () => {
+      const pack = makeGamePack();
+      pack.games!['game-1'].mediaBuffers = {
+        'game-1-1.png': Buffer.from('RIFF....WEBPVP8 ... not a png'),
+      };
+
+      const report = validatePack(pack);
+      expect(report.valid).toBe(false);
+      const err = report.errors.find((e) => e.file === 'games/game-1/media/game-1-1.png' && e.field === 'images');
+      expect(err).toBeDefined();
+      expect(err?.message).toContain('is not a valid PNG image');
+      expect(err?.hint).toContain('Illustrations must be PNG format with .png extension');
+    });
+  });
 });

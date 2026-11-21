@@ -1,10 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { getGeneratedTables } from './formatGuide';
-import { parseLessonMarkdown, parseMissionMarkdown, parseNodeMarkdown, parseShopItemMarkdown } from './parser';
+import { parseGameMarkdown, parseLessonMarkdown, parseMissionMarkdown, parseNodeMarkdown, parseShopItemMarkdown } from './parser';
 import {
   parseYaml,
   type CategoryYaml,
+  type GameYaml,
   type LessonYaml,
   type MissionYaml,
   type NodeYaml,
@@ -73,6 +74,10 @@ describe('FORMAT.md Conformance', () => {
     expect(formatDoc).toContain(tables.encounterTable);
   });
 
+  it('contains the generated game schema table without drift', () => {
+    expect(formatDoc).toContain(tables.gameTable);
+  });
+
   it('fails when a field is removed from the guide (drift detection)', () => {
     const tableWithoutPrice = tables.productTable
       .split('\n')
@@ -97,6 +102,12 @@ describe('FORMAT.md Conformance', () => {
       .filter((line) => !line.includes('`introduces`'))
       .join('\n');
     expect(formatDoc).not.toContain(tableWithoutIntroduces);
+
+    const tableWithoutOrder = tables.gameTable
+      .split('\n')
+      .filter((line) => !line.includes('`order`'))
+      .join('\n');
+    expect(formatDoc).not.toContain(tableWithoutOrder);
   });
 
   it('Scenario: Action kinds listed - starting set and introducible kinds match FEEDBACK_ACTION_KINDS without drift', () => {
@@ -428,5 +439,80 @@ describe('FORMAT.md Conformance', () => {
     const olderReport = validatePack(olderPack);
     expect(olderReport.valid).toBe(false);
     expect(olderReport.errors.some((e) => e.field === 'minAppVersion' && e.message.includes('Encounter Series'))).toBe(true);
+  });
+
+  it('agent-style test: creates a Dog Game from the guide example and it validates in a pack', () => {
+    // Extract game yaml block from FORMAT.md
+    const yamlMatch = /```yaml\norder: 1([\s\S]*?)```/.exec(formatDoc);
+    expect(yamlMatch).not.toBeNull();
+    const gameYaml = parseYaml<GameYaml>(`order: 1${yamlMatch![1]}`);
+
+    // Extract game markdown block from FORMAT.md
+    const mdMatch = /```markdown\n(# Busca el premio[\s\S]*?)```/.exec(formatDoc);
+    expect(mdMatch).not.toBeNull();
+    const gameMd = mdMatch![1];
+
+    const parsed = parseGameMarkdown(gameMd, gameYaml);
+    expect(parsed.title).toBe('Busca el premio');
+    expect(parsed.intro).toContain('Un juego de olfato sencillo');
+    expect(parsed.steps).toHaveLength(3);
+
+    // Build valid pack with the game and shop target
+    const pack: ContentPack = {
+      pack: {
+        formatVersion: 1,
+        contentVersion: 1,
+        minAppVersion: '1.0.0',
+        languages: ['es'],
+      },
+      worlds: {},
+      lessons: {},
+      nodes: {},
+      missions: {},
+      shop: {
+        categories: {
+          collares: {
+            config: { id: 'collares', subcategories: ['sub-collares'] },
+            text: { es: { title: 'Collares', description: 'Desc' } },
+          },
+        },
+        subcategories: {
+          'sub-collares': {
+            config: { id: 'sub-collares', products: ['collar-plano-acolchado'] },
+            text: { es: { title: 'Sub', description: 'Desc' } },
+          },
+        },
+        products: {
+          'collar-plano-acolchado': {
+            config: { id: 'collar-plano-acolchado', urls: { es: 'https://example.com' } },
+            text: { es: { title: 'Collar plano acolchado', description: 'Desc' } },
+          },
+        },
+      },
+      games: {
+        'sample-game': {
+          config: gameYaml,
+          text: {
+            es: parsed,
+          },
+          files: ['media/sample-game-1.png'],
+          mediaBuffers: {
+            'sample-game-1.png': Buffer.from([
+              0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, // PNG signature
+              0, 0, 0, 13, // IHDR length 13
+              0x49, 0x48, 0x44, 0x52, // IHDR
+              0, 0, 3, 0xc0, // width 960
+              0, 0, 2, 0x1c, // height 540
+              8, 2, 0, 0, 0, // 8-bit RGB
+              0, 0, 0, 0, // CRC
+            ]),
+          },
+        },
+      },
+    };
+
+    const report = validatePack(pack);
+    expect(report.valid).toBe(true);
+    expect(report.errors).toEqual([]);
   });
 });

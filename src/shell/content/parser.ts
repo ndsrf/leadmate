@@ -3,6 +3,7 @@ import type { CompareSide, LessonBlock, LessonKind, VideoSource } from '../lesso
 import {
   parseYaml,
   type CategoryYaml,
+  type GameYaml,
   type LessonYaml,
   type ProductYaml,
   type ShopYaml,
@@ -176,6 +177,17 @@ export interface ParsedShopTree {
   categories: Record<string, ParsedShopCategory>;
   subcategories: Record<string, ParsedShopSubcategory>;
   products: Record<string, ParsedShopProduct>;
+}
+
+export interface ParsedGameContent {
+  title: string;
+  intro: string;
+  materials?: string[];
+  steps: string[];
+  tips?: string[];
+  safety?: string;
+  images?: Record<string, ParsedImageMeta>;
+  shop?: Record<string, string>;
 }
 
 // -- Low-level Markdown AST representation -----------------------------------
@@ -837,5 +849,113 @@ export function parseShopItemMarkdown(markdown: string, context?: string): Parse
   }
 
   return { title, description };
+}
+
+// -- Dog Game Markdown Parser ------------------------------------------------
+
+export function parseGameMarkdown(markdown: string, config?: GameYaml, context?: string): ParsedGameContent {
+  assertNoRejectedMarkup(markdown, context);
+  if (!markdown || !markdown.trim()) {
+    throw new MarkdownParseError(`Spanish text is empty or missing${context ? ` in ${context}` : ''}`);
+  }
+
+  const { title: rawTitle, sections } = parseSections(markdown);
+  let title = rawTitle;
+  let intro = '';
+  let materials: string[] | undefined;
+  let steps: string[] = [];
+  let tips: string[] | undefined;
+  let safety: string | undefined;
+  const images: Record<string, ParsedImageMeta> = {};
+  const shop: Record<string, string> = {};
+
+  for (const sec of sections) {
+    const norm = normalizeSectionName(sec.heading);
+    switch (norm) {
+      case 'title':
+      case 'titulo':
+        title = cleanBodyText(sec.body);
+        break;
+
+      case 'intro':
+      case 'introduccion':
+        intro = cleanBodyText(sec.body);
+        break;
+
+      case 'materials':
+      case 'materiales': {
+        const items = extractListItems(sec.body);
+        if (items.length > 0) {
+          materials = items;
+        } else {
+          const body = cleanBodyText(sec.body);
+          if (body) materials = [body];
+        }
+        break;
+      }
+
+      case 'steps':
+      case 'pasos':
+        steps = extractListItems(sec.body);
+        break;
+
+      case 'tips':
+      case 'tip':
+      case 'consejos':
+      case 'consejo': {
+        const items = extractListItems(sec.body);
+        if (items.length > 0) {
+          tips = items;
+        } else {
+          const body = cleanBodyText(sec.body);
+          if (body) tips = [body];
+        }
+        break;
+      }
+
+      case 'safety':
+      case 'seguridad':
+      case 'aviso':
+        safety = cleanBodyText(sec.body);
+        break;
+
+      case 'images':
+      case 'imagenes':
+      case 'media': {
+        for (const sub of sec.subsections) {
+          const kv = extractMetaKeyValues(sub.body);
+          images[sub.heading.trim()] = {
+            alt: kv.alt ?? '',
+            caption: kv.caption ?? '',
+          };
+        }
+        break;
+      }
+
+      case 'shop':
+      case 'tienda': {
+        for (const sub of sec.subsections) {
+          shop[sub.heading.trim()] = cleanBodyText(sub.body);
+        }
+        break;
+      }
+    }
+  }
+
+  const finalTitle = title || (config ? config.id ?? '' : '');
+  if (!finalTitle) {
+    throw new MarkdownParseError(`Game missing title${context ? ` in ${context}` : ''}`);
+  }
+
+  return {
+    title: finalTitle,
+    intro,
+    materials,
+    steps,
+    tips,
+    safety,
+    images: Object.keys(images).length > 0 ? images : undefined,
+    shop: Object.keys(shop).length > 0 ? shop : undefined,
+  };
 }
 
