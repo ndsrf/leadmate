@@ -9868,6 +9868,7 @@ export const BASELINE_PACK: ContentPack = {
       "files": []
     }
   },
+  "games": {},
   "shop": {
     "categories": {
       "camas": {

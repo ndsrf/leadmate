@@ -93,6 +93,8 @@ export type PendingPlusAction =
   | { kind: 'skip'; missionId: string }
   | { kind: 'video'; lessonId: string; returnTo?: 'map' | 'library' }
   | { kind: 'barkdoku' }
+  /** A locked Dog Game: the paywall returns to it, unlocked after a trial or purchase, still locked if dismissed. */
+  | { kind: 'game'; gameId: string; from?: 'list' | 'random' }
   | { skipMission: string };
 
 /** Extracts the mission id if this pending action is a day skip (supporting legacy untagged shape). */

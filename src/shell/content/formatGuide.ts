@@ -2,6 +2,7 @@ import {
   CATEGORY_SCHEMA_FIELDS,
   DUEL_QUESTION_SCHEMA_FIELDS,
   ENCOUNTER_SCHEMA_FIELDS,
+  GAME_SCHEMA_FIELDS,
   LESSON_SCHEMA_FIELDS,
   MISSION_SCHEMA_FIELDS,
   NODE_SCHEMA_FIELDS,
@@ -43,5 +44,6 @@ export function getGeneratedTables() {
     recommendationTable: renderFieldTable(RECOMMENDATION_SCHEMA_FIELDS),
     duelQuestionTable: renderFieldTable(DUEL_QUESTION_SCHEMA_FIELDS),
     encounterTable: renderFieldTable(ENCOUNTER_SCHEMA_FIELDS),
+    gameTable: renderFieldTable(GAME_SCHEMA_FIELDS),
   };
 }

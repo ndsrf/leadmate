@@ -57,6 +57,20 @@ describe('buildPack / content:build', () => {
     expect(fs.existsSync(path.join(tmpOutDir, 'packs', '1', 'manifest.json'))).toBe(true);
   });
 
+  it('includes games in the build manifest and hashed files', () => {
+    const result = buildPack({
+      channel: 'beta',
+      packDir: BETA_DIR,
+      outDir: tmpOutDir,
+      contentVersion: 1,
+    });
+    const gameFiles = Object.keys(result.manifest.files).filter((k) => k.startsWith('games/'));
+    expect(gameFiles.length).toBeGreaterThan(0);
+    for (const gf of gameFiles) {
+      expect(result.manifest.files[gf].size).toBeGreaterThan(0);
+    }
+  });
+
   it('two successive builds produce identical manifests apart from the timestamp', () => {
     const outDir1 = path.join(tmpOutDir, 'run1');
     const outDir2 = path.join(tmpOutDir, 'run2');

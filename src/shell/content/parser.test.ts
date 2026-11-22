@@ -5,6 +5,7 @@ import {
   assertNoRejectedMarkup,
   buildLessonBlocks,
   MarkdownParseError,
+  parseGameMarkdown,
   parseLessonMarkdown,
   parseMissionMarkdown,
   parseNodeMarkdown,
@@ -521,5 +522,73 @@ describe('readShopDirectory', () => {
 
     expect(() => readShopDirectory(tmpDir)).toThrow(MarkdownParseError);
     expect(() => readShopDirectory(tmpDir)).toThrow(/Unexpected section "bad_section"/);
+  });
+});
+
+describe('parseGameMarkdown', () => {
+  it('parses a complete game with all sections', () => {
+    const md = `# Elige mano
+
+## intro
+Un juego de olfato rápido para aprender a discriminar olores.
+
+## materials
+- Premios olorosos
+- Tus propias manos
+
+## steps
+1. Esconde un premio en una de tus manos a espaldas de tu perro.
+2. Presenta ambos puños cerrados delante de {name} a la altura de su trufa.
+3. Espera a que toque la mano correcta con su trufa o pata.
+4. Abre la mano ganadora y entrega el premio.
+
+## tips
+- Empieza con premios de olor fuerte para facilitarlo.
+- Si falla, no abras la mano vacía, simplemente retira y repite.
+
+## safety
+Supervisa en todo momento para que no intente morder tus manos con excesiva fuerza.
+
+## images
+### eleccion-mano-1.png
+- alt: Dos puños cerrados frente al hocico del perro
+- caption: Presenta ambos puños cerrados
+
+## shop
+### mantas-olfativas
+Una manta olfativa complementa el juego para perros con mucha energía.
+`;
+
+    const config = {
+      order: 1,
+      free: true,
+      difficulty: 'easy' as const,
+      minutes: 3,
+      materials: ['food'],
+      images: ['eleccion-mano-1.png'],
+      needs: ['mantas-olfativas'],
+    };
+
+    const parsed = parseGameMarkdown(md, config);
+    expect(parsed.title).toBe('Elige mano');
+    expect(parsed.intro).toContain('Un juego de olfato rápido');
+    expect(parsed.materials).toEqual(['Premios olorosos', 'Tus propias manos']);
+    expect(parsed.steps).toHaveLength(4);
+    expect(parsed.steps[0]).toContain('Esconde un premio');
+    expect(parsed.tips).toHaveLength(2);
+    expect(parsed.safety).toContain('Supervisa en todo momento');
+    expect(parsed.images).toBeDefined();
+    expect(parsed.images!['eleccion-mano-1.png']).toEqual({
+      alt: 'Dos puños cerrados frente al hocico del perro',
+      caption: 'Presenta ambos puños cerrados',
+    });
+    expect(parsed.shop).toBeDefined();
+    expect(parsed.shop!['mantas-olfativas']).toContain('Una manta olfativa complementa el juego');
+  });
+
+  it('rejects a game missing Spanish text', () => {
+    expect(() => parseGameMarkdown('')).toThrow(MarkdownParseError);
+    expect(() => parseGameMarkdown('   \n\n  ')).toThrow(/empty or missing/i);
+    expect(() => parseGameMarkdown('## intro\nSolo intro sin título ni nada')).toThrow(/title/i);
   });
 });

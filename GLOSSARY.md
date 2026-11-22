@@ -209,8 +209,13 @@ _Avoid_: Dog cam, avatar, inset
 An optional external URL declared on a Theory Primer card pointing to web-hosted instructional articles, illustrations, or video tutorials, viewable in an in-app browser with graceful offline placeholders.
 _Avoid_: Webview modal, external resource
 
+**Dog Game**:
+A real-world activity with the real dog (such as scent games, impulse-control games, enrichment or tricks), delivered as Content in the pack. It is not a Minigame and is not played with the virtual Dog.
+_Avoid_: Minigame, game (alone)
+
 **Minigame**:
 The static Interactive Simulation of a Node (a Tap & Hold exercise, a scene of Action beats in which the user reads the Dog and picks an action, or a spatial deduction puzzle), or a round of Read the Dog. It is not a Stage and does not change the Dog's Learning Attributes.
+_Avoid_: Dog Game
 
 **Action beat**:
 One step of an action Minigame: the Dog shows one Canine Posture and exactly one of the offered actions is right for it.

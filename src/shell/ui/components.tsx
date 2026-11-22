@@ -319,6 +319,22 @@ export function BasketGlyph({ size = 20 }: { size?: number }) {
   );
 }
 
+/** A dog games glyph drawn in ink, decorative: the control around it carries the label. */
+export function GamesGlyph({ size = 20 }: { size?: number }) {
+  const color = usePalette();
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <Path
+        d="M18.4 6.6a2.1 2.1 0 0 0-2.9 0L14 8.1l-1.6-1.5a2.1 2.1 0 1 0-3 3l1.5 1.4-4.3 4.3a2.1 2.1 0 0 0-3 0 2.1 2.1 0 0 0 0 3 2.1 2.1 0 0 0 3 0l1.5-1.5 1.5 1.5a2.1 2.1 0 0 0 3-3l-1.5-1.5 4.3-4.3a2.1 2.1 0 0 0 3 0 2.1 2.1 0 0 0 0-2.9z"
+        stroke={color.ink}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 /** A settings gear drawn in ink, decorative: the control around it carries the label. */
 export function GearGlyph({ size = 20 }: { size?: number }) {
   const color = usePalette();

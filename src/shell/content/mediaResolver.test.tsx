@@ -306,4 +306,81 @@ describe('MediaResolver & ContentPicture Component', () => {
     expect(images.length).toBe(1);
     expect(images[0].props.source.uri).toContain('new-art.png');
   });
+
+  describe('Dog Game illustration resolution (Task 2.3)', () => {
+    const gameId = 'manta-enrollada';
+    const gameArt = 'manta-enrollada-1.png';
+    const gamePath = `games/${gameId}/media/${gameArt}`;
+
+    it('Case 1: downloaded - returns local result when game illustration exists in local storage', async () => {
+      const activeDir = store.getActiveDir('beta');
+      const localFilePath = `${activeDir}/${gamePath}`;
+      await fileStorage.writeAsString(localFilePath, 'fake-image-bytes');
+
+      const res = await resolver.resolveImage(gameArt, { itemPath: `games/${gameId}`, channel: 'beta' });
+      expect(res.kind).toBe('local');
+      expect(res.uri).toBe(localFilePath);
+      expect(res.source).toEqual({ uri: localFilePath });
+
+      // Also works when passing full path as art
+      const resFullPath = await resolver.resolveImage(gamePath, { channel: 'beta' });
+      expect(resFullPath.kind).toBe('local');
+      expect(resFullPath.uri).toBe(localFilePath);
+    });
+
+    it('Case 2: pending - returns placeholder with isPending=true when game illustration is not yet downloaded but remote host is available', async () => {
+      const imageBytes = new Uint8Array([10, 20, 30]);
+      const imageHash = await sha256Hex(imageBytes);
+      server.setRoute(`${CONTENT_BASE}/beta/files/${imageHash}.png`, imageBytes);
+
+      const manifest: ContentManifest = {
+        channel: 'beta',
+        contentVersion: 1,
+        formatVersion: 1,
+        minAppVersion: '1.0.0',
+        createdAt: '2026-11-22T00:00:00Z',
+        files: {
+          [gamePath]: {
+            sha256: imageHash,
+            size: imageBytes.length,
+          },
+        },
+      };
+
+      await kvStorage.setItem(
+        '@leadmate:content_active_beta',
+        JSON.stringify({
+          channel: 'beta',
+          contentVersion: 1,
+          formatVersion: 1,
+          minAppVersion: '1.0.0',
+          activatedAt: '2026-11-22T00:00:00Z',
+          manifest,
+        })
+      );
+
+      let downloadStarted = false;
+      server.onRequest = () => {
+        downloadStarted = true;
+      };
+
+      const res = await resolver.resolveImage(gameArt, { itemPath: `games/${gameId}`, channel: 'beta' });
+      expect(res.kind).toBe('placeholder');
+      expect(res.isPending).toBe(true);
+      expect(res.failed).toBeFalsy();
+
+      await new Promise((r) => setTimeout(r, 10));
+      expect(downloadStarted).toBe(true);
+    });
+
+    it('Case 3: failed - returns placeholder with failed=true when not downloaded and no remote host available', async () => {
+      // Resolver with no remote content base (offline / local only)
+      const offlineResolver = new MediaResolver(store, fileStorage, server, undefined);
+
+      const res = await offlineResolver.resolveImage(gameArt, { itemPath: `games/${gameId}`, channel: 'beta' });
+      expect(res.kind).toBe('placeholder');
+      expect(res.failed).toBe(true);
+      expect(res.isPending).toBeFalsy();
+    });
+  });
 });

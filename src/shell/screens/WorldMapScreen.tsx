@@ -19,11 +19,11 @@ import { worldsFor, worldTitle, type Progress, type Stop } from '../world';
 import type { DogRecord } from '../dogRecord';
 import { isPlus, plusEndsAt, trialDaysRemaining, trialState, type TrialState } from '../plus';
 import { Backdrop, Button } from '../Overlays';
-import { Badge, BasketGlyph, Chip, GearGlyph, IconChip, LightRegion, Panel, ProgressBar, Raised, StarRow } from '../ui/components';
+import { Badge, BasketGlyph, Chip, GamesGlyph, GearGlyph, IconChip, LightRegion, Panel, ProgressBar, Raised, StarRow } from '../ui/components';
 import { WorldSceneryBackground, HouseLandmark, worldPalette } from '../ui/WorldSceneryBackground';
 export { HouseLandmark };
 import { getActiveContent } from '../content/runtime';
-import type { ResolvedShop } from '../content/resolver';
+import type { ResolvedGame, ResolvedShop } from '../content/resolver';
 import { connector, connectorVisual, labelOnRight, labelWidth, NODE_SIZE, nodeCenterX, nodeVisual, ROW_HEIGHT, SATELLITE_SIZE, satelliteCenterX, satelliteConnector, satelliteVisual, SECTION_HEADER_HEIGHT, sectionHeaderYOffset, stopYOffset, stretchFlag, type NodeGlyph } from '../ui/mapLayout';
 import { lockMessage, owedItemLabel, stopAccessibilityLabel, stopBadge, stopMarks, worldUnlockBanner, worldWalkSubtitle } from '../mapText';
 import { BreedArt } from '../ui/BreedArt';
@@ -85,6 +85,10 @@ export interface WorldMapProps {
   onShop?: (target?: { level: 'home' | 'category' | 'subcategory' | 'product'; id?: string }) => void;
   /** Resolved shop catalogue. When omitted, reads from `getActiveContent()?.resolved?.shop`. */
   shop?: ResolvedShop;
+  /** Opens the Games screen over the map. */
+  onGames?: () => void;
+  /** The active pack's Dog Games. When omitted, reads from `getActiveContent()?.resolved?.games`; the Games chip shows only when there is at least one. */
+  games?: readonly ResolvedGame[];
   /** Floating shop offer / recommendation popup to display over the map. */
   shopPopup?: React.ReactNode;
   /** A non-blocking account card to show above the map, if any. */
@@ -1304,6 +1308,8 @@ export function WorldMapScreen({
   onSettings,
   onShop,
   shop: shopProp,
+  onGames,
+  games: gamesProp,
   shopPopup,
   libraryToday = false,
   onLibrary = () => {},
@@ -1337,6 +1343,7 @@ export function WorldMapScreen({
   const isTrialModalOpen = trialModalOpen ?? internalModalOpen;
   const activeShop = shopProp ?? getActiveContent()?.resolved?.shop;
   const hasShop = (activeShop?.categories?.length ?? 0) > 0;
+  const hasGames = ((gamesProp ?? getActiveContent()?.resolved?.games)?.length ?? 0) > 0;
   const openTrialModal = onOpenTrialModal ?? (() => setInternalModalOpen(true));
   const closeTrialModal = onCloseTrialModal ?? (() => setInternalModalOpen(false));
 
@@ -1443,6 +1450,14 @@ export function WorldMapScreen({
               onPress={() => onShop?.()}
               accessibilityLabel={t('map.shopButton')}
               testID="map-shop-button"
+            />
+          )}
+          {hasGames && (
+            <IconChip
+              icon={<GamesGlyph />}
+              onPress={() => onGames?.()}
+              accessibilityLabel={t('map.gamesButton')}
+              testID="map-games-button"
             />
           )}
         </View>
