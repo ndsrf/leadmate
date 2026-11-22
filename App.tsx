@@ -419,7 +419,11 @@ export default function App() {
   const hintQueueActive = useRef(false);
   const recordRef = useRef(record);
   recordRef.current = record;
-  const vocalizer = useRef(createVocalizer(playDogSound));
+  const vocalizer = useRef(
+    createVocalizer((sound) => {
+      if (uiSettingsRef.current.sounds !== false) playDogSound(sound);
+    }),
+  );
 
   const [setupPart, setSetupPart] = useState<SetupPart | null>(null);
   const funnelTracker = useRef(new FunnelTracker());
@@ -1108,7 +1112,7 @@ export default function App() {
         if (message.tier === 'reactive' && routeRef.current.name === 'taste') showTastePayoff();
       }
       else if (message.type === 'playCue') {
-        if (recordRef.current) playResolvedCue(resolveCue(recordRef.current, language));
+        if (uiSettingsRef.current.sounds !== false && recordRef.current) playResolvedCue(resolveCue(recordRef.current, language));
       } else if (message.type === 'debrief') {
         const payload: SimulationDebriefPayload = message.payload;
         const f = flowRef.current;

@@ -104,7 +104,15 @@ jest.mock('expo-font', () => ({ useFonts: () => [true] }));
 jest.mock('@expo-google-fonts/fredoka', () => ({ Fredoka_600SemiBold: 1 }));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaProvider: (p: any) => p.children, useSafeAreaInsets: () => ({ top: 40, bottom: 20, left: 0, right: 0 }) }));
 jest.mock('./shell/ui/feedbackBackends', () => ({ installFeedback: () => {} }));
-jest.mock('./shell/ui/useUiSettings', () => ({ useUiSettings: () => ({ settings: { appearance: 'light' }, change: () => {} }) }));
+let mockUiSettings = { appearance: 'light' as const, sounds: true, haptics: true, alwaysTimingHelp: false };
+jest.mock('./shell/ui/useUiSettings', () => ({
+  useUiSettings: () => ({
+    settings: mockUiSettings,
+    change: (patch: any) => {
+      mockUiSettings = { ...mockUiSettings, ...patch };
+    },
+  }),
+}));
 jest.mock('./shell/ui/components', () => {
   const React = require('react');
   return {
@@ -121,7 +129,13 @@ jest.mock('./shell/ui/theme', () => {
   };
 });
 jest.mock('./shell/ui/ContentUpdateBanner', () => ({ ContentUpdateBanner: () => null }));
-jest.mock('./shell/audio', () => ({ playDogSound: () => {}, playResolvedCue: () => {}, prepareAudio: () => {} }));
+const mockPlayDogSound = jest.fn();
+const mockPlayResolvedCue = jest.fn();
+jest.mock('./shell/audio', () => ({
+  playDogSound: (s: any) => mockPlayDogSound(s),
+  playResolvedCue: (c: any) => mockPlayResolvedCue(c),
+  prepareAudio: () => {},
+}));
 jest.mock('./shell/billing', () => ({
   getBillingService: () => ({ initialize: () => Promise.resolve(), checkEntitlements: () => Promise.resolve(null) }),
 }));
@@ -332,6 +346,9 @@ beforeEach(() => {
   mockAppStateListeners.length = 0;
   mockBackHandlerListeners.length = 0;
   mockOnDebrief = null;
+  mockPlayDogSound.mockClear();
+  mockPlayResolvedCue.mockClear();
+  mockUiSettings = { appearance: 'light', sounds: true, haptics: true, alwaysTimingHelp: false };
 });
 
 afterEach(() => {
@@ -2690,5 +2707,35 @@ describe('Theory Library filtering in App (change filter-library-completed-lesso
     expect(lessons.some((l: any) => l.id === 'theory-calm-first')).toBe(true);
     // World 2 ('home') is not completed, so its lessons remain locked
     expect(lessons.some((l: any) => l.id === 'theory-bite-owner')).toBe(false);
+  });
+});
+
+describe('Simulation sound preferences (mute-simulator-when-sound-disabled)', () => {
+  it('plays dog vocalization and cue audio during a stage when sounds are enabled', async () => {
+    mockUiSettings.sounds = true;
+    await openMap();
+    openStop(WALK_DISTRACTION.id);
+    throughPrimerAndCheckpoint();
+    await sendFromView({ type: 'ready' });
+
+    await sendFromView({ type: 'reaction-tier-change', tier: 'reactive' });
+    expect(mockPlayDogSound).toHaveBeenCalledWith('bark');
+
+    await sendFromView({ type: 'playCue' });
+    expect(mockPlayResolvedCue).toHaveBeenCalled();
+  });
+
+  it('suppresses dog vocalization and cue audio during a stage when sounds are disabled', async () => {
+    mockUiSettings.sounds = false;
+    await openMap();
+    openStop(WALK_DISTRACTION.id);
+    throughPrimerAndCheckpoint();
+    await sendFromView({ type: 'ready' });
+
+    await sendFromView({ type: 'reaction-tier-change', tier: 'reactive' });
+    expect(mockPlayDogSound).not.toHaveBeenCalled();
+
+    await sendFromView({ type: 'playCue' });
+    expect(mockPlayResolvedCue).not.toHaveBeenCalled();
   });
 });
