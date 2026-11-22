@@ -775,6 +775,21 @@ describe('App - Stage view lifecycle', () => {
       expect(latest('GamesScreen').lastRandomId).toBe('eleccion-mano');
     });
 
+    it('sends screen views for the Games list and a game, and one random-pick event with no game text', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await openMap();
+      analytics.clear();
+      act(() => latest('WorldMapScreen').onGames());
+      act(() => latest('GamesScreen').onOpenRandom('trilero'));
+      const views = analytics.events.filter((e) => e.name === 'screen_viewed').map((e) => e.properties);
+      expect(views[0]).toMatchObject({ screen: 'games', previous_screen: 'map' });
+      expect(views[1]).toMatchObject({ screen: 'game', previous_screen: 'games', screen_item_id: 'trilero' });
+      const picks = analytics.events.filter((e) => e.name === 'game_random_picked');
+      expect(picks).toHaveLength(1);
+      expect(picks[0].properties).toMatchObject({ game_id: 'trilero', plus_status: 'free' });
+      expect(JSON.stringify(picks[0].properties)).not.toContain('game.trilero');
+    });
+
     it('a trial started from a locked game returns to that game unlocked', async () => {
       await openMap();
       act(() => latest('WorldMapScreen').onGames());

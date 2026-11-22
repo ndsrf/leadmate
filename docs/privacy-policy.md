@@ -1,6 +1,6 @@
 # LeadMate Privacy Policy
 
-**Last updated: 18 November 2026**
+**Last updated: 22 November 2026**
 
 LeadMate ("the app", "we") is a mobile app that helps you train your dog to walk calmly on the lead. This policy explains what information the app handles, why, who it is shared with, and the choices you have.
 
@@ -46,9 +46,10 @@ This document contains both the English and Spanish versions of our privacy poli
     5. **Lessons** (`lesson_opened`, `lesson_done`): Theory lessons opened from the map, library, or video unlock, and completed or closed, with foreground duration and reading scroll percentage.
     6. **Checkpoints** (`checkpoint_answered`): Responses to Checkpoint questions in Stage Node primers (result correct, wrong, or missed, node ID, question index, response time).
     7. **Trail stops** (`stop_completed`): Trail Stops completed for the first time across Worlds (world ID, stop ID, stop kind: lesson, node, or mission, and 0-based trail index).
-    8. **Screen views** (`screen_viewed`): Each time a different screen comes to the front: the screen name, the screen you came from and, for a lesson, Node or Mission, its content ID.
-    9. **Leaving the app** (`app_backgrounded`): When the app goes to the background: the screen you were on and the seconds spent in the app session, so we know where people stop.
-    10. **Taps** (automatic tap capture): Each tap on a button or element, recorded with the name of the component, a fixed identifier set in our code (for example `paywall.start_trial`), and the position of the tap. Taps never include the text on screen, accessibility labels, or anything you type: the dog's name field and the login, registration and account screens are excluded from tap capture entirely.
+    8. **Dog Games** (`game_random_picked`): Each press of the "random game" button on the Games screen, with the ID of the game it opened (and, as on every event, your Plus status). It never includes the game's text or anything about your dog.
+    9. **Screen views** (`screen_viewed`): Each time a different screen comes to the front: the screen name, the screen you came from and, for a lesson, Node, Mission or Dog Game, its content ID.
+    10. **Leaving the app** (`app_backgrounded`): When the app goes to the background: the screen you were on and the seconds spent in the app session, so we know where people stop.
+    11. **Taps** (automatic tap capture): Each tap on a button or element, recorded with the name of the component, a fixed identifier set in our code (for example `paywall.start_trial`), and the position of the tap. Taps never include the text on screen, accessibility labels, or anything you type: the dog's name field and the login, registration and account screens are excluded from tap capture entirely.
   - **Privacy guarantees:**
     - **No personal details:** Events never include your dog's name, your email address, or any account or user ID.
     - **No IP addresses or GeoIP:** PostHog is configured to discard client IP addresses immediately upon arrival; IP addresses are never recorded or stored, and no location tracking or GeoIP lookups are performed.
@@ -123,7 +124,7 @@ Javier Garcia (ndsrf) · hi@ndsrf.com
 
 # Política de Privacidad de LeadMate (Español)
 
-**Última actualización: 18 de noviembre de 2026**
+**Última actualización: 22 de noviembre de 2026**
 
 LeadMate ("la aplicación", "nosotros") es una aplicación móvil que te ayuda a educar a tu perro para pasear con calma de la correa. Esta política explica qué información gestiona la app, por qué, con quién se comparte y qué opciones tienes.
 
@@ -164,9 +165,10 @@ LeadMate ("la aplicación", "nosotros") es una aplicación móvil que te ayuda a
     5. **Lecciones de teoría** (`lesson_opened`, `lesson_done`): Lecciones abiertas desde el sendero, la biblioteca o desbloqueo por vídeo, y completadas o cerradas, con tiempo de lectura en primer plano y porcentaje de desplazamiento vertical.
     6. **Puntos de control** (`checkpoint_answered`): Respuestas a preguntas de control en los preparatorios de nodos (resultado correcto, incorrecto o tiempo agotado, ID del nodo, índice de la pregunta y segundos de respuesta).
     7. **Hitos del sendero completados** (`stop_completed`): Paradas del sendero completadas por primera vez en cualquier Mundo (ID del mundo, ID de la parada, tipo de parada: lección, nodo o misión, e índice de sendero base cero).
-    8. **Pantallas vistas** (`screen_viewed`): Cada vez que una pantalla distinta pasa al primer plano: el nombre de la pantalla, la pantalla de la que vienes y, en lecciones, nodos y misiones, su ID de contenido.
-    9. **Salida de la app** (`app_backgrounded`): Cuando la app pasa a segundo plano: la pantalla en la que estabas y los segundos transcurridos en la sesión, para saber en qué punto se detienen los usuarios.
-    10. **Toques** (captura automática de toques): Cada toque en un botón o elemento, registrado con el nombre del componente, un identificador fijo definido en nuestro código (por ejemplo `paywall.start_trial`) y la posición del toque. Los toques nunca incluyen el texto de la pantalla, las etiquetas de accesibilidad ni nada de lo que escribes: el campo del nombre del perro y las pantallas de inicio de sesión, registro y cuenta quedan totalmente excluidos de la captura de toques.
+    8. **Juegos con tu perro** (`game_random_picked`): Cada pulsación del botón "juego al azar" de la pantalla de Juegos, con el ID del juego que abrió (y, como en todos los eventos, tu estado de Plus). Nunca incluye el texto del juego ni ningún dato de tu perro.
+    9. **Pantallas vistas** (`screen_viewed`): Cada vez que una pantalla distinta pasa al primer plano: el nombre de la pantalla, la pantalla de la que vienes y, en lecciones, nodos, misiones y juegos con tu perro, su ID de contenido.
+    10. **Salida de la app** (`app_backgrounded`): Cuando la app pasa a segundo plano: la pantalla en la que estabas y los segundos transcurridos en la sesión, para saber en qué punto se detienen los usuarios.
+    11. **Toques** (captura automática de toques): Cada toque en un botón o elemento, registrado con el nombre del componente, un identificador fijo definido en nuestro código (por ejemplo `paywall.start_trial`) y la posición del toque. Los toques nunca incluyen el texto de la pantalla, las etiquetas de accesibilidad ni nada de lo que escribes: el campo del nombre del perro y las pantallas de inicio de sesión, registro y cuenta quedan totalmente excluidos de la captura de toques.
   - **Garantías de privacidad:**
     - **Sin datos personales:** Los eventos nunca contienen el nombre de tu perro, tu correo electrónico ni ningún ID de cuenta o usuario.
     - **Sin direcciones IP ni geolocalización:** PostHog está configurado para descartar de inmediato las direcciones IP de los clientes al recibirlas; las direcciones IP nunca se registran ni almacenan, y no se realiza seguimiento de ubicación ni GeoIP.
