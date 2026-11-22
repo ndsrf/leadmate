@@ -1,18 +1,12 @@
 # Dog Games content backlog
 
-Status: **INCOMPLETE. The author's full list of 22 games was not found.**
+The first release ships the 6 games of the artboard "Juegos con tu perro — primer lote" in the LeadMate Design
+System canvas. The author will add more games later; each new game is a folder in `content/<channel>/games/` and
+needs no code change. Add a row under "Next games" when a game is planned.
 
-The change `add-dog-games` says the author has a list of 22 games and that 6 are drawn and authored first
-(artboard "Juegos con tu perro — primer lote" in the LeadMate Design System canvas). No file of the repo, the
-change (proposal, design, specs, tasks) or the canvas holds the other 16 names, their families or their materials.
-They are not invented here. The author must supply them; then replace the table in "Remaining 16" and tick task 7.5.
+## First batch (shipped with release 1.4.0)
 
-Verification of task 7.5 ("lists all 22 games exactly once") **cannot pass** until the list exists.
-
-## Shipped in the first batch (6 of 22)
-
-Content in `content/beta/games/<id>/`. Families are the author's grouping once known; the ones below are inferred
-from each game's idea in the artboard captions and marked as such.
+Content in `content/beta/games/<id>/`. Families are inferred from each game's idea in the artboard captions.
 
 | # | Id | Family (inferred) | Materials | Shop link |
 | --- | --- | --- | --- | --- |
@@ -23,13 +17,13 @@ from each game's idea in the artboard captions and marked as such.
 | 5 | `trilero` | Impulse control / choice | Three plastic cups, kibble | none |
 | 6 | `escalon-azul` | Body awareness / tricks | Low step, treats | none |
 
-## Remaining 16 (to be supplied by the author)
+## Next games
 
 | # | Working title | Family | Materials | Needs shop link? |
 | --- | --- | --- | --- | --- |
-| 7-22 | **unknown: list not found** | | | |
+| - | (none planned yet) | | | |
 
-## Hints in the repo (not games from the list)
+## Ideas for later games
 
 - The object kit of the artboard also draws a cone (`cono`), an egg carton (`huevera`), a food ball (`bola-comida`) and a Kong with a piece (`kong-y-trozo`). They suggest later games but are not confirmed as list entries.
 - The proposal names a snuffle mat, a cone and a Kong as products that games would recommend.
