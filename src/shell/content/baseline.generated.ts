@@ -4,7 +4,7 @@ import type { ContentPack } from './validator';
 export const BASELINE_PACK: ContentPack = {
   "pack": {
     "formatVersion": 1,
-    "contentVersion": 7,
+    "contentVersion": 8,
     "minAppVersion": "1.4.0",
     "languages": [
       "es",
@@ -10933,8 +10933,7 @@ export const BASELINE_PACK: ContentPack = {
         "config": {
           "id": "comida",
           "subcategories": [
-            "premios-entrenamiento",
-            "mantas-olfativas"
+            "premios-entrenamiento"
           ]
         },
         "text": {
@@ -10945,6 +10944,25 @@ export const BASELINE_PACK: ContentPack = {
           "es": {
             "title": "Comida y premios",
             "description": "Snacks naturales y comida de alta calidad para premiar a tu perro."
+          }
+        },
+        "files": []
+      },
+      "juegos": {
+        "config": {
+          "id": "juegos",
+          "subcategories": [
+            "mantas-olfativas"
+          ]
+        },
+        "text": {
+          "en": {
+            "title": "Games",
+            "description": "Games and gear to keep your Dog busy and put their nose to work at home."
+          },
+          "es": {
+            "title": "Juegos",
+            "description": "Juegos y materiales para entretener a tu perro y trabajar su olfato en casa."
           }
         },
         "files": []
@@ -11009,7 +11027,9 @@ export const BASELINE_PACK: ContentPack = {
       "mantas-olfativas": {
         "config": {
           "id": "mantas-olfativas",
-          "products": []
+          "products": [
+            "alfombra-olfativa-staranry"
+          ]
         },
         "text": {
           "en": {
@@ -11042,6 +11062,32 @@ export const BASELINE_PACK: ContentPack = {
       }
     },
     "products": {
+      "alfombra-olfativa-staranry": {
+        "config": {
+          "id": "alfombra-olfativa-staranry",
+          "source": "manual",
+          "urls": {
+            "es": "https://amzn.eu/d/0cmfg6E9",
+            "en": "https://amzn.eu/d/0cmfg6E9"
+          },
+          "price": "13,29 €",
+          "priceCheckedAt": "2026-11",
+          "image": "alfombra-olfativa-staranry.png"
+        },
+        "text": {
+          "en": {
+            "title": "Washable snuffle mat, 39 x 39 cm",
+            "description": "Washable strip-fabric mat, 39 x 39 cm, made for small and medium dogs. Hide kibble among the folds and let your Dog sniff it out."
+          },
+          "es": {
+            "title": "Alfombra olfativa lavable 39 x 39 cm",
+            "description": "Manta de tiras de tela lavable, de 39 x 39 cm, pensada para perros pequeños y medianos. Esconde el pienso entre los pliegues y deja que lo encuentre con el olfato."
+          }
+        },
+        "files": [
+          "media/alfombra-olfativa-staranry.png"
+        ]
+      },
       "arnes-ergonomico-y": {
         "config": {
           "id": "arnes-ergonomico-y",
@@ -11099,7 +11145,8 @@ export const BASELINE_PACK: ContentPack = {
       "categories": [
         "collares",
         "camas",
-        "comida"
+        "comida",
+        "juegos"
       ]
     }
   }

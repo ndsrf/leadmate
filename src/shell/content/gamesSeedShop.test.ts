@@ -4,6 +4,7 @@ import { resolvePack } from './resolver';
 import type { ContentPack } from './validator';
 
 const BETA = path.join(__dirname, '../../../content/beta');
+const STABLE = path.join(__dirname, '../../../content/stable');
 
 function clone(pack: ContentPack): ContentPack {
   return structuredClone(pack);
@@ -26,14 +27,17 @@ describe('seed games: manta-buscadora shop link (task 7.4)', () => {
   });
 
   it('hides the link while mantas-olfativas has no visible product', () => {
+    const empty = clone(pack);
+    empty.shop!.subcategories!['mantas-olfativas'].config.products = [];
     for (const lang of ['es', 'en']) {
-      const game = resolvePack(pack, lang).games.find((g) => g.id === 'manta-buscadora')!;
+      const game = resolvePack(empty, lang).games.find((g) => g.id === 'manta-buscadora')!;
       expect(game.needs).toBeUndefined();
     }
   });
 
   it('shows the link once the subcategory has a product', () => {
     const withProduct = clone(pack);
+    withProduct.shop!.subcategories!['mantas-olfativas'].config.products = [];
     withProduct.shop!.subcategories!['mantas-olfativas'].config.products = ['manta-fixture'];
     withProduct.shop!.products!['manta-fixture'] = {
       config: {
@@ -51,5 +55,26 @@ describe('seed games: manta-buscadora shop link (task 7.4)', () => {
       ]);
       expect(resolved.catalog[game.needs![0].note!]).toBeTruthy();
     }
+  });
+
+  describe.each([
+    ['stable', STABLE],
+    ['beta', BETA],
+  ])('real %s pack', (_name, dir) => {
+    const real = loadPackFromDisk(dir);
+
+    it.each(['es', 'en'])('links manta-buscadora to the snuffle mats under Juegos (%s)', (lang) => {
+      const resolved = resolvePack(real, lang);
+      const game = resolved.games.find((g) => g.id === 'manta-buscadora')!;
+      expect(game.needs).toEqual([
+        expect.objectContaining({ target: 'mantas-olfativas', targetKind: 'subcategory' }),
+      ]);
+      const category = resolved.shop.categories.find((c) => c.subcategories.some((s) => s.id === 'mantas-olfativas'))!;
+      expect(category.id).toBe('juegos');
+      expect(real.shop!.categories!.comida.config.subcategories).not.toContain('mantas-olfativas');
+      const sub = category.subcategories.find((s) => s.id === 'mantas-olfativas')!;
+      expect(sub.products.map((p) => p.id)).toEqual(['alfombra-olfativa-staranry']);
+      expect(sub.products[0].url).toBe('https://amzn.eu/d/0cmfg6E9');
+    });
   });
 });
