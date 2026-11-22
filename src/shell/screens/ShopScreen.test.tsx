@@ -429,9 +429,7 @@ describe('ShopScreen component', () => {
       expect(err.props.children.props.children).toBe('Necesitas conexión a internet para abrir la tienda.');
     });
 
-    it('displays error message gracefully when openURL fails', async () => {
-      const mockOpen = jest.fn().mockRejectedValue(new Error('Cannot open URL'));
-
+    const renderAndBuy = async (props: { openURL: jest.Mock; openBrowser: jest.Mock }) => {
       let renderer: ReactTestRenderer.ReactTestRenderer;
       await act(async () => {
         renderer = ReactTestRenderer.create(
@@ -440,20 +438,45 @@ describe('ShopScreen component', () => {
             onBack={() => {}}
             shop={sampleShop}
             initialTarget={{ level: 'subcategory', id: 'arneses' }}
-            openURL={mockOpen}
+            openURL={props.openURL}
+            openBrowser={props.openBrowser}
           />
         );
       });
-
       const buyBtn = renderer!.root.findByProps({ testID: 'buy-button-arnes-pro' });
       await act(async () => {
         buyBtn.props.onPress();
       });
+      return renderer!;
+    };
+
+    it('falls back to the in-app browser when openURL fails', async () => {
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const mockOpen = jest.fn().mockRejectedValue(new Error('Cannot open URL'));
+      const mockBrowse = jest.fn().mockResolvedValue({ type: 'opened' });
+
+      const renderer = await renderAndBuy({ openURL: mockOpen, openBrowser: mockBrowse });
 
       expect(mockOpen).toHaveBeenCalled();
-      const err = renderer!.root.findByProps({ testID: 'shop-buy-error' });
+      expect(mockBrowse).toHaveBeenCalledWith(mockOpen.mock.calls[0][0]);
+      expect(() => renderer.root.findByProps({ testID: 'shop-buy-error' })).toThrow();
+      warn.mockRestore();
+    });
+
+    it('displays error message gracefully when openURL and the in-app browser both fail', async () => {
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const mockOpen = jest.fn().mockRejectedValue(new Error('Cannot open URL'));
+      const mockBrowse = jest.fn().mockRejectedValue(new Error('No browser'));
+
+      const renderer = await renderAndBuy({ openURL: mockOpen, openBrowser: mockBrowse });
+
+      expect(mockOpen).toHaveBeenCalled();
+      expect(mockBrowse).toHaveBeenCalled();
+      const err = renderer.root.findByProps({ testID: 'shop-buy-error' });
       expect(err).toBeDefined();
       expect(err.props.children.props.children).toBe('No se pudo abrir el enlace.');
+      expect(warn).toHaveBeenCalledWith('[shop] Linking.openURL failed', expect.any(String), expect.any(Error));
+      warn.mockRestore();
     });
   });
 });
