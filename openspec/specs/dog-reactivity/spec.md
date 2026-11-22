@@ -26,11 +26,15 @@ The system SHALL NOT award a Marker hit if the Handler presses the Marker while 
 - **THEN** the press is recorded in telemetry as `reactiveMarkers` and no hit credit is awarded
 
 ### Requirement: Reactivity audio bridge event
-The system SHALL emit a `{ type: 'reaction-tier-change', tier: 'calm' | 'alert' | 'reactive', time: number }` simulation event across the message bridge whenever the Dog crosses a tier threshold, enabling the shell audio pipeline to trigger non-blocking, fire-and-forget dog vocalizations (low alert whine/growl on Alert, sharp barking on Reactive).
+The system SHALL emit a `{ type: 'reaction-tier-change', tier: 'calm' | 'alert' | 'reactive', time: number }` simulation event across the message bridge whenever the Dog crosses a tier threshold, enabling the shell audio pipeline to trigger non-blocking, fire-and-forget dog vocalizations (low alert whine/growl on Alert, sharp barking on Reactive) only when the user's sound preference is enabled.
 
 #### Scenario: Event emitted on tier change
-- **WHEN** the Dog's Reaction Tier changes
-- **THEN** a `reaction-tier-change` event is dispatched across the bridge to the shell audio service
+- **WHEN** the Dog's Reaction Tier changes and sound is enabled in preferences
+- **THEN** a `reaction-tier-change` event is dispatched across the bridge and the shell audio service plays the dog vocalization
+
+#### Scenario: Sound disabled in preferences
+- **WHEN** the Dog's Reaction Tier changes and sound is disabled in preferences
+- **THEN** a `reaction-tier-change` event is dispatched across the bridge and no dog vocalization audio is played
 
 ### Requirement: Recovery through Arousal decay
 The system SHALL return the Dog from Reactive back to Alert and Calm once line of sight to the Distractor is broken or distance exceeds the Distractor's trigger radius, with Arousal decaying through its standard decay rate.

@@ -71,11 +71,15 @@ The system SHALL provide the Cues of each Voice Pack in every language the app s
 - **THEN** the Spanish Cue of the selected Voice Pack plays
 
 ### Requirement: Audio outside the bundle
-The system SHALL play Cue audio from the app shell: the bundle sends a play message and the shell picks the file by Voice Pack, custom recording and active language.
+The system SHALL play Cue audio from the app shell: the bundle sends a play message and the shell picks the file by Voice Pack, custom recording and active language, playing the audio only when the user's sound preference is enabled.
 
 #### Scenario: Bundle requests audio
-- **WHEN** the Cue button is pressed in the bundle
+- **WHEN** the Cue button is pressed in the bundle and sound is enabled in preferences
 - **THEN** the shell receives a play message and plays the matching file
+
+#### Scenario: Cue pressed with sound disabled
+- **WHEN** the Cue button is pressed in the bundle and sound is disabled in preferences
+- **THEN** the shell receives a play message, the simulation effect applies normally, and no audio file is played
 
 ### Requirement: Cue before a turn raises the follow chance
 The system SHALL add a fixed boost to the Dog's `followChance` for a turn the Handler makes within 2 seconds after a Cue, SHALL cap the result at about 0.95, and SHALL use the same seeded draw as the base follow.
