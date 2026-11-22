@@ -4,7 +4,7 @@ import { newDogRecord } from '../dogRecord';
 import { DIARY_OUTCOMES } from '../streak';
 import { payloadWith } from '../testPayload';
 import { BARKDOKU_INTRO_NODE, CALM_FIRST_NODE, DOG_AS_DOG_NODE, DOORBELL_MAT_NODE, HOME_REST_NODE, HARNESS_RITUAL_NODE, HOME_NODES, findNode, isImageDuelQuestion, LEAVE_IT_NODE, NODES, POSTE_PRACTICE, SCOOTER_NODE, URBAN_MIX_NODE, WALK_DISTRACTION } from './content';
-import { placeOf, worldOfNode } from '../world';
+import { placeOf, worldOfNode, WORLDS } from '../world';
 import { findLesson } from '../lessons/content';
 import { INTRO_NODE } from '../onboarding/introNode';
 import { createRng } from '../../sim/rng';
@@ -456,13 +456,19 @@ describe('structured Primer cards', () => {
   });
 
   it('recaps the theory Lesson first, and the controls only after a How-to-play Lesson', () => {
+    const isHowTo = (s: { kind: string; id: string }) => s.kind === 'lesson' && findLesson(s.id)?.kind === 'how-to-play';
     for (const node of NODES) {
       const place = placeOf({ kind: 'node', id: node.id })!;
       const before = place.world.stretches[place.stretch].slice(0, place.index);
-      const afterHowTo = before.some((s) => s.kind === 'lesson' && findLesson(s.id)?.kind === 'how-to-play');
+      const afterHowTo = before.some(isHowTo);
+      // a controls card may also recap a How-to-play Lesson read earlier on the trail (World 7 recaps the walk and
+      // choose-the-action controls taught in earlier Worlds), but never comes before any How-to-play Lesson at all
+      const worldsBefore = WORLDS.filter((w) => w.worldNumber < place.world.worldNumber);
+      const howToEarlierOnTrail = worldsBefore.some((w) => w.stretches.flat().some(isHowTo)) || place.world.stretches.slice(0, place.stretch).flat().some(isHowTo);
       const cards = node.primerCards.map(primerCardOf);
       expect(cards[0].kind).toBe('real-world');
-      expect({ node: node.id, cards: cards.length }).toEqual({ node: node.id, cards: afterHowTo ? 2 : 1 });
+      const allowed = afterHowTo ? [2] : howToEarlierOnTrail ? [1, 2] : [1];
+      expect({ node: node.id, cards: allowed.includes(cards.length) }).toEqual({ node: node.id, cards: true });
       if (afterHowTo) expect(cards[1].kind).toBe('virtual-dog');
       for (const c of cards) {
         expect(es[c.text]).toBeTruthy();
