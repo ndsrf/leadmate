@@ -1,4 +1,12 @@
-import { comboSemitones, createFeedback, DEFAULT_FEEDBACK_SETTINGS, type FeedbackBackends, type FeedbackSettings } from './feedback';
+import {
+  comboSemitones,
+  createFeedback,
+  DEFAULT_FEEDBACK_SETTINGS,
+  type FeedbackBackends,
+  type FeedbackSettings,
+  setFeedbackSettings,
+  soundEnabled,
+} from './feedback';
 
 function setup(overrides: Partial<FeedbackBackends> = {}, settings: FeedbackSettings = DEFAULT_FEEDBACK_SETTINGS) {
   const haptic = jest.fn();
@@ -223,5 +231,22 @@ describe('telegraph feedback', () => {
     expect(stageSound).toHaveBeenLastCalledWith('tick', { rate: Math.pow(2, 3 / 12), volume: 1 });
     feedback.stage(msg({ tier: 'medium', combo: 4 }));
     expect(stageSound).toHaveBeenLastCalledWith('chime', { rate: 1, volume: 1 });
+  });
+});
+
+describe('soundEnabled', () => {
+  afterEach(() => {
+    setFeedbackSettings(DEFAULT_FEEDBACK_SETTINGS);
+  });
+
+  it('reflects the global sound setting', () => {
+    setFeedbackSettings({ sounds: true, haptics: true });
+    expect(soundEnabled()).toBe(true);
+
+    setFeedbackSettings({ sounds: false, haptics: true });
+    expect(soundEnabled()).toBe(false);
+
+    setFeedbackSettings({ sounds: true, haptics: false });
+    expect(soundEnabled()).toBe(true);
   });
 });

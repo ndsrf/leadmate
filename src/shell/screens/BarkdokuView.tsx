@@ -42,7 +42,7 @@ import {
 import { newSeed } from '../../sim/rng';
 import { BreedArt } from '../ui/BreedArt';
 import { Badge, StarRow } from '../ui/components';
-import { feedback } from '../ui/feedback';
+import { feedback, soundEnabled } from '../ui/feedback';
 import { useAppActive } from '../ui/useAppActive';
 import { useTicker } from '../ui/useTicker';
 import { theme, usePalette } from '../ui/theme';
@@ -487,7 +487,7 @@ export function BarkdokuView({
       feedback.press();
     } else if (event === 'dog_conflict' || event === 'failed') {
       try {
-        playDogSound('bark');
+        if (soundEnabled()) playDogSound('bark');
       } catch {}
       feedback.star(1);
     } else if (event === 'solved') {

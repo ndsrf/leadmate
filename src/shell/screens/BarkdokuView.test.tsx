@@ -8,6 +8,7 @@ jest.mock('react-native', () => {
     Dimensions: { get: () => ({ width: 390, height: 844 }) },
     useWindowDimensions: () => ({ width: 390, height: 844 }),
     AppState: { currentState: 'active', addEventListener: () => ({ remove: () => {} }) },
+    AccessibilityInfo: { isReduceMotionEnabled: () => Promise.resolve(false), addEventListener: () => ({ remove: () => {} }) },
   };
 });
 
@@ -41,6 +42,7 @@ jest.mock('react-native-reanimated', () => {
     withRepeat: (v: any) => v,
     withSequence: (...args: any[]) => args[0],
     cancelAnimation: () => {},
+    Easing: { bezier: () => ({}), inOut: () => ({}), ease: {} },
   };
 });
 
@@ -54,6 +56,7 @@ jest.mock('../audio', () => ({
 }));
 
 import React from 'react';
+import ReactTestRenderer, { act } from 'react-test-renderer';
 // @ts-ignore
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createTranslator, es } from '../../i18n';
@@ -69,7 +72,7 @@ import {
 } from './BarkdokuView';
 import { createPuzzle, pausePuzzle, ratePuzzle, resumePuzzle, toggleCell } from '../puzzle/engine';
 import type { BarkdokuBoard } from '../puzzle/types';
-import { configureFeedback } from '../ui/feedback';
+import { configureFeedback, DEFAULT_FEEDBACK_SETTINGS, setFeedbackSettings } from '../ui/feedback';
 
 describe('Barkdoku UI & Canine Visuals', () => {
   const t = createTranslator(es);
@@ -78,6 +81,7 @@ describe('Barkdoku UI & Canine Visuals', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    setFeedbackSettings(DEFAULT_FEEDBACK_SETTINGS);
     configureFeedback({
       haptic: mockHaptic,
       sound: mockSound,
@@ -85,6 +89,10 @@ describe('Barkdoku UI & Canine Visuals', () => {
       stageSound: jest.fn(),
       preload: jest.fn(),
     });
+  });
+
+  afterEach(() => {
+    setFeedbackSettings(DEFAULT_FEEDBACK_SETTINGS);
   });
 
   const board4: BarkdokuBoard = {
@@ -230,6 +238,64 @@ describe('Barkdoku UI & Canine Visuals', () => {
       feedback.success();
       expect(mockHaptic).toHaveBeenCalledWith('success');
       expect(mockSound).toHaveBeenCalledWith('success');
+    });
+
+    it('plays dog bark sound on conflict when sounds are enabled', () => {
+      setFeedbackSettings({ sounds: true, haptics: true });
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      act(() => {
+        renderer = ReactTestRenderer.create(<BarkdokuView t={t} board={board4} />);
+      });
+      const cell00 = renderer!.root.findByProps({ testID: 'cell-0-0' });
+      const cell01 = renderer!.root.findByProps({ testID: 'cell-0-1' });
+
+      // Tap (0, 0) twice to place dog
+      act(() => {
+        cell00.props.onPress();
+      });
+      act(() => {
+        cell00.props.onPress();
+      });
+
+      // Tap (0, 1) twice to place conflicting dog
+      act(() => {
+        cell01.props.onPress();
+      });
+      mockPlayDogSound.mockClear();
+      act(() => {
+        cell01.props.onPress();
+      });
+
+      expect(mockPlayDogSound).toHaveBeenCalledWith('bark');
+    });
+
+    it('suppresses dog bark sound on conflict when sounds are disabled', () => {
+      setFeedbackSettings({ sounds: false, haptics: true });
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      act(() => {
+        renderer = ReactTestRenderer.create(<BarkdokuView t={t} board={board4} />);
+      });
+      const cell00 = renderer!.root.findByProps({ testID: 'cell-0-0' });
+      const cell01 = renderer!.root.findByProps({ testID: 'cell-0-1' });
+
+      // Tap (0, 0) twice to place dog
+      act(() => {
+        cell00.props.onPress();
+      });
+      act(() => {
+        cell00.props.onPress();
+      });
+
+      // Tap (0, 1) twice to place conflicting dog
+      act(() => {
+        cell01.props.onPress();
+      });
+      mockPlayDogSound.mockClear();
+      act(() => {
+        cell01.props.onPress();
+      });
+
+      expect(mockPlayDogSound).not.toHaveBeenCalled();
     });
   });
 });

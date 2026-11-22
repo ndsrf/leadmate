@@ -297,6 +297,7 @@ export default function App() {
   const scheme: ColorScheme = ui.settings.appearance === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : ui.settings.appearance;
   const uiSettingsRef = useRef(ui.settings);
   uiSettingsRef.current = ui.settings;
+  const isSoundEnabled = useCallback(() => uiSettingsRef.current.sounds !== false, []);
   const sim = useRef<SimViewHandle>(null);
   const { record, update, replace } = useDog(dogStore);
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -421,7 +422,7 @@ export default function App() {
   recordRef.current = record;
   const vocalizer = useRef(
     createVocalizer((sound) => {
-      if (uiSettingsRef.current.sounds !== false) playDogSound(sound);
+      if (isSoundEnabled()) playDogSound(sound);
     }),
   );
 
@@ -1112,7 +1113,7 @@ export default function App() {
         if (message.tier === 'reactive' && routeRef.current.name === 'taste') showTastePayoff();
       }
       else if (message.type === 'playCue') {
-        if (uiSettingsRef.current.sounds !== false && recordRef.current) playResolvedCue(resolveCue(recordRef.current, language));
+        if (isSoundEnabled() && recordRef.current) playResolvedCue(resolveCue(recordRef.current, language));
       } else if (message.type === 'debrief') {
         const payload: SimulationDebriefPayload = message.payload;
         const f = flowRef.current;
@@ -2286,7 +2287,9 @@ export default function App() {
         };
         const minigame = run.node.simulation.minigame;
         const seed = f.attempt + 1 + (dateSeed(todayString()) % 1000);
-        const playCue = () => playResolvedCue(resolveCue(record, language));
+        const playCue = () => {
+          if (isSoundEnabled()) playResolvedCue(resolveCue(record, language));
+        };
         screen =
           minigame === 'doorbell-mat' ? (
             <DoorbellMatView key={`minigame-${f.attempt}`} t={t} coat={record.coat} seed={seed} onCue={playCue} onFinish={(r) => finish(r.metrics, r.handlingScore)} />

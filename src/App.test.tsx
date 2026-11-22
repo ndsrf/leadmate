@@ -260,7 +260,7 @@ jest.mock('./shell/screens/ShopPopup', () => {
 import App from '../App';
 import { newDogRecord, NEW_ONBOARDING, RECORD_KEY, RECORD_VERSION } from './shell/dogRecord';
 import { todayString } from './shell/daily';
-import { BARKDOKU_INTRO_NODE, CALM_HANDS_NODE, CLOSE_PASS_NODE, WALK_DISTRACTION, findNode } from './shell/nodes/content';
+import { BARKDOKU_INTRO_NODE, CALM_HANDS_NODE, CLOSE_PASS_NODE, DOORBELL_MAT_NODE, WALK_DISTRACTION, findNode } from './shell/nodes/content';
 import * as path from 'path';
 import { getActiveContent, setActiveContent } from './shell/content/runtime';
 import { loadPackFromDisk } from './shell/content/loader';
@@ -2736,6 +2736,28 @@ describe('Simulation sound preferences (mute-simulator-when-sound-disabled)', ()
     expect(mockPlayDogSound).not.toHaveBeenCalled();
 
     await sendFromView({ type: 'playCue' });
+    expect(mockPlayResolvedCue).not.toHaveBeenCalled();
+  });
+
+  it('plays minigame cue audio when sounds are enabled', async () => {
+    mockUiSettings.sounds = true;
+    await openMap();
+    openStop(DOORBELL_MAT_NODE.id);
+    throughPrimerAndCheckpoint();
+    expect(latest('DoorbellMatView')).toBeDefined();
+
+    act(() => latest('DoorbellMatView').onCue());
+    expect(mockPlayResolvedCue).toHaveBeenCalled();
+  });
+
+  it('suppresses minigame cue audio when sounds are disabled', async () => {
+    mockUiSettings.sounds = false;
+    await openMap();
+    openStop(DOORBELL_MAT_NODE.id);
+    throughPrimerAndCheckpoint();
+    expect(latest('DoorbellMatView')).toBeDefined();
+
+    act(() => latest('DoorbellMatView').onCue());
     expect(mockPlayResolvedCue).not.toHaveBeenCalled();
   });
 });

@@ -161,6 +161,11 @@ export function setFeedbackSettings(next: FeedbackSettings): void {
   settings = next;
 }
 
+/** Whether device sound preference is enabled (defaults to true). */
+export function soundEnabled(): boolean {
+  return settings.sounds !== false;
+}
+
 export const feedback: Feedback = createFeedback(
   () => backends,
   () => settings,

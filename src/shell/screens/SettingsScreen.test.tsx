@@ -55,7 +55,7 @@ import React from 'react';
 // @ts-ignore
 import { renderToStaticMarkup } from 'react-dom/server';
 import ReactTestRenderer, { act } from 'react-test-renderer';
-import { createTranslator, es } from '../../i18n';
+import { createTranslator, en, es } from '../../i18n';
 import { DEFAULT_UI_SETTINGS } from '../ui/uiSettings';
 import { newDogRecord, type DogRecord } from '../dogRecord';
 import { NEW_SYNC_STATE } from '../sync/state';
@@ -511,9 +511,9 @@ describe('Settings: Language selection in preferences', () => {
     expect(timingSwitch).toBeDefined();
   });
 
-  it('renders the sound switch with updated label and help text', () => {
+  it('renders the sound switch with updated label and help text in Spanish and English', () => {
     const change = jest.fn();
-    const html = renderToStaticMarkup(
+    const htmlEs = renderToStaticMarkup(
       <SettingsScreen
         t={t}
         language="es"
@@ -528,11 +528,29 @@ describe('Settings: Language selection in preferences', () => {
       />,
     );
 
-    expect(html).toContain(es['settings.feedback.sounds']);
-    expect(html).toContain(es['settings.feedback.help']);
-    expect(html).not.toContain('No afecta al paseo');
+    expect(htmlEs).toContain(es['settings.feedback.sounds']);
+    expect(htmlEs).toContain(es['settings.feedback.help']);
+    expect(htmlEs).not.toContain('No afecta al paseo');
 
-    expect(html).not.toContain('Does not affect walk sounds');
+    const tEn = createTranslator(en);
+    const htmlEn = renderToStaticMarkup(
+      <SettingsScreen
+        t={tEn}
+        language="en"
+        record={newDogRecord()}
+        update={() => {}}
+        onClose={() => {}}
+        account={makeAccount()}
+        onLogIn={() => {}}
+        ui={{ settings: { ...DEFAULT_UI_SETTINGS, sounds: true }, change }}
+        onReset={() => {}}
+        initialTab="preferences"
+      />,
+    );
+
+    expect(htmlEn).toContain(en['settings.feedback.sounds']);
+    expect(htmlEn).toContain(en['settings.feedback.help']);
+    expect(htmlEn).not.toContain('Does not affect walk sounds');
   });
 });
 
