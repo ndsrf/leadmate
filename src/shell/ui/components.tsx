@@ -250,12 +250,13 @@ export function Chip({
   const color = usePalette();
   const focus = useFocus();
   const px = compact ? theme.space[2] : theme.space[3];
+  const valueSizeClass = compact ? 'text-body' : 'text-button';
   const face = (shift: number) => (
     <Raised fill={highlight ? color.accent : color.surface} radius={theme.radius.pill} offset={theme.depth.sm.x} shift={shift} focused={focus.focused} pressable={onPress !== undefined} faceStyle={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: px, minHeight: theme.size.touchMin - 8 }}>
       {icon}
       <View className="shrink">
         {label !== undefined && <Text className={`text-caption ${highlight ? 'text-onAccent' : 'text-inkMuted'}`}>{label}</Text>}
-        {value !== undefined && <Text className={`font-display text-button ${highlight ? 'text-onAccent' : 'text-ink'}`}>{value}</Text>}
+        {value !== undefined && <Text className={`font-display ${valueSizeClass} ${highlight ? 'text-onAccent' : 'text-ink'}`}>{value}</Text>}
       </View>
     </Raised>
   );
@@ -278,7 +279,19 @@ export function Chip({
 }
 
 /** A round, icon-only Chip: same face height and depth as `Chip`, the label only for screen readers. */
-export function IconChip({ icon, onPress, accessibilityLabel, testID }: { icon: React.ReactNode; onPress: () => void; accessibilityLabel: string; testID?: string }) {
+export function IconChip({
+  icon,
+  badge,
+  onPress,
+  accessibilityLabel,
+  testID,
+}: {
+  icon: React.ReactNode;
+  badge?: React.ReactNode;
+  onPress: () => void;
+  accessibilityLabel: string;
+  testID?: string;
+}) {
   const color = usePalette();
   const focus = useFocus();
   const size = theme.size.touchMin - 8;
@@ -295,11 +308,33 @@ export function IconChip({ icon, onPress, accessibilityLabel, testID }: { icon: 
       style={{ minHeight: theme.size.touchMin, justifyContent: 'center' }}
     >
       {({ pressed }) => (
-        <Raised fill={color.surface} radius={theme.radius.pill} offset={theme.depth.sm.x} shift={pressed ? theme.depth.pressed.translate - 1 : 0} focused={focus.focused} pressable faceStyle={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-          {icon}
+        <Raised
+          fill={color.surface}
+          radius={theme.radius.pill}
+          offset={theme.depth.sm.x}
+          shift={pressed ? theme.depth.pressed.translate - 1 : 0}
+          focused={focus.focused}
+          pressable
+          faceStyle={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
+            {icon}
+            {badge}
+          </View>
         </Raised>
       )}
     </Pressable>
+  );
+}
+
+/** A theory book glyph drawn in ink, decorative: the control around it carries the label. */
+export function BookGlyph({ size = 20 }: { size?: number }) {
+  const color = usePalette();
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <Path d="M3 5c3-1.5 6-1.5 9 0v14c-3-1.5-6-1.5-9 0z" stroke={color.ink} strokeWidth={1.8} strokeLinejoin="round" />
+      <Path d="M21 5c-3-1.5-6-1.5-9 0v14c3-1.5 6-1.5 9 0z" stroke={color.ink} strokeWidth={1.8} strokeLinejoin="round" />
+    </Svg>
   );
 }
 

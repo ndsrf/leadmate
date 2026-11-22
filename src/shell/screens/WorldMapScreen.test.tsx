@@ -288,16 +288,16 @@ describe('WorldMapScreen - Map Header', () => {
     };
   };
 
-  it('shows Streak, Library, gear, basket and Games in row 1, and Plus, Daily Paseo, and Guaudoku in row 2', () => {
+  it('shows Streak on left, and Library, Games, Shop, Settings on right in row 1, and Plus, Daily Paseo, and Guaudoku in row 2', () => {
     const { labels, markup } = renderHeader();
     const start = labels.findIndex((l) => l.startsWith(es['streak.flame']));
     expect(start).toBeGreaterThanOrEqual(0);
-    // Row 1: Streak, Library, and Settings gear + Basket + Games on the right (the bundled pack ships Dog Games)
+    // Row 1: Streak on left, and right icon cluster: Library -> Games -> Shop -> Settings (anchored at far right)
     expect(labels[start]).toContain(es['diary.chip']);
     expect(labels[start + 1]).toBe(es['library.chip']);
-    expect(labels[start + 2]).toBe(es['map.settings']);
+    expect(labels[start + 2]).toBe(es['map.gamesButton']);
     expect(labels[start + 3]).toBe(es['map.shopButton']);
-    expect(labels[start + 4]).toBe(es['map.gamesButton']);
+    expect(labels[start + 4]).toBe(es['map.settings']);
     // Row 2: Plus, Daily Paseo, Guaudoku
     expect(labels[start + 5]).toBe('Plus. 7 días gratis');
     expect(labels[start + 6]).toBe(es['daily.title']);
@@ -328,6 +328,193 @@ describe('WorldMapScreen - Map Header', () => {
     const { markup } = renderHeader(NO_STREAK);
     expect(markup).toContain('text-caption');
     expect(markup).toContain(es['map.streakStart']);
+  });
+});
+
+describe('WorldMapScreen - Library Icon Button (Task 3.2)', () => {
+  const t = createTranslator(es);
+
+  it('renders Library as an icon-only button without visible text label and triggers onLibrary', () => {
+    mockPressables.length = 0;
+    const onLibrary = jest.fn();
+    const markup = renderToStaticMarkup(
+      <WorldMapScreen
+        t={t}
+        progress={progressOf([])}
+        stars={{}}
+        now={new Date('2026-10-28T09:00:00')}
+        streak={NO_STREAK}
+        today="2026-10-28"
+        dailyBest={undefined}
+        rustyPrompt={false}
+        rusty={false}
+        skippedWarmup={false}
+        onWarmup={() => {}}
+        onSkipWarmup={() => {}}
+        onDaily={() => {}}
+        onBarkdoku={() => {}}
+        onOpenStop={() => {}}
+        onSettings={() => {}}
+        onLibrary={onLibrary}
+      />
+    );
+
+    // No visible text inside child elements
+    expect(markup).not.toContain(`>${es['library.chip']}<`);
+    const libraryChip = mockPressables.find((p) => p.testID === 'map.library');
+    expect(libraryChip).toBeDefined();
+    expect(libraryChip.accessibilityLabel).toBe(es['library.chip']);
+    expect(libraryChip.accessibilityRole).toBe('button');
+    expect(libraryChip.style.minHeight).toBeGreaterThanOrEqual(44);
+    libraryChip.onPress();
+    expect(onLibrary).toHaveBeenCalledTimes(1);
+    expect(markup).not.toContain('map.library.dot');
+  });
+
+  it('reflects libraryToday in indicator dot and accessibility announcement', () => {
+    mockPressables.length = 0;
+    const markup = renderToStaticMarkup(
+      <WorldMapScreen
+        t={t}
+        progress={progressOf([])}
+        stars={{}}
+        now={new Date('2026-10-28T09:00:00')}
+        streak={NO_STREAK}
+        today="2026-10-28"
+        dailyBest={undefined}
+        rustyPrompt={false}
+        rusty={false}
+        skippedWarmup={false}
+        onWarmup={() => {}}
+        onSkipWarmup={() => {}}
+        onDaily={() => {}}
+        onBarkdoku={() => {}}
+        onOpenStop={() => {}}
+        onSettings={() => {}}
+        onLibrary={() => {}}
+        libraryToday={true}
+      />
+    );
+
+    expect(markup).toContain('map.library.dot');
+    const libraryChip = mockPressables.find((p) => p.testID === 'map.library');
+    expect(libraryChip.accessibilityLabel).toBe(`${es['library.chip']}. ${es['library.chipToday']}`);
+  });
+
+  it('remains stable on 320pt viewport layout without pushing icons off row', () => {
+    mockPressables.length = 0;
+    const markup = renderToStaticMarkup(
+      <div style={{ width: 320 }}>
+        <WorldMapScreen
+          t={t}
+          progress={progressOf([])}
+          stars={{}}
+          now={new Date('2026-10-28T09:00:00')}
+          streak={NO_STREAK}
+          today="2026-10-28"
+          dailyBest={undefined}
+          rustyPrompt={false}
+          rusty={false}
+          skippedWarmup={false}
+          onWarmup={() => {}}
+          onSkipWarmup={() => {}}
+          onDaily={() => {}}
+          onBarkdoku={() => {}}
+          onOpenStop={() => {}}
+          onSettings={() => {}}
+          onLibrary={() => {}}
+          libraryToday={true}
+        />
+      </div>
+    );
+    expect(markup).toContain('flex-row items-center justify-between');
+    const libraryChip = mockPressables.find((p) => p.testID === 'map.library');
+    expect(libraryChip).toBeDefined();
+  });
+});
+
+describe('WorldMapScreen - Row 2 Status Chips (Task 3.3)', () => {
+  const t = createTranslator(es);
+
+  it('displays Daily Walk score in slash format on chip face while retaining full accessibility speech', () => {
+    mockPressables.length = 0;
+    const markup = renderToStaticMarkup(
+      <WorldMapScreen
+        t={t}
+        progress={progressOf([])}
+        stars={{}}
+        now={new Date('2026-10-28T09:00:00')}
+        streak={NO_STREAK}
+        today="2026-10-28"
+        dailyBest={789}
+        rustyPrompt={false}
+        rusty={false}
+        skippedWarmup={false}
+        onWarmup={() => {}}
+        onSkipWarmup={() => {}}
+        onDaily={() => {}}
+        onBarkdoku={() => {}}
+        onOpenStop={() => {}}
+        onSettings={() => {}}
+      />
+    );
+
+    // Face displays slash format
+    expect(markup).toContain('>789/1000<');
+    expect(markup).not.toContain('>789 de 1000<');
+
+    // Accessibility label retains full spoken words
+    const dailyChip = mockPressables.find((p) => p.testID === 'map.daily');
+    expect(dailyChip).toBeDefined();
+    expect(dailyChip.accessibilityLabel).toBe(`${es['daily.title']}. 789 ${es['results.scoreOutOf']}`);
+  });
+
+  it('styles PlusChip quietly with highlight=false and compact typography when subscribed', () => {
+    const markup = renderToStaticMarkup(
+      <PlusChip t={t} state="expired" isSubscribed={true} onPress={() => {}} />
+    );
+    expect(markup).toContain('Plus');
+    expect(markup).toContain('Activo');
+    expect(markup).toContain('text-ink');
+    expect(markup).not.toContain('text-onAccent');
+    expect(markup).toContain('text-body');
+  });
+
+  it('renders all three Row 2 chips with compact styling on a 320pt viewport without wrapping', () => {
+    mockPressables.length = 0;
+    const markup = renderToStaticMarkup(
+      <div style={{ width: 320 }}>
+        <WorldMapScreen
+          t={t}
+          progress={progressOf([])}
+          stars={{}}
+          now={new Date('2026-10-28T09:00:00')}
+          streak={NO_STREAK}
+          today="2026-10-28"
+          dailyBest={789}
+          barkdokuToday={{ seconds: 120, at: '2026-10-28T09:00:00.000Z', targetSeconds: 150 }}
+          rustyPrompt={false}
+          rusty={false}
+          skippedWarmup={false}
+          onWarmup={() => {}}
+          onSkipWarmup={() => {}}
+          onDaily={() => {}}
+          onBarkdoku={() => {}}
+          onOpenStop={() => {}}
+          onSettings={() => {}}
+        />
+      </div>
+    );
+
+    expect(markup).toContain('flex-row flex-wrap items-center');
+    expect(markup).toContain('789/1000');
+    expect(markup).toContain('2:00 / 2:30 ✓');
+    const plusChip = mockPressables.find((p) => p.testID === 'map.plus_chip');
+    const dailyChip = mockPressables.find((p) => p.testID === 'map.daily');
+    const barkdokuChip = mockPressables.find((p) => p.testID === 'map.barkdoku');
+    expect(plusChip).toBeDefined();
+    expect(dailyChip).toBeDefined();
+    expect(barkdokuChip).toBeDefined();
   });
 });
 
@@ -1319,15 +1506,15 @@ describe('MoreComingCard at the end of the map (Task 4.2)', () => {
       ];
       const row1Labels = () => {
         const labels = mockPressables.map((p) => String(p.accessibilityLabel ?? ''));
-        const gear = labels.indexOf(es['map.settings']);
-        return labels.slice(gear, gear + 3);
+        const library = labels.indexOf(es['library.chip']);
+        return labels.slice(library, library + 4);
       };
 
-      it('shows the Games chip after gear and basket when the pack has games, and opens the Games screen', () => {
+      it('shows the Games chip between Library and Shop, with Settings anchored at the far right', () => {
         mockPressables.length = 0;
         const onGames = jest.fn();
         renderToStaticMarkup(<WorldMapScreen {...baseMapProps} shop={sampleShop} onShop={() => {}} games={sampleGames} onGames={onGames} />);
-        expect(row1Labels()).toEqual([es['map.settings'], es['map.shopButton'], es['map.gamesButton']]);
+        expect(row1Labels()).toEqual([es['library.chip'], es['map.gamesButton'], es['map.shopButton'], es['map.settings']]);
         const chip = mockPressables.find((p) => p.testID === 'map-games-button');
         expect(chip).toBeDefined();
         expect(chip.accessibilityLabel).toBe('Juegos');
@@ -1337,15 +1524,17 @@ describe('MoreComingCard at the end of the map (Task 4.2)', () => {
         expect(onGames).toHaveBeenCalledTimes(1);
       });
 
-      it('hides the Games chip without games, keeping gear and basket in place', () => {
+      it('hides the Games chip without games, keeping library, basket, and settings at the far right', () => {
         mockPressables.length = 0;
         const markup = renderToStaticMarkup(<WorldMapScreen {...baseMapProps} shop={sampleShop} onShop={() => {}} games={[]} onGames={() => {}} />);
         expect(markup).not.toContain('map-games-button');
         expect(mockPressables.find((p) => p.testID === 'map-games-button')).toBeUndefined();
-        expect(row1Labels().slice(0, 2)).toEqual([es['map.settings'], es['map.shopButton']]);
+        const labels = mockPressables.map((p) => String(p.accessibilityLabel ?? ''));
+        const library = labels.indexOf(es['library.chip']);
+        expect(labels.slice(library, library + 3)).toEqual([es['library.chip'], es['map.shopButton'], es['map.settings']]);
       });
 
-      it('keeps the three icon chips on Row 1 at 320 points, beside Streak and Library', () => {
+      it('keeps the icon chips on Row 1 at 320 points, beside Streak and Library', () => {
         mockPressables.length = 0;
         const markup = renderToStaticMarkup(
           <div style={{ width: 320 }}>
@@ -1355,7 +1544,12 @@ describe('MoreComingCard at the end of the map (Task 4.2)', () => {
         const labels = mockPressables.map((p) => String(p.accessibilityLabel ?? ''));
         const start = labels.findIndex((l) => l.startsWith(es['streak.flame']));
         expect(labels[start + 1]).toContain(es['library.chip']);
-        expect(labels.slice(start + 2, start + 5)).toEqual([es['map.settings'], es['map.shopButton'], es['map.gamesButton']]);
+        expect(labels.slice(start + 1, start + 5)).toEqual([
+          `${es['library.chip']}. ${es['library.chipToday']}`,
+          es['map.gamesButton'],
+          es['map.shopButton'],
+          es['map.settings'],
+        ]);
         // Row 1 is a single non-wrapping row: the icon group does not shrink, the Streak/Library group does
         const row1 = markup.indexOf('flex-row items-center justify-between');
         const row2 = markup.indexOf('flex-row flex-wrap items-center');

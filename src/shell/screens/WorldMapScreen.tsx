@@ -19,7 +19,7 @@ import { worldsFor, worldTitle, type Progress, type Stop } from '../world';
 import type { DogRecord } from '../dogRecord';
 import { isPlus, plusEndsAt, trialDaysRemaining, trialState, type TrialState } from '../plus';
 import { Backdrop, Button } from '../Overlays';
-import { Badge, BasketGlyph, Chip, GamesGlyph, GearGlyph, IconChip, LightRegion, Panel, ProgressBar, Raised, StarRow } from '../ui/components';
+import { Badge, BasketGlyph, BookGlyph, Chip, GamesGlyph, GearGlyph, IconChip, LightRegion, Panel, ProgressBar, Raised, StarRow } from '../ui/components';
 import { WorldSceneryBackground, HouseLandmark, worldPalette } from '../ui/WorldSceneryBackground';
 export { HouseLandmark };
 import { getActiveContent } from '../content/runtime';
@@ -1156,16 +1156,16 @@ function StreakChip({ t, status, onPress, testID }: { t: Translate; status: Stre
 }
 
 /** The Daily Barkdoku chip: "new" until today's first solve, then its Daily Solve Time against the Target Time. */
-export function BarkdokuChip({ t, solve, onPress }: { t: Translate; solve?: DailyBarkdokuSolve; onPress?: () => void }) {
+export function BarkdokuChip({ t, solve, onPress, compact = false }: { t: Translate; solve?: DailyBarkdokuSolve; onPress?: () => void; compact?: boolean }) {
   const name = t('map.barkdoku.daily');
-  if (!solve) return <Chip label={name} value={t('map.dailyNew')} highlight onPress={onPress} testID="map.barkdoku" accessibilityLabel={`${name}. ${t('map.barkdoku.dailyHelp')}`} />;
+  if (!solve) return <Chip compact={compact} label={name} value={t('map.dailyNew')} highlight onPress={onPress} testID="map.barkdoku" accessibilityLabel={`${name}. ${t('map.barkdoku.dailyHelp')}`} />;
   const time = formatClock(solve.seconds);
   const met = solve.targetSeconds !== undefined && solve.seconds <= solve.targetSeconds;
   const spoken =
     solve.targetSeconds === undefined
       ? t('minigame.barkdoku.clockLabel').replace('{time}', time)
       : t('minigame.barkdoku.clockLabelTarget').replace('{time}', time).replace('{target}', formatClock(solve.targetSeconds));
-  return <Chip label={name} value={solveTimeText(solve.seconds, solve.targetSeconds)} onPress={onPress} testID="map.barkdoku" accessibilityLabel={`${name}. ${spoken}${met ? `. ${t('minigame.barkdoku.targetMet')}` : ''}`} />;
+  return <Chip compact={compact} label={name} value={solveTimeText(solve.seconds, solve.targetSeconds)} onPress={onPress} testID="map.barkdoku" accessibilityLabel={`${name}. ${spoken}${met ? `. ${t('minigame.barkdoku.targetMet')}` : ''}`} />;
 }
 
 /**
@@ -1180,19 +1180,22 @@ export function PlusChip({
   daysRemaining,
   isSubscribed = false,
   onPress,
+  compact = false,
 }: {
   t: Translate;
   state: TrialState;
   daysRemaining?: number;
   isSubscribed?: boolean;
   onPress: () => void;
+  compact?: boolean;
 }) {
   if (isSubscribed) {
     return (
       <Chip
+        compact={compact || true}
         label={t('map.plus.chip')}
         value={t('map.plus.subscribed')}
-        highlight
+        highlight={false}
         onPress={onPress}
         testID="map.plus_chip"
         accessibilityLabel={`${t('map.plus.chip')} · ${t('map.plus.subscribed')}`}
@@ -1202,6 +1205,7 @@ export function PlusChip({
   if (state === 'unstarted') {
     return (
       <Chip
+        compact={compact}
         label={t('map.plus.chip')}
         value={t('map.plus.trialChip')}
         highlight
@@ -1216,6 +1220,7 @@ export function PlusChip({
     const value = `${days} d`;
     return (
       <Chip
+        compact={compact || true}
         label={t('map.plus.chip')}
         value={value}
         highlight
@@ -1227,6 +1232,7 @@ export function PlusChip({
   }
   return (
     <Chip
+      compact={compact}
       label={t('map.plus.chip')}
       value={t('map.plus.expired')}
       highlight
@@ -1432,26 +1438,23 @@ export function WorldMapScreen({
       <View className="flex-row items-center justify-between" style={{ gap: theme.space[1] }}>
         <View className="flex-row items-center flex-shrink" style={{ gap: theme.space[1] }}>
           <StreakChip t={t} status={streakStatus(streak, today)} onPress={onDiary} testID="map.diary" />
-          <Chip
-            compact
-            label={libraryToday ? t('library.chipToday') : undefined}
-            value={t('library.chip')}
-            icon={libraryToday ? <View className="mr-1.5 h-3 w-3 rounded-game-pill bg-accent" style={{ borderWidth: 2, borderColor: color.outline }} /> : undefined}
-            onPress={onLibrary}
+        </View>
+        <View className="flex-row items-center flex-shrink-0" style={{ gap: theme.space[1] }}>
+          <IconChip
+            icon={<BookGlyph />}
+            badge={
+              libraryToday ? (
+                <View
+                  testID="map.library.dot"
+                  className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-game-pill bg-accent"
+                  style={{ borderWidth: 1.5, borderColor: color.outline }}
+                />
+              ) : undefined
+            }
+            onPress={() => onLibrary?.()}
             testID="map.library"
             accessibilityLabel={libraryToday ? `${t('library.chip')}. ${t('library.chipToday')}` : t('library.chip')}
           />
-        </View>
-        <View className="flex-row items-center flex-shrink-0" style={{ gap: theme.space[1] }}>
-          <IconChip icon={<GearGlyph />} onPress={onSettings} accessibilityLabel={t('map.settings')} testID="map.settings" />
-          {hasShop && (
-            <IconChip
-              icon={<BasketGlyph />}
-              onPress={() => onShop?.()}
-              accessibilityLabel={t('map.shopButton')}
-              testID="map-shop-button"
-            />
-          )}
           {hasGames && (
             <IconChip
               icon={<GamesGlyph />}
@@ -1460,19 +1463,33 @@ export function WorldMapScreen({
               testID="map-games-button"
             />
           )}
+          {hasShop && (
+            <IconChip
+              icon={<BasketGlyph />}
+              onPress={() => onShop?.()}
+              accessibilityLabel={t('map.shopButton')}
+              testID="map-shop-button"
+            />
+          )}
+          <IconChip icon={<GearGlyph />} onPress={onSettings} accessibilityLabel={t('map.settings')} testID="map.settings" />
         </View>
       </View>
       <View className="flex-row flex-wrap items-center" style={{ gap: theme.space[2] }}>
-        <PlusChip t={t} state={state} daysRemaining={days} isSubscribed={isSubscribed} onPress={handlePlusPress} />
+        <PlusChip compact t={t} state={state} daysRemaining={days} isSubscribed={isSubscribed} onPress={handlePlusPress} />
         <Chip
+          compact
           label={t('daily.chip')}
-          value={dailyBest === undefined ? t('map.dailyNew') : `${dailyBest} ${t('results.scoreOutOf')}`}
+          value={dailyBest === undefined ? t('map.dailyNew') : `${dailyBest}/1000`}
           highlight={dailyBest === undefined}
           onPress={onDaily}
           testID="map.daily"
-          accessibilityLabel={t('daily.title')}
+          accessibilityLabel={
+            dailyBest === undefined
+              ? t('daily.title')
+              : `${t('daily.title')}. ${dailyBest} ${t('results.scoreOutOf')}`
+          }
         />
-        <BarkdokuChip t={t} solve={barkdokuToday} onPress={onBarkdoku} />
+        <BarkdokuChip compact t={t} solve={barkdokuToday} onPress={onBarkdoku} />
       </View>
       {lockNote && (
         <Panel className="mt-2">
