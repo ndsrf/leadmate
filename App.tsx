@@ -93,7 +93,7 @@ import { resolveScenario } from './src/shell/sync/configs';
 import { useAccount } from './src/shell/sync/useAccount';
 import { AccountBanner, AuthScreen, ChooseDogScreen, RegisterPrompt } from './src/shell/screens/AccountScreens';
 import { resolveCue, type Language } from './src/shell/voice';
-import { backAction, isReadyToLeaveSplash, trialModalOwnsBack, onStageViewFailure, routeFor, stageViewWanted, type BackActionParams, type Route } from './src/shell/navigation';
+import { backAction, gamesBack, isReadyToLeaveSplash, trialModalOwnsBack, onStageViewFailure, routeFor, stageViewWanted, type BackActionParams, type GamesFlow, type Route } from './src/shell/navigation';
 import { resetProgress } from './src/shell/reset';
 import {
   initAnalytics,
@@ -123,6 +123,8 @@ import { FunnelTracker, funnelStepOf } from './src/shell/analytics/funnel';
 import { AnalyticsProvider } from './src/shell/analytics/AnalyticsProvider';
 import type { SetupPart } from './src/shell/onboarding/setup';
 import { ShopScreen, type ShopLevel } from './src/shell/screens/ShopScreen';
+import { GamesScreen } from './src/shell/screens/GamesScreen';
+import { GameDetailScreen } from './src/shell/screens/GameDetailScreen';
 import { ShopPopup } from './src/shell/screens/ShopPopup';
 import {
   DEFAULT_SHOP_STATE,
@@ -155,6 +157,8 @@ type Flow =
   /** The paywall from the map, or from a Plus-only action (`then`) that "Empezar prueba" completes. */
   | { name: 'paywall'; then?: PendingPlusAction }
   | { name: 'puzzle'; date: string; boardIndex?: number }
+  /** The Games list and a Dog Game, over the mounted World Map; back goes game → list → map. */
+  | GamesFlow
   | {
       name: 'shop';
       target?: { level: ShopLevel; id?: string };
@@ -1223,6 +1227,8 @@ export default function App() {
 
   // where the map was scrolled, so a Stop's flow returns to the same place
   const mapScroll = useRef<number | undefined>(undefined);
+  // the game the last random press opened, kept for the session only, so the next press picks another
+  const lastRandomGame = useRef<string | null>(null);
   // the Completed Worlds the user opened on the map this session; every other Completed World starts folded
   const [expandedCompleted, setExpandedCompleted] = useState<ReadonlySet<string>>(() => new Set());
   const toggleCompleted = (worldId: string) =>
@@ -1590,6 +1596,8 @@ export default function App() {
           onOpenStop={openStop}
           shop={contentSession.resolved.shop}
           onShop={(target) => openShop(target, { returnTo: 'map' })}
+          games={contentSession.resolved.games}
+          onGames={() => setFlow({ name: 'games' })}
           shopPopup={shopPopupNode}
           initialScrollY={mapScroll.current}
           onScroll={(y) => (mapScroll.current = y)}
@@ -1914,6 +1922,45 @@ export default function App() {
           onBack={withBack(goHome)}
         />,
       );
+    } else if (f.name === 'games' && record) {
+      screen = mapWith(
+        <GamesScreen
+          t={t}
+          games={contentSession.resolved.games ?? []}
+          isPlus={isPlus(record, new Date())}
+          lastRandomId={lastRandomGame.current}
+          onOpenGame={(id) => setFlow({ name: 'game', id, from: 'list' })}
+          onOpenRandom={(id) => {
+            lastRandomGame.current = id;
+            track('game_random_picked', { game_id: id });
+            setFlow({ name: 'game', id, from: 'random' });
+          }}
+          onBack={withBack(() => {
+            const next = gamesBack(f);
+            if (next) setFlow(next);
+            else goHome();
+          })}
+        />,
+      );
+    } else if (f.name === 'game' && record) {
+      const game = (contentSession.resolved.games ?? []).find((g) => g.id === f.id);
+      const back = withBack(() => {
+        const next = gamesBack(f);
+        if (next) setFlow(next);
+        else goHome();
+      });
+      screen = mapWith(
+        game ? (
+          <GameDetailScreen
+            t={t}
+            game={game}
+            isPlus={isPlus(record, new Date())}
+            onBack={back}
+            onOpenPaywall={() => setFlow({ name: 'paywall', then: { kind: 'game', gameId: game.id, from: f.from } })}
+            onOpenShop={(target) => openShop(target, { previousFlow: f })}
+          />
+        ) : null,
+      );
     } else if (f.name === 'diary' && record) {
       screen = mapWith(<DiaryScreen t={t} record={record} today={todayString()} onBack={withBack(goHome)} />);
     } else if (f.name === 'shop' && record) {
@@ -2078,6 +2125,11 @@ export default function App() {
         if ('kind' in action && action.kind === 'video') {
           const returnTo = action.returnTo ?? 'map';
           setFlow({ name: 'lesson', id: action.lessonId, returnTo, autoPlayVideo: unlocked, source: 'video_unlock' });
+          return;
+        }
+        if ('kind' in action && action.kind === 'game') {
+          // trial or purchase: the same game, now unlocked (isPlus reads the updated record); dismissed: still locked
+          setFlow({ name: 'game', id: action.gameId, from: action.from ?? 'list' });
           return;
         }
         if ('kind' in action && action.kind === 'barkdoku') {

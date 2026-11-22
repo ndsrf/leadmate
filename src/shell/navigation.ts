@@ -127,11 +127,22 @@ export function backAction({ route, playingStage, paused, bundle, hasScreenBack,
 
 /**
  * Whether the World Map registers the Plus trial modal's close as the system back. Only while the modal is
- * open and no screen sits over the map: the map stays mounted under Settings, the Library, the Diary and
- * Lessons, and its registration would otherwise replace theirs (withBack is last-write-wins).
+ * open and no screen sits over the map: the map stays mounted under Settings, the Library, the Diary,
+ * Lessons, the Shop, the Games screen and a Dog Game, and its registration would otherwise replace theirs (withBack is last-write-wins).
  */
 export function trialModalOwnsBack({ trialModalOpen, hasOverlay }: { trialModalOpen: boolean; hasOverlay: boolean }): boolean {
   return trialModalOpen && !hasOverlay;
+}
+
+/** The Games list and a Dog Game, both layered over the mounted World Map. */
+export type GamesFlow = { name: 'games' } | { name: 'game'; id: string; from: 'list' | 'random' };
+
+/**
+ * Where the on-screen and system back of the Games screens go: a Dog Game (opened from the list or with the
+ * random button) returns to the Games list, and the Games list returns to the World Map (`null`).
+ */
+export function gamesBack(flow: GamesFlow): { name: 'games' } | null {
+  return flow.name === 'game' ? { name: 'games' } : null;
 }
 
 /** Just enough of a flow to decide whether the Stage view is needed (a Node run, a Daily, or a warm-up). */
