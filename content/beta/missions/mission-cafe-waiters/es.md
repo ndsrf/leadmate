@@ -4,7 +4,7 @@
 En una terraza de verdad, deja pasar a dos camareros o personas con la correa corta y floja, con {name} en el lado de la pared y tu cuerpo hacia el pasillo.
 
 ## success
-{name} sigue tumbado, o te mira, mientras pasa la gente.
+{name} sigue en la manta, o te mira, mientras pasa la gente.
 
 ## problems
 ### tight
@@ -21,7 +21,7 @@ En una terraza de verdad, deja pasar a dos camareros o personas con la correa co
 - label: Se levantó al pasar alguien
 - reassure: A muchos perros les cuesta al principio. No es culpa tuya ni suya.
 - cause: Había poca distancia al pasillo o el paso era muy concurrido.
-- c1: Pon a {name} más cerca de la pared y tu cuerpo entre él y el paso.
+- c1: Pon a {name} más cerca de la pared y tu cuerpo entre {name} y el paso.
 - c2: Si sigue difícil, cambia de mesa o acorta la visita.
 - easier: Sentarte 5 minutos en una mesa de rincón tranquila, 1 vez.
 - alt: Una mesa de rincón tranquila en una terraza

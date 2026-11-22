@@ -162,6 +162,19 @@ export function loadPackFromDisk(packDir: string): ContentPack {
     missions: {},
     games: {},
   };
+  // Non-enumerable so the pack stays structured-cloneable.
+  Object.defineProperty(result, 'readGameMedia', {
+    enumerable: false,
+    value: (gameId: string, fileName: string): Buffer | null => {
+      const diskPath = join(packDir, 'games', gameId, 'media', fileName);
+      if (!existsSync(diskPath)) return null;
+      try {
+        return readFileSync(diskPath);
+      } catch {
+        return null;
+      }
+    },
+  });
 
   // 1. Worlds
   const worldsDir = join(packDir, 'worlds');

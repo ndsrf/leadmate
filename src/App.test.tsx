@@ -105,7 +105,13 @@ jest.mock('@expo-google-fonts/fredoka', () => ({ Fredoka_600SemiBold: 1 }));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaProvider: (p: any) => p.children, useSafeAreaInsets: () => ({ top: 40, bottom: 20, left: 0, right: 0 }) }));
 jest.mock('./shell/ui/feedbackBackends', () => ({ installFeedback: () => {} }));
 jest.mock('./shell/ui/useUiSettings', () => ({ useUiSettings: () => ({ settings: { appearance: 'light' }, change: () => {} }) }));
-jest.mock('./shell/ui/components', () => ({ PaletteRoot: (p: any) => p.children }));
+jest.mock('./shell/ui/components', () => {
+  const React = require('react');
+  return {
+    PaletteRoot: (p: any) => p.children,
+    GameButton: (p: any) => React.createElement('GameButton', p, p.label),
+  };
+});
 jest.mock('./shell/ui/theme', () => {
   const actual = jest.requireActual('./shell/ui/theme');
   return {

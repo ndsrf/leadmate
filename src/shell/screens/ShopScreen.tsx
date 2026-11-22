@@ -8,9 +8,11 @@ import {
   Text,
   View,
 } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import type { Translate } from '../../i18n';
+import type { MediaResolver } from '../content/mediaResolver';
 import { getActiveContent } from '../content/runtime';
 import type {
   ResolvedCategory,
@@ -18,8 +20,10 @@ import type {
   ResolvedShop,
   ResolvedSubcategory,
 } from '../content/resolver';
+import { GameButton } from '../ui/components';
 import { handlePress } from '../ui/press';
 import { usePalette } from '../ui/theme';
+import { useProductPictures } from './useProductPictures';
 
 export type ShopLevel = 'home' | 'category' | 'subcategory' | 'product';
 
@@ -39,6 +43,10 @@ export interface ShopScreenProps {
   isOffline?: boolean;
   openURL?: (url: string) => any;
   canOpenURL?: (url: string) => any;
+  /** In-app browser fallback when the system cannot open a web link; defaults to expo-web-browser. */
+  openBrowser?: (url: string) => any;
+  /** Resolves product pictures; defaults to the app-wide MediaResolver. */
+  resolver?: MediaResolver;
 }
 
 export function ShopScreen({
@@ -49,6 +57,8 @@ export function ShopScreen({
   isOffline = false,
   openURL,
   canOpenURL,
+  openBrowser,
+  resolver,
 }: ShopScreenProps) {
   const insets = useSafeAreaInsets();
   const color = usePalette();
@@ -61,6 +71,7 @@ export function ShopScreen({
     const active = getActiveContent();
     return active?.resolved?.shop ?? { categories: [], idToKind: {} };
   }, [shopProp]);
+  const pictures = useProductPictures(shop, resolver);
 
   // Compute initial stack based on initialTarget
   const initialStack = useMemo<ShopStackEntry[]>(() => {
@@ -149,23 +160,40 @@ export function ShopScreen({
       return;
     }
 
-    try {
-      const can = canOpenURL ?? Linking.canOpenURL;
-      const open = openURL ?? Linking.openURL;
+    const can = canOpenURL ?? Linking.canOpenURL;
+    const open = openURL ?? Linking.openURL;
+    const browse = openBrowser ?? WebBrowser.openBrowserAsync;
+    // canOpenURL is false for https on Android 11+ without a <queries> entry
+    // (and in Expo Go), so only gate non-web schemes on it.
+    const isWeb = /^https?:\/\//i.test(url);
 
-      const isSupported = can ? await can(url) : true;
+    try {
+      const isSupported = isWeb || !can ? true : await can(url);
       if (!isSupported) {
         setBuyError(t('shop.buyError'));
         return;
       }
-
+      // First choice: hand the link to the system, so the store's own app opens it when installed.
       await open(url);
-    } catch {
-      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-        setBuyError(t('shop.buyOffline'));
-      } else {
-        setBuyError(t('shop.buyError'));
+      return;
+    } catch (err) {
+      console.warn('[shop] Linking.openURL failed', url, err);
+    }
+
+    if (isWeb) {
+      try {
+        // Fallback: an in-app browser tab (Custom Tabs / SFSafariViewController).
+        await browse(url);
+        return;
+      } catch (err) {
+        console.warn('[shop] WebBrowser.openBrowserAsync failed', url, err);
       }
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      setBuyError(t('shop.buyOffline'));
+    } else {
+      setBuyError(t('shop.buyError'));
     }
   };
 
@@ -412,10 +440,10 @@ export function ShopScreen({
                 }}
               >
                 {/* Product Picture or Themed Placeholder */}
-                {prod.image && !failedImages[prod.id] ? (
+                {pictures[prod.id] && !failedImages[prod.id] ? (
                   <Image
                     testID="product-image"
-                    source={{ uri: prod.image }}
+                    source={pictures[prod.id]}
                     onError={() => setFailedImages((prev) => ({ ...prev, [prod.id]: true }))}
                     style={{ width: 80, height: 80, borderRadius: 12, backgroundColor: color.surfaceSunken }}
                     resizeMode="cover"
@@ -473,25 +501,13 @@ export function ShopScreen({
                   )}
 
                   <View style={{ marginTop: 4, flexDirection: 'row', gap: 8 }}>
-                    <Pressable
+                    <GameButton
                       testID={`buy-button-${prod.id}`}
-                      onPress={() => handlePress(() => handleBuy(prod.url))}
-                      accessibilityRole="button"
+                      label={t('shop.buyAction')}
                       accessibilityLabel={`${t('shop.buyAction')} ${t(prod.name)}`}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      style={({ pressed }) => ({
-                        backgroundColor: pressed ? color.brandDeep : color.brand,
-                        paddingHorizontal: 16,
-                        minHeight: 44,
-                        justifyContent: 'center',
-                        borderRadius: 16,
-                        alignItems: 'center',
-                      })}
-                    >
-                      <Text style={{ color: color.onBrand, fontWeight: '700', fontSize: 13 }}>
-                        {t('shop.buyAction')}
-                      </Text>
-                    </Pressable>
+                      onPress={() => handleBuy(prod.url)}
+                      className="mt-0"
+                    />
                   </View>
                 </View>
               </View>
@@ -503,10 +519,10 @@ export function ShopScreen({
         {current.level === 'product' && activeProduct && (
           <View style={{ gap: 16, backgroundColor: color.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: color.edge }}>
             {/* Main Picture or Placeholder */}
-            {activeProduct.image && !failedImages[activeProduct.id] ? (
+            {pictures[activeProduct.id] && !failedImages[activeProduct.id] ? (
               <Image
                 testID="product-detail-image"
-                source={{ uri: activeProduct.image }}
+                source={pictures[activeProduct.id]}
                 onError={() => setFailedImages((prev) => ({ ...prev, [activeProduct.id]: true }))}
                 style={{ width: '100%', height: 220, borderRadius: 16, backgroundColor: color.surfaceSunken }}
                 resizeMode="contain"
@@ -554,24 +570,13 @@ export function ShopScreen({
                 {t(activeProduct.description)}
               </Text>
 
-              <Pressable
+              <GameButton
                 testID={`buy-button-${activeProduct.id}`}
-                onPress={() => handlePress(() => handleBuy(activeProduct!.url))}
-                accessibilityRole="button"
+                label={t('shop.buyAction')}
                 accessibilityLabel={`${t('shop.buyAction')} ${t(activeProduct.name)}`}
-                style={({ pressed }) => ({
-                  backgroundColor: pressed ? color.brandDeep : color.brand,
-                  minHeight: 44,
-                  justifyContent: 'center',
-                  borderRadius: 16,
-                  alignItems: 'center',
-                  marginTop: 8,
-                })}
-              >
-                <Text style={{ color: color.onBrand, fontWeight: '700', fontSize: 15 }}>
-                  {t('shop.buyAction')}
-                </Text>
-              </Pressable>
+                onPress={() => handleBuy(activeProduct!.url)}
+                className="mt-2"
+              />
             </View>
           </View>
         )}

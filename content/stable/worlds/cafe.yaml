@@ -2,6 +2,26 @@ id: cafe
 worldNumber: 7
 tier: plus
 unlockedBy: recall
-preview: true
-nodeCount: 4
-stretches: []
+stretches:
+  - - kind: lesson
+      id: theory-cafe-setup
+    - kind: node
+      id: cafe-arrive
+    - kind: mission
+      id: mission-cafe-short-visit
+  - - kind: lesson
+      id: theory-cafe-settle
+    - kind: node
+      id: cafe-settle
+    - kind: mission
+      id: mission-cafe-settle
+  - - kind: lesson
+      id: theory-cafe-waiters
+    - kind: node
+      id: cafe-passing-dog
+    - kind: mission
+      id: mission-cafe-waiters
+  - - kind: lesson
+      id: theory-cafe-leave-early
+    - kind: mission
+      id: mission-cafe-leave-early

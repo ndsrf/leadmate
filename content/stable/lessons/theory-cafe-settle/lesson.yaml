@@ -1,0 +1,10 @@
+id: theory-cafe-settle
+kind: theory
+images:
+  - theory-cafe-settle-1
+  - theory-cafe-settle-2
+compare:
+  do: theory-cafe-settle-do
+  dont: theory-cafe-settle-dont
+steps: 5
+takeaways: 4

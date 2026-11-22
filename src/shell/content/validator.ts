@@ -1,5 +1,3 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { defaultScenario, scentSpotsOf } from '../../sim/config';
 import { validateScenario } from '../../sim/scenery';
 import { FEEDBACK_ACTION_KINDS, isFeedbackActionKind, STARTING_KINDS } from '../../sim/feedbackKinds';
@@ -197,6 +195,8 @@ export interface ContentPackShop {
 
 export interface ContentPack {
   rootPath?: string;
+  /** Node-only hook (set by the CLI loader) to read a Dog Game media file from disk; absent on native. */
+  readGameMedia?: (gameId: string, fileName: string) => Buffer | null;
   pack: PackYaml;
   worlds: Record<
     string,
@@ -1071,15 +1071,8 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
         buffer = gameEntry.mediaBuffers[fileName];
       } else if (gameEntry.mediaBuffers?.[rawFile]) {
         buffer = gameEntry.mediaBuffers[rawFile];
-      } else if (pack.rootPath) {
-        const diskPath = join(pack.rootPath, 'games', id, 'media', fileName);
-        if (existsSync(diskPath)) {
-          try {
-            buffer = readFileSync(diskPath);
-          } catch {
-            // ignore read error
-          }
-        }
+      } else if (pack.readGameMedia) {
+        buffer = pack.readGameMedia(id, fileName);
       }
       if (buffer) {
         validateGameImageBuffer(buffer, fileName, id, errors);

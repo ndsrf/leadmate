@@ -1,3 +1,6 @@
+// the inline scenes draw with react-native-svg, which jest cannot load; only their names matter here
+jest.mock('../ui/lessonArt', () => ({ isLessonArt: (name: string) => ['leash', 'body', 'smile', 'marker', 'sniff', 'poster'].includes(name) }));
+
 import {
   initNativeContent,
   switchContentChannel,
@@ -8,6 +11,8 @@ import {
   resetNativeRuntimeForTesting,
   asyncStorageKeyValue,
 } from './nativeRuntime';
+import { MediaResolver } from './mediaResolver';
+import { PACK_MEDIA } from './packMediaRegistry';
 import { getActiveContent, setActiveContent } from './runtime';
 import { BASELINE_PACK } from './baseline.generated';
 
@@ -30,6 +35,39 @@ describe('nativeRuntime', () => {
       const res = await switchContentChannel('beta', { contentBase: '' });
       expect(res.success).toBe(false);
       expect(res.error).toBe('remote_unavailable');
+    });
+  });
+
+  describe('MediaResolver wiring', () => {
+    afterEach(() => MediaResolver.setInstance(null));
+
+    it('configures the shared resolver with the native store and file storage at content bootstrap', async () => {
+      const files = new MemoryFileStorage();
+      resetNativeRuntimeForTesting(files);
+      MediaResolver.setInstance(null);
+      await initNativeContent({ contentBase: '' });
+      const resolver = MediaResolver.getInstance() as any;
+      expect(resolver.store).toBe(getNativeContentStore());
+      expect(resolver.fileStorage).toBe(files);
+      expect(resolver.contentBase).toBe('');
+
+      // a picture of the installed pack resolves from disk
+      const store = getNativeContentStore();
+      const installed = `${store.getActiveDir('stable')}/games/new-game/media/new-game-1.png`;
+      await files.writeAsBinary(installed, new Uint8Array([1]));
+      const local = await resolver.resolveImage('new-game-1.png', { itemPath: 'games/new-game', channel: 'stable' });
+      expect(local).toMatchObject({ kind: 'local', uri: installed });
+    });
+
+    it('with no content host, bundled game pictures still resolve and missing ones fail without a download', async () => {
+      resetNativeRuntimeForTesting(new MemoryFileStorage());
+      await initNativeContent({ contentBase: '' });
+      const resolver = MediaResolver.getInstance();
+      const bundled = await resolver.resolveImage('trilero-1.png', { itemPath: 'games/trilero', channel: 'stable' });
+      expect(bundled.kind).toBe('bundled');
+      expect(bundled.source).toBe(PACK_MEDIA['games/trilero/media/trilero-1.png']);
+      const missing = await resolver.resolveImage('nope.png', { itemPath: 'games/nope', channel: 'stable' });
+      expect(missing).toEqual({ kind: 'placeholder', failed: true });
     });
   });
 

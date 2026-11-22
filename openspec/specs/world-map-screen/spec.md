@@ -428,16 +428,16 @@ A Home Behaviour Stretch that is not a Concern SHALL be excluded from completion
 A Coming-soon World (a Plus World with no Stops yet) SHALL, when expanded, show a card that depends on whether the user has LeadMate Plus. A free user SHALL see the Plus teaser and a button that opens the paywall. A Plus user, on trial or subscribed, SHALL see a "Próximamente" card with a short description of what the World will teach and its planned walk count, and SHALL NOT see Plus-purchase wording or a paywall button. The card SHALL use the same membership check as the rest of the map, so it changes without leaving the map when the trial starts or ends.
 
 #### Scenario: Free user opens a Coming-soon World
-- **WHEN** a free user expands World 7
+- **WHEN** a free user expands World 8
 - **THEN** the card shows the Plus teaser and a button that opens the paywall
 
 #### Scenario: Trial user opens a Coming-soon World
-- **WHEN** a user with an active trial expands World 7
+- **WHEN** a user with an active trial expands World 8
 - **THEN** the card shows "Próximamente", what the World will teach and "4 paseos planificados", and no paywall button
 
 #### Scenario: Plus user before finishing the World before
-- **WHEN** a Plus user who has not completed World 6 expands World 7
-- **THEN** the unlock banner "Termina «…» en el Mundo 6 para abrir este mundo" still shows above the "Próximamente" card, with no paywall button
+- **WHEN** a Plus user who has not completed World 7 expands World 8
+- **THEN** the unlock banner "Termina «…» en el Mundo 7 para abrir este mundo" still shows above the "Próximamente" card, with no paywall button
 
 #### Scenario: Subscriber opens a Coming-soon World
 - **WHEN** a subscribed user expands World 9
@@ -451,6 +451,10 @@ A Coming-soon World (a Plus World with no Stops yet) SHALL, when expanded, show 
 - **WHEN** the trial ends while a Coming-soon World is expanded
 - **THEN** its card changes to the Plus teaser with the paywall button
 
+#### Scenario: World 7 is no longer Coming-soon
+- **WHEN** a Plus user who has completed World 6 expands World 7
+- **THEN** it shows its trail of Stretches and Stops, not a "Próximamente" card
+
 ### Requirement: Coming-soon Worlds promise without blocking
 Coming-soon Worlds SHALL NOT have Stops, SHALL NOT be the Next-up target, and SHALL NOT affect whether all Worlds are complete. A Plus user who has finished every playable World SHALL see the map as complete while the Coming-soon Worlds remain "Próximamente".
 
@@ -459,7 +463,7 @@ Coming-soon Worlds SHALL NOT have Stops, SHALL NOT be the Next-up target, and SH
 - **THEN** the map shows the all-done message and the Coming-soon Worlds stay "Próximamente"
 
 ### Requirement: More-coming card at the end of the map
-After the last World, the map SHALL show a "Más próximamente" card listing the training scenarios planned after Worlds 7–9. A free user SHALL also see the Plus disclaimer and a button that opens the paywall. A Plus user SHALL see the list only. The card SHALL be informational and SHALL NOT open any Stop.
+After the last World, the map SHALL show a "Más próximamente" card listing the training scenarios planned after Worlds 8–9. A free user SHALL also see the Plus disclaimer and a button that opens the paywall. A Plus user SHALL see the list only. The card SHALL be informational and SHALL NOT open any Stop.
 
 #### Scenario: Free user reaches the end of the map
 - **WHEN** a free user scrolls past the last World
@@ -510,3 +514,22 @@ A playable World whose pack still lists planned Stops beyond those it has SHALL 
 #### Scenario: Note disappears
 - **WHEN** a World holds every planned Stretch
 - **THEN** no note shows
+
+### Requirement: Games entry in the Map Header
+The system SHALL show an icon-only Games chip in Row 1 of the Map Header, next to the Settings gear and the Shop basket, while the active Content Pack contains at least one Dog Game. It SHALL open the Games screen, SHALL keep at least the minimum touch target (44 points) and SHALL expose the localized name "Juegos" to screen readers. It SHALL NOT change the position of the Settings gear.
+
+#### Scenario: Games chip beside Settings and Shop
+- **WHEN** the active pack has games and a shop
+- **THEN** Row 1 shows the Settings gear, the Shop basket and the Games chip as icon-only buttons at the top right
+
+#### Scenario: Games chip opens the screen
+- **WHEN** the user taps the Games chip
+- **THEN** the Games screen opens over the World Map and closing it returns to the same map position
+
+#### Scenario: No games
+- **WHEN** the pack has no games
+- **THEN** the Games chip is not shown and the other chips keep their places
+
+#### Scenario: Narrow screen
+- **WHEN** the header is shown at 320 points wide
+- **THEN** the three icon buttons stay on Row 1 without pushing the Streak or Library chips off the row

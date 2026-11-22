@@ -20,7 +20,7 @@ En el juego, mira cómo está {name} y pulsa lo que ayuda: Ignorar si pide en la
 ¿Cuándo cae el premio?
 - [ ] Cuando {name} se tumba en calma sobre la manta y el premio cae en silencio entre sus patas
 - [ ] Cuando {name} se sienta quejándose junto a la mesa y recibe un trocito
-- why: El premio sale a cuenta cuando llega con {name} tumbado. Si llega con la petición, enseña a pedir.
+- why: El premio sale a cuenta cuando llega con {name} en la manta. Si llega con la petición, enseña a pedir.
 
 ### tq3
 {name} llevaba un rato en la manta y ahora se levanta y jadea. ¿Qué haces?

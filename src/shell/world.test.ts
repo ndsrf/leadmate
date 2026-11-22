@@ -53,12 +53,13 @@ describe('World unlocking', () => {
     expect(WORLDS.map((w) => w.unlockedBy)).toEqual([undefined, 'basics', 'home', 'sidewalk', 'urban', 'park', 'recall', 'cafe', 'trails']);
   });
 
-  it('designates Worlds 1-5 as playable free worlds and 7-9 as preview plus worlds (World 6 is playable Plus)', () => {
+  it('designates Worlds 1-5 as playable free worlds, Worlds 6-7 as playable Plus and 8-9 as preview plus worlds', () => {
     const playable = WORLDS.filter((w) => !w.preview).map((w) => w.id);
-    expect(playable.slice(0, 5)).toEqual(['basics', 'home', 'sidewalk', 'urban', 'park']);
+    expect(playable).toEqual(['basics', 'home', 'sidewalk', 'urban', 'park', 'recall', 'cafe']);
     expect(WORLDS.slice(0, 5).every((w) => (w.tier ?? 'free') === 'free')).toBe(true);
+    expect(WORLDS.slice(5, 7).every((w) => w.tier === 'plus')).toBe(true);
     const previews = WORLDS.filter((w) => w.preview);
-    expect(previews.map((w) => w.id)).toEqual(expect.arrayContaining(['cafe', 'trails', 'crowds']));
+    expect(previews.map((w) => w.id)).toEqual(['trails', 'crowds']);
     expect(previews.every((w) => w.tier === 'plus')).toBe(true);
   });
 
@@ -126,8 +127,10 @@ describe('World unlocking', () => {
     expect(currentWorld(finished('home')).id).toBe('sidewalk');
     // World 6 is playable (one Stretch), so it is the first World not complete once World 5 is done
     expect(currentWorld(finished('home', 'sidewalk', 'urban', 'park')).id).toBe('recall');
-    // with every playable World done, the map stays on the last playable one; Coming-soon World 7 is never current
-    expect(currentWorld({ ...finished('home', 'sidewalk', 'urban', 'park', 'recall'), plus: true }).id).toBe('recall');
+    // World 7 is playable too, so it is current once World 6 is done
+    expect(currentWorld({ ...finished('home', 'sidewalk', 'urban', 'park', 'recall'), plus: true }).id).toBe('cafe');
+    // with every playable World done, the map stays on the last playable one; Coming-soon World 8 is never current
+    expect(currentWorld({ ...finished('home', 'sidewalk', 'urban', 'park', 'recall', 'cafe'), plus: true }).id).toBe('cafe');
   });
 
   it('titles and topics every World from the catalog', () => {

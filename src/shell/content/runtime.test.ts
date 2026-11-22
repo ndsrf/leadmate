@@ -6,6 +6,8 @@ import { ContentUpdater, type HttpFetcher, type HttpResponse } from './updater';
 import { ContentStore, type FileStorage, type KeyValueStorage } from './store';
 import { type ContentManifest } from './build';
 import { sha256Hex } from './hash';
+import { loadPackFromDisk } from './loader';
+import { join } from 'node:path';
 
 class FakeHttpServer implements HttpFetcher {
   routes: Map<string, { status: number; body: string | Uint8Array }> = new Map();
@@ -409,19 +411,25 @@ describe('minAppVersion gate: an older app keeps its bundled baseline', () => {
   });
 
   it('an app at 1.3.x rejects a 1.4.0 pack and keeps the bundled baseline with World 7 as a Preview', async () => {
+    // the 1.3.x app bundled the stable pack of that time (contentVersion 6, World 7 a Preview): a fixture stands in for
+    // it, since the generated baseline now ships World 7 playable
+    const v13Baseline = loadPackFromDisk(join(__dirname, '__fixtures__', 'baseline-1.3'));
+    delete v13Baseline.rootPath;
+    expect(v13Baseline.pack.minAppVersion).toBe('1.3.0');
     const v140Pack: ContentPack = {
       ...BASELINE_PACK,
       pack: { ...BASELINE_PACK.pack, contentVersion: 9, minAppVersion: '1.4.0' },
     };
+    expect(BASELINE_PACK.worlds['cafe'].config.preview).toBeFalsy();
     expect(appCanLoadPack(v140Pack, '1.3.0')).toBe(false);
     expect(appCanLoadPack(v140Pack, '1.4.0')).toBe(true);
 
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    const session = await initContentRuntime({ channel: 'stable', store: storeHolding(v140Pack), currentAppVersion: '1.3.0' });
+    const session = await initContentRuntime({ channel: 'stable', store: storeHolding(v140Pack), currentAppVersion: '1.3.0', baselinePack: v13Baseline });
     warn.mockRestore();
 
     expect(session.isBaseline).toBe(true);
-    expect(session.contentVersion).toBe(BASELINE_PACK.pack.contentVersion);
+    expect(session.contentVersion).toBe(6);
     expect(session.pack.worlds['cafe'].config.preview).toBe(true);
   });
 });

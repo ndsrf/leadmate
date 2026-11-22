@@ -308,8 +308,9 @@ describe('MediaResolver & ContentPicture Component', () => {
   });
 
   describe('Dog Game illustration resolution (Task 2.3)', () => {
-    const gameId = 'manta-enrollada';
-    const gameArt = 'manta-enrollada-1.png';
+    // a game added after this release: not bundled, so it only arrives over the air (the first batch is in PACK_MEDIA)
+    const gameId = 'juego-futuro';
+    const gameArt = 'juego-futuro-1.png';
     const gamePath = `games/${gameId}/media/${gameArt}`;
 
     it('Case 1: downloaded - returns local result when game illustration exists in local storage', async () => {

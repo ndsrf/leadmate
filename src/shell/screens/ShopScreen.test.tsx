@@ -36,6 +36,10 @@ jest.mock('react-native', () => {
     },
     Linking: mockLinking,
     BackHandler: mockBackHandler,
+    AccessibilityInfo: {
+      isReduceMotionEnabled: () => Promise.resolve(false),
+      addEventListener: () => ({ remove: () => {} }),
+    },
   };
 });
 
@@ -49,11 +53,42 @@ jest.mock('react-native-svg', () => {
   };
 });
 
+jest.mock('react-native-reanimated', () => {
+  const React = require('react');
+  return {
+    __esModule: true,
+    default: {
+      View: (props: any) => React.createElement('div', props, props.children),
+    },
+    useSharedValue: (v: any) => ({ value: v }),
+    useAnimatedStyle: () => ({}),
+    withTiming: (v: any) => v,
+    cancelAnimation: () => {},
+    Easing: {
+      linear: () => {},
+      bezier: () => () => {},
+    },
+    FadeIn: { duration: () => ({}) },
+    FadeInDown: { duration: () => ({}) },
+  };
+});
+
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 20, bottom: 0, left: 0, right: 0 }),
 }));
 
+import { MediaResolver } from '../content/mediaResolver';
+import { PACK_MEDIA } from '../content/packMediaRegistry';
 import { ShopScreen } from './ShopScreen';
+
+/** Resolves only arnes-pro's picture, as if its pack were installed on the device. */
+const installedArnes = {
+  resolveImage: jest.fn(async (art: string, opts: { itemPath?: string }) =>
+    opts.itemPath === 'shop/products/arnes-pro' && art === 'arnes.png'
+      ? { kind: 'local' as const, uri: '/content/stable/active/shop/products/arnes-pro/media/arnes.png', source: { uri: '/content/stable/active/shop/products/arnes-pro/media/arnes.png' } }
+      : { kind: 'placeholder' as const, failed: true }
+  ),
+} as unknown as MediaResolver;
 
 describe('ShopScreen component', () => {
   const mockCatalog: Record<string, string> = {
@@ -255,6 +290,7 @@ describe('ShopScreen component', () => {
           onBack={() => {}}
           shop={sampleShop}
           initialTarget={{ level: 'subcategory', id: 'arneses' }}
+          resolver={installedArnes}
         />
       );
     });
@@ -272,6 +308,44 @@ describe('ShopScreen component', () => {
     expect(placeholder).toBeDefined();
     expect(placeholder.props.style.width).toBe(80);
     expect(placeholder.props.style.height).toBe(80);
+  });
+
+  it('shows the installed-pack picture resolved inside the product folder, not the bare relative path', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(
+        <ShopScreen t={mockTranslate} onBack={() => {}} shop={sampleShop} initialTarget={{ level: 'subcategory', id: 'arneses' }} resolver={installedArnes} />
+      );
+    });
+    const img = renderer!.root.findByProps({ testID: 'product-card-arnes-pro' }).findByProps({ testID: 'product-image' });
+    expect(img.props.source).toEqual({ uri: '/content/stable/active/shop/products/arnes-pro/media/arnes.png' });
+  });
+
+  it('shows a bundled stable product picture with no store and no content host', async () => {
+    const bundledShop = JSON.parse(JSON.stringify(sampleShop));
+    const prod = bundledShop.categories[0].subcategories[0].products[0];
+    prod.id = 'arnes-ergonomico-y';
+    prod.image = 'arnes-ergonomico.png';
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(
+        <ShopScreen t={mockTranslate} onBack={() => {}} shop={bundledShop} initialTarget={{ level: 'subcategory', id: 'arneses' }} resolver={new MediaResolver(null, null, undefined, '')} />
+      );
+    });
+    const img = renderer!.root.findByProps({ testID: 'product-card-arnes-ergonomico-y' }).findByProps({ testID: 'product-image' });
+    expect(img.props.source).toBe(PACK_MEDIA['shop/products/arnes-ergonomico-y/media/arnes-ergonomico.png']);
+  });
+
+  it('shows the placeholder when a picture is neither installed, bundled nor downloadable', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(
+        <ShopScreen t={mockTranslate} onBack={() => {}} shop={sampleShop} initialTarget={{ level: 'subcategory', id: 'arneses' }} resolver={new MediaResolver(null, null, undefined, '')} />
+      );
+    });
+    const card = renderer!.root.findByProps({ testID: 'product-card-arnes-pro' });
+    expect(card.findAllByProps({ testID: 'product-image' })).toHaveLength(0);
+    expect(card.findByProps({ testID: 'product-image-placeholder' })).toBeDefined();
   });
 
   describe('Buy Action (Task 5.2)', () => {
@@ -298,9 +372,32 @@ describe('ShopScreen component', () => {
         buyBtn.props.onPress();
       });
 
-      expect(mockCanOpen).toHaveBeenCalledWith('https://example.com/arnes-pro');
+      expect(mockCanOpen).not.toHaveBeenCalled(); // https skips canOpenURL (false on Android 11+ without <queries>)
       expect(mockOpen).toHaveBeenCalledWith('https://example.com/arnes-pro');
       // No error shown
+      expect(() => renderer!.root.findByProps({ testID: 'shop-buy-error' })).toThrow();
+    });
+
+    it('opens an https link even when canOpenURL resolves false', async () => {
+      const mockOpen = jest.fn().mockResolvedValue(true);
+      const mockCanOpen = jest.fn().mockResolvedValue(false);
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      await act(async () => {
+        renderer = ReactTestRenderer.create(
+          <ShopScreen
+            t={mockTranslate}
+            onBack={() => {}}
+            shop={sampleShop}
+            initialTarget={{ level: 'subcategory', id: 'arneses' }}
+            openURL={mockOpen}
+            canOpenURL={mockCanOpen}
+          />
+        );
+      });
+      await act(async () => {
+        renderer!.root.findByProps({ testID: 'buy-button-arnes-pro' }).props.onPress();
+      });
+      expect(mockOpen).toHaveBeenCalledWith('https://example.com/arnes-pro');
       expect(() => renderer!.root.findByProps({ testID: 'shop-buy-error' })).toThrow();
     });
 
@@ -332,9 +429,7 @@ describe('ShopScreen component', () => {
       expect(err.props.children.props.children).toBe('Necesitas conexión a internet para abrir la tienda.');
     });
 
-    it('displays error message gracefully when openURL fails', async () => {
-      const mockOpen = jest.fn().mockRejectedValue(new Error('Cannot open URL'));
-
+    const renderAndBuy = async (props: { openURL: jest.Mock; openBrowser: jest.Mock }) => {
       let renderer: ReactTestRenderer.ReactTestRenderer;
       await act(async () => {
         renderer = ReactTestRenderer.create(
@@ -343,20 +438,45 @@ describe('ShopScreen component', () => {
             onBack={() => {}}
             shop={sampleShop}
             initialTarget={{ level: 'subcategory', id: 'arneses' }}
-            openURL={mockOpen}
+            openURL={props.openURL}
+            openBrowser={props.openBrowser}
           />
         );
       });
-
       const buyBtn = renderer!.root.findByProps({ testID: 'buy-button-arnes-pro' });
       await act(async () => {
         buyBtn.props.onPress();
       });
+      return renderer!;
+    };
+
+    it('falls back to the in-app browser when openURL fails', async () => {
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const mockOpen = jest.fn().mockRejectedValue(new Error('Cannot open URL'));
+      const mockBrowse = jest.fn().mockResolvedValue({ type: 'opened' });
+
+      const renderer = await renderAndBuy({ openURL: mockOpen, openBrowser: mockBrowse });
 
       expect(mockOpen).toHaveBeenCalled();
-      const err = renderer!.root.findByProps({ testID: 'shop-buy-error' });
+      expect(mockBrowse).toHaveBeenCalledWith(mockOpen.mock.calls[0][0]);
+      expect(() => renderer.root.findByProps({ testID: 'shop-buy-error' })).toThrow();
+      warn.mockRestore();
+    });
+
+    it('displays error message gracefully when openURL and the in-app browser both fail', async () => {
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const mockOpen = jest.fn().mockRejectedValue(new Error('Cannot open URL'));
+      const mockBrowse = jest.fn().mockRejectedValue(new Error('No browser'));
+
+      const renderer = await renderAndBuy({ openURL: mockOpen, openBrowser: mockBrowse });
+
+      expect(mockOpen).toHaveBeenCalled();
+      expect(mockBrowse).toHaveBeenCalled();
+      const err = renderer.root.findByProps({ testID: 'shop-buy-error' });
       expect(err).toBeDefined();
       expect(err.props.children.props.children).toBe('No se pudo abrir el enlace.');
+      expect(warn).toHaveBeenCalledWith('[shop] Linking.openURL failed', expect.any(String), expect.any(Error));
+      warn.mockRestore();
     });
   });
 });
