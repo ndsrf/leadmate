@@ -252,7 +252,7 @@ describe('GameDetailScreen (Task 4.3 & 4.4)', () => {
 
       // Shop link button is rendered
       const shopBtn = mockPressables.find(
-        (p) => p.testID === 'game-shop-link-mantas-olfativas-action'
+        (p) => p.testID === 'game-shop-link-action'
       );
       expect(shopBtn).toBeDefined();
 

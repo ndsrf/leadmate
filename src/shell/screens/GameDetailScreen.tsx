@@ -68,7 +68,6 @@ export function GameDetailScreen({
       <Text
         className="shrink font-display text-title text-ink"
         accessibilityRole="header"
-        numberOfLines={1}
       >
         {tr(game.title)}
       </Text>
@@ -151,7 +150,7 @@ export function GameDetailScreen({
                         onOpen={() =>
                           onOpenShop?.({ level: link.targetKind as ShopLevel, id: link.target })
                         }
-                        testID={`game-shop-link-${link.target}`}
+                        testID="game-shop-link"
                       />
                     ))}
                   </View>

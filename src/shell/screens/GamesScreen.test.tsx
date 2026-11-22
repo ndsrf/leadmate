@@ -143,7 +143,8 @@ describe('GamesScreen (Task 4.2)', () => {
       />
     );
 
-    const rowB = mockPressables.find((p) => p.testID === 'game-row-game-b');
+    // rows carry a fixed test id (tap capture never sees game ids); they follow content order: a, b, c
+    const rowB = mockPressables.filter((p) => p.testID === 'game-row')[1];
     expect(rowB).toBeDefined();
     rowB.onPress();
     expect(onOpenGame).toHaveBeenCalledWith('game-b', { from: 'list' });
@@ -182,11 +183,14 @@ describe('GamesScreen (Task 4.2)', () => {
       />
     );
 
+    // rows in content order (a, b, c), each with the fixed test ids
+    const rowsFree = markupFree.split('"game-row"').slice(1);
+    expect(rowsFree).toHaveLength(3);
     // game-a is Free -> no Plus badge
-    expect(markupFree).not.toContain('game-plus-badge-game-a');
+    expect(rowsFree[0]).not.toContain('game-plus-badge');
     // game-b and game-c are gated -> Plus badge shown
-    expect(markupFree).toContain('game-plus-badge-game-b');
-    expect(markupFree).toContain('game-plus-badge-game-c');
+    expect(rowsFree[1]).toContain('game-plus-badge');
+    expect(rowsFree[2]).toContain('game-plus-badge');
 
     // 2. Plus user (isPlus = true)
     const markupPlus = renderToStaticMarkup(
@@ -200,8 +204,6 @@ describe('GamesScreen (Task 4.2)', () => {
     );
 
     // No Plus markers for Plus users on any game
-    expect(markupPlus).not.toContain('game-plus-badge-game-a');
-    expect(markupPlus).not.toContain('game-plus-badge-game-b');
-    expect(markupPlus).not.toContain('game-plus-badge-game-c');
+    expect(markupPlus).not.toContain('game-plus-badge');
   });
 });

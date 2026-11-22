@@ -99,7 +99,7 @@ export function GamesScreen({
             return (
               <Pressable
                 key={game.id}
-                testID={`game-row-${game.id}`}
+                testID="game-row"
                 accessibilityRole="button"
                 accessibilityLabel={tr(game.title)}
                 onPress={() => handlePress(() => onOpenGame(game.id, { from: 'list' }))}
@@ -134,7 +134,7 @@ export function GamesScreen({
                           {tr(game.title)}
                         </Text>
                         {!hasAccess && (
-                          <View testID={`game-plus-badge-${game.id}`}>
+                          <View testID="game-plus-badge">
                             <Badge label={t('games.plusLock')} tone="accent" />
                           </View>
                         )}

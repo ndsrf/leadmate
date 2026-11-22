@@ -41,13 +41,14 @@ jest.mock('react-native-svg', () => {
 });
 
 import { GamesGlyph } from './components';
+import { palettes } from './theme';
 
 describe('GamesGlyph (Task 4.1)', () => {
   it('draws with the ink outline at 20 points by default', () => {
     const markup = renderToStaticMarkup(<GamesGlyph />);
     expect(markup).toContain('width="20"');
     expect(markup).toContain('height="20"');
-    expect(markup).toContain('stroke="#1E2A3A"'); // theme ink color
+    expect(markup).toContain(`stroke="${palettes.light.ink}"`); // the active (light) palette's ink
     expect(markup).toContain('stroke-width="2"');
     expect(markup).toContain('aria-hidden="true"');
   });
@@ -56,6 +57,6 @@ describe('GamesGlyph (Task 4.1)', () => {
     const markup = renderToStaticMarkup(<GamesGlyph size={28} />);
     expect(markup).toContain('width="28"');
     expect(markup).toContain('height="28"');
-    expect(markup).toContain('stroke="#1E2A3A"');
+    expect(markup).toContain(`stroke="${palettes.light.ink}"`);
   });
 });
