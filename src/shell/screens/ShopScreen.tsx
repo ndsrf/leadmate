@@ -8,6 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import type { Translate } from '../../i18n';
@@ -42,6 +43,8 @@ export interface ShopScreenProps {
   isOffline?: boolean;
   openURL?: (url: string) => any;
   canOpenURL?: (url: string) => any;
+  /** In-app browser fallback when the system cannot open a web link; defaults to expo-web-browser. */
+  openBrowser?: (url: string) => any;
   /** Resolves product pictures; defaults to the app-wide MediaResolver. */
   resolver?: MediaResolver;
 }
@@ -54,6 +57,7 @@ export function ShopScreen({
   isOffline = false,
   openURL,
   canOpenURL,
+  openBrowser,
   resolver,
 }: ShopScreenProps) {
   const insets = useSafeAreaInsets();
@@ -156,26 +160,40 @@ export function ShopScreen({
       return;
     }
 
-    try {
-      const can = canOpenURL ?? Linking.canOpenURL;
-      const open = openURL ?? Linking.openURL;
+    const can = canOpenURL ?? Linking.canOpenURL;
+    const open = openURL ?? Linking.openURL;
+    const browse = openBrowser ?? WebBrowser.openBrowserAsync;
+    // canOpenURL is false for https on Android 11+ without a <queries> entry
+    // (and in Expo Go), so only gate non-web schemes on it.
+    const isWeb = /^https?:\/\//i.test(url);
 
-      // canOpenURL is false for https on Android 11+ without a <queries> entry
-      // (and in Expo Go), so only gate non-web schemes on it.
-      const isWeb = /^https?:\/\//i.test(url);
+    try {
       const isSupported = isWeb || !can ? true : await can(url);
       if (!isSupported) {
         setBuyError(t('shop.buyError'));
         return;
       }
-
+      // First choice: hand the link to the system, so the store's own app opens it when installed.
       await open(url);
-    } catch {
-      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-        setBuyError(t('shop.buyOffline'));
-      } else {
-        setBuyError(t('shop.buyError'));
+      return;
+    } catch (err) {
+      console.warn('[shop] Linking.openURL failed', url, err);
+    }
+
+    if (isWeb) {
+      try {
+        // Fallback: an in-app browser tab (Custom Tabs / SFSafariViewController).
+        await browse(url);
+        return;
+      } catch (err) {
+        console.warn('[shop] WebBrowser.openBrowserAsync failed', url, err);
       }
+    }
+
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      setBuyError(t('shop.buyOffline'));
+    } else {
+      setBuyError(t('shop.buyError'));
     }
   };
 
