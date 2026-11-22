@@ -36,6 +36,10 @@ jest.mock('react-native', () => {
     },
     Linking: mockLinking,
     BackHandler: mockBackHandler,
+    AccessibilityInfo: {
+      isReduceMotionEnabled: () => Promise.resolve(false),
+      addEventListener: () => ({ remove: () => {} }),
+    },
   };
 });
 
@@ -46,6 +50,26 @@ jest.mock('react-native-svg', () => {
     default: (props: any) => React.createElement('svg', props, props.children),
     Svg: (props: any) => React.createElement('svg', props, props.children),
     Path: (props: any) => React.createElement('path', props, props.children),
+  };
+});
+
+jest.mock('react-native-reanimated', () => {
+  const React = require('react');
+  return {
+    __esModule: true,
+    default: {
+      View: (props: any) => React.createElement('div', props, props.children),
+    },
+    useSharedValue: (v: any) => ({ value: v }),
+    useAnimatedStyle: () => ({}),
+    withTiming: (v: any) => v,
+    cancelAnimation: () => {},
+    Easing: {
+      linear: () => {},
+      bezier: () => () => {},
+    },
+    FadeIn: { duration: () => ({}) },
+    FadeInDown: { duration: () => ({}) },
   };
 });
 
