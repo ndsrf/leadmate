@@ -274,7 +274,7 @@ export const ES_INTERFACE = {
   'world.recall.topics': 'llamada fiable, distracciones abiertas, juego regulado',
   'world.recall.preview': 'Entrena una llamada sólida y fiable en espacios abiertos con distracciones reales. Aprende a gestionar el juego con otros perros y a recuperar la atención de tu perro en cualquier momento.',
   'world.cafe.title': 'Terrazas y Cafeterías',
-  'world.cafe.topics': 'permanencia quieto, paso de camareros, relajación en mesa',
+  'world.cafe.topics': 'preparar la visita, relajación en mesa, paso de camareros, irse a tiempo',
   'world.cafe.preview': 'Acompaña a tu perro a terrazas y cafeterías con total tranquilidad. Practica la calma bajo la mesa, la permanencia quieto y la indiferencia ante el paso constante de personas y camareros.',
   'world.trails.title': 'Senderos y Naturaleza',
   'world.trails.topics': 'olores intensos, fauna silvestre, paseos largos en calma',

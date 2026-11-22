@@ -275,7 +275,7 @@ export const EN_INTERFACE = {
   'world.recall.topics': 'reliable recall, open distractions, regulated play',
   'world.recall.preview': 'Build a solid, reliable recall in open spaces with real distractions. Learn to manage play with other dogs and regain your Dog\'s focus anytime.',
   'world.cafe.title': 'Outdoor Cafes and Terraces',
-  'world.cafe.topics': 'settling down, passing servers, table calm',
+  'world.cafe.topics': 'preparing the visit, table calm, passing servers, leaving in time',
   'world.cafe.preview': 'Take your Dog to cafes and terraces in total peace. Practice settling beneath the table, staying calm, and ignoring moving people and servers.',
   'world.trails.title': 'Trails and Nature',
   'world.trails.topics': 'intense scents, wildlife, relaxed long walks',

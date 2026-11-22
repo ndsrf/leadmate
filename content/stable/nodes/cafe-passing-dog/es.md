@@ -2,7 +2,7 @@
 
 ## primer
 ### card 1
-Recuerda: en la terraza, recoge la correa corta pero floja, coloca a {name} en el lado de la pared y ponte entre él y el perro que pasa. Marca cuando te mire.
+Recuerda: en la terraza, recoge la correa corta pero floja, coloca a {name} en el lado de la pared y ponte entre {name} y el perro que pasa. Marca cuando te mire.
 - caption: Correa corta y floja, y tú entre {name} y el perro que pasa
 
 ## checkpoint
