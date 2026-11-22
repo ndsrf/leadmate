@@ -104,6 +104,14 @@ describe('Dog portrait layer mapping (readable-dog 4.2, 4.3)', () => {
       expect(p.eyes).toBe('portrait_eyes_right');
     });
 
+    it('high Autopilot: head and eyes turned away from the Handler', () => {
+      const p = portraitLayers(mockPose({ gaze: 'away-right', autopilot: true }));
+      expect(p).toMatchObject({
+        head: 'portrait_head_right',
+        eyes: 'portrait_eyes_right',
+      });
+    });
+
     it('tucked tail: portrait_tail_tucked', () => {
       const p = portraitLayers(mockPose({ tail: 'tucked' }));
       expect(p.tail).toBe('portrait_tail_tucked');

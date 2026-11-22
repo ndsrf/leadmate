@@ -213,6 +213,8 @@ export interface ScentWalkConfig {
   };
   /** A turn wider than this, in radians, is a U-turn. */
   uTurnAngle: number;
+  /** Minimum interval in seconds between registered turns of the same kind. */
+  minTurnInterval: number;
   /** Seeded duration range of a Plant, in seconds. */
   plantSeconds: { min: number; max: number };
   /** Seeded duration range of a marking, in seconds. */
@@ -234,9 +236,10 @@ export const DEFAULT_SCENT_WALK: ScentWalkConfig = {
   reachDistance: 0.6,
   headingLead: 1.4,
   autopilot: { risePerSecond: 0.05, steadyAngle: (15 * Math.PI) / 180, steadyPace: 0.2, steadySeconds: 1, dropPerChange: 0.6, followDamping: 0.4 },
-  novelty: { step: 0.45, recoveryPerSecond: 0.025, fresh: 0.7, repeated: 0.4, freshBonus: 0.15 },
+  novelty: { step: 0.25, recoveryPerSecond: 0.06, fresh: 0.7, repeated: 0.4, freshBonus: 0.15 },
   pace: { smoothingSeconds: 0.5, threshold: 0.35 },
   uTurnAngle: (135 * Math.PI) / 180,
+  minTurnInterval: 1.5,
   plantSeconds: { min: 3, max: 6 },
   markingSeconds: { min: 2, max: 4 },
   dragArousal: 8,

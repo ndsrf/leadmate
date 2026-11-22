@@ -7,7 +7,7 @@ import { resolveDog, TRIGGER_FACTORS, type DistractorKind, type ResolvedDog } fr
 import { addMeterPoints, initialMeters, type MeterValue } from './meters';
 import type { FeedbackActionKind } from './feedbackKinds';
 import { createRng, type Rng } from './rng';
-import { appendTimeline, createScentWalk, emptyScentWalkCounts, freshnessOf, scentFollowChance, turnKind, type ChangeKind, type Freshness, type ScentWalkCounts, type ScentWalkState, type TimelineEntry } from './scentWalk';
+import { appendTimeline, createScentWalk, emptyScentWalkCounts, freshnessOf, scentFollowChance, turnKind, updateAutopilotHysteresis, type ChangeKind, type Freshness, type ScentWalkCounts, type ScentWalkState, type TimelineEntry } from './scentWalk';
 import { FEEDBACK_ACTION_KINDS, feedbackKindOf, isFollowedFreshMove } from './feedbackKinds';
 import { add, distance, dot, length, normalize, rotate, scale, sub, vec, type Vec2 } from './vec';
 
@@ -531,7 +531,14 @@ function detectTurn(state: SimState, dir: Vec2, events: SimEvent[]): void {
   state.headingAnchor = dir;
   if (state.ratio >= SLACK_MAX) return;
   if (state.scentWalk) {
-    registerChange(state, turnKind(from, dir, state.scentWalk.cfg.uTurnAngle), dir, events);
+    const sw = state.scentWalk;
+    const kind = turnKind(from, dir, sw.cfg.uTurnAngle);
+    const minInterval = sw.cfg.minTurnInterval ?? 1.5;
+    if (sw.lastTurn && sw.lastTurn.kind === kind && state.time - sw.lastTurn.time < minInterval - TIME_EPSILON) {
+      return;
+    }
+    sw.lastTurn = { kind, time: state.time };
+    registerChange(state, kind, dir, events);
     return;
   }
   const { cue } = config;
@@ -586,7 +593,16 @@ function registerChange(state: SimState, change: ChangeKind, dir: Vec2, events: 
   const freshness = freshnessOf(novelty, sw.cfg);
   const chance = scentFollowChance(cueBoostedChance(state), novelty, sw.autopilot, config.cue.followCap, sw.cfg);
   sw.autopilot = Math.max(0, sw.autopilot - sw.cfg.autopilot.dropPerChange * novelty);
+  updateAutopilotHysteresis(sw);
   sw.novelty[change] = Math.max(0, novelty - sw.cfg.novelty.step);
+  if (change === 'stop') {
+    const turns: ChangeKind[] = ['left-turn', 'right-turn', 'u-turn'];
+    for (const t of turns) sw.novelty[t] = Math.min(1, sw.novelty[t] + sw.cfg.novelty.freshBonus);
+  } else if (change === 'left-turn') {
+    sw.novelty['right-turn'] = Math.min(1, sw.novelty['right-turn'] + sw.cfg.novelty.freshBonus);
+  } else if (change === 'right-turn') {
+    sw.novelty['left-turn'] = Math.min(1, sw.novelty['left-turn'] + sw.cfg.novelty.freshBonus);
+  }
   const counts = state.telemetry.scentWalk!;
   if (freshness === 'fresh') counts.freshMoves += 1;
   if (freshness === 'repeated') counts.repeatedMoves += 1;
@@ -639,7 +655,10 @@ function trackPace(state: SimState, strength: number, dir: Vec2, dt: number, eve
   if (!straight) sw.steadyHeading = dir;
   if (!straight || !even) sw.steadySince = state.time;
   // walking counts as steady once it has held for `steadySeconds`, so a weave never does
-  else if (state.time - sw.steadySince >= cfg.autopilot.steadySeconds - TIME_EPSILON) sw.autopilot = Math.min(1, sw.autopilot + cfg.autopilot.risePerSecond * dt);
+  else if (state.time - sw.steadySince >= cfg.autopilot.steadySeconds - TIME_EPSILON) {
+    sw.autopilot = Math.min(1, sw.autopilot + cfg.autopilot.risePerSecond * dt);
+    updateAutopilotHysteresis(sw);
+  }
 }
 
 function moveHandler(state: SimState, input: SimInput, dt: number, events: SimEvent[]): void {

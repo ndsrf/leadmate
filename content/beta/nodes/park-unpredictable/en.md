@@ -2,8 +2,8 @@
 
 ## primer
 ### card 1
-Remember: change direction without warning, keep the leash Slack, and reward every glance {name} gives you. Use "Let's Go" to set off together and "Go Sniff" to give them time to sniff.
-- caption: Unexpected turns invite a Check-in
+Remember: watch the Dog portrait for a wandering gaze and look for the drifting cloud sign above {name} to tell when they are on autopilot. Change direction without warning, keep the leash Slack, and reward every glance {name} gives you. Use "Let's Go" to set off together and "Go Sniff" to give them time to sniff.
+- caption: Reading autopilot and inviting a Check-in
 
 ## checkpoint
 ### tq1

@@ -36,6 +36,7 @@ export const STAGE_SIGNS: readonly StageSign[] = [
   { id: 'dog-bark', group: 'dog-sign', drawnBy: 'StageScene.draw', dogSign: 'bark', hint: 'sign-bark' },
   { id: 'dog-scent', group: 'dog-sign', drawnBy: 'StageScene.draw', dogSign: 'scent', exempt: 'the scent dots need Go Sniff, which is not Introduced in the guided first Stage (no seed from 1 to 8 reaches them)' },
   { id: 'dog-sintonia', group: 'dog-sign', drawnBy: 'StageScene.draw', dogSign: 'sintonia', exempt: 'the Sintonía glow needs a run of right actions that the guided first walk does not reach (no seed from 1 to 8 shows it)' },
+  { id: 'dog-autopilot', group: 'dog-sign', drawnBy: 'StageScene.draw', dogSign: 'autopilot', exempt: 'the drifting cloud needs Autopilot, which only occurs in scent Stages (no seed from 1 to 8 shows it)' },
 
   // Feedback Message icons, explained by the Feedback Message's own first-time Hint (its full text)
   { id: 'feedback-marker-hit', group: 'feedback', drawnBy: 'effectsView.showFeedback', frames: ['icon_mark'], feedbackKinds: ['marker-hit'], hint: 'feedback:marker-hit' },

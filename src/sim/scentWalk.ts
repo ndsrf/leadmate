@@ -74,6 +74,19 @@ export interface ScentWalkState {
   followed: { change: ChangeKind; lookStartedAt: number } | null;
   /** A followed change marked on its look, waiting for Slack walking or a Go Sniff to complete a Chain. */
   chain: { change: ChangeKind; markedAt: number; walkedFor: number } | null;
+  /** The most recent turn registered, for consecutive turn cooldown. */
+  lastTurn?: { kind: ChangeKind; time: number };
+  /** Whether high autopilot has engaged the visual sign and wandering gaze (hysteresis >= 0.7, < 0.4). */
+  autopilotActive?: boolean;
+}
+
+/** Updates the hysteresis state of Autopilot on ScentWalkState. */
+export function updateAutopilotHysteresis(sw: ScentWalkState): void {
+  if (sw.autopilot >= sw.cfg.novelty.fresh) {
+    sw.autopilotActive = true;
+  } else if (sw.autopilot < sw.cfg.novelty.repeated) {
+    sw.autopilotActive = false;
+  }
 }
 
 /** Whether a scenario is a scent Stage: it declares at least one Scent Spot (directly or on scenery). */
@@ -102,6 +115,7 @@ export function createScentWalk(config: ScenarioConfig): ScentWalkState | null {
     stay: null,
     followed: null,
     chain: null,
+    autopilotActive: false,
   };
 }
 

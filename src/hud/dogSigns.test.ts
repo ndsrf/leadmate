@@ -1,4 +1,5 @@
 import { createSignalGate, DOG_SIGNS, type DogSign, type StageSignal } from '../sim/messages';
+import { updateAutopilotHysteresis } from '../sim/scentWalk';
 import { dogSignsShown, createDogSignTracker, type DogSignsShown } from './dogSigns';
 import { defaultScenario } from '../sim/config';
 import { createState } from '../sim/sim';
@@ -37,5 +38,32 @@ describe('dog sign signals', () => {
     const s = dogSignsShown(createState(1, defaultScenario));
     expect(s.fixation).toBe(false);
     expect([...s.signs]).toEqual([]);
+  });
+
+  it('shows the autopilot sign at Autopilot >= 0.7 and clears it below 0.4', () => {
+    const s = createState(3, { ...defaultScenario, world: 6, scenery: [], scents: [{ pos: { x: 5, y: 0.5 }, strength: 'normal' }] });
+    s.scentWalk!.autopilot = 0.75;
+    updateAutopilotHysteresis(s.scentWalk!);
+    expect(dogSignsShown(s).signs).toContain('autopilot');
+
+    // Hysteresis maintains it at 0.5
+    s.scentWalk!.autopilot = 0.5;
+    updateAutopilotHysteresis(s.scentWalk!);
+    expect(dogSignsShown(s).signs).toContain('autopilot');
+
+    // Suppressed during check-in, fixation, or sniffing
+    s.dogLookUntil = s.time + 1;
+    expect(dogSignsShown(s).signs).toContain('eye');
+    expect(dogSignsShown(s).signs).not.toContain('autopilot');
+    s.dogLookUntil = s.time - 1;
+
+    s.dogMode = 'fixated';
+    expect(dogSignsShown(s).signs).not.toContain('autopilot');
+    s.dogMode = 'goal';
+
+    // Clears below 0.4
+    s.scentWalk!.autopilot = 0.35;
+    updateAutopilotHysteresis(s.scentWalk!);
+    expect(dogSignsShown(s).signs).not.toContain('autopilot');
   });
 });

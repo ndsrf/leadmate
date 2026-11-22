@@ -2,7 +2,7 @@
 
 ## primer
 ### card 1
-Recuerda: un cambio es fresco si no lo acabas de hacer. Varía giros, ritmo y paradas, marca la mirada que sigue y luego sigue con la correa floja o di «Olfatea».
+Recuerda: un cambio es fresco si no lo acabas de hacer. Atiende al retrato del perro y a la nube flotante de piloto automático, varía giros, ritmo y paradas, marca la mirada que sigue y luego sigue con la correa floja o di «Olfatea».
 - caption: Un cambio fresco, una mirada y después el premio
 
 ## checkpoint

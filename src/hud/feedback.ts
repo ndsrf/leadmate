@@ -1,4 +1,5 @@
 import type { TextKey } from '../i18n';
+import { DEFAULT_SCENT_WALK } from '../sim/config';
 import { feedbackKindOf, isFollowedFreshMove, FEEDBACK_ACTION_KINDS, type FeedbackActionKind, type FeedbackPolarity } from '../sim/feedbackKinds';
 import type { TensionState } from '../sim/leash';
 import type { SimEvent } from '../sim/sim';
@@ -52,6 +53,8 @@ interface KindRule {
   perfectTier?: FeedbackTier;
   /** Shown at most once per this many seconds. */
   minIntervalSeconds?: number;
+  /** Whether a wrong-polarity action clears active combos (defaults to true). */
+  clearsCombos?: boolean;
 }
 
 /**
@@ -89,7 +92,7 @@ export const FEEDBACK_RULES = {
   'dragged-plant': { tier: 'wrong' },
   'interrupted-marking': { tier: 'wrong' },
   'food-eaten': { tier: 'wrong' },
-  'repeated-move-ignored': { tier: 'wrong' },
+  'repeated-move-ignored': { tier: 'wrong', minIntervalSeconds: 6, clearsCombos: false },
   'empty-sniff': { tier: 'wrong' },
   'wasted-jackpot': { tier: 'wrong' },
 } as const satisfies Record<FeedbackActionKind, KindRule>;
@@ -192,9 +195,10 @@ export class FeedbackDecider {
       // the Marker on the look after a change reports both events; show only the more specific message
       if (kind === 'check-in-hit' && events.some((o) => o.type === 'change-check-in')) continue;
       if (kind === 'followed-turn' && events.some(isFollowedFreshMove)) continue; // the fresh move already says it
+      if (kind === 'followed-turn' && events.some((o) => o.type === 'walk-change' && o.followed && (o.freshness === 'repeated' || (o.novelty !== undefined && o.novelty < DEFAULT_SCENT_WALK.novelty.repeated)))) continue;
       const polarity = FEEDBACK_ACTION_KINDS[kind];
       if (polarity === 'wrong') {
-        this.combos.clear();
+        if (RULES[kind].clearsCombos !== false) this.combos.clear();
         if (this.isTasteStage || (kind === 'rigid-pull' && hintCoversRigidPull)) continue;
         if (this.tooSoon(kind, time)) continue;
         candidates.push(this.build(kind, e, 1, events));

@@ -2,7 +2,7 @@
 
 ## primer
 ### card 1
-Remember: a change is fresh when you have not just made it. Vary turns, pace and stops, mark the look that follows, then walk on with a Slack leash or say "Go Sniff".
+Remember: a change is fresh when you have not just made it. Watch the Dog portrait and drifting cloud sign for autopilot, vary turns, pace and stops to keep moves fresh, mark the look that follows, then walk on with a Slack leash or say "Go Sniff".
 - caption: A fresh change, a look, then the reward
 
 ## checkpoint
