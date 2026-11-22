@@ -866,7 +866,7 @@ describe('Node and Mission screens - ShopLinkCard recommendations (Task 7.1)', (
       expect(markup).toContain('1 intento');
       expect(markup).not.toContain(t2('encounter.notPlayed'));
       expect(markup.indexOf(t2('encounter.list.title'))).toBeLessThan(markup.indexOf(t2('results.duration')));
-      expect(markup.match(/debrief-encounter-/g)).toHaveLength(4);
+      expect(markup.match(/debrief-encounter-row/g)).toHaveLength(4);
     });
 
     it('marks the Encounters of an exited Series that were not played', () => {

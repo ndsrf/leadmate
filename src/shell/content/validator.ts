@@ -18,6 +18,7 @@ import {
 import {
   compareAppVersions,
   duelImageFile,
+  stripMediaFolder,
   ENCOUNTERS_MIN_APP_VERSION,
   GAME_DIFFICULTIES,
   IMAGE_DUEL_MIN_APP_VERSION,
@@ -1037,11 +1038,11 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
     }
 
     // Images check: declared images exist in media/ and have alt text in Spanish
-    const gameMedia = new Set((gameEntry.files ?? []).filter((f): f is string => typeof f === 'string').map((f) => duelImageFile(f)));
+    const gameMedia = new Set((gameEntry.files ?? []).filter((f): f is string => typeof f === 'string').map((f) => stripMediaFolder(f)));
     if (Array.isArray(cfg.images)) {
       for (const img of cfg.images) {
         if (typeof img !== 'string') continue;
-        const rawImg = duelImageFile(img);
+        const rawImg = stripMediaFolder(img);
         if (!gameMedia.has(rawImg)) {
           errors.push({
             file,
@@ -1065,7 +1066,7 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
 
     // Media limits check: PNG, 16:9, width <= 960, weight <= 250 KB
     for (const rawFile of gameEntry.files ?? []) {
-      const fileName = duelImageFile(rawFile);
+      const fileName = stripMediaFolder(rawFile);
       let buffer: Buffer | null = null;
       if (gameEntry.mediaBuffers?.[fileName]) {
         buffer = gameEntry.mediaBuffers[fileName];

@@ -326,10 +326,13 @@ export const IMAGE_DUEL_MIN_APP_VERSION = '1.1.0';
 /** The first app version that plays Encounter Series; a pack using one must declare at least this `minAppVersion`. */
 export const ENCOUNTERS_MIN_APP_VERSION = '1.3.0';
 
-/** Strips a leading `media/` so a duel image is named as a file of the Node's `media/` folder. */
-export function duelImageFile(image: string): string {
+/** Strips a leading `media/` so a media file is named as a relative file inside the `media/` folder. */
+export function stripMediaFolder(image: string): string {
   return image.startsWith('media/') ? image.slice('media/'.length) : image;
 }
+
+/** Strips a leading `media/` so a duel image is named as a file of the Node's `media/` folder. */
+export const duelImageFile = stripMediaFolder;
 
 export interface MissionYaml {
   id: string;

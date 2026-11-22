@@ -431,7 +431,7 @@ function EncounterList({ t, run, encounters }: { t: Translate; run: NodeRun; enc
         const played = e.attempts > 0;
         const pawsLabel = t('encounter.paws').split('{n}').join(String(e.paws));
         return (
-          <View key={e.id} testID={`debrief-encounter-${e.id}`} className="flex-row items-center justify-between gap-3 py-2">
+          <View key={e.id} testID="debrief-encounter-row" className="flex-row items-center justify-between gap-3 py-2">
             <Text className="flex-1 text-body text-ink">{title ? t(title) : e.id}</Text>
             <Text className="text-caption text-inkMuted">{played ? t(e.attempts === 1 ? 'encounter.attempts.one' : 'encounter.attempts.other').split('{n}').join(String(e.attempts)) : ''}</Text>
             {played ? <EncounterPaws paws={e.paws} size={22} label={pawsLabel} /> : <Text className="font-display text-caption text-inkMuted">{t('encounter.notPlayed')}</Text>}

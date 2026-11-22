@@ -1,6 +1,6 @@
 import type { DogRecord } from '../dogRecord';
 import { currentWorld, stopStatus, stopsOf, type WorldDef } from '../world';
-import { progressAt, trialState } from '../plus';
+import { plusStatus, progressAt } from '../plus';
 import { isPuppyModuleId } from '../puppyTrack';
 import type { ContextProperties, ScreenName } from './contract';
 
@@ -57,15 +57,6 @@ export function contextOf(input: ContextInput): ContextProperties {
     if (stopStatus(stop, progress, now, worlds).state === 'done') furthest = index;
   });
 
-  const billing = record.billing;
-  const expiresMs = billing?.expiresAt ? Date.parse(billing.expiresAt) : NaN;
-  const subscribed = Boolean(billing?.isSubscribed) && (Number.isNaN(expiresMs) || now.getTime() < expiresMs);
-  const plusStatus: ContextProperties['plus_status'] = subscribed || record.onboarding.mockSubscribed
-    ? 'subscribed'
-    : trialState(record, now) === 'active'
-      ? 'trial'
-      : 'free';
-
   return {
     ...(screen ? { screen } : {}),
     ...(world ? { world_id: world.id } : {}),
@@ -73,7 +64,7 @@ export function contextOf(input: ContextInput): ContextProperties {
     furthest_stop_index: furthest,
     funnel_done: record.onboarding.step === 'done',
     has_account: signedIn,
-    plus_status: plusStatus,
+    plus_status: plusStatus(record, now),
     session_number: Math.max(1, sessionNumber),
     seconds_in_session: Math.max(0, Math.floor(secondsInSession)),
     platform: input.platform,

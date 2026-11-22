@@ -87,7 +87,7 @@ export function GameDetailScreen({
         <View className="flex-row items-center flex-wrap mb-3" style={{ gap: theme.space[2] }}>
           {difficultyLabel && <Badge label={difficultyLabel} tone="quiet" />}
           {durationLabel && <Badge label={durationLabel} tone="quiet" />}
-          {game.free && <Badge label={t('games.plusLock')} tone="accent" />}
+          {!unlocked && <Badge label={t('games.plusLock')} tone="accent" />}
         </View>
 
         {/* First illustration (always shown) */}

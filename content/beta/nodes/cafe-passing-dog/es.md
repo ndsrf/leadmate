@@ -23,11 +23,11 @@ Pasa otro perro por el pasillo. ¿Qué correa ayuda más?
 {name} mira al perro que pasa y después te mira a ti. ¿Qué haces?
 - [x] Digo «bien» y le doy una golosina
 - [ ] Le riño por haber mirado al otro perro
-- [ ] Espero a que se quede tranquilo del todo para premiarlo
+- [ ] Espero a que se calme del todo para premiar
 - why: Mirarte después de ver al otro perro es una decisión suya. Marcarla en ese momento hace que la repita.
 
 ## debrief
-- calm: ¡Se ha quedado tranquilo mientras pasaba el otro perro! Así se hace: correa corta y floja, tu cuerpo de escudo y «bien» cuando te mira.
+- calm: Se ha quedado en calma mientras pasaba el otro perro. Así se hace: correa corta y floja, tu cuerpo de escudo y «bien» cuando te mira.
 - notCalm: Aún le costó, y es normal al principio. Consejo: recoge antes, ponte entre los dos y, si es demasiado, cambia de mesa o vete.
 
 ## exercises

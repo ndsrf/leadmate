@@ -13,7 +13,7 @@ function arcPath(cx: number, cy: number, rx: number, ry: number, fill: number): 
 }
 
 /**
- * The Poste practice ring around the Dog: it closes while the player holds Stop, lands when the Dog settles and flicks
+ * The Poste practice ring around the Dog: it closes while the Handler holds Stop, lands when the Dog settles and flicks
  * open on a release. With reduced motion it is a fixed ring whose arc fills. Drawn over the scene, ink outline under accent.
  */
 export function PosteRing({ ring, reducedMotion, snapAge, snapFromProgress, landedAge }: { ring: PosteRingProgress; reducedMotion: boolean; snapAge?: number; snapFromProgress?: number; landedAge?: number }) {

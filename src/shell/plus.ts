@@ -53,6 +53,20 @@ export function isPlus(record: Pick<DogRecord, 'onboarding'> & { billing?: DogRe
   return false;
 }
 
+export type PlusStatus = 'free' | 'trial' | 'subscribed';
+
+/** The user's Plus status: 'subscribed' if active subscription or mock, 'trial' if trial active, otherwise 'free'. */
+export function plusStatus(record: Pick<DogRecord, 'onboarding'> & { billing?: DogRecord['billing'] }, now: Date): PlusStatus {
+  if (record.billing?.isSubscribed) {
+    if (!record.billing.expiresAt) return 'subscribed';
+    const expiresMs = Date.parse(record.billing.expiresAt);
+    if (Number.isNaN(expiresMs) || now.getTime() < expiresMs) return 'subscribed';
+  }
+  if (record.onboarding.mockSubscribed) return 'subscribed';
+  if (trialState(record, now) === 'active') return 'trial';
+  return 'free';
+}
+
 /**
  * The Dog's progress as the trail gates it at `now`: the record with whether the user is Plus. Every check of the
  * trail (map, Stop locks, Mission entry, celebrations) reads progress through this, so a Plus World opens for all of

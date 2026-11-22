@@ -427,7 +427,7 @@ Dog Games declare their text in `games/<game-id>/<lang>.md` (`es.md` required):
 ### Retiring Content
 To remove an item without breaking user progress:
 1. Remove its Stop from the World's stretch (or Category/Subcategory list).
-2. Delete its folder from `lessons/`, `nodes/`, `missions/`, or `shop/`.
+2. Delete its folder from `lessons/`, `nodes/`, `missions/`, `shop/`, or `games/`.
 3. Add its ID to `retired:` in `content/beta/pack.yaml`.
 4. Validate and promote.
 

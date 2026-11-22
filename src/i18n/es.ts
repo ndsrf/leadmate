@@ -355,7 +355,7 @@ export const ES_INTERFACE = {
   'minigame.hint.cuddle': 'Cogerlo, achucharlo o besarlo lo excita más: lo tratas como a un peluche, no como a un perro.',
   'minigame.cafe.help': 'Estás en una terraza y tu perro espera en su manta junto a la mesa. Mira qué hace en cada paso y elige qué hacer: no pagues lo que pide, deja pasar al camarero y premia la calma en la manta.',
   'minigame.cafe.hint.ignore': 'Te pide comida en la mesa: no lo mires ni le hables. Ignóralo hasta que vuelva a la manta.',
-  'minigame.cafe.hint.wait': 'Mira al camarero que pasa: espera quieto sin hablar. Cuando pase, volverá a mirarte.',
+  'minigame.cafe.hint.wait': 'Mira al camarero que pasa: espera sin moverte y sin hablar. Cuando pase, volverá a mirarte.',
   'minigame.cafe.hint.marker': 'Te mira o descansa en su manta: marca y deja caer una golosina en la manta.',
   'minigame.cafe.hint.feed': 'La comida de la mesa paga que pida: la próxima vez pedirá con más fuerza.',
   'minigame.cafe.hint.feedCalm': 'La calma se paga con una golosina que dejas caer en la manta, no con comida del plato.',

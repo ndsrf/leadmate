@@ -26,7 +26,7 @@ import {
   type ParsedShopText,
   type ParsedWorldContent,
 } from './parser';
-import { duelImageFile, isDuelQuestionYaml, type DuelCheckpointQuestionYaml, type GameDifficulty, type GameYaml } from './schema';
+import { duelImageFile, stripMediaFolder, isDuelQuestionYaml, type DuelCheckpointQuestionYaml, type GameDifficulty, type GameYaml } from './schema';
 import type {
   LessonYaml,
   MissionYaml,
@@ -836,7 +836,7 @@ export function resolvePack(pack: ContentPack, language: string = 'es', options?
       // Images
       if (Array.isArray(cfg.images)) {
         for (const img of cfg.images) {
-          const rawImg = duelImageFile(img);
+          const rawImg = stripMediaFolder(img);
           const altKey = `${keyPrefix}.image.${rawImg}.alt` as TextKey;
           const esImg = parsedEs.images?.[rawImg] ?? parsedEs.images?.[img];
           const langImg = parsedLang?.images?.[rawImg] ?? parsedLang?.images?.[img];

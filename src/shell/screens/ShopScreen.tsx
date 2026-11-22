@@ -41,10 +41,10 @@ export interface ShopScreenProps {
     id?: string;
   };
   isOffline?: boolean;
-  openURL?: (url: string) => any;
-  canOpenURL?: (url: string) => any;
+  openURL?: (url: string) => (Promise<any> | any);
+  canOpenURL?: (url: string) => (Promise<boolean> | boolean);
   /** In-app browser fallback when the system cannot open a web link; defaults to expo-web-browser. */
-  openBrowser?: (url: string) => any;
+  openBrowser?: (url: string) => (Promise<any> | any);
   /** Resolves product pictures; defaults to the app-wide MediaResolver. */
   resolver?: MediaResolver;
 }
@@ -190,7 +190,8 @@ export function ShopScreen({
       }
     }
 
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    const stillOffline = isOffline || (typeof navigator !== 'undefined' && navigator.onLine === false);
+    if (stillOffline) {
       setBuyError(t('shop.buyOffline'));
     } else {
       setBuyError(t('shop.buyError'));

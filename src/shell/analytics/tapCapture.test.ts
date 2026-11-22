@@ -36,7 +36,6 @@ const PREDATING_DYNAMIC = [
   'src/shell/screens/DebriefTimeline.tsx testID={`debrief-done-well-${kind}`}',
   'src/shell/screens/NodeScreens.tsx testID={`duel-badge-${verdict}`}',
   'src/shell/screens/NodeScreens.tsx testID={`duel-option-${authoredIndex}`}',
-  'src/shell/screens/NodeScreens.tsx testID={`debrief-encounter-${e.id}`}',
   'src/shell/screens/RecommendationCard.tsx testID={`${testID}-action`}',
   'src/shell/screens/SettingsScreen.tsx testID={`settings-tab-${tab.id}`}',
   'src/shell/screens/ShopScreen.tsx testID={`category-card-${cat.id}`}',

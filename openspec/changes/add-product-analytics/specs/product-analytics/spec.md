@@ -256,11 +256,15 @@ The system SHALL send `app_backgrounded` with `screen` and `seconds_in_session` 
 - **THEN** no `app_backgrounded` is sent
 
 ### Requirement: Session replay only in internal builds
-The system SHALL record session replays only in dev builds and internal preview builds, and only while analytics is on, with all text, text inputs and images masked. Store builds, web and Expo Go SHALL NOT record replays.
+The system SHALL record session replays only in dev builds, internal preview builds, and invited closed-test builds, and only while analytics is on, with all text, text inputs and images masked. Production store builds, web and Expo Go SHALL NOT record replays.
 
 #### Scenario: Store build
-- **WHEN** the app runs as a store build
+- **WHEN** the app runs as a production store build
 - **THEN** no session replay is recorded
+
+#### Scenario: Closed test build
+- **WHEN** an invited tester runs a closed-test build with analytics on
+- **THEN** a replay is recorded with every text, input and image masked
 
 #### Scenario: Dev build
 - **WHEN** the app runs as a dev build with analytics on

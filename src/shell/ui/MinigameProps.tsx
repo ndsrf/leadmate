@@ -291,7 +291,7 @@ function KitPlanter() {
   );
 }
 
-/** The Guide seated, hand on the table (person-seated). */
+/** The Handler seated, hand on the table (person-seated). */
 function KitPersonSeated() {
   return (
     <G>
@@ -352,7 +352,7 @@ function KitWaiter() {
   );
 }
 
-/** The terrace: café front with awning (cafe-front), the terrace floor and kerb (ground-terrace), planter, mat, chair, the seated Guide, table with a cup. */
+/** The terrace: café front with awning (cafe-front), the terrace floor and kerb (ground-terrace), planter, mat, chair, the seated Handler, table with a cup. */
 function TerraceBackdrop() {
   return (
     <G>
@@ -383,7 +383,7 @@ function TerraceBackdrop() {
       {/* the mat the Dog rests on (top-mat colours) */}
       <Rect x={36} y={165} width={118} height={12} rx={5} fill={lightColor.accentSoft} stroke={KIT_INK} strokeWidth={1.5} />
       <Path d="M62 165v12M92 165v12M122 165v12" stroke={lightColor.accent} strokeWidth={3} />
-      {/* chair with the seated Guide, facing the table */}
+      {/* chair with the seated Handler, facing the table */}
       <G transform="translate(176 172) scale(0.5)">
         <KitChair />
       </G>

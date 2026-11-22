@@ -50,7 +50,7 @@ import type { DiaryOutcome } from './src/shell/streak';
 import { homeMissionAfter } from './src/shell/homeBehaviours';
 import { canSkipDay, missionAfterDebrief, missionEntryOf, missionForDebrief } from './src/shell/missions/missionView';
 import { getBillingService } from './src/shell/billing';
-import { applyBillingSubscription, canStartTrial, computeTrialRecap, isPlus, pendingSkipMission, progressAt, startTrialThen, subscribeThen, trialState, type PendingPlusAction } from './src/shell/plus';
+import { applyBillingSubscription, canStartTrial, computeTrialRecap, isPlus, pendingSkipMission, plusStatus, progressAt, startTrialThen, subscribeThen, trialState, type PendingPlusAction } from './src/shell/plus';
 import { FixScreen, MissionBriefScreen, MissionCheckInScreen, MissionCheckScreen, MissionPassedScreen, MissionProblemScreen, MissionWaitingScreen } from './src/shell/screens/MissionScreens';
 import type { Concern } from './src/shell/concerns';
 import { WORLDS, worldsFor, type Stop } from './src/shell/world';
@@ -1932,7 +1932,7 @@ export default function App() {
           onOpenGame={(id) => setFlow({ name: 'game', id, from: 'list' })}
           onOpenRandom={(id) => {
             lastRandomGame.current = id;
-            track('game_random_picked', { game_id: id });
+            track('game_random_picked', { game_id: id, plus_status: plusStatus(record, new Date()) });
             setFlow({ name: 'game', id, from: 'random' });
           }}
           onBack={withBack(() => {
