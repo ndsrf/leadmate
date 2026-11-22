@@ -4,8 +4,8 @@ import type { ContentPack } from './validator';
 export const BASELINE_PACK: ContentPack = {
   "pack": {
     "formatVersion": 1,
-    "contentVersion": 6,
-    "minAppVersion": "1.3.0",
+    "contentVersion": 7,
+    "minAppVersion": "1.4.0",
     "languages": [
       "es",
       "en"
@@ -82,13 +82,64 @@ export const BASELINE_PACK: ContentPack = {
         "worldNumber": 7,
         "tier": "plus",
         "unlockedBy": "recall",
-        "preview": true,
-        "nodeCount": 4,
-        "stretches": []
+        "stretches": [
+          [
+            {
+              "kind": "lesson",
+              "id": "theory-cafe-setup"
+            },
+            {
+              "kind": "node",
+              "id": "cafe-arrive"
+            },
+            {
+              "kind": "mission",
+              "id": "mission-cafe-short-visit"
+            }
+          ],
+          [
+            {
+              "kind": "lesson",
+              "id": "theory-cafe-settle"
+            },
+            {
+              "kind": "node",
+              "id": "cafe-settle"
+            },
+            {
+              "kind": "mission",
+              "id": "mission-cafe-settle"
+            }
+          ],
+          [
+            {
+              "kind": "lesson",
+              "id": "theory-cafe-waiters"
+            },
+            {
+              "kind": "node",
+              "id": "cafe-passing-dog"
+            },
+            {
+              "kind": "mission",
+              "id": "mission-cafe-waiters"
+            }
+          ],
+          [
+            {
+              "kind": "lesson",
+              "id": "theory-cafe-leave-early"
+            },
+            {
+              "kind": "mission",
+              "id": "mission-cafe-leave-early"
+            }
+          ]
+        ]
       },
       "text": {
-        "en": "# Outdoor Cafes and Terraces\n\n## topics\nsettling down, passing servers, table calm\n",
-        "es": "# Terrazas y Cafeterías\n\n## topics\npermanencia quieto, paso de camareros, relajación en mesa\n"
+        "en": "# Outdoor Cafes and Terraces\n\n## topics\npreparing the visit, table calm, passing servers, leaving in time\n",
+        "es": "# Terrazas y Cafeterías\n\n## topics\npreparar la visita, relajación en mesa, paso de camareros, irse a tiempo\n"
       }
     },
     "crowds": {
@@ -871,6 +922,96 @@ export const BASELINE_PACK: ContentPack = {
         "media/theory-blind-corner-1.png",
         "media/theory-blind-corner-2.png"
       ]
+    },
+    "theory-cafe-leave-early": {
+      "config": {
+        "id": "theory-cafe-leave-early",
+        "kind": "theory",
+        "images": [
+          "theory-cafe-leave-early-1",
+          "theory-cafe-leave-early-2"
+        ],
+        "steps": 4,
+        "takeaways": 4
+      },
+      "text": {
+        "en": "# Leaving in Time\n\n## heading\nYou wait until {name} cannot cope any more\n\n## hook\nYou are enjoying your coffee and {name} has been on the mat for a good while. A few minutes ago they stood up and lay down again, and now they pant a little and stare at the plate on the next table. You think they can last a bit longer, but by the time they start whining and pulling on the leash, it is too late to leave calmly.\n\n## why\nA dog gets tired of staying still among so much going on, just like a person in a long meeting. The signals arrive before the meltdown: getting up off the mat, panting when it is not hot, whining, staring at food or refusing a treat. Each signal is a warning that it is getting harder. If you leave then, the visit ends well and {name} remembers the terrace as a calm place. If you wait until they are overwhelmed, they learn the opposite. Leaving early is not failing: it is part of the training. And tomorrow you can come back, with a slightly shorter visit.\n\n## steps\n1. Watch {name} between sips. The signals are getting off the mat, panting, whining, staring at food or refusing a treat.\n2. Decide your leaving time before you sit down, for example at 10 minutes, and do not wait until {name} is overwhelmed.\n3. If you see a signal and {name} is still calm, say \"good\", give a treat and pack up without hurrying.\n4. Ask for the bill, gather the mat and stand up calmly. If you must leave now, pay at the counter with {name} beside you, without pulling on the leash.\n\n## example\n### {name} and the second coffee\nYou are on the terrace and {name} has lain calmly for ten minutes. Your coffee arrives and, a few minutes later, {name} stands up and lies down again. It is a first signal. You remember what you decided on arrival, say \"good\", drop a treat and pick up the mat. {name} gets up with you, relaxed, and you leave unhurried. On the way home they sniff a tree. Tomorrow you will come back for another ten minutes, and it will be easier.\n\n## compare\n### do\nLeave as soon as you see the first signal while {name} is still calm. Reward, pack up calmly and go.\n### dont\nWait for \"a little longer\" until {name} whines, pants and pulls on the leash. You leave in a hurry and the memory of the terrace is a bad one.\n\n## tip\nTry it today: before you sit down, decide what time you leave and note it. When it comes, go even if {name} is calm.\n\n## takeaways\n- The signals arrive before the meltdown: watch for them.\n- Leave while {name} is still calm.\n- A short good visit beats a long bad one.\n- Leaving in time is training too.\n\n## images\n### theory-cafe-leave-early-1\n- alt: A person on a terrace watches {name}, lying on the mat, lift their head and pant a little\n- caption: The first signals: lifting the head and panting\n\n### theory-cafe-leave-early-2\n- alt: The person gathers the mat and stands up from the table with {name} beside them, relaxed on a slack leash\n- caption: You leave while {name} is still calm\n",
+        "es": "# Irse a tiempo\n\n## heading\nAguantas hasta que {name} no puede más\n\n## hook\nEstás a gusto con tu café y {name} lleva un buen rato en la manta. Hace unos minutos se levantó y se volvió a tumbar, y ahora jadea un poco y mira el plato de la mesa de al lado. Piensas que aguantará un rato más, pero cuando se pone a gemir y a tirar de la correa, ya es tarde para irse con calma.\n\n## why\nUn perro se cansa de estar quieto con tanto estímulo, igual que una persona en una reunión larga. Las señales llegan antes de la crisis: se levanta de la manta, jadea sin calor, gime, mira fijamente la comida o no acepta una golosina. Cada señal es un aviso de que le cuesta más. Si te vas ahí, la visita termina bien y {name} recuerda la terraza como un sitio de calma. Si esperas a que se desborde, aprende lo contrario. Irte pronto no es fracasar: es parte del entrenamiento. Y mañana puedes volver, con una visita un poco más corta.\n\n## steps\n1. Vigila a {name} entre sorbo y sorbo. Las señales son levantarse de la manta, jadear, gemir, mirar fijo la comida o rechazar una golosina.\n2. Decide tu hora de irte antes de sentarte, por ejemplo a los 10 minutos, y no esperes a que {name} se desborde.\n3. Si ves una señal y {name} sigue en calma, di «bien», dale una golosina y recoge sin prisa.\n4. Pide la cuenta, recoge la manta y levántate con calma. Si hay que irse ya, paga en la barra con {name} a tu lado, sin tirar de la correa.\n\n## example\n### {name} y el segundo café\nEstáis en la terraza y {name} lleva diez minutos en la manta, en calma. Sirven un café y, a los pocos minutos, {name} se levanta y se vuelve a tumbar. Es una primera señal. Recuerdas lo que decidiste al llegar, dices «bien», dejas caer una golosina y recoges la manta. {name} se levanta contigo, sin tensión, y salís sin prisas. Camino de casa, olfatea un árbol. Mañana volveréis, otros diez minutos, y será más fácil.\n\n## compare\n### do\nIrte en cuanto ves la primera señal y {name} todavía está en calma. Premias, recoges con calma y te vas.\n### dont\nEsperar a «un poco más» hasta que {name} gime, jadea y tira de la correa. Salís con prisa y el recuerdo de la terraza es malo.\n\n## tip\nPrueba hoy: antes de sentarte, decide a qué hora te vas y apúntalo. Cuando llegue, vete aunque {name} esté en calma.\n\n## takeaways\n- Las señales llegan antes de la crisis: míralas.\n- Vete mientras {name} todavía está en calma.\n- Una visita corta y buena vale más que una larga y mala.\n- Irse a tiempo también es entrenar.\n\n## images\n### theory-cafe-leave-early-1\n- alt: Una persona en una terraza observa a {name}, en la manta, que levanta la cabeza y jadea un poco\n- caption: Las primeras señales: levantar la cabeza y jadear\n\n### theory-cafe-leave-early-2\n- alt: La persona recoge la manta y se levanta de la mesa con {name} a su lado, sin tensión y con la correa floja\n- caption: Os vais mientras {name} sigue en calma\n"
+      },
+      "files": []
+    },
+    "theory-cafe-settle": {
+      "config": {
+        "id": "theory-cafe-settle",
+        "kind": "theory",
+        "images": [
+          "theory-cafe-settle-1",
+          "theory-cafe-settle-2"
+        ],
+        "compare": {
+          "do": "theory-cafe-settle-do",
+          "dont": "theory-cafe-settle-dont"
+        },
+        "steps": 5,
+        "takeaways": 4
+      },
+      "text": {
+        "en": "# Settling at the Table\n\n## heading\nYou want to finish your coffee in peace\n\n## hook\nYou sit down with your coffee and {name} stares at the table. {name} sits, looks at you and rests their snout on your knee. You hand over a little bite to stop the begging and, as soon as it is eaten, the begging starts again, a bit stronger each time. You cannot enjoy your coffee and {name} cannot rest: on guard, waiting for the next crumb.\n\n## why\nBegging at the table is learned. If a fixed stare or a snout on your knee gets food, {name} learns that insisting pays, and will do it more. If what pays is lying down on the mat, that is what gets learned. So begging is never paid: not with food from the table and not with attention. Calm is paid, with small treats that arrive quietly, and a chew gives the Dog something good to do meanwhile.\n\n## steps\n1. Spread the mat beside your chair before ordering anything and give {name} something to chew, so there is something good to do.\n2. If {name} sits and stares or begs, do not look, do not talk and do not hand over anything from the table. Wait without doing anything.\n3. As soon as {name} lies down on the mat by choice, say a soft \"good\" Marker and drop a small treat between the front paws, without getting up.\n4. Read the calm scale: alert when sitting and watching you, calm when lying with the head resting, and fully calm when lying on one side.\n5. If {name} does not settle, do not push: shorten the visit, move to a quieter table, or get up and leave. Missing the coffee is not a failure.\n\n## example\n### {name} and the mat by the table\nYou sit in the corner of the terrace and {name} lies on the mat with a chew. A waiter sets a plate on the next table and {name} sits up to watch. You do not look and you hand over nothing. A few seconds later {name} rests their head on the mat and lies down. You say your soft \"good\" Marker and drop a treat between the paws. At first you repeat it every few seconds; later, further apart. The first time, settling takes a while. The next time, a bit less.\n\n## compare\n### do\nDrop a small treat between {name}'s paws when they lie down by choice, without leaving your chair and without talking much.\n### dont\nHand over a bite from the table when {name} gets up and puts a snout to your hand. It feels kind, but it teaches that begging works.\n\n## tip\nTry it today: at home, sit at the table with a coffee and the mat beside your chair. Pay a small treat every time {name} lies down without begging.\n\n## takeaways\n- Never pay begging: no table food and no attention.\n- Pay calm: a small treat when the Dog lies down by choice.\n- The mat and a chew give the Dog something good to do.\n- If the Dog does not settle, shorten the visit or leave.\n\n## images\n### theory-cafe-settle-1\n- alt: Under the terrace table, {name} lies on their mat beside a chew bone while the seated Handler drops a treat and a heart appears\n- caption: A treat that lands quietly, only while {name} is lying down\n\n### theory-cafe-settle-2\n- alt: Three steps of calm on the mat: {name} sits with ears alert, lies with the head resting, and lies on one side, with arrows and hearts pointing toward more calm\n- caption: The more calm, the more the treat is worth\n",
+        "es": "# Relajarse en la mesa\n\n## heading\nQuieres terminar el café en paz\n\n## hook\nTe sientas con tu café y {name} se queda mirando la mesa. Se sienta, te mira, apoya el hocico en tu rodilla. Le das un trocito para que pare y, en cuanto lo come, vuelve a pedir, cada vez con más ganas. Tú no disfrutas del café y {name} tampoco descansa: se queda de guardia, esperando la siguiente migaja.\n\n## why\nPedir en la mesa se aprende. Si una mirada fija o un hocico en la rodilla consiguen comida, {name} aprende que insistir sale a cuenta, y lo repetirá más. Si lo que sale a cuenta es tumbarse en la manta, aprenderá eso. Por eso la petición nunca se paga: ni con comida de la mesa ni con atención. Se paga la calma, con premios pequeños que caen en silencio, y un masticable le da algo bueno que hacer mientras tanto.\n\n## steps\n1. Extiende la manta junto a tu silla antes de pedir nada y dale a {name} algo para masticar, para que tenga algo bueno que hacer.\n2. Si {name} se sienta a mirarte o te pide, no le mires, no le hables y no le des nada de la mesa. Espera sin hacer nada.\n3. En cuanto se tumba por su cuenta sobre la manta, di tu «bien» suave y deja caer un premio pequeño entre sus patas, sin levantarte.\n4. Lee su escala de calma: alerta si se sienta y te mira, calma si se tumba con la cabeza apoyada, calma total si se echa de lado.\n5. Si {name} no se asienta, no insistas: acorta la visita, cambia a una mesa más tranquila o levántate y vete. Quedarte sin el café no es un fracaso.\n\n## example\n### {name} y la manta junto a la mesa\nTe sientas en la esquina de la terraza y {name} se tumba en la manta con su masticable. Un camarero deja un plato en la mesa de al lado y {name} se sienta a mirar. No le miras ni le das nada. A los pocos segundos apoya la cabeza en la manta y se echa. Dices tu «bien» suave y dejas caer un premio entre sus patas. Al principio lo repites cada pocos segundos; luego, cada vez más espaciado. La primera vez tarda en asentarse. La siguiente, un poco menos.\n\n## compare\n### do\nDeja caer un premio pequeño entre las patas de {name} cuando se tumba por su cuenta, sin levantarte de la silla y sin hablarle mucho.\n### dont\nDar un trocito de la mesa cuando {name} se levanta y acerca el hocico a tu mano. Parece un gesto amable, pero le enseña que pedir funciona.\n\n## tip\nPrueba hoy: en casa, siéntate a la mesa con un café y la manta junto a tu silla. Paga con un premio pequeño cada vez que {name} se tumbe sin pedir.\n\n## takeaways\n- Nunca pagues la petición: ni comida de la mesa ni atención.\n- Paga la calma: un premio pequeño cuando se tumba por su cuenta.\n- La manta y un masticable le dan algo bueno que hacer.\n- Si no se asienta, acorta la visita o vete.\n\n## images\n### theory-cafe-settle-1\n- alt: Bajo la mesa de la terraza, {name} se tumba sobre su manta junto a un hueso para masticar, mientras la persona sentada deja caer un premio y aparece un corazón\n- caption: Un premio que cae en silencio, solo cuando {name} está en la manta\n\n### theory-cafe-settle-2\n- alt: Tres escalones de calma sobre la manta: {name} se sienta con las orejas atentas, se tumba con la cabeza apoyada y se echa de lado, con flechas y corazones que apuntan hacia más calma\n- caption: Cuanta más calma, más merece el premio\n"
+      },
+      "files": [
+        "media/theory-cafe-settle-1.png",
+        "media/theory-cafe-settle-2.png",
+        "media/theory-cafe-settle-do.png",
+        "media/theory-cafe-settle-dont.png"
+      ]
+    },
+    "theory-cafe-setup": {
+      "config": {
+        "id": "theory-cafe-setup",
+        "kind": "theory",
+        "images": [
+          "theory-cafe-setup-1",
+          "theory-cafe-setup-2"
+        ],
+        "compare": {
+          "do": "theory-cafe-setup-do",
+          "dont": "theory-cafe-setup-dont"
+        },
+        "steps": 5,
+        "takeaways": 4
+      },
+      "text": {
+        "en": "# Getting Ready for the Café\n\n## heading\nYou want a coffee with {name}\n\n## hook\nIt is Saturday and you want a coffee on the terrace with {name}. You sit at the first free table, right in the waiters' path. {name} gets up every time someone walks by, the leash runs across the aisle, and you never get to taste your coffee. Ten minutes later you both leave worn out. With a little preparation, the first visit can be much easier.\n\n## why\nA terrace packs many things together: food smells, people passing, plates clinking and chairs scraping. A Dog with energy still unspent finds it much harder to relax there. If it arrives after a long sniffing walk, it has already let some of that energy out. A corner by the wall has less movement around it, and a mat that smells of home tells the Dog where to rest.\n\n## steps\n1. Before you leave, take a long sniffing walk so {name} arrives with energy already spent and ready to rest.\n2. Pick a table in a corner or by the wall, out of the waiters' path, and place {name} on the wall side.\n3. Before sitting down, ask the venue whether dogs are welcome on the terrace: each place decides, and it is better to know before you go in.\n4. Spread a mat that smells of home beside your chair, and bring something to chew and a few small treats.\n5. Plan a first visit of about 10 minutes. If it gets hard, shorten it or move to a quieter table: leaving in time is also a success.\n\n## example\n### {name} in the café corner\nOn a Saturday morning you walk for ten minutes and {name} sniffs at their own pace. Before going in you ask at the counter whether you can sit outside, and they say yes. You choose the corner table by the wall, with {name} on the wall side. You spread the mat and hand over something to chew. When {name} lies down on it, you drop a treat. The waiters pass on the other side and {name} glances at them for a moment and goes back to chewing. After ten minutes you leave calmly.\n\n## compare\n### do\nChoose a corner by the wall, with {name} on the wall side and the leash short, away from the waiters' path.\n### dont\nSit in the waiters' path, with the leash running across the aisle and {name} on the side where people pass. Every tray becomes something new to watch.\n\n## tip\nTry it today: without leaving home, spread a mat and let {name} lie on it with something to chew. It will be their spot on the terrace.\n\n## takeaways\n- Arrive after a long sniffing walk, with the energy already spent.\n- Pick a corner by the wall, out of the waiters' path.\n- Bring a mat that smells of home and something to chew.\n- Keep the first visit to about 10 minutes; ask the venue about dogs.\n\n## images\n### theory-cafe-setup-1\n- alt: Two terrace tables seen from above: on the left, the corner table by the wall with {name} on their mat; on the right, a table on the waiters' lane with {name} in the middle of the passage\n- caption: The corner by the wall is out of the waiters' path\n\n### theory-cafe-setup-2\n- alt: Three scenes in a row: {name} sniffs on the grass, walks on a slack leash to the café door, and lies down on their mat beside the table\n- caption: First the sniffing, then arriving, then settling on the mat\n",
+        "es": "# Preparar la visita al café\n\n## heading\nQuieres tomar un café con {name}\n\n## hook\nEs sábado y quieres un café en la terraza con {name}. Os sentáis en el primer sitio libre, justo en el paso de los camareros. {name} se levanta cada vez que alguien pasa, la correa cruza el pasillo y tú no llegas a probar el café. A los diez minutos os vais los dos agotados. Con un poco de preparación, la primera visita puede ser mucho más fácil.\n\n## why\nUna terraza reúne muchas cosas a la vez: olor a comida, gente que pasa, platos que suenan y sillas que se mueven. A un perro con la energía sin gastar le cuesta mucho más relajarse ahí. Si llega después de un paseo largo de olfateo, ya ha soltado parte de esa energía. En una esquina junto a la pared hay menos movimiento alrededor, y una manta que huele a casa le dice dónde descansar.\n\n## steps\n1. Antes de salir, da un paseo largo con olfateo para que {name} llegue con la energía ya gastada y con ganas de descansar.\n2. Elige una mesa en una esquina o junto a la pared, fuera del camino de los camareros, y coloca a {name} en el lado de la pared.\n3. Antes de sentaros, pregunta en el local si admiten perros en la terraza: cada sitio decide, y es mejor saberlo antes de entrar.\n4. Extiende junto a tu silla una manta que huela a casa, y lleva algo para masticar y unos premios pequeños.\n5. Planea una primera visita de unos 10 minutos. Si cuesta, acórtala o cambia a una mesa más tranquila: irse a tiempo también es un éxito.\n\n## example\n### {name} en la esquina de la cafetería\nUn sábado por la mañana paseas diez minutos y {name} olfatea a su ritmo. Antes de entrar preguntas en la barra si podéis sentaros fuera, y os dicen que sí. Eliges la mesa de la esquina, junto a la pared, con {name} en el lado del muro. Extiendes la manta y le das algo para masticar. Cuando se tumba sobre ella, le dejas caer un premio. Los camareros pasan por el otro lado y {name} los mira un momento y vuelve a lo suyo. A los diez minutos os vais con calma.\n\n## compare\n### do\nElige una esquina junto a la pared, con {name} en el lado del muro y la correa corta, lejos del paso de los camareros.\n### dont\nSentarte en el paso de los camareros, con la correa cruzando el pasillo y {name} del lado por donde pasa la gente. Cada bandeja le parece una novedad.\n\n## tip\nPrueba hoy: sin salir de casa, extiende una manta y deja que {name} se tumbe en ella con algo para masticar. Será su sitio en la terraza.\n\n## takeaways\n- Llega después de un paseo largo de olfateo, con la energía gastada.\n- Elige una esquina junto a la pared, fuera del paso de los camareros.\n- Lleva una manta que huela a casa y algo para masticar.\n- Primera visita de unos 10 minutos; pregunta en el local si admiten perros.\n\n## images\n### theory-cafe-setup-1\n- alt: Dos mesas de terraza vistas desde arriba: a la izquierda, la mesa de la esquina junto a la pared, con {name} sobre su manta; a la derecha, una mesa sobre el pasillo de los camareros, con {name} en medio del paso\n- caption: La esquina junto a la pared queda fuera del paso de los camareros\n\n### theory-cafe-setup-2\n- alt: Tres escenas seguidas: {name} olfatea en la hierba, camina con la correa floja hacia la puerta del café y se tumba sobre su manta junto a la mesa\n- caption: Primero se olfatea, luego se llega y se tumba en la manta\n"
+      },
+      "files": [
+        "media/theory-cafe-setup-1.png",
+        "media/theory-cafe-setup-2.png",
+        "media/theory-cafe-setup-do.png",
+        "media/theory-cafe-setup-dont.png"
+      ]
+    },
+    "theory-cafe-waiters": {
+      "config": {
+        "id": "theory-cafe-waiters",
+        "kind": "theory",
+        "images": [
+          "theory-cafe-waiters-1",
+          "theory-cafe-waiters-2"
+        ],
+        "compare": {
+          "do": "theory-cafe-waiters-do",
+          "dont": "theory-cafe-waiters-dont"
+        },
+        "steps": 5,
+        "takeaways": 4
+      },
+      "text": {
+        "en": "# Waiters and People Passing By\n\n## heading\nA waiter walks by and {name} jumps up\n\n## hook\nYou are sitting on the terrace and {name} is resting on their mat. Suddenly a waiter walks by with a tray, or someone pushes a stroller, and {name} jumps up. The long leash lies across the walkway and the waiter has to step over it. Your stomach tightens, and {name} is already pulling toward the tray.\n\n## why\nOn a terrace everything passes within a metre of your Dog: trays, chairs, children and other dogs. If the leash is long and tight, {name} reaches the walkway in two strides and every passer-by becomes an opportunity. A short but slack leash lets {name} lie down calmly and gives you control without pulling. With {name} on the wall side and your body between them and the passage, they see less and get less worked up. And when {name} looks back at you as someone passes, that is their own decision, and you can reward it. If it is too much, there is always an exit: move to another table or leave.\n\n## steps\n1. When you sit down, put {name} on the wall or corner side, with your chair between them and the walkway.\n2. Gather the leash until it is short, but always slack, with a soft curve. No jerks and no tension.\n3. When you see someone coming, place your body and legs between {name} and the passage, like a calm shield.\n4. If {name} looks back at you as the waiter passes, say \"good\" and drop a treat on the mat.\n5. If {name} gets restless or stands up, move them away from the passage, change seats or ask for another table. Leaving is also a good option.\n\n## example\n### {name} and the waiter with the tray\nYou are on a terrace with {name} on the mat beside the wall. You hear a waiter approaching with a tray. You gather the leash, short and slack, and put your legs between {name} and the walkway. {name} lifts their head and watches the tray. You wait. As the waiter passes, {name} looks back at you. You say \"good\" and drop a treat on the mat. The first time takes some effort, but by the third time another waiter passes and {name} hardly turns an ear.\n\n## compare\n### do\nA short but slack leash, {name} on the wall side and your body between them and the walkway. When they look back as someone passes, \"good\" and a treat on the mat.\n### dont\nLeaving the leash long across the walkway and {name} on the passage side. Every waiter becomes a jolt for both of you, and that is not {name}'s fault.\n\n## tip\nTry it today: on your next visit, before you order, pick the wall spot, put {name} behind your chair and keep the leash short and slack.\n\n## takeaways\n- Wall on one side, your body toward the walkway.\n- Short but slack leash, never tight.\n- Reward on the mat when they look back as someone passes.\n- If it is hard, change tables, shorten the visit or leave.\n\n## images\n### theory-cafe-waiters-1\n- alt: Top view of a terrace: {name} lies by the wall, with the person seated between {name} and the walkway where a waiter passes\n- caption: Wall beside {name}, you toward the walkway\n\n### theory-cafe-waiters-2\n- alt: A waiter with a tray passes along the walkway while {name}, lying down on a short slack leash, looks back at the seated person\n- caption: As the waiter passes, {name} looks back at you\n",
+        "es": "# Camareros y gente que pasa\n\n## heading\nPasa un camarero y {name} se levanta\n\n## hook\nEstáis en la terraza y {name} descansa en su manta. De pronto pasa un camarero con una bandeja, o alguien con un carrito, y {name} se levanta de un salto. La correa larga cruza el pasillo y el camarero tiene que esquivarla. Se te encoge el estómago y {name} ya está tirando hacia la bandeja.\n\n## why\nEn una terraza todo pasa a un metro de tu perro: bandejas, sillas, niños y otros perros. Si la correa queda larga y tirante, {name} llega al pasillo con dos zancadas y cada paso se convierte en una oportunidad. Una correa corta pero floja le deja tumbarse con calma y a ti te da control sin tirar. Si lo colocas en el lado de la pared, con tu cuerpo entre {name} y el paso, ve menos y se altera menos. Y si te mira cuando pasa alguien, es una decisión suya que puedes premiar. Si no lo consigue, siempre queda una salida: cambiar de mesa o irte.\n\n## steps\n1. Al sentarte, pon a {name} en el lado de la pared o del rincón, con tu silla entre {name} y el pasillo.\n2. Recoge la correa hasta dejarla corta, pero siempre floja, con una curva suave. Sin tirones y sin tensarla.\n3. Cuando veas venir a alguien, coloca tu cuerpo y tus piernas entre {name} y el paso, como un escudo en calma.\n4. Si {name} te mira al pasar el camarero, di «bien» y deja caer una golosina en la manta.\n5. Si se pone nervioso o se levanta, aléjalo del paso, cámbialo de sitio o pide otra mesa. Irte también es una buena opción.\n\n## example\n### {name} y el camarero de la bandeja\nEstáis en una terraza con {name} en la manta, junto a la pared. Oyes que se acerca un camarero con una bandeja. Recoges la correa, floja y corta, y pones las piernas entre {name} y el pasillo. {name} levanta la cabeza y mira la bandeja. Esperas. Cuando el camarero pasa, {name} te mira. Le dices «bien» y dejas caer una golosina en la manta. La primera vez le cuesta un poco, pero a la tercera pasa otro camarero y {name} apenas gira las orejas.\n\n## compare\n### do\nCorrea corta pero floja, {name} en el lado de la pared y tu cuerpo entre {name} y el pasillo. Cuando te mire al pasar alguien, «bien» y golosina en la manta.\n### dont\nDejar la correa larga cruzando el pasillo y a {name} en el lado del paso. Cada camarero se convierte en un sobresalto para los dos, y eso no es culpa de {name}.\n\n## tip\nPrueba hoy: en tu próxima visita, antes de pedir, elige el sitio de la pared, pon a {name} detrás de tu silla y deja la correa corta y floja.\n\n## takeaways\n- Pared a un lado, tu cuerpo hacia el pasillo.\n- Correa corta pero floja, sin tensar.\n- Premia en la manta cuando te mire al pasar alguien.\n- Si cuesta, cambia de mesa, acorta la visita o vete.\n\n## images\n### theory-cafe-waiters-1\n- alt: Vista desde arriba de una terraza: {name} en la manta junto a la pared, la persona sentada entre {name} y el pasillo por el que pasa un camarero\n- caption: La pared al lado de {name} y tú hacia el pasillo\n\n### theory-cafe-waiters-2\n- alt: Un camarero con bandeja pasa por el pasillo mientras {name}, en la manta con la correa corta y floja, mira a la persona sentada\n- caption: Al pasar el camarero, {name} te mira a ti\n"
+      },
+      "files": []
     },
     "theory-calm-first": {
       "config": {
@@ -1783,6 +1924,580 @@ export const BASELINE_PACK: ContentPack = {
       },
       "files": [
         "media/theory-blind-corner-1.png"
+      ]
+    },
+    "cafe-arrive": {
+      "config": {
+        "id": "cafe-arrive",
+        "mode": "stage",
+        "prerequisites": [
+          "park-not-that-one"
+        ],
+        "simulation": {
+          "scenario": {
+            "world": 7,
+            "theme": "urban_street",
+            "fixedStep": 0.016666666666666666,
+            "leashLength": 2,
+            "leashTolerance": 0.1,
+            "quickSpeed": 2,
+            "walkStrength": 0.6,
+            "handlerStart": {
+              "x": 0,
+              "y": 0
+            },
+            "dogStart": {
+              "x": 1,
+              "y": 0
+            },
+            "waypoint": {
+              "x": 52,
+              "y": 0
+            },
+            "waypoints": [],
+            "waypointRadius": 2,
+            "walls": [
+              {
+                "from": {
+                  "x": -4,
+                  "y": -6
+                },
+                "to": {
+                  "x": 56,
+                  "y": -6
+                }
+              },
+              {
+                "from": {
+                  "x": -4,
+                  "y": 6
+                },
+                "to": {
+                  "x": 56,
+                  "y": 6
+                }
+              }
+            ],
+            "scenery": [
+              {
+                "type": "sign",
+                "pos": {
+                  "x": 1.3,
+                  "y": 4.6
+                }
+              },
+              {
+                "type": "bus_stop",
+                "pos": {
+                  "x": 3.9,
+                  "y": -4.6
+                },
+                "angle": 0
+              },
+              {
+                "type": "bin",
+                "pos": {
+                  "x": 9.8,
+                  "y": 4.8
+                }
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 12.1,
+                  "y": -4.8
+                }
+              },
+              {
+                "type": "scooter",
+                "pos": {
+                  "x": 17.5,
+                  "y": 4.7
+                }
+              },
+              {
+                "type": "flower_bed",
+                "pos": {
+                  "x": 21.2,
+                  "y": -4.9
+                },
+                "angle": 0
+              },
+              {
+                "type": "hydrant",
+                "pos": {
+                  "x": 24.5,
+                  "y": 4.5
+                }
+              },
+              {
+                "type": "tree",
+                "pos": {
+                  "x": 28,
+                  "y": -4
+                }
+              },
+              {
+                "type": "trash_can",
+                "pos": {
+                  "x": 30,
+                  "y": 4.6
+                }
+              },
+              {
+                "type": "bike_rack",
+                "pos": {
+                  "x": 34,
+                  "y": -4.7
+                },
+                "angle": 0
+              },
+              {
+                "type": "lamp_post",
+                "pos": {
+                  "x": 38,
+                  "y": 4.8
+                }
+              },
+              {
+                "type": "flower_bed",
+                "pos": {
+                  "x": 41,
+                  "y": -4.9
+                },
+                "angle": 0
+              },
+              {
+                "type": "bench",
+                "pos": {
+                  "x": 44.5,
+                  "y": -4.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "bench",
+                "pos": {
+                  "x": 48.5,
+                  "y": -4.5
+                },
+                "angle": 0
+              },
+              {
+                "type": "kiosk",
+                "pos": {
+                  "x": 47,
+                  "y": 4.8
+                }
+              },
+              {
+                "type": "flower_bed",
+                "pos": {
+                  "x": 51,
+                  "y": 4.9
+                },
+                "angle": 0
+              },
+              {
+                "type": "tree",
+                "pos": {
+                  "x": 54,
+                  "y": -3.6
+                }
+              },
+              {
+                "type": "fountain",
+                "pos": {
+                  "x": 14.5,
+                  "y": -3.8
+                }
+              }
+            ],
+            "cues": [
+              "leave-it"
+            ],
+            "dogGoalSpeed": 1.6,
+            "dogFixationSpeed": 1,
+            "dogReturnSpeed": 1.6,
+            "dogReturnDistance": 1,
+            "wanderMaxAngle": 0.5,
+            "wanderTurnRate": 2,
+            "distractor": {
+              "kind": "food",
+              "speed": 0,
+              "triggerRadius": 6,
+              "activateAfterMeters": 12,
+              "startOffset": 28,
+              "salience": 6,
+              "path": {
+                "from": {
+                  "x": 18,
+                  "y": 1.5
+                },
+                "to": {
+                  "x": 18,
+                  "y": 1.5
+                }
+              }
+            },
+            "moreDistractors": [
+              {
+                "kind": "food",
+                "speed": 0,
+                "triggerRadius": 6,
+                "activateAfterMeters": 40,
+                "startOffset": 28,
+                "salience": 6,
+                "path": {
+                  "from": {
+                    "x": 38,
+                    "y": -1.5
+                  },
+                  "to": {
+                    "x": 38,
+                    "y": -1.5
+                  }
+                }
+              }
+            ],
+            "calmSeconds": 3,
+            "rewardWindowSeconds": 1.1,
+            "markBudget": 5,
+            "checkInWindow": 1,
+            "learning": {
+              "attributes": {
+                "reconnectionLatency": 0.2,
+                "reactivityThreshold": 0.2,
+                "followChance": 0.5,
+                "checkInFrequency": 0.2
+              },
+              "triggerProfile": {
+                "child": 2,
+                "bicycle": 2,
+                "dog": 2,
+                "skateboard": 2,
+                "food": 2,
+                "other": 2,
+                "hand": 2
+              },
+              "equipment": "collar",
+              "capacityMultiplier": 1,
+              "posture": 0
+            },
+            "ranges": {
+              "reconnectionSeconds": {
+                "worst": 1.5,
+                "best": 0.3
+              },
+              "reactivityThreshold": {
+                "worst": 15,
+                "best": 60
+              },
+              "checkInMeanInterval": {
+                "worst": 14,
+                "best": 5
+              }
+            },
+            "arousal": {
+              "k": 30,
+              "minDistance": 2,
+              "decayPerSecond": 3,
+              "rigidPullRate": 4,
+              "disengagementDrop": 25,
+              "markerHitDrop": 20,
+              "posteJolt": 15,
+              "smoothStopFactor": 0.3,
+              "slowedSeconds": 0.5
+            },
+            "cue": {
+              "cooldownSeconds": 3,
+              "fixatedFactor": 0.3,
+              "repeatFactor": 0.5,
+              "arousalDrop": 10,
+              "followBoostSeconds": 2,
+              "followBoost": 0.25,
+              "followCap": 0.95
+            },
+            "reaction": {
+              "alertFraction": 0.6,
+              "lungeAccel": 1.5,
+              "lungeMaxSpeed": 4,
+              "alertSlowdown": 0.85
+            },
+            "sintonia": {
+              "minSpeed": 0.4,
+              "minTurnRate": 0.2,
+              "maxTurnRate": 1.8,
+              "turnWindow": 0.5,
+              "holdSeconds": 2
+            },
+            "goSniff": {
+              "offerSeconds": 3,
+              "durationSeconds": 4,
+              "speed": 0.4,
+              "decayFactor": 3
+            },
+            "turnAngle": 0.7853981633974483,
+            "followSeconds": 1.5,
+            "correctionWaitSeconds": 4,
+            "pullStrength": 0.8,
+            "configVersion": "bundled",
+            "camera": {
+              "closeZoom": 2.2,
+              "farZoom": 1.5,
+              "padding": 90,
+              "smoothing": 3
+            },
+            "endCondition": {
+              "kind": "reach-waypoint"
+            }
+          }
+        },
+        "exercises": [
+          {
+            "metric": "tension"
+          },
+          {
+            "metric": "attention"
+          }
+        ],
+        "primerCards": [
+          {
+            "kind": "real-world",
+            "media": {
+              "type": "image",
+              "url": "",
+              "art": "theory-cafe-setup-1"
+            }
+          },
+          {
+            "kind": "virtual-dog"
+          }
+        ],
+        "checkpoint": [
+          {},
+          {
+            "kind": "duel",
+            "images": [
+              "duel-wall.png",
+              "duel-aisle.png"
+            ],
+            "correct": 0
+          },
+          {}
+        ]
+      },
+      "text": {
+        "en": "# World 7 · Arriving at the Terrace\n\n## primer\n### card 1\nRemember: arrive after a sniffing walk, on a slack leash, and pick the corner by the wall. If there is food on the ground, say \"Leave It\" once.\n- caption: The corner by the wall is out of the waiters' path\n\n### card 2\nIn the game, walk on a slack leash toward the benches and the kiosk at the end, and tap Leave It, the open hand, as soon as {name} looks at food on the ground.\n\n## checkpoint\n### tq1\nThere is a piece of food on the ground near the tables. What do you do?\n- [x] Say \"Leave It\" once as soon as {name} sees it\n- [ ] Rush over to take it out of the Dog's mouth\n- [ ] Repeat \"Leave It\" louder until the Dog backs off\n- why: Say it once, before the Dog reaches it, and reward from your hand when it turns toward you. Repeating it or rushing does not help the Dog get it right.\n\n### tq2\nWhich table is better for {name}?\n- [ ] The corner table by the wall, with {name} on the mat on the wall side\n- [ ] A table by the waiters' aisle, with {name} in the middle of the passage and people crossing on both sides\n- why: The corner has less movement and {name} is in nobody's way. In the aisle, everyone who passes is something new.\n\n### tq3\nHow is it best to arrive at the terrace?\n- [x] After a long sniffing walk, on a slack leash\n- [ ] Straight from home, so the Dog does not have to wait\n- [ ] After a game of fetch so the Dog is tired out\n- why: A sniffing walk lets energy out and lowers excitement; arriving in a rush or already wound up makes it harder. And always ask the venue whether dogs are welcome.\n\n## exercises\n- tension: Outside: walk toward a terrace on a slack leash, and stop to breathe if {name} speeds up.\n- attention: Outside: when you see food on the ground, say \"Leave It\" once and reward when {name} turns toward you.\n",
+        "es": "# Mundo 7 · Llegar a la terraza\n\n## primer\n### card 1\nRecuerda: llega tras un paseo de olfateo, con la correa floja, y elige la esquina junto a la pared. Si hay comida en el suelo, di «Déjalo» una vez.\n- caption: La esquina junto a la pared queda fuera del paso de los camareros\n\n### card 2\nEn el juego, camina con la correa floja hacia los bancos y el quiosco del final y pulsa Déjalo, la mano abierta, en cuanto {name} mire la comida del suelo.\n\n## checkpoint\n### tq1\nHay un trozo de comida en el suelo, cerca de las mesas. ¿Qué haces?\n- [x] Digo «Déjalo» una vez en cuanto {name} lo ve\n- [ ] Me acerco corriendo para quitárselo de la boca\n- [ ] Repito «Déjalo» más fuerte hasta que se aparte\n- why: Dilo una sola vez, antes de que llegue, y paga con tu mano cuando se gire hacia ti. Repetirlo o correr no le ayuda a acertar.\n\n### tq2\n¿Qué mesa es mejor para {name}?\n- [ ] La mesa de la esquina junto a la pared, con {name} en su manta, en el lado del muro\n- [ ] Una mesa junto al pasillo de los camareros, con {name} en medio del paso y gente cruzando por los dos lados\n- why: En la esquina hay menos movimiento y {name} no está en el camino de nadie. En el pasillo todo el que pasa es una novedad.\n\n### tq3\n¿Cómo conviene llegar a la terraza?\n- [x] Después de un paseo largo de olfateo, con la correa floja\n- [ ] Directo desde casa, para no hacerle esperar\n- [ ] Tras un rato de juego con la pelota para que se canse\n- why: Un paseo de olfateo suelta energía y baja la excitación; llegar con prisa o muy activo lo pone más difícil. Y pregunta siempre en el local si admiten perros.\n\n## exercises\n- tension: En la calle: camina hacia una terraza con la correa floja y para a tomar aire si notas que {name} se acelera.\n- attention: En la calle: cuando veas comida en el suelo, di «Déjalo» una vez y premia cuando {name} se gire hacia ti.\n"
+      },
+      "files": [
+        "media/duel-aisle.png",
+        "media/duel-wall.png",
+        "media/theory-cafe-setup-1.png"
+      ]
+    },
+    "cafe-passing-dog": {
+      "config": {
+        "id": "cafe-passing-dog",
+        "mode": "close_exercise",
+        "prerequisites": [
+          "cafe-settle"
+        ],
+        "simulation": {
+          "scenario": {
+            "theme": "urban_street"
+          },
+          "closeScenario": {
+            "controls": "leash_drill",
+            "fixedStep": 0.016666666666666666,
+            "leashMinLength": 0.5,
+            "leashMaxLength": 2,
+            "gatherRate": 1.5,
+            "releaseRate": 2,
+            "posteDamping": 0.35,
+            "posteArousalDamping": 0.4,
+            "shieldOcclusionDistance": 0.65,
+            "shieldOffset": 0.8,
+            "handlerBase": {
+              "x": 0,
+              "y": 0
+            },
+            "dogOffset": {
+              "x": 0.9,
+              "y": 0.1
+            },
+            "distractor": {
+              "kind": "dog",
+              "speed": 1.4,
+              "triggerRadius": 6,
+              "startPos": {
+                "x": 1.8,
+                "y": 12
+              },
+              "endPos": {
+                "x": 1.8,
+                "y": -6
+              },
+              "cue": "lets-go"
+            },
+            "learning": {
+              "attributes": {
+                "reconnectionLatency": 0.2,
+                "reactivityThreshold": 0.2,
+                "followChance": 0.5,
+                "checkInFrequency": 0.2
+              },
+              "triggerProfile": {
+                "child": 2,
+                "bicycle": 2,
+                "dog": 2,
+                "skateboard": 2,
+                "food": 2,
+                "other": 2,
+                "hand": 2
+              },
+              "equipment": "collar",
+              "capacityMultiplier": 1,
+              "posture": 0
+            },
+            "arousal": {
+              "k": 28,
+              "minDistance": 1.5,
+              "decayPerSecond": 3.5,
+              "rigidPullRate": 5,
+              "disengagementDrop": 25,
+              "markerHitDrop": 20,
+              "posteJolt": 15,
+              "smoothStopFactor": 0.3,
+              "slowedSeconds": 0.5
+            },
+            "reaction": {
+              "alertFraction": 0.55,
+              "lungeAccel": 2,
+              "lungeMaxSpeed": 3.5,
+              "alertSlowdown": 0.8
+            },
+            "cue": {
+              "cooldownSeconds": 2.5,
+              "fixatedFactor": 0.35,
+              "repeatFactor": 0.5,
+              "arousalDrop": 12,
+              "followBoostSeconds": 2,
+              "followBoost": 0.25,
+              "followCap": 0.95
+            },
+            "cues": [
+              "lets-go"
+            ],
+            "calmSeconds": 2.5,
+            "maxSeconds": 60,
+            "reward": "treat",
+            "settleSeconds": 4,
+            "rewardWindowSeconds": 1.1,
+            "markBudget": 5,
+            "checkInWindow": 1,
+            "configVersion": "close-exercise-v1"
+          }
+        },
+        "exercises": [
+          {
+            "metric": "tension",
+            "key": "node.cafepassing.exercise1"
+          },
+          {
+            "metric": "timing",
+            "key": "node.cafepassing.exercise2"
+          },
+          {
+            "metric": "attention",
+            "key": "node.cafepassing.exercise3"
+          }
+        ],
+        "primerCards": [
+          {
+            "kind": "real-world",
+            "media": {
+              "type": "image",
+              "url": "",
+              "art": "theory-cafe-waiters-2"
+            }
+          }
+        ],
+        "checkpoint": [
+          {},
+          {
+            "kind": "duel",
+            "images": [
+              "duel-short.png",
+              "duel-long.png"
+            ],
+            "correct": 0
+          },
+          {}
+        ]
+      },
+      "text": {
+        "en": "# World 7 · Another Dog Passes Your Table\n\n## primer\n### card 1\nRemember: on the terrace, gather the leash short but slack, put {name} on the wall side and stand between them and the passing dog. Mark when they look back.\n- caption: Short slack leash, with you between {name} and the passing dog\n\n## checkpoint\n### tq1\nAnother dog walks past your table and {name} stares at it. What do you do first?\n- [x] Gather the leash calmly and stand between {name} and the dog\n- [ ] Leave the leash long so {name} moves away alone\n- [ ] Pull the leash back so {name} stops looking\n- why: Gathering calmly and acting as a shield takes the other dog out of view without tensing the leash. If it is too much, you can always change tables or leave.\n\n### tq2\nAnother dog passes along the walkway. Which leash helps most?\n- [x] A short slack leash, with {name} on the far side of the chair\n- [ ] A long leash across the walkway, with {name} near the passage\n- why: Short and slack keeps {name} by the wall and out of the passage. Long and across the walkway brings them closer to the other dog and costs you control.\n\n### tq3\n{name} looks at the passing dog and then looks back at you. What do you do?\n- [x] Say \"good\" and give a treat\n- [ ] Scold them for looking at the other dog\n- [ ] Wait until they are fully calm before rewarding\n- why: Looking back at you after seeing the other dog is their own decision. Marking it at that moment makes them repeat it.\n\n## debrief\n- calm: {name} stayed calm as the other dog passed! That is how it is done: short slack leash, your body as a shield and \"good\" when they look back.\n- notCalm: It was still hard, and that is normal at first. Tip: gather earlier, stand between the two and, if it is too much, change tables or leave.\n\n## exercises\n- tension: At home: practise gathering half a metre of slack leash with both hands, without jerking.\n- timing: On the terrace: stand between {name} and the passage when you see someone coming.\n- attention: On the terrace: mark and reward each time {name} looks at whoever passes and then looks back at you.\n",
+        "es": "# Mundo 7 · Pasa otro perro por tu mesa\n\n## primer\n### card 1\nRecuerda: en la terraza, recoge la correa corta pero floja, coloca a {name} en el lado de la pared y ponte entre {name} y el perro que pasa. Marca cuando te mire.\n- caption: Correa corta y floja, y tú entre {name} y el perro que pasa\n\n## checkpoint\n### tq1\nPasa otro perro junto a vuestra mesa y {name} se queda mirándolo. ¿Qué haces primero?\n- [x] Recojo la correa con calma y me pongo entre {name} y el perro\n- [ ] Dejo la correa larga para que {name} se aparte solo\n- [ ] Tiro de la correa hacia atrás para que deje de mirar\n- why: Recoger con calma y hacer de escudo le quita la vista del otro perro sin tensar la correa. Si es demasiado, siempre puedes cambiar de mesa o irte.\n\n### tq2\nPasa otro perro por el pasillo. ¿Qué correa ayuda más?\n- [x] Correa corta y floja, con {name} al otro lado de la silla\n- [ ] Correa larga cruzando el pasillo, con {name} cerca del paso\n- why: Corta y floja deja a {name} junto a la pared y fuera del paso. Larga y cruzada lo acerca al otro perro y a ti te quita control.\n\n### tq3\n{name} mira al perro que pasa y después te mira a ti. ¿Qué haces?\n- [x] Digo «bien» y le doy una golosina\n- [ ] Le riño por haber mirado al otro perro\n- [ ] Espero a que se quede tranquilo del todo para premiarlo\n- why: Mirarte después de ver al otro perro es una decisión suya. Marcarla en ese momento hace que la repita.\n\n## debrief\n- calm: ¡Se ha quedado tranquilo mientras pasaba el otro perro! Así se hace: correa corta y floja, tu cuerpo de escudo y «bien» cuando te mira.\n- notCalm: Aún le costó, y es normal al principio. Consejo: recoge antes, ponte entre los dos y, si es demasiado, cambia de mesa o vete.\n\n## exercises\n- tension: En casa: practica recoger medio metro de correa, floja, con ambas manos y sin tirones.\n- timing: En la terraza: ponte entre {name} y el paso cuando veas venir a alguien.\n- attention: En la terraza: marca y premia cada vez que {name} mire a quien pasa y luego te mire a ti.\n"
+      },
+      "files": [
+        "media/duel-long.png",
+        "media/duel-short.png"
+      ]
+    },
+    "cafe-settle": {
+      "config": {
+        "id": "cafe-settle",
+        "mode": "minigame",
+        "prerequisites": [
+          "cafe-arrive"
+        ],
+        "simulation": {
+          "minigame": "cafe-settle"
+        },
+        "exercises": [
+          {
+            "metric": "timing"
+          },
+          {
+            "metric": "tension"
+          }
+        ],
+        "primerCards": [
+          {
+            "kind": "real-world",
+            "media": {
+              "type": "image",
+              "url": "",
+              "art": "theory-cafe-settle-2"
+            }
+          },
+          {
+            "kind": "virtual-dog"
+          }
+        ],
+        "checkpoint": [
+          {},
+          {
+            "kind": "duel",
+            "images": [
+              "duel-calm.png",
+              "duel-asking.png"
+            ],
+            "correct": 0
+          },
+          {}
+        ]
+      },
+      "text": {
+        "en": "# World 7 · Settling at the Table\n\n## primer\n### card 1\nRemember: begging is never paid. Wait for {name} to lie down on the mat by choice, then say \"good\" and drop a treat.\n- caption: The more calm, the more the treat is worth\n\n### card 2\nIn the game, watch how {name} is and tap what helps: Ignore if the Dog begs at the table, Wait if it watches the waiter, and Marker when it sits to look at you or lies down calm. Feeding from the table is never the answer.\n\n## checkpoint\n### tq1\n{name} sits by the table and stares at you. What do you do?\n- [x] Do not look and do not hand over anything from the table; wait\n- [ ] Hand over a little bite to calm the Dog down\n- [ ] Talk to the Dog so it stops begging\n- why: If begging works, the Dog will do more of it. Waiting without responding makes begging useless, and you pay the calm as soon as it arrives.\n\n### tq2\nWhen does the treat land?\n- [ ] When {name} lies down calm on the mat and the treat lands quietly between the paws\n- [ ] When {name} sits whining by the table and gets a bite\n- why: The treat pays off when it arrives with the Dog lying down. If it arrives with the begging, it teaches begging.\n\n### tq3\n{name} had been on the mat for a while and now gets up and pants. What do you do?\n- [x] Shorten the visit and leave before it gets worse\n- [ ] Make the Dog lie down again\n- [ ] Hand over table food to calm the Dog down\n- why: Getting up, panting or whining are signs of tiredness. Leaving in time, while {name} is still calm, leaves a good memory for next time.\n\n## exercises\n- timing: On a terrace: say \"good\" and drop the treat only when {name} lies down by choice.\n- tension: On a terrace: if {name} begs, do not respond and wait without touching the leash.\n",
+        "es": "# Mundo 7 · Relajarse en la mesa\n\n## primer\n### card 1\nRecuerda: la petición no se paga. Espera a que {name} se tumbe por su cuenta en la manta y entonces di «bien» y deja caer un premio.\n- caption: Cuanta más calma, más merece el premio\n\n### card 2\nEn el juego, mira cómo está {name} y pulsa lo que ayuda: Ignorar si pide en la mesa, Esperar si mira al camarero, y Marcar cuando se siente a mirarte o se tumbe en calma. Dar de la mesa nunca es la respuesta.\n\n## checkpoint\n### tq1\n{name} se sienta junto a la mesa y te mira fijamente. ¿Qué haces?\n- [x] No le miro ni le doy nada de la mesa, y espero\n- [ ] Le doy un trocito para que se calme\n- [ ] Le hablo para que deje de pedir\n- why: Si pedir da resultado, lo repetirá más. Esperar sin responder hace que pedir no sirva, y pagarás la calma en cuanto llegue.\n\n### tq2\n¿Cuándo cae el premio?\n- [ ] Cuando {name} se tumba en calma sobre la manta y el premio cae en silencio entre sus patas\n- [ ] Cuando {name} se sienta quejándose junto a la mesa y recibe un trocito\n- why: El premio sale a cuenta cuando llega con {name} en la manta. Si llega con la petición, enseña a pedir.\n\n### tq3\n{name} llevaba un rato en la manta y ahora se levanta y jadea. ¿Qué haces?\n- [x] Acortar la visita y levantarnos antes de que vaya a más\n- [ ] Obligarle a tumbarse otra vez\n- [ ] Darle comida de la mesa para que se calme\n- why: Levantarse, jadear o quejarse son señales de cansancio. Irse a tiempo, con {name} aún en calma, deja un buen recuerdo para la próxima.\n\n## exercises\n- timing: En una terraza: di «bien» y deja caer el premio solo cuando {name} se tumba por su cuenta.\n- tension: En una terraza: si {name} pide, no respondas y espera sin tocar la correa.\n"
+      },
+      "files": [
+        "media/duel-asking.png",
+        "media/duel-calm.png",
+        "media/theory-cafe-settle-2.png"
       ]
     },
     "calm-first": {
@@ -9009,6 +9724,182 @@ export const BASELINE_PACK: ContentPack = {
       },
       "files": []
     },
+    "mission-cafe-leave-early": {
+      "config": {
+        "id": "mission-cafe-leave-early",
+        "technique": "cafe-leave-early",
+        "reps": 2,
+        "trains": [
+          {
+            "kind": "node",
+            "id": "cafe-settle"
+          }
+        ],
+        "problems": [
+          {
+            "id": "late",
+            "label": "late",
+            "practise": {
+              "kind": "lesson",
+              "id": "theory-cafe-leave-early"
+            }
+          },
+          {
+            "id": "notice",
+            "label": "notice",
+            "practise": {
+              "kind": "node",
+              "id": "cafe-settle"
+            }
+          },
+          {
+            "id": "hurry",
+            "label": "hurry",
+            "practise": {
+              "kind": "lesson",
+              "id": "theory-cafe-leave-early"
+            }
+          }
+        ]
+      },
+      "text": {
+        "en": "# Leaving in Time\n\n## target\nOn a terrace visit, stand up and leave while {name} is still lying calm, before any overload signal.\n\n## success\nYou leave with {name} relaxed on a slack leash.\n\n## problems\n### late\n- label: They were already overloaded\n- reassure: This happens a lot. Judging the time is hard at first.\n- cause: The visit ran longer than {name} could manage.\n- c1: Decide your leaving time before you sit down.\n- c2: Shorten the visit next time, even if {name} seems fine.\n- easier: A 5-minute visit and then leave, 1 time.\n- alt: A clock next to a coffee cup\n- caption: Decide your time when you sit down\n\n### notice\n- label: I did not see the signals\n- reassure: The signals are subtle. You learn them with practice.\n- cause: You were on your phone or chatting and not watching {name}.\n- c1: Glance at {name} between sips.\n- c2: The signals are standing up, panting, whining, staring at food or refusing a treat.\n- easier: Watch {name} on the mat at home for 2 minutes, 2 times.\n- alt: A person watches their Dog lying on the mat\n- caption: Glance at {name} between sips\n\n### hurry\n- label: I left in a hurry\n- reassure: Leaving fast is normal if the visit goes wrong. It is fine.\n- cause: You stayed until it became urgent.\n- c1: Ask for the bill early, before the time you set.\n- c2: If you must leave now, pay at the counter with {name} beside you, without pulling on the leash.\n- easier: Ask for the bill while {name} is still calm, 1 time.\n- alt: A person gathers the mat calmly\n- caption: Pack up calmly\n\n## general\n- reassure: Leaving when everything is going well is hard.\n- cause: The common mistake is staying \"a little longer\" and going past your time.\n- c1: Set your leaving time before you sit down.\n- c2: Review the lesson on leaving in time.\n- easier: Leave after 5 minutes with {name} calm, 1 time.\n- alt: A person stands up from the table with their Dog\n- caption: Leaving in time\n",
+        "es": "# Irse a tiempo\n\n## target\nEn una visita a una terraza, levántate y vete mientras {name} sigue en la manta y en calma, antes de ninguna señal de agobio.\n\n## success\nOs vais con {name} sin tensión y la correa floja.\n\n## problems\n### late\n- label: Ya estaba agobiado\n- reassure: Pasa mucho. Calcular la hora cuesta al principio.\n- cause: La visita duró más de lo que {name} podía aguantar.\n- c1: Decide antes de sentarte a qué hora te vas.\n- c2: Acorta la visita la próxima vez, aunque {name} parezca estar bien.\n- easier: Una visita de 5 minutos y marcharte, 1 vez.\n- alt: Un reloj junto a una taza de café\n- caption: Decide tu hora al sentarte\n\n### notice\n- label: No supe ver las señales\n- reassure: Las señales son sutiles. Se aprenden con práctica.\n- cause: Mirabas el móvil o charlabas y no vigilabas a {name}.\n- c1: Mira a {name} entre sorbo y sorbo.\n- c2: Las señales son levantarse, jadear, gemir, mirar fijo la comida o rechazar una golosina.\n- easier: Observar a {name} 2 minutos en la manta en casa, 2 veces.\n- alt: Una persona mira a su perro tumbado en la manta\n- caption: Mira a {name} entre sorbos\n\n### hurry\n- label: Me fui con prisa\n- reassure: Irse deprisa es normal si la visita se tuerce. No pasa nada.\n- cause: Te quedaste hasta que fue urgente.\n- c1: Pide la cuenta con tiempo, antes de la hora que te marcaste.\n- c2: Si hay que irse ya, paga en la barra con {name} a tu lado, sin tirar de la correa.\n- easier: Pedir la cuenta cuando {name} aún está en calma, 1 vez.\n- alt: Una persona recoge la manta con calma\n- caption: Recoge con calma\n\n## general\n- reassure: Irse cuando todo va bien es difícil.\n- cause: Lo habitual es quedarse «un poco más» y pasarse de la hora.\n- c1: Marca tu hora de irte antes de sentarte.\n- c2: Repasa la lección de irse a tiempo.\n- easier: Irte tras 5 minutos con {name} en calma, 1 vez.\n- alt: Una persona se levanta de la mesa con su perro\n- caption: Irse a tiempo\n"
+      },
+      "files": []
+    },
+    "mission-cafe-settle": {
+      "config": {
+        "id": "mission-cafe-settle",
+        "technique": "cafe-settle",
+        "reps": 1,
+        "trains": [
+          {
+            "kind": "node",
+            "id": "cafe-settle"
+          }
+        ],
+        "problems": [
+          {
+            "id": "begs",
+            "label": "begs",
+            "practise": {
+              "kind": "node",
+              "id": "cafe-settle"
+            }
+          },
+          {
+            "id": "up",
+            "label": "up",
+            "practise": {
+              "kind": "node",
+              "id": "cafe-settle"
+            }
+          },
+          {
+            "id": "chew",
+            "label": "chew",
+            "practise": {
+              "kind": "node",
+              "id": "cafe-settle"
+            }
+          }
+        ]
+      },
+      "text": {
+        "en": "# A Coffee in Calm\n\n## target\nHave a whole coffee on a terrace with {name} on the mat. Never pay begging: wait, and mark and reward only when the Dog lies down by choice.\n\n## success\n{name} lies on the mat, stays on it for most of the coffee, and gets nothing from the table.\n\n## problems\n### begs\n- label: Begs for food from the table\n- reassure: This is very normal: the table smells of food and, at home, begging may have worked once.\n- cause: Begging still pays: a look, a word or a bite has confirmed that insisting works.\n- c1: Do not look, do not talk and do not hand over anything from the table. Wait, and pay only when the Dog lies down by choice.\n- c2: Do not give in at the end: giving in on the tenth try teaches trying eleven times.\n- easier: The Dog lies on the mat without getting anything from the table, 2 times.\n- alt: The Dog lies on the mat while the Handler drops a treat between the paws\n- caption: Calm is paid, not begging\n\n### up\n- label: Gets up every time someone passes\n- reassure: Watching what moves is natural. Getting up at first is common on a terrace.\n- cause: The table is probably too close to the walkway, or the Dog arrived with energy still unspent.\n- c1: Move to a corner by the wall and pay a small treat each time the Dog lies down again.\n- c2: If the Dog gets up more than three times in a row, shorten the visit and leave while it still settles.\n- easier: The Dog lies down again after watching someone pass, 2 times.\n- alt: A waiter passes in the distance while the Dog stays lying on the mat\n- caption: Watching without getting up is already an achievement\n\n### chew\n- label: Does not want the chew\n- reassure: In a new place it is common not to feel like chewing at first.\n- cause: There may be too much that is new, or the chew may not be the one the Dog likes best.\n- c1: Offer the Dog's favourite chew at home first, so it comes to go with the mat.\n- c2: If the Dog does not want it, do not force it: try a small treat on the mat when it lies down.\n- easier: The Dog chews on the mat at home, 3 times.\n- alt: The Dog chews a chew toy lying on the mat\n- caption: Something good to do on the mat\n\n## general\n- reassure: A coffee with ups and downs is not a failure. Every time you do not pay begging, it counts.\n- cause: The most common mistake is giving in without noticing: a bite, a look, a few words.\n- c1: For one coffee, focus only on not responding to begging.\n- c2: Review the \"Settling at the Table\" lesson.\n- easier: Pay calm just once during the visit.\n- alt: The Handler drinks a coffee while the Dog rests on its mat\n- caption: A coffee without begging\n",
+        "es": "# Un café en calma\n\n## target\nToma un café entero en una terraza con {name} sobre su manta. No pagues nunca la petición: espera, y marca y premia solo cuando se tumba por su cuenta.\n\n## success\n{name} se tumba en la manta, se queda en ella durante casi todo el café y no recibe nada de la mesa.\n\n## problems\n### begs\n- label: Me pide comida de la mesa\n- reassure: Es muy normal: la mesa huele a comida y, en casa, pedir quizá ha funcionado alguna vez.\n- cause: Pedir todavía sale a cuenta: alguna mirada, palabra o trocito le ha confirmado que insistir sirve.\n- c1: No le mires, no le hables y no le des nada de la mesa. Espera, y paga solo cuando se tumbe por su cuenta.\n- c2: No cedas al final: si cedes tras diez intentos, aprenderá a probar once.\n- easier: Que se tumbe en la manta sin recibir nada de la mesa, 2 veces.\n- alt: El perro se tumba en la manta mientras la persona deja caer un premio entre sus patas\n- caption: Se paga la calma, no la petición\n\n### up\n- label: Se levanta cada vez que alguien pasa\n- reassure: Mirar lo que se mueve es natural. Levantarse al principio es habitual en una terraza.\n- cause: Seguramente la mesa está demasiado cerca del paso o ha llegado con energía sin gastar.\n- c1: Cambia a una esquina junto a la pared y paga con un premio pequeño cada vez que se tumbe de nuevo.\n- c2: Si se levanta más de tres veces seguidas, acorta la visita y vete mientras todavía se asienta.\n- easier: Que vuelva a tumbarse tras ver pasar a alguien, 2 veces.\n- alt: Un camarero pasa a lo lejos mientras el perro sigue tumbado en la manta\n- caption: Mirar sin levantarse ya es un logro\n\n### chew\n- label: No quiere el masticable\n- reassure: Es habitual que en un sitio nuevo no tenga ganas de masticar al principio.\n- cause: Puede que haya demasiada novedad o que el masticable no sea el que más le gusta.\n- c1: Ofrece en casa, antes, el masticable que más le gusta, para que lo asocie con la manta.\n- c2: Si no lo quiere, no lo fuerces: prueba con un premio pequeño sobre la manta cuando se tumbe.\n- easier: Que mordisquee el masticable en la manta en casa, 3 veces.\n- alt: El perro mordisquea un masticable tumbado sobre la manta\n- caption: Algo bueno que hacer sobre la manta\n\n## general\n- reassure: Un café con altibajos no es un fracaso. Cada vez que no pagas la petición, cuenta.\n- cause: Lo más habitual es ceder sin darse cuenta: un trocito, una mirada, unas palabras.\n- c1: Durante un café, fíjate solo en no responder a la petición.\n- c2: Repasa la lección «Relajarse en la mesa».\n- easier: Pagar la calma una sola vez en la visita.\n- alt: La persona toma un café mientras el perro descansa en su manta\n- caption: Un café sin pedir\n"
+      },
+      "files": []
+    },
+    "mission-cafe-short-visit": {
+      "config": {
+        "id": "mission-cafe-short-visit",
+        "technique": "cafe-short-visit",
+        "reps": 1,
+        "trains": [
+          {
+            "kind": "node",
+            "id": "cafe-arrive"
+          }
+        ],
+        "problems": [
+          {
+            "id": "pulls",
+            "label": "pulls",
+            "practise": {
+              "kind": "node",
+              "id": "cafe-arrive"
+            }
+          },
+          {
+            "id": "food",
+            "label": "food",
+            "practise": {
+              "kind": "node",
+              "id": "cafe-arrive"
+            }
+          },
+          {
+            "id": "nomat",
+            "label": "nomat",
+            "practise": {
+              "kind": "lesson",
+              "id": "theory-cafe-setup"
+            }
+          }
+        ]
+      },
+      "text": {
+        "en": "# A Short First Visit\n\n## target\nVisit a terrace for about 10 minutes with {name}: arrive after a sniffing walk, pick a corner by the wall and spread the mat. Before sitting down, ask the venue whether dogs are welcome.\n\n## success\nYou sit down, {name} lies on the mat at some point, and you leave calmly before the Dog gets tired.\n\n## problems\n### pulls\n- label: Pulls on the leash when arriving\n- reassure: This is normal: a terrace full of smells and people excites many dogs, especially the first time.\n- cause: The Dog probably arrives with energy still unspent or in a hurry along the way, and the leash goes tight.\n- c1: Before the visit, take a longer sniffing walk and stop each time the leash goes tight.\n- c2: If the excitement does not drop, stay outside at a distance for a while or leave the visit for another day.\n- easier: Walk to the door on a slack leash and back, 3 times.\n- alt: The Handler stops with a tight leash on the sidewalk and the Dog comes back to their side\n- caption: Stopping so the leash goes slack\n\n### food\n- label: Lunges for food on the ground\n- reassure: Something always drops near the tables. It is normal for a Dog with a good nose.\n- cause: Food on the ground is the most interesting thing around, and the Dog does not yet know that looking at you pays more.\n- c1: Say \"Leave It\" once, as soon as the Dog sees it and before it arrives, and reward from your hand when it turns toward you.\n- c2: If there is a lot of food, pick another table or shorten the visit: more distance always helps.\n- easier: Walk past a treat on the ground with \"Leave It\", 3 times.\n- alt: The Dog turns toward the Handler before reaching a piece of food on the ground\n- caption: Looking at you before arriving earns a reward\n\n### nomat\n- label: Will not lie down on the mat\n- reassure: It is common for the first visit to take time to settle; ten minutes already counts.\n- cause: Perhaps the mat does not smell of home yet, or there is too much movement near the table.\n- c1: Use the same mat at home for a few days, with something to chew, so it feels familiar.\n- c2: Move to a table with less foot traffic or shorten the visit: leaving in time also counts.\n- easier: Stay on the mat for one minute at home, 3 times.\n- alt: The Dog chews a toy on the mat in the living room\n- caption: The mat smells of home\n\n## general\n- reassure: A short first visit that ends well is worth more than a long one that ends badly.\n- cause: The most common mistake is staying too long, especially when everything is going well.\n- c1: Plan ten minutes and leave at ten, even if it feels like you could stay longer.\n- c2: Review the \"Getting Ready for the Café\" lesson.\n- easier: Do a five-minute visit.\n- alt: The Handler and the Dog walk away from the terrace on a slack leash\n- caption: Leaving in time leaves a good memory\n",
+        "es": "# Una primera visita corta\n\n## target\nVisita una terraza durante unos 10 minutos con {name}: llega tras un paseo de olfateo, elige una esquina junto a la pared y extiende la manta. Antes de sentaros, pregunta en el local si admiten perros.\n\n## success\nOs sentáis, {name} se tumba en la manta en algún momento y os vais con calma antes de que se canse.\n\n## problems\n### pulls\n- label: Tira de la correa al llegar\n- reassure: Es normal: una terraza llena de olores y gente emociona a muchos perros, y más la primera vez.\n- cause: Seguramente llega con energía sin gastar o con prisa por el camino, y la correa se tensa.\n- c1: Antes de la visita, da un paseo más largo con olfateo y párate cada vez que la correa se tense.\n- c2: Si no baja la emoción, quedaos fuera un rato a distancia o dejad la visita para otro día.\n- easier: Llegar hasta la puerta con la correa floja y volver, 3 veces.\n- alt: La persona se para con la correa tensa en la acera y el perro vuelve a su lado\n- caption: Parar para que la correa se afloje\n\n### food\n- label: Se lanza a por la comida del suelo\n- reassure: Cerca de las mesas siempre cae algo. Es lo normal para un perro que huele bien.\n- cause: La comida del suelo es lo más interesante del lugar y todavía no sabe que merece más mirarte.\n- c1: Di «Déjalo» una sola vez, en cuanto la vea y antes de llegar, y paga con tu mano cuando se gire hacia ti.\n- c2: Si hay mucha comida, elige otra mesa o acorta la visita: más distancia siempre ayuda.\n- easier: Pasar junto a un premio en el suelo con «Déjalo», 3 veces.\n- alt: El perro se gira hacia la persona antes de llegar a un trozo de comida en el suelo\n- caption: Mirarte antes de llegar vale un premio\n\n### nomat\n- label: No se tumba en la manta\n- reassure: La primera vez es habitual que tarde en asentarse; con diez minutos ya cuenta.\n- cause: Quizá la manta todavía no huele a casa o hay demasiado movimiento cerca de la mesa.\n- c1: Usa en casa la misma manta durante unos días, con algo para masticar, para que le resulte familiar.\n- c2: Cambia a una mesa con menos paso o acorta la visita: irse a tiempo también cuenta.\n- easier: Que se quede en la manta un minuto en casa, 3 veces.\n- alt: El perro mordisquea un juguete sobre la manta en el salón\n- caption: La manta huele a casa\n\n## general\n- reassure: Una primera visita corta que termina bien vale más que una larga que acaba mal.\n- cause: Lo más habitual es alargar la visita de más, sobre todo cuando todo va bien.\n- c1: Planea diez minutos y vete a los diez, aunque parezca que podríais quedaros más.\n- c2: Repasa la lección «Preparar la visita al café».\n- easier: Hacer una visita de cinco minutos.\n- alt: La persona y el perro se alejan de la terraza con la correa floja\n- caption: Irse a tiempo deja buen recuerdo\n"
+      },
+      "files": []
+    },
+    "mission-cafe-waiters": {
+      "config": {
+        "id": "mission-cafe-waiters",
+        "technique": "cafe-waiters",
+        "reps": 2,
+        "trains": [
+          {
+            "kind": "node",
+            "id": "cafe-passing-dog"
+          }
+        ],
+        "problems": [
+          {
+            "id": "tight",
+            "label": "tight",
+            "practise": {
+              "kind": "node",
+              "id": "cafe-passing-dog"
+            }
+          },
+          {
+            "id": "stands",
+            "label": "stands",
+            "practise": {
+              "kind": "lesson",
+              "id": "theory-cafe-waiters"
+            }
+          },
+          {
+            "id": "nospot",
+            "label": "nospot",
+            "practise": {
+              "kind": "lesson",
+              "id": "theory-cafe-waiters"
+            }
+          }
+        ]
+      },
+      "text": {
+        "en": "# Waiters and People Passing By\n\n## target\nAt a real terrace, let two waiters or passers-by go by with a short slack leash, {name} on the wall side and your body toward the walkway.\n\n## success\n{name} stays lying down, or looks back at you, as people pass.\n\n## problems\n### tight\n- label: The leash went tight\n- reassure: Gathering the leash without tension is hard at first. That is normal.\n- cause: The leash was short but taut, and {name} feels it.\n- c1: Gather with both hands and keep a soft curve.\n- c2: If you cannot, leave more room or change tables.\n- easier: Practise gathering a slack leash with your Dog beside you, 2 times.\n- alt: A person gathers the leash keeping a soft curve\n- caption: Short, but slack\n\n### stands\n- label: Stood up when someone passed\n- reassure: Many dogs find this hard at first. It is not your fault or theirs.\n- cause: There was little distance to the walkway or it was a very busy passage.\n- c1: Move {name} closer to the wall and put your body between them and the passage.\n- c2: If it stays hard, change tables or shorten the visit.\n- easier: Sit for 5 minutes at a quiet corner table, 1 time.\n- alt: A quiet corner table on a terrace\n- caption: A quiet corner\n\n### nospot\n- label: There was no wall table\n- reassure: There is not always a good spot. You can pick another day or venue.\n- cause: The terrace was full or had no corners.\n- c1: Choose a quieter hour, or a terrace with a corner.\n- c2: Ask the venue whether you can sit where you prefer.\n- easier: Visit a quiet terrace at an off-peak hour, 1 time.\n- alt: An almost empty terrace in mid-afternoon\n- caption: A quiet hour\n\n## general\n- reassure: Waiters and passers-by are a real challenge.\n- cause: The common mistake is sitting at a table too close to the passage.\n- c1: Start with a spot where few people pass.\n- c2: Review the lesson on waiters and passers-by.\n- easier: Sit for 5 minutes in a quiet corner, 1 time.\n- alt: A quiet corner of a terrace\n- caption: A quiet corner\n",
+        "es": "# Camareros y gente que pasa\n\n## target\nEn una terraza de verdad, deja pasar a dos camareros o personas con la correa corta y floja, con {name} en el lado de la pared y tu cuerpo hacia el pasillo.\n\n## success\n{name} sigue en la manta, o te mira, mientras pasa la gente.\n\n## problems\n### tight\n- label: La correa se me tensó\n- reassure: Recoger la correa sin tensarla cuesta al principio. Es normal.\n- cause: La correa quedó corta pero tirante, y {name} lo nota.\n- c1: Recoge con las dos manos y deja una curva suave.\n- c2: Si no puedes, deja más margen o cambia de mesa.\n- easier: Practicar a recoger la correa floja con el perro al lado, 2 veces.\n- alt: Una persona recoge la correa con una curva suave\n- caption: Corta, pero floja\n\n### stands\n- label: Se levantó al pasar alguien\n- reassure: A muchos perros les cuesta al principio. No es culpa tuya ni suya.\n- cause: Había poca distancia al pasillo o el paso era muy concurrido.\n- c1: Pon a {name} más cerca de la pared y tu cuerpo entre {name} y el paso.\n- c2: Si sigue difícil, cambia de mesa o acorta la visita.\n- easier: Sentarte 5 minutos en una mesa de rincón tranquila, 1 vez.\n- alt: Una mesa de rincón tranquila en una terraza\n- caption: Un rincón tranquilo\n\n### nospot\n- label: No había mesa de pared\n- reassure: No siempre hay un buen sitio. Se puede elegir otro día o local.\n- cause: La terraza estaba llena o no tenía rincones.\n- c1: Elige una hora más tranquila, o una terraza con rincón.\n- c2: Pregunta al local si puedes sentarte en el sitio que prefieres.\n- easier: Ir a una terraza tranquila en hora valle, 1 vez.\n- alt: Una terraza casi vacía a media tarde\n- caption: Una hora tranquila\n\n## general\n- reassure: Los camareros y la gente que pasa son un reto de verdad.\n- cause: Lo habitual es sentarse en una mesa demasiado cerca del paso.\n- c1: Empieza por un sitio con poco paso.\n- c2: Repasa la lección de camareros y gente que pasa.\n- easier: Sentarte 5 minutos en un rincón tranquilo, 1 vez.\n- alt: Un rincón tranquilo de una terraza\n- caption: Un rincón tranquilo\n"
+      },
+      "files": []
+    },
     "mission-calm-first": {
       "config": {
         "id": "mission-calm-first",
@@ -9868,7 +10759,135 @@ export const BASELINE_PACK: ContentPack = {
       "files": []
     }
   },
-  "games": {},
+  "games": {
+    "eleccion-mano": {
+      "config": {
+        "order": 1,
+        "free": true,
+        "difficulty": "easy",
+        "minutes": 5,
+        "materials": [
+          "food"
+        ],
+        "images": [
+          "eleccion-mano-1.png"
+        ]
+      },
+      "text": {
+        "en": "# Pick a hand\n\n## intro\nA two-minute game that teaches your dog that its choices pay off. You close two fists and your dog picks one by touching it with a paw. It helps calm excitement and builds the habit of thinking before acting.\n\n## materials\n- A handful of kibble or tiny treats\n- A quiet spot with no distractions\n\n## steps\n1. Sit facing your dog with a treat in each hand and close both fists at chest height.\n2. Wait calmly. Let your dog sniff, lick or nudge the fists; do not open either one yet.\n3. As soon as a paw touches a fist, say \"good\" and open that hand so your dog can eat the treat.\n4. A nose touch instead of a paw counts at the start: what matters is that your dog picks one hand.\n5. Repeat about ten times and finish with one last treat as a gift. No rush: it is normal for it to take a few seconds at first.\n\n## tips\n- If your dog gets worked up or barks, move the fists a little further away and wait for a breath before you go on.\n- Once it is easy, offer one empty hand and one with a treat, and let your dog find out which one pays.\n- Use kibble from the daily ration so you do not add extra food.\n\n## images\n### eleccion-mano-1.png\n- alt: A person holds out two closed fists and the dog, sitting, touches one with a paw\n- caption: Two fists, one decision: the dog touches the one it picks\n",
+        "es": "# Elige mano\n\n## intro\nUn juego de dos minutos para que tu perro aprenda que sus decisiones tienen premio. Cierras dos puños y tu perro elige uno tocándolo con la pata. Sirve para calmar la emoción y para pensar antes de actuar.\n\n## materials\n- Un puñado de pienso o de golosinas pequeñas\n- Un sitio tranquilo, sin distracciones\n\n## steps\n1. Siéntate frente a tu perro con una golosina en cada mano y cierra los dos puños a la altura de su pecho.\n2. Espera con calma. Deja que huela, lama o empuje los puños; no abras ninguno todavía.\n3. En cuanto toque un puño con la pata, di «bien» y abre esa mano para que se coma la golosina.\n4. Si la toca con el hocico en vez de con la pata, también vale al principio: lo importante es que elija una mano.\n5. Repite unas diez veces y termina con una última golosina de regalo. Sin prisa: es normal que al principio tarde unos segundos.\n\n## tips\n- Si se agobia o ladra, aleja los puños un poco y espera a que respire antes de seguir.\n- Cuando lo domine, ofrece una mano vacía y otra con golosina, y deja que descubra cuál paga.\n- Juega con el pienso de su ración del día para no añadir comida extra.\n\n## images\n### eleccion-mano-1.png\n- alt: Una persona ofrece dos puños cerrados y el perro, sentado, toca uno con la pata\n- caption: Dos puños, una decisión: el perro toca el que elige\n\n"
+      },
+      "files": [
+        "media/eleccion-mano-1.png"
+      ]
+    },
+    "escalon-azul": {
+      "config": {
+        "order": 6,
+        "difficulty": "medium",
+        "minutes": 10,
+        "materials": [
+          "food"
+        ],
+        "images": [
+          "escalon-azul-1.png"
+        ]
+      },
+      "text": {
+        "en": "# Blue step\n\n## intro\nYour dog puts its front paws on a step and pivots around it following a treat. It is a coordination and balance exercise that builds strength and body awareness.\n\n## materials\n- A low, stable, non-slip step or platform\n- Tiny treats\n\n## steps\n1. Place the step on a firm surface. Let your dog sniff and explore it.\n2. With a treat in your hand, lure your dog to put one front paw on the step. \"Good\" and treat.\n3. Repeat until it puts both front paws up. Reward every attempt, even a small one.\n4. With the front paws up, slowly move the treat to one side so your dog swings its back legs around.\n5. Reward after a quarter turn and build up little by little to a full circle.\n\n## tips\n- If your dog hesitates, use a lower step or reward just one step towards it.\n- Keep sessions to a couple of minutes and let your dog rest between rounds.\n- Never force or push your dog: if it is unsure, go back to the previous step.\n\n## images\n### escalon-azul-1.png\n- alt: A dog puts its front paws on a blue step and pivots following a treat in the person's hand\n- caption: Front paws up and a guided turn with a treat\n",
+        "es": "# Escalón azul\n\n## intro\nTu perro apoya las patas delanteras en un escalón y gira alrededor de él siguiendo un premio. Es un ejercicio de coordinación y equilibrio que fortalece el cuerpo y mejora la conciencia de sus patas.\n\n## materials\n- Un escalón o plataforma baja, estable y que no resbale\n- Golosinas pequeñas\n\n## steps\n1. Coloca el escalón en el suelo sobre una superficie firme. Deja que tu perro lo huela y lo explore.\n2. Con una golosina en la mano, atrae a tu perro para que apoye una pata delantera en el escalón. «Bien» y premio.\n3. Repite hasta que suba las dos patas delanteras. Premia cada intento, aunque sea pequeño.\n4. Con las patas delanteras arriba, lleva la golosina despacio hacia un lado para que gire las patas traseras alrededor.\n5. Premia al terminar un cuarto de vuelta y ve aumentando poco a poco hasta dar la vuelta entera.\n\n## tips\n- Si duda, usa un escalón más bajo o premia solo un paso hacia él.\n- Hazlo en sesiones cortas de un par de minutos y deja que descanse entre rondas.\n- No fuerces ni empujes a tu perro: si no se atreve, vuelve al paso anterior.\n\n## images\n### escalon-azul-1.png\n- alt: Un perro apoya las patas delanteras en un escalón azul y gira siguiendo un premio en la mano de la persona\n- caption: Patas delanteras arriba y giro guiado con un premio\n"
+      },
+      "files": [
+        "media/escalon-azul-1.png"
+      ]
+    },
+    "manta-buscadora": {
+      "config": {
+        "order": 4,
+        "difficulty": "easy",
+        "minutes": 10,
+        "materials": [
+          "fabric",
+          "food"
+        ],
+        "images": [
+          "manta-buscadora-1.png"
+        ],
+        "needs": [
+          "mantas-olfativas"
+        ]
+      },
+      "text": {
+        "en": "# Snuffle blanket\n\n## intro\nA snuffle mat hides kibble among its strips and your dog has to dig its nose in to find it. It is the most complete sniffing game for rainy days: it calms and tires the mind.\n\n## materials\n- A snuffle mat (fabric strips)\n- A handful of kibble from the daily ration\n\n## steps\n1. Put the snuffle mat on the floor, on a surface that does not slide.\n2. Hide a few pieces of kibble among the strips, leaving some in view so your dog understands the game.\n3. Let your dog sniff. Say \"find it\" calmly and do not push: every find is its reward.\n4. Once it has the hang of it, hide the kibble deeper and use more pieces.\n5. When done, pick the mat up before your dog starts chewing the strips.\n\n## tips\n- It is normal for your dog to pull at the strips or flip the mat over at first; let it try.\n- To make it harder, tie the strips in knots or add more layers.\n- Use the mat only when you are nearby and can see your dog.\n\n## safety\nAlways supervise your dog while it uses the mat. If it starts chewing or pulling at the strips, take it away: swallowed fabric can block the gut. Check that the mat has no loose threads or torn strips, and store it out of reach when the game ends.\n\n## images\n### manta-buscadora-1.png\n- alt: A dog pushes its nose into a snuffle mat to find the hidden kibble\n- caption: The kibble hides among the strips and the nose finds it\n\n## shop\n### mantas-olfativas\nA snuffle mat saves you from rolling a blanket every time and holds up better to daily use.\n",
+        "es": "# Manta buscadora\n\n## intro\nUna manta olfativa esconde el pienso entre sus tiras y tu perro tiene que hundir el hocico para encontrarlo. Es el juego de olfato más completo para los días de lluvia: tranquiliza y cansa la mente.\n\n## materials\n- Una manta olfativa (de tiras de tela)\n- Un puñado de pienso de su ración del día\n\n## steps\n1. Pon la manta olfativa en el suelo, sobre una superficie que no resbale.\n2. Esconde unos pocos trozos de pienso entre las tiras, dejando algunos a la vista para que entienda el juego.\n3. Deja que tu perro huela. Di «busca» con voz tranquila y no le empujes: cada hallazgo es su premio.\n4. Cuando domine el juego, esconde el pienso más hondo y reparte más trozos.\n5. Al terminar, recoge la manta antes de que se ponga a mordisquear las tiras.\n\n## tips\n- Es normal que al principio tire de las tiras o dé la vuelta a la manta; deja que pruebe.\n- Para subir la dificultad, mete las tiras en nudos o añade más capas.\n- Usa la manta solo cuando estés cerca y puedas verlo.\n\n## safety\nSupervisa siempre a tu perro mientras usa la manta. Si empieza a morder las tiras o a tirar de ellas, retírala: un trozo de tela tragado puede obstruirle el intestino. Revisa que la manta no tenga hilos sueltos ni tiras rotas, y guárdala fuera de su alcance cuando acabe el juego.\n\n## images\n### manta-buscadora-1.png\n- alt: Un perro hunde el hocico en una manta olfativa para encontrar el pienso escondido\n- caption: El pienso se esconde entre las tiras y el hocico lo encuentra\n\n## shop\n### mantas-olfativas\nUna manta olfativa te ahorra preparar el rollo cada vez y aguanta mejor el uso diario.\n"
+      },
+      "files": [
+        "media/manta-buscadora-1.png"
+      ]
+    },
+    "manta-enrollada": {
+      "config": {
+        "order": 2,
+        "difficulty": "easy",
+        "minutes": 10,
+        "materials": [
+          "fabric",
+          "food"
+        ],
+        "images": [
+          "manta-enrollada-1.png"
+        ]
+      },
+      "text": {
+        "en": "# Rolled blanket\n\n## intro\nHide kibble inside a rolled-up blanket and let your dog find it by scent. It is a cheap sniffing game that tires the mind, and it takes a minute to set up with things you already have at home.\n\n## materials\n- An old, thick blanket or towel\n- A handful of kibble from the daily ration\n\n## steps\n1. Spread the blanket on the floor and scatter the kibble along it, leaving one end strip without food.\n2. Roll the blanket up like a spring roll, not too tight, so the smell comes out of the ends.\n3. Put the roll on the floor and say \"find it\" in a calm voice. If your dog hesitates, bring its nose to one end.\n4. Let your dog sniff and pull the kibble out at its own pace. Every piece found is its reward.\n5. When it is done, take the blanket away before your dog starts chewing it.\n\n## tips\n- Start with a very loose roll and leave a couple of pieces visible at the tip, so your dog gets the idea.\n- To make it harder, roll tighter or fold the roll in half.\n- It is normal for your dog to use a paw or flip the roll over; let it try.\n\n## safety\nAlways supervise your dog while it plays with the blanket. If it starts chewing or pulling threads, take it away: swallowed fabric can block the gut. Use a blanket much bigger than your dog's mouth, without fringes or loose threads, and put it away when the game ends.\n\n## images\n### manta-enrollada-1.png\n- alt: A dog sniffs the end of a rolled blanket with kibble coming out of it\n- caption: The kibble goes inside the roll and the nose does the rest\n",
+        "es": "# Manta enrollada\n\n## intro\nEsconde el pienso dentro de una manta enrollada y deja que tu perro lo encuentre con el olfato. Es un juego de olfato barato, que cansa la mente y se prepara en un minuto con lo que hay en casa.\n\n## materials\n- Una manta o toalla gruesa que ya no uses\n- Un puñado de pienso de su ración del día\n\n## steps\n1. Extiende la manta en el suelo y reparte el pienso a lo largo de ella, dejando una franja sin comida en un extremo.\n2. Enrolla la manta como un rollo de primavera, sin apretar mucho, para que el olor salga por los extremos.\n3. Deja el rollo en el suelo y dile a tu perro «busca» con voz tranquila. Si duda, acerca su hocico a un extremo.\n4. Deja que huela y saque el pienso a su ritmo. Cada trozo que encuentra ya es su premio.\n5. Cuando termine, retira la manta antes de que empiece a mordisquearla.\n\n## tips\n- Primero enrolla con la manta muy floja y deja un par de trozos visibles en la punta, para que entienda el juego.\n- Para subir la dificultad, enrolla más apretado o dobla el rollo por la mitad.\n- Es normal que lo resuelva con la pata o dándole la vuelta al rollo; deja que pruebe.\n\n## safety\nSupervisa siempre a tu perro mientras juega con la manta. Si empieza a morderla o a tirar de los hilos, retírala: un trozo de tela tragado puede obstruirle el intestino. Usa una manta mucho más grande que su boca, sin flecos ni hilos sueltos, y guárdala cuando acabe el juego.\n\n## images\n### manta-enrollada-1.png\n- alt: Un perro olfatea el extremo de una manta enrollada de la que sale pienso\n- caption: El pienso va dentro del rollo y el olfato hace el resto\n"
+      },
+      "files": [
+        "media/manta-enrollada-1.png"
+      ]
+    },
+    "pienso-a-oscuras": {
+      "config": {
+        "order": 3,
+        "difficulty": "easy",
+        "minutes": 10,
+        "materials": [
+          "food"
+        ],
+        "images": [
+          "pienso-a-oscuras-1.png"
+        ]
+      },
+      "text": {
+        "en": "# Kibble in the dark\n\n## intro\nWith the lights off, your dog stops relying on sight and finds the kibble by scent alone. A calm game for the end of the day, ideal when it rains and there is no long walk.\n\n## materials\n- A handful of kibble from the daily ration\n- A room you know well, with nothing hazardous on the floor\n\n## steps\n1. Clear the floor of the room and keep a dim light on while you set up.\n2. Scatter the kibble on the floor, first in a short line with the pieces fairly close together.\n3. Have your dog wait by your side and switch the light off. Say \"find it\" softly.\n4. Stay still or in a corner while your dog sniffs. Do not guide it: every piece found is its reward.\n5. When everything is picked up, turn the light on and give one last piece calmly.\n\n## tips\n- If it is hard, let some light in from the hallway; full darkness is not needed.\n- After a few sessions, scatter the kibble further apart and in several areas of the room.\n- If your dog seems uneasy in the dark, turn the light on and try again another day with a dim light.\n\n## images\n### pienso-a-oscuras-1.png\n- alt: In a dark room, a dog follows the kibble on the floor by scent while a person switches off the light\n- caption: With no light, the nose leads\n",
+        "es": "# Pienso a oscuras\n\n## intro\nCon la luz apagada, tu perro deja de depender de la vista y busca el pienso solo con el olfato. Un juego tranquilo para el final del día, ideal cuando llueve y no hay paseo largo.\n\n## materials\n- Un puñado de pienso de su ración del día\n- Una habitación que conozcas bien, sin objetos peligrosos en el suelo\n\n## steps\n1. Despeja el suelo de la habitación y deja una luz tenue encendida mientras preparas el juego.\n2. Reparte el pienso por el suelo, primero en una línea corta y con trozos bastante juntos.\n3. Haz que tu perro espere a tu lado y apaga la luz. Di «busca» con voz suave.\n4. Quédate sin moverte o en un rincón mientras olfatea. No le guíes: cada trozo que encuentra es su premio.\n5. Cuando haya recogido todo, enciende la luz y dale un último trozo con calma.\n\n## tips\n- Si le cuesta, deja entrar algo de luz del pasillo; la oscuridad total no es necesaria.\n- Al cabo de unas sesiones, esparce el pienso más lejos y en varias zonas de la habitación.\n- Si tu perro se muestra inquieto con la oscuridad, enciende la luz y prueba otro día con luz tenue.\n\n## images\n### pienso-a-oscuras-1.png\n- alt: En una habitación a oscuras, un perro sigue con el olfato el pienso del suelo mientras una persona apaga la luz\n- caption: Sin luz, el olfato manda\n"
+      },
+      "files": [
+        "media/pienso-a-oscuras-1.png"
+      ]
+    },
+    "trilero": {
+      "config": {
+        "order": 5,
+        "difficulty": "medium",
+        "minutes": 10,
+        "materials": [
+          "plastic",
+          "food"
+        ],
+        "images": [
+          "trilero-1.png"
+        ]
+      },
+      "text": {
+        "en": "# Shell game\n\n## intro\nThree cups upside down with kibble under one. Your dog learns that the treat comes from your hand, not from the cup, and practises self-control: looking without lunging, waiting, and choosing well.\n\n## materials\n- Three opaque plastic cups, big and stable\n- A handful of kibble or tiny treats\n\n## steps\n1. Put the three cups upside down on the floor, spaced apart, and hide a piece of kibble under one.\n2. If your dog tries to lift a cup with its nose, cover it with your hand and wait for your dog to back off.\n3. As soon as it stops pushing and looks at you, say \"good\" and give a piece of kibble from your other hand.\n4. Repeat until your dog looks at the cups without pushing them. The kibble under the cup is only uncovered when you decide.\n5. When your dog is calm, say \"now\" and let it discover the kibble under the cup as an extra gift.\n\n## tips\n- Start with a single cup; add the second and third when your dog does it calmly.\n- If it gets frustrated, shorten the session and finish with something it already knows.\n- Always reward from your hand, never from the cup: that way your dog learns to ask you for things.\n\n## safety\nSupervise your dog while it plays with the cups. If it starts chewing them, take them away: swallowed plastic is dangerous. Use cups bigger than your dog's mouth and stable, with no broken edges, and put them away when done.\n\n## images\n### trilero-1.png\n- alt: Three upside-down cups with kibble under one; the dog looks at one and the person offers another piece of kibble from their hand\n- caption: The treat comes from your hand, not from the cup\n",
+        "es": "# Trilero\n\n## intro\nTres vasos boca abajo y pienso bajo uno. Tu perro aprende que el premio sale de tu mano y no del vaso, y con eso practica el autocontrol: mirar sin lanzarse, esperar, y elegir bien.\n\n## materials\n- Tres vasos de plástico opacos, grandes y estables\n- Un puñado de pienso o golosinas pequeñas\n\n## steps\n1. Pon los tres vasos boca abajo en el suelo, separados, y esconde un trozo de pienso bajo uno.\n2. Si tu perro intenta levantar un vaso con el hocico, cúbrelo con la mano y espera a que se aparte.\n3. En cuanto deje de empujar y te mire, di «bien» y dale un trozo de pienso de tu otra mano.\n4. Repite hasta que mire los vasos sin empujarlos. El pienso del vaso solo se destapa cuando tú lo decidas.\n5. Cuando tenga calma, di «ahora» y deja que descubra el pienso de debajo del vaso como regalo extra.\n\n## tips\n- Empieza con un solo vaso; añade el segundo y el tercero cuando lo haga con calma.\n- Si se frustra, acorta la sesión y termina con algo que ya sepa hacer.\n- Premia siempre desde tu mano, nunca desde el vaso: así aprende a pedirte las cosas.\n\n## safety\nSupervisa a tu perro mientras juega con los vasos. Si empieza a morderlos, retíralos: un trozo de plástico tragado es peligroso. Usa vasos más grandes que su boca y estables, sin bordes rotos, y guárdalos al terminar.\n\n## images\n### trilero-1.png\n- alt: Tres vasos boca abajo con pienso en uno; el perro mira uno y la persona ofrece otro pienso con la mano\n- caption: El premio sale de tu mano, no del vaso\n"
+      },
+      "files": [
+        "media/trilero-1.png"
+      ]
+    }
+  },
   "shop": {
     "categories": {
       "camas": {
@@ -9914,7 +10933,8 @@ export const BASELINE_PACK: ContentPack = {
         "config": {
           "id": "comida",
           "subcategories": [
-            "premios-entrenamiento"
+            "premios-entrenamiento",
+            "mantas-olfativas"
           ]
         },
         "text": {
@@ -9982,6 +11002,23 @@ export const BASELINE_PACK: ContentPack = {
           "es": {
             "title": "Collares planos",
             "description": "Collares fijos anchos y acolchados para paseos relajados y seguros."
+          }
+        },
+        "files": []
+      },
+      "mantas-olfativas": {
+        "config": {
+          "id": "mantas-olfativas",
+          "products": []
+        },
+        "text": {
+          "en": {
+            "title": "Snuffle mats",
+            "description": "Strip-fabric mats for hiding kibble among the folds so your dog can sniff it out."
+          },
+          "es": {
+            "title": "Mantas olfativas",
+            "description": "Mantas de tiras de tela para esconder el pienso entre los pliegues y que tu perro lo busque con el olfato."
           }
         },
         "files": []

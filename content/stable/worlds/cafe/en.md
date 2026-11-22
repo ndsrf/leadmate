@@ -1,4 +1,4 @@
 # Outdoor Cafes and Terraces
 
 ## topics
-settling down, passing servers, table calm
+preparing the visit, table calm, passing servers, leaving in time

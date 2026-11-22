@@ -18,5 +18,5 @@ problems:
   - id: nomat
     label: nomat
     practise:
-      kind: node
-      id: cafe-settle
+      kind: lesson
+      id: theory-cafe-setup

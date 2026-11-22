@@ -1,0 +1,10 @@
+id: theory-cafe-waiters
+kind: theory
+images:
+  - theory-cafe-waiters-1
+  - theory-cafe-waiters-2
+compare:
+  do: theory-cafe-waiters-do
+  dont: theory-cafe-waiters-dont
+steps: 5
+takeaways: 4

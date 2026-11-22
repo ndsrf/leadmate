@@ -1,0 +1,22 @@
+id: mission-cafe-leave-early
+technique: cafe-leave-early
+reps: 2
+trains:
+  - kind: node
+    id: cafe-settle
+problems:
+  - id: late
+    label: late
+    practise:
+      kind: lesson
+      id: theory-cafe-leave-early
+  - id: notice
+    label: notice
+    practise:
+      kind: node
+      id: cafe-settle
+  - id: hurry
+    label: hurry
+    practise:
+      kind: lesson
+      id: theory-cafe-leave-early

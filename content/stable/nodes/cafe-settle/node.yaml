@@ -1,0 +1,24 @@
+id: cafe-settle
+mode: minigame
+prerequisites:
+  - cafe-arrive
+simulation:
+  minigame: cafe-settle
+exercises:
+  - metric: timing
+  - metric: tension
+primerCards:
+  - kind: real-world
+    media:
+      type: image
+      url: ""
+      art: theory-cafe-settle-2
+  - kind: virtual-dog
+checkpoint:
+  - {}
+  - kind: duel
+    images:
+      - duel-calm.png
+      - duel-asking.png
+    correct: 0
+  - {}

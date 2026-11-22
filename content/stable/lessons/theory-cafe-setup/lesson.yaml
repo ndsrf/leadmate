@@ -1,0 +1,10 @@
+id: theory-cafe-setup
+kind: theory
+images:
+  - theory-cafe-setup-1
+  - theory-cafe-setup-2
+compare:
+  do: theory-cafe-setup-do
+  dont: theory-cafe-setup-dont
+steps: 5
+takeaways: 4

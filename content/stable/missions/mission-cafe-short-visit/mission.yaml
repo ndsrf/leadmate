@@ -1,0 +1,22 @@
+id: mission-cafe-short-visit
+technique: cafe-short-visit
+reps: 1
+trains:
+  - kind: node
+    id: cafe-arrive
+problems:
+  - id: pulls
+    label: pulls
+    practise:
+      kind: node
+      id: cafe-arrive
+  - id: food
+    label: food
+    practise:
+      kind: node
+      id: cafe-arrive
+  - id: nomat
+    label: nomat
+    practise:
+      kind: lesson
+      id: theory-cafe-setup

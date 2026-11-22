@@ -1,0 +1,22 @@
+id: mission-cafe-waiters
+technique: cafe-waiters
+reps: 2
+trains:
+  - kind: node
+    id: cafe-passing-dog
+problems:
+  - id: tight
+    label: tight
+    practise:
+      kind: node
+      id: cafe-passing-dog
+  - id: stands
+    label: stands
+    practise:
+      kind: lesson
+      id: theory-cafe-waiters
+  - id: nospot
+    label: nospot
+    practise:
+      kind: lesson
+      id: theory-cafe-waiters

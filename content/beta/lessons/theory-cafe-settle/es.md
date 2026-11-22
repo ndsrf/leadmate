@@ -38,7 +38,7 @@ Prueba hoy: en casa, siéntate a la mesa con un café y la manta junto a tu sill
 ## images
 ### theory-cafe-settle-1
 - alt: Bajo la mesa de la terraza, {name} se tumba sobre su manta junto a un hueso para masticar, mientras la persona sentada deja caer un premio y aparece un corazón
-- caption: Un premio que cae en silencio, solo cuando {name} está tumbado
+- caption: Un premio que cae en silencio, solo cuando {name} está en la manta
 
 ### theory-cafe-settle-2
 - alt: Tres escalones de calma sobre la manta: {name} se sienta con las orejas atentas, se tumba con la cabeza apoyada y se echa de lado, con flechas y corazones que apuntan hacia más calma

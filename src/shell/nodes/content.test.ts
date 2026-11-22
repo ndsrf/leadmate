@@ -20,11 +20,10 @@ const duel: ImageDuelQuestion = {
 describe('isImageDuelQuestion', () => {
   it('tells a duel from the text questions of every shipped Node', () => {
     expect(isImageDuelQuestion(duel)).toBe(true);
-    // the duel is detected exactly where one ships (World 6 Stretch 1) and nowhere else
+    // the duel is detected exactly where one ships (World 6 Stretch 1 and the World 7 Terrace Nodes) and nowhere else
     const withDuel = ALL_NODES.filter((n) => n.checkpoint.some(isImageDuelQuestion)).map((n) => n.id);
-    expect(withDuel).toEqual(['park-unpredictable']);
-    const parkUnpredictable = ALL_NODES.find((n) => n.id === 'park-unpredictable')!;
-    expect(parkUnpredictable.checkpoint.filter(isImageDuelQuestion)).toHaveLength(1);
+    expect(withDuel).toEqual(['park-unpredictable', 'cafe-arrive', 'cafe-settle', 'cafe-passing-dog']);
+    for (const id of withDuel) expect({ id, duels: ALL_NODES.find((n) => n.id === id)!.checkpoint.filter(isImageDuelQuestion).length }).toEqual({ id, duels: 1 });
     expect(ALL_NODES.flatMap((n) => n.checkpoint).filter((q) => !isImageDuelQuestion(q)).length).toBeGreaterThan(0);
   });
 

@@ -1,10 +1,10 @@
 # Irse a tiempo
 
 ## target
-En una visita a una terraza, levántate y vete mientras {name} sigue tumbado y tranquilo, antes de ninguna señal de agobio.
+En una visita a una terraza, levántate y vete mientras {name} sigue en la manta y en calma, antes de ninguna señal de agobio.
 
 ## success
-Os vais con {name} relajado y la correa floja.
+Os vais con {name} sin tensión y la correa floja.
 
 ## problems
 ### late
@@ -33,7 +33,7 @@ Os vais con {name} relajado y la correa floja.
 - cause: Te quedaste hasta que fue urgente.
 - c1: Pide la cuenta con tiempo, antes de la hora que te marcaste.
 - c2: Si hay que irse ya, paga en la barra con {name} a tu lado, sin tirar de la correa.
-- easier: Pedir la cuenta cuando {name} aún está tranquilo, 1 vez.
+- easier: Pedir la cuenta cuando {name} aún está en calma, 1 vez.
 - alt: Una persona recoge la manta con calma
 - caption: Recoge con calma
 
@@ -42,6 +42,6 @@ Os vais con {name} relajado y la correa floja.
 - cause: Lo habitual es quedarse «un poco más» y pasarse de la hora.
 - c1: Marca tu hora de irte antes de sentarte.
 - c2: Repasa la lección de irse a tiempo.
-- easier: Irte tras 5 minutos con {name} tranquilo, 1 vez.
+- easier: Irte tras 5 minutos con {name} en calma, 1 vez.
 - alt: Una persona se levanta de la mesa con su perro
 - caption: Irse a tiempo

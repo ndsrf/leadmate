@@ -392,13 +392,8 @@ describe('node.yaml checkpoint question kinds', () => {
         const checkpoint = Array.isArray(cfg.checkpoint) ? cfg.checkpoint : [];
         if (checkpoint.some(isDuelQuestionYaml)) withDuel.push(id);
       }
-      if (channel === 'stable') expect({ channel, withDuel }).toEqual({ channel, withDuel: ['park-unpredictable'] });
-      else {
-        // Beta also carries the World 7 Terrace Nodes that end in an Image Duel.
-        const allowed = ['park-unpredictable', 'cafe-arrive', 'cafe-settle', 'cafe-passing-dog'];
-        expect(withDuel.filter((id) => !allowed.includes(id))).toEqual([]);
-        expect(withDuel).toEqual(expect.arrayContaining(['park-unpredictable', 'cafe-arrive', 'cafe-settle']));
-      }
+      // World 6 Stretch 1 and the three World 7 Terrace Nodes end in an Image Duel, in both channels.
+      expect({ channel, withDuel: [...withDuel].sort() }).toEqual({ channel, withDuel: ['cafe-arrive', 'cafe-passing-dog', 'cafe-settle', 'park-unpredictable'] });
     }
   });
 
