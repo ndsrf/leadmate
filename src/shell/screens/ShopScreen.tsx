@@ -159,7 +159,10 @@ export function ShopScreen({
       const can = canOpenURL ?? Linking.canOpenURL;
       const open = openURL ?? Linking.openURL;
 
-      const isSupported = can ? await can(url) : true;
+      // canOpenURL is false for https on Android 11+ without a <queries> entry
+      // (and in Expo Go), so only gate non-web schemes on it.
+      const isWeb = /^https?:\/\//i.test(url);
+      const isSupported = isWeb || !can ? true : await can(url);
       if (!isSupported) {
         setBuyError(t('shop.buyError'));
         return;
