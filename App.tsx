@@ -55,7 +55,7 @@ import { FixScreen, MissionBriefScreen, MissionCheckInScreen, MissionCheckScreen
 import type { Concern } from './src/shell/concerns';
 import { WORLDS, worldsFor, type Stop } from './src/shell/world';
 import { introducedKinds, type IntroductionContext } from './src/shell/introductions';
-import { lessonDay, markLessonRead, todaysLesson } from './src/shell/lessons/lesson';
+import { lessonDay, markLessonRead, todaysLesson, unlockedLibraryLessons } from './src/shell/lessons/lesson';
 import { LessonScreen, LibraryScreen } from './src/shell/screens/LessonScreens';
 import { WorldMapScreen } from './src/shell/screens/WorldMapScreen';
 import { CheckpointScreen, DebriefScreen, PrimerScreen } from './src/shell/screens/NodeScreens';
@@ -1910,10 +1910,11 @@ export default function App() {
   } else if (route.name === 'flow') {
     const f = route.flow;
     if (f.name === 'library' && record) {
+      const worlds = worldsFor(record.onboarding?.plan ?? [], record);
       screen = mapWith(
         <LibraryScreen
           t={t}
-          lessons={LESSONS}
+          lessons={unlockedLibraryLessons(LESSONS, record, lessonDay(record, new Date()), worlds)}
           readIds={record.readLessons}
           day={lessonDay(record, new Date())}
           seenFixes={record.seenFixes}

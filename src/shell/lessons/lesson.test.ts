@@ -1,5 +1,6 @@
 import { newDogRecord } from '../dogRecord';
-import { lessonDay, markLessonRead, todaysLesson, type LessonDef } from './lesson';
+import { progressOf, type WorldDef } from '../world';
+import { lessonDay, markLessonRead, todaysLesson, unlockedLibraryLessons, type LessonDef } from './lesson';
 
 const withStage = (iso: string | null) => ({ onboarding: { ...newDogRecord().onboarding, firstStageCompletedAt: iso } });
 const local = (y: number, m: number, d: number, h = 12, min = 0) => new Date(y, m - 1, d, h, min);
@@ -68,5 +69,78 @@ describe('trail Lessons', () => {
     expect(todaysLesson([trail], [], 3)).toBeNull();
     expect(todaysLesson([trail, ...lessons], ['l1', 'l2'], 3)?.id).toBe('l3');
     expect(todaysLesson([trail, ...lessons], lessons.map((l) => l.id), 30)).toBeNull();
+  });
+});
+
+describe('unlockedLibraryLessons', () => {
+  const trailLesson: LessonDef = { id: 'trail-1', title: 'lesson.title' as never, kind: 'theory', blocks: [] };
+  const mockWorld: WorldDef = {
+    id: 'mock-w1',
+    title: 'mock.title' as never,
+    worldNumber: 1,
+    topics: 'mock.topics' as never,
+    stretches: [
+      [
+        { kind: 'lesson', id: 'trail-1' },
+        { kind: 'node', id: 'node-1' },
+        { kind: 'mission', id: 'mission-1' },
+      ],
+      [
+        { kind: 'lesson', id: 'trail-nodeless' },
+        { kind: 'mission', id: 'mission-2' },
+      ],
+    ],
+  };
+  const mockWorlds = [mockWorld];
+  const nodelessLesson: LessonDef = { id: 'trail-nodeless', title: 'lesson.title' as never, kind: 'theory', blocks: [] };
+  const allCatalog: readonly LessonDef[] = [...lessons, trailLesson, nodelessLesson];
+
+  it('hides unread first-week lessons before the first Stage (day null)', () => {
+    const p = progressOf([]);
+    expect(unlockedLibraryLessons(lessons, p, null, mockWorlds)).toEqual([]);
+  });
+
+  it('retains read lessons even before the first stage', () => {
+    const p = progressOf([], { readLessons: ['l1', 'trail-1'] });
+    const unlocked = unlockedLibraryLessons(allCatalog, p, null, mockWorlds);
+    expect(unlocked.map((l) => l.id)).toEqual(['l1', 'trail-1']);
+  });
+
+  it('unlocks first-week lessons up to current day and keeps future lessons hidden', () => {
+    const p = progressOf([]);
+    expect(unlockedLibraryLessons(lessons, p, 1, mockWorlds).map((l) => l.id)).toEqual(['l1']);
+    expect(unlockedLibraryLessons(lessons, p, 3, mockWorlds).map((l) => l.id)).toEqual(['l1', 'l2', 'l3']);
+  });
+
+  it('unlocks a future first-week lesson if it was already read', () => {
+    const p = progressOf([], { readLessons: ['l4'] });
+    expect(unlockedLibraryLessons(lessons, p, 2, mockWorlds).map((l) => l.id)).toEqual(['l1', 'l2', 'l4']);
+  });
+
+  it('hides trail lessons when their node, world, and mission are not completed', () => {
+    const p = progressOf([]);
+    const unlocked = unlockedLibraryLessons([trailLesson], p, 5, mockWorlds);
+    expect(unlocked).toEqual([]);
+  });
+
+  it('unlocks a trail lesson when any node in its stretch is completed', () => {
+    const p = progressOf(['node-1']);
+    const unlocked = unlockedLibraryLessons([trailLesson], p, 5, mockWorlds);
+    expect(unlocked.map((l) => l.id)).toEqual(['trail-1']);
+  });
+
+  it('unlocks a trail lesson in a node-less stretch when its mission is started or passed', () => {
+    const nodeless: LessonDef = { id: 'trail-nodeless', title: 'lesson.title' as never, kind: 'theory', blocks: [] };
+    const pStarted = progressOf([], { missions: { 'mission-2': { target: 'full', skipRun: 0, attempts: [], startedAt: '2026-05-01T08:00:00.000Z' } } });
+    expect(unlockedLibraryLessons([nodeless], pStarted, 5, mockWorlds).map((l) => l.id)).toEqual(['trail-nodeless']);
+
+    const pPassed = progressOf([], { missions: { 'mission-2': { target: 'full', skipRun: 0, attempts: [], passedOn: '2026-05-01' } } });
+    expect(unlockedLibraryLessons([nodeless], pPassed, 5, mockWorlds).map((l) => l.id)).toEqual(['trail-nodeless']);
+  });
+
+  it('unlocks all trail lessons of a completed world', () => {
+    const p = progressOf([], { completedWorlds: ['mock-w1'] });
+    const unlocked = unlockedLibraryLessons(allCatalog, p, null, mockWorlds);
+    expect(unlocked.map((l) => l.id)).toEqual(['trail-1', 'trail-nodeless']);
   });
 });

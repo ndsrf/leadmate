@@ -962,6 +962,7 @@ export const ES_INTERFACE = {
   'library.open': 'Abrir lección',
   'library.chip': 'Biblioteca',
   'library.chipToday': 'Lección para hoy',
+  'library.empty': 'Avanza en el mapa para desbloquear lecciones en tu biblioteca.',
   'media.video.play': 'Reproducir vídeo',
   'media.video.source': 'Se reproduce desde YouTube',
   'media.video.loading': 'Cargando vídeo…',

@@ -74,34 +74,40 @@ export function LibraryScreen({
         </View>
       )}
       <Text className="mb-3 text-body text-inkMuted">{t('library.subtitle')}</Text>
-      {libraryEntries(lessons, readIds, day).map((entry) => {
-        const { lesson, read, today } = entry;
-        const state = t(read ? 'library.read' : 'library.unread');
-        const place = lessonPlaceLabel(lesson, t);
-        return (
-          <Pressable
-            key={lesson.id}
-            testID="library.lesson"
-            onPress={() => handlePress(() => onOpen(lesson))}
-            accessibilityRole="button"
-            accessibilityLabel={libraryEntryLabel(entry, t)}
-            style={{ marginBottom: theme.space[4], minHeight: theme.size.touchMin }}
-          >
-            <Panel tone={today ? 'warn' : 'surface'}>
-              <View className="flex-row flex-wrap items-center" style={{ gap: theme.space[2] }}>
-                {place !== '' && <Badge label={place} tone="info" />}
-                <Badge label={lessonKindLabel(lesson, t)} />
-                {today && <Badge label={t('library.today')} tone="accent" />}
-              </View>
-              <Text className="mt-2 font-display text-title text-ink">{t(lesson.title)}</Text>
-              <View className="mt-1 flex-row items-center" style={{ gap: theme.space[3] }}>
-                <Text className="text-caption text-inkMuted">{`${readingMinutes(lesson, t)} ${t('lesson.minutes')}`}</Text>
-                <Text className="font-display text-caption text-ink">{`${read ? '✓' : '○'} ${state}`}</Text>
-              </View>
-            </Panel>
-          </Pressable>
-        );
-      })}
+      {lessons.length === 0 && fixes.length === 0 ? (
+        <Panel tone="surface">
+          <Text className="text-body text-inkMuted" testID="library.empty">{t('library.empty')}</Text>
+        </Panel>
+      ) : (
+        libraryEntries(lessons, readIds, day).map((entry) => {
+          const { lesson, read, today } = entry;
+          const state = t(read ? 'library.read' : 'library.unread');
+          const place = lessonPlaceLabel(lesson, t);
+          return (
+            <Pressable
+              key={lesson.id}
+              testID="library.lesson"
+              onPress={() => handlePress(() => onOpen(lesson))}
+              accessibilityRole="button"
+              accessibilityLabel={libraryEntryLabel(entry, t)}
+              style={{ marginBottom: theme.space[4], minHeight: theme.size.touchMin }}
+            >
+              <Panel tone={today ? 'warn' : 'surface'}>
+                <View className="flex-row flex-wrap items-center" style={{ gap: theme.space[2] }}>
+                  {place !== '' && <Badge label={place} tone="info" />}
+                  <Badge label={lessonKindLabel(lesson, t)} />
+                  {today && <Badge label={t('library.today')} tone="accent" />}
+                </View>
+                <Text className="mt-2 font-display text-title text-ink">{t(lesson.title)}</Text>
+                <View className="mt-1 flex-row items-center" style={{ gap: theme.space[3] }}>
+                  <Text className="text-caption text-inkMuted">{`${readingMinutes(lesson, t)} ${t('lesson.minutes')}`}</Text>
+                  <Text className="font-display text-caption text-ink">{`${read ? '✓' : '○'} ${state}`}</Text>
+                </View>
+              </Panel>
+            </Pressable>
+          );
+        })
+      )}
     </Screen>
   );
 }

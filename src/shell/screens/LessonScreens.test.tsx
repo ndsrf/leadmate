@@ -75,7 +75,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { createTranslator, es } from '../../i18n';
 import type { LessonDef } from '../lessons/lesson';
 import { findLesson } from '../lessons/content';
-import { LessonScreen } from './LessonScreens';
+import { LessonScreen, LibraryScreen } from './LessonScreens';
 import { getActiveContent, setActiveContent } from '../content/runtime';
 import type { ResolvedShop } from '../content/resolver';
 
@@ -332,6 +332,64 @@ describe('Home Behaviour Lessons', () => {
       } finally {
         setActiveContent(baseContent);
       }
+    });
+  });
+
+  describe('LibraryScreen empty state (Task 2.2)', () => {
+    const testLesson: LessonDef = {
+      id: 'test-library-lesson',
+      title: 'lesson.kind.theory' as never,
+      kind: 'theory',
+      day: 1,
+      blocks: [],
+    };
+
+    it('renders empty-state message when both lessons and seenFixes are empty', () => {
+      const markup = renderToStaticMarkup(
+        <LibraryScreen
+          t={t}
+          lessons={[]}
+          readIds={[]}
+          day={null}
+          seenFixes={[]}
+          onOpen={() => {}}
+          onBack={() => {}}
+        />,
+      );
+      expect(markup).toContain(es['library.empty']);
+      expect(markup).toContain('library.empty');
+    });
+
+    it('renders lessons and no empty-state message when lessons are provided', () => {
+      const markup = renderToStaticMarkup(
+        <LibraryScreen
+          t={t}
+          lessons={[testLesson]}
+          readIds={[]}
+          day={1}
+          seenFixes={[]}
+          onOpen={() => {}}
+          onBack={() => {}}
+        />,
+      );
+      expect(markup).not.toContain(es['library.empty']);
+      expect(markup).toContain('library.lesson');
+    });
+
+    it('renders fixes and no empty-state message when seenFixes are provided even if lessons are empty', () => {
+      const markup = renderToStaticMarkup(
+        <LibraryScreen
+          t={t}
+          lessons={[]}
+          readIds={[]}
+          day={null}
+          seenFixes={[{ missionId: 'mission-harness-ritual', fixId: 'fix-harness-excited', at: '2026-05-01T08:00:00.000Z' }]}
+          onOpen={() => {}}
+          onBack={() => {}}
+        />,
+      );
+      expect(markup).not.toContain(es['library.empty']);
+      expect(markup).toContain('library.fix');
     });
   });
 });

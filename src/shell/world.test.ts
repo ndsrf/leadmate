@@ -9,7 +9,7 @@ import {
   ALL_NODES, BLIND_CORNER_NODE, DOORBELL_MAT_NODE, HARNESS_RITUAL_NODE, LEAVE_IT_NODE, NODES, PARK_JOGGER_NODE, PARK_MIX_NODE, POSTE_PRACTICE, SCOOTER_NODE, SLACK_U_NODE, URBAN_MIX_NODE, WALK_DISTRACTION,
 } from './nodes/content';
 import { isAvailable, primerCardOf, type NodeDef } from './nodes/node';
-import { currentWorld, findWorld, isLastNodeOfStretch, isNodeOpen, isWorldComplete, isWorldUnlocked, missionOfStop, nodeIdsOf, nodesOfWorld, placeOfLesson, progressOf, sameStop, stopLock, stopsOf, stopStatus, WORLDS, worldOfNode, worldsFor, worldTitle, type Progress, type Stop, type WorldDef } from './world';
+import { currentWorld, findWorld, isLastNodeOfStretch, isLessonStretchCompleted, isNodeOpen, isWorldComplete, isWorldUnlocked, missionOfStop, nodeIdsOf, nodesOfStretchContainingLesson, nodesOfWorld, placeOfLesson, progressOf, sameStop, stopLock, stopsOf, stopStatus, WORLDS, worldOfLesson, worldOfNode, worldsFor, worldTitle, type Progress, type Stop, type WorldDef } from './world';
 import { findNode } from './nodes/content';
 import { findLesson } from './lessons/content';
 import { MISSIONS } from './missions/content';
@@ -1039,5 +1039,49 @@ describe('the "calm hands and leash" Node in the bite-owner Home Stretch in Worl
     expect(holders).toHaveLength(0);
     const order = first.stretches.map((st) => st[0].id);
     expect(order).toEqual(['theory-named-behaviours', 'theory-home-rest', 'theory-calm-first']);
+  });
+});
+
+describe('stretch and lesson helpers for Library (Task 1.2)', () => {
+  it('returns node ids of the stretch containing a lesson', () => {
+    // In basics world, stretch 0 has theory-named-behaviours and dog-as-dog
+    const nodes = nodesOfStretchContainingLesson('theory-named-behaviours');
+    expect(nodes).toContain('dog-as-dog');
+    expect(nodesOfStretchContainingLesson('unknown-lesson')).toEqual([]);
+  });
+
+  it('identifies the world containing a trail lesson or home stretch lesson', () => {
+    expect(worldOfLesson('theory-named-behaviours')?.id).toBe('basics');
+    expect(worldOfLesson('theory-bite-owner')?.id).toBe('home');
+    expect(worldOfLesson('unknown-ghost-lesson')).toBeUndefined();
+  });
+
+  it('checks if a lesson stretch is completed via completedNodes or nodeless mission', () => {
+    const unstarted = progressOf([]);
+    expect(isLessonStretchCompleted('theory-named-behaviours', unstarted)).toBe(false);
+
+    const completed = progressOf(['dog-as-dog']);
+    expect(isLessonStretchCompleted('theory-named-behaviours', completed)).toBe(true);
+
+    // Node-less custom mock world test
+    const nodelessWorld: WorldDef = {
+      id: 'custom-world',
+      title: 'custom.title' as never,
+      worldNumber: 99,
+      topics: 'custom.topics' as never,
+      stretches: [
+        [
+          { kind: 'lesson', id: 'nodeless-lesson' },
+          { kind: 'mission', id: 'nodeless-mission' },
+        ],
+      ],
+    };
+    expect(isLessonStretchCompleted('nodeless-lesson', unstarted, [nodelessWorld])).toBe(false);
+
+    const withStartedMission = progressOf([], { missions: { 'nodeless-mission': { target: 'full', skipRun: 0, attempts: [], startedAt: '2026-05-01T08:00:00.000Z' } } });
+    expect(isLessonStretchCompleted('nodeless-lesson', withStartedMission, [nodelessWorld])).toBe(true);
+
+    const withPassedMission = progressOf([], { missions: { 'nodeless-mission': { target: 'full', skipRun: 0, attempts: [], passedOn: '2026-05-01' } } });
+    expect(isLessonStretchCompleted('nodeless-lesson', withPassedMission, [nodelessWorld])).toBe(true);
   });
 });

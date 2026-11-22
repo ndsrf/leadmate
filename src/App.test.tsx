@@ -2631,3 +2631,64 @@ describe('App - Encounter Series flow', () => {
     });
   });
 });
+
+describe('Theory Library filtering in App (change filter-library-completed-lessons)', () => {
+  async function openMapWithRecord(customRecord: Record<string, unknown> = {}) {
+    const record = {
+      ...newDogRecord(),
+      onboarding: { ...NEW_ONBOARDING, step: 'done' as const, firstStageCompletedAt: new Date().toISOString() },
+      version: RECORD_VERSION,
+      ...customRecord,
+    };
+    mockStore.set(RECORD_KEY, JSON.stringify(record));
+    await act(async () => {
+      renderer = create(<App />);
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(2500);
+    });
+    expect(latest('WorldMapScreen')).toBeDefined();
+  }
+
+  it("a new user sees only today's first-week lesson and no future or Plus trail lessons", async () => {
+    await openMapWithRecord();
+    act(() => latest('WorldMapScreen').onLibrary());
+    expect(latest('LibraryScreen')).toBeDefined();
+
+    const lessons = latest('LibraryScreen').lessons;
+    // Only today's lesson (Day 1)
+    expect(lessons).toHaveLength(1);
+    expect(lessons[0].day).toBe(1);
+    // No future first-week lessons
+    expect(lessons.some((l: any) => l.day !== undefined && l.day > 1)).toBe(false);
+    // No trail lessons
+    expect(lessons.some((l: any) => l.day === undefined)).toBe(false);
+  });
+
+  it('completing a node unlocks its stretch lessons in the Library', async () => {
+    // World 1 stretch 0 has node 'dog-as-dog' and lesson 'theory-named-behaviours'
+    await openMapWithRecord({ completedNodes: ['dog-as-dog'] });
+    act(() => latest('WorldMapScreen').onLibrary());
+    expect(latest('LibraryScreen')).toBeDefined();
+
+    const lessons = latest('LibraryScreen').lessons;
+    expect(lessons.some((l: any) => l.id === 'theory-named-behaviours')).toBe(true);
+    // Stretch 1's lesson ('theory-home-rest') is not unlocked because its node is not completed
+    expect(lessons.some((l: any) => l.id === 'theory-home-rest')).toBe(false);
+  });
+
+  it('completing a World unlocks all of its lessons', async () => {
+    // Completing World 1 ('basics')
+    await openMapWithRecord({ completedWorlds: ['basics'] });
+    act(() => latest('WorldMapScreen').onLibrary());
+    expect(latest('LibraryScreen')).toBeDefined();
+
+    const lessons = latest('LibraryScreen').lessons;
+    // All 3 lessons of World 1 are unlocked
+    expect(lessons.some((l: any) => l.id === 'theory-named-behaviours')).toBe(true);
+    expect(lessons.some((l: any) => l.id === 'theory-home-rest')).toBe(true);
+    expect(lessons.some((l: any) => l.id === 'theory-calm-first')).toBe(true);
+    // World 2 ('home') is not completed, so its lessons remain locked
+    expect(lessons.some((l: any) => l.id === 'theory-bite-owner')).toBe(false);
+  });
+});

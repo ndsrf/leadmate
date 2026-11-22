@@ -2,6 +2,7 @@ import type { TextKey } from '../../i18n';
 import { activityAt, addActivity } from '../activity';
 import type { DogRecord } from '../dogRecord';
 import { dayDiff, localDateString } from '../streak';
+import { isLessonStretchCompleted, isWorldComplete, worldOfLesson, WORLDS, type Progress, type WorldDef } from '../world';
 
 /** One piece of a Lesson, shown in declared order in a single scrollable column. */
 export type LessonBlock =
@@ -124,4 +125,28 @@ export function libraryEntries(lessons: readonly LessonDef[], readIds: readonly 
   const today = todaysLesson(lessons, readIds, day);
   const entries = lessons.map((lesson) => ({ lesson, read: read.has(lesson.id), today: lesson.id === today?.id }));
   return [...entries.filter((e) => e.today), ...entries.filter((e) => !e.today)];
+}
+
+/**
+ * Lessons unlocked in the Theory Library for the user's progress:
+ * - First-week lessons whose day has arrived (`day !== null && lesson.day <= day`) or that have already been read.
+ * - Trail lessons whose world is completed, or whose stretch has a completed node (or started/passed mission for node-less stretches), or that have already been read.
+ */
+export function unlockedLibraryLessons(
+  lessons: readonly LessonDef[],
+  progress: Progress,
+  day: number | null,
+  worlds: readonly WorldDef[] = WORLDS,
+): LessonDef[] {
+  return lessons.filter((lesson) => {
+    if (progress.readLessons.includes(lesson.id)) return true;
+    if (lesson.day !== undefined) {
+      return day !== null && lesson.day <= day;
+    }
+    const world = worldOfLesson(lesson.id, worlds);
+    if (world && (isWorldComplete(world, progress) || (progress.completedWorlds?.includes(world.id) ?? false))) {
+      return true;
+    }
+    return isLessonStretchCompleted(lesson.id, progress, worlds);
+  });
 }
