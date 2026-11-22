@@ -348,9 +348,32 @@ describe('ShopScreen component', () => {
         buyBtn.props.onPress();
       });
 
-      expect(mockCanOpen).toHaveBeenCalledWith('https://example.com/arnes-pro');
+      expect(mockCanOpen).not.toHaveBeenCalled(); // https skips canOpenURL (false on Android 11+ without <queries>)
       expect(mockOpen).toHaveBeenCalledWith('https://example.com/arnes-pro');
       // No error shown
+      expect(() => renderer!.root.findByProps({ testID: 'shop-buy-error' })).toThrow();
+    });
+
+    it('opens an https link even when canOpenURL resolves false', async () => {
+      const mockOpen = jest.fn().mockResolvedValue(true);
+      const mockCanOpen = jest.fn().mockResolvedValue(false);
+      let renderer: ReactTestRenderer.ReactTestRenderer;
+      await act(async () => {
+        renderer = ReactTestRenderer.create(
+          <ShopScreen
+            t={mockTranslate}
+            onBack={() => {}}
+            shop={sampleShop}
+            initialTarget={{ level: 'subcategory', id: 'arneses' }}
+            openURL={mockOpen}
+            canOpenURL={mockCanOpen}
+          />
+        );
+      });
+      await act(async () => {
+        renderer!.root.findByProps({ testID: 'buy-button-arnes-pro' }).props.onPress();
+      });
+      expect(mockOpen).toHaveBeenCalledWith('https://example.com/arnes-pro');
       expect(() => renderer!.root.findByProps({ testID: 'shop-buy-error' })).toThrow();
     });
 
