@@ -48,6 +48,13 @@ describe('screenOf', () => {
     }
   });
 
+  it('names the Games list and a Dog Game, with the game id, opened from the list or at random', () => {
+    const flow = (f: object) => of({ route: { name: 'flow', flow: f }, flow: f as ScreenInput['flow'] });
+    expect(flow({ name: 'games' })).toEqual({ screen: 'games' });
+    expect(flow({ name: 'game', id: 'trilero', from: 'list' })).toEqual({ screen: 'game', itemId: 'trilero' });
+    expect(flow({ name: 'game', id: 'eleccion-mano', from: 'random' })).toEqual({ screen: 'game', itemId: 'eleccion-mano' });
+  });
+
   it('names every Node step, with the Node id', () => {
     const flow = (f: object) => of({ route: { name: 'flow', flow: f }, flow: f as ScreenInput['flow'] });
     expect(flow(node('primer'))).toEqual({ screen: 'node_primer', itemId: 'walk-distraction' });

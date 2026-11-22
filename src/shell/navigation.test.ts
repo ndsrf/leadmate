@@ -3,7 +3,7 @@ import { canSkipDay, missionAfterDebrief, missionEntryOf, missionEntryView, miss
 import type { MissionState } from './missions/mission';
 import { findWorld, isLastMissionOfWorld, missionOfStop, progressOf, stopsOf, worldsFor } from './world';
 import { withBasicsDone } from './testProgress';
-import { backAction, isReadyToLeaveSplash, trialModalOwnsBack, onStageViewFailure, routeFor, stageViewWanted, type BackActionParams } from './navigation';
+import { backAction, gamesBack, isReadyToLeaveSplash, trialModalOwnsBack, onStageViewFailure, routeFor, stageViewWanted, type BackActionParams, type GamesFlow } from './navigation';
 
 describe('routeFor', () => {
   it('returns splash until ready', () => {
@@ -444,6 +444,38 @@ describe('trialModalOwnsBack', () => {
   it('never replaces an overlay screen back, modal open or not', () => {
     expect(currentBack(true, overlayBack, modalBack)).toBe(overlayBack);
     expect(currentBack(false, overlayBack, modalBack)).toBe(overlayBack);
+  });
+});
+
+describe('Games flows (task 5.2)', () => {
+  const base: BackActionParams = { route: { name: 'map' }, playingStage: false, paused: false, bundle: 'ready', hasScreenBack: false };
+
+  it('routes the Games list and a Dog Game as flows over the map', () => {
+    const games: GamesFlow = { name: 'games' };
+    const game: GamesFlow = { name: 'game', id: 'trilero', from: 'list' };
+    expect(routeFor<GamesFlow>({ ready: true, onboardingStep: 'done', flow: games })).toEqual({ name: 'flow', flow: games });
+    expect(routeFor<GamesFlow>({ ready: true, onboardingStep: 'done', flow: game })).toEqual({ name: 'flow', flow: game });
+  });
+
+  it('system back on the Games list runs its own back, which returns to the World Map', () => {
+    expect(backAction({ ...base, route: { name: 'flow', flow: { name: 'games' } }, hasScreenBack: true })).toBe('screen');
+    expect(gamesBack({ name: 'games' })).toBeNull();
+  });
+
+  it('system back on a Dog Game opened from the list returns to the list, and a second back to the map', () => {
+    expect(backAction({ ...base, route: { name: 'flow', flow: { name: 'game', id: 'trilero', from: 'list' } }, hasScreenBack: true })).toBe('screen');
+    const list = gamesBack({ name: 'game', id: 'trilero', from: 'list' });
+    expect(list).toEqual({ name: 'games' });
+    expect(gamesBack(list!)).toBeNull();
+  });
+
+  it('system back on a random Dog Game returns to the list', () => {
+    expect(backAction({ ...base, route: { name: 'flow', flow: { name: 'game', id: 'trilero', from: 'random' } }, hasScreenBack: true })).toBe('screen');
+    expect(gamesBack({ name: 'game', id: 'trilero', from: 'random' })).toEqual({ name: 'games' });
+  });
+
+  it('the Plus trial modal never takes the back from the Games screens over the map', () => {
+    expect(trialModalOwnsBack({ trialModalOpen: true, hasOverlay: true })).toBe(false);
   });
 });
 

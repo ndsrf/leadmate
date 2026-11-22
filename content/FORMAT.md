@@ -44,6 +44,10 @@ content/<channel>/                 channel = beta | stable
       product.yaml                 source, urls, price, priceCheckedAt, image
       es.md                        name and description
       media/*.png                  illustrations / photos belonging to this product
+  games/<game-id>/
+    game.yaml                      order, free, difficulty, minutes, materials, images, needs, youtube
+    es.md                          Spanish text (title, intro, materials, steps, tips, safety, images, shop)
+    media/*.png                    illustrations belonging to this game (16:9, <= 960 width, <= 250 KB)
 ```
 
 ---
@@ -256,6 +260,29 @@ The following recommendations are not enforced by automated validation to preser
 - **Waypoint distance**: Waypoint routes should be approximately 20 to 28 meters so they complete in 10 to 20 seconds at normal walking speed.
 - **Empty route distractor idiom**: Because `distractor` is required by the simulation scenario configuration, an empty route with no active distractor places the distractor well past the route end (e.g. `activateAfterMeters: 50` on a 24 m route).
 
+### 3.13 `games/<game-id>/game.yaml`
+
+| Field | Type | Required | Allowed Values | Description |
+| --- | --- | --- | --- | --- |
+| `order` | `number` | **Yes** | - | Sort order in the games list (integer) |
+| `free` | `boolean` | No | - | Whether this game is fully accessible to Free users |
+| `difficulty` | `string` | No | `easy`, `medium`, `hard` | Game difficulty ("easy", "medium", "hard") |
+| `minutes` | `number` | No | - | Approximate duration in minutes (positive integer) |
+| `materials` | `string[]` | No | - | Material kinds used (e.g. "fabric", "plastic", "bone", "food", "none") |
+| `images` | `string[]` | **Yes** | - | Array of relative illustration filenames in media/ |
+| `needs` | `string[]` | No | - | Shop target IDs (Product, Subcategory, Category) needed for this game |
+| `youtube` | `Record<string, string>` | No | - | Map of language code to 11-char YouTube video ID |
+
+A Dog Game is a real-world activity played with the dog at home or outdoors. Games are delivered as Content in `games/<game-id>/` so new games arrive without an app release.
+
+#### Validation Rules for Dog Games
+- **Order**: Integer indicating sort order in the Games screen list.
+- **Images**: Non-empty list of illustration files in `media/`.
+- **Media limits**: Every illustration must be PNG format, 16:9 aspect ratio, at most 960 points wide, and at most 250 KB.
+- **Alt text**: Spanish alt text is required for every illustration under `## images`.
+- **Safety note**: When `materials` declares `fabric`, `plastic`, or `bone`, a `## safety` section in `es.md` is required.
+- **Shop targets**: Any target ID in `needs` must exist in the Shop catalog.
+
 ---
 
 ## 4. Markdown Format (`<lang>.md`)
@@ -344,6 +371,17 @@ Correa floja al inicio
 Míralo venir de lejos
 ```
 The first non-empty line of each `### <id>` subsection is the visible title of that Encounter on the HUD result card and Debrief list. Spanish titles (`es.md`) are required; other languages fall back to the Spanish title if omitted.
+
+### Dog Game Sections
+Dog Games declare their text in `games/<game-id>/<lang>.md` (`es.md` required):
+1. `# Title`: Visible name of the game
+2. `## intro`: Short introduction / teaser explaining the activity (20-60 words)
+3. `## materials` *(optional)*: List or description of needed materials
+4. `## steps`: Ordered list of gameplay steps
+5. `## tips` *(optional)*: Tips to adapt difficulty or troubleshoot
+6. `## safety` *(required if fabric/plastic/bone materials used)*: Supervision note and safety guidance
+7. `## images`: `### <filename>` with `- alt:` and optional `- caption:` for each image
+8. `## shop` *(optional)*: `### <target-id>` with explanation note for each shop target in `needs`
 
 ---
 
@@ -654,6 +692,50 @@ Poste y marca
 
 ### turn-look
 Gira y te mira
+```
+
+### Worked Dog Game Example
+
+#### `games/sample-game/game.yaml`
+```yaml
+order: 1
+free: true
+difficulty: easy
+minutes: 3
+materials:
+  - food
+images:
+  - sample-game-1.png
+needs:
+  - collar-plano-acolchado
+```
+
+#### `games/sample-game/es.md`
+```markdown
+# Busca el premio
+
+## intro
+Un juego de olfato sencillo para despertar la concentración de tu perro.
+
+## materials
+- Premios olorosos cortados en trozos pequeños
+
+## steps
+1. Haz que {name} se siente o espere a unos pasos de distancia.
+2. Coloca un premio en el suelo donde pueda verte.
+3. Di la señal de liberación y anímale a buscar.
+
+## tips
+- Empieza dejando el premio a la vista antes de esconderlo bajo objetos.
+
+## images
+### sample-game-1.png
+- alt: Un perro buscando un premio en el suelo
+- caption: El perro usa su olfato con calma
+
+## shop
+### collar-plano-acolchado
+Un collar cómodo ayuda a mantener al perro tranquilo durante las esperas.
 ```
 
 ---

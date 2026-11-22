@@ -1,12 +1,16 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { defaultScenario, scentSpotsOf } from '../../sim/config';
 import { validateScenario } from '../../sim/scenery';
 import { FEEDBACK_ACTION_KINDS, isFeedbackActionKind, STARTING_KINDS } from '../../sim/feedbackKinds';
 import {
+  parseGameMarkdown,
   parseLessonMarkdown,
   parseMissionMarkdown,
   parseNodeMarkdown,
   parseShopItemMarkdown,
   parseWorldMarkdown,
+  type ParsedGameContent,
   type ParsedLessonContent,
   type ParsedMissionContent,
   type ParsedNodeContent,
@@ -17,6 +21,7 @@ import {
   compareAppVersions,
   duelImageFile,
   ENCOUNTERS_MIN_APP_VERSION,
+  GAME_DIFFICULTIES,
   IMAGE_DUEL_MIN_APP_VERSION,
   isContentId,
   isDuelQuestionYaml,
@@ -29,6 +34,7 @@ import {
   SUPPORTED_METRICS,
   SUPPORTED_MINIGAMES,
   validateCategoryYaml,
+  validateGameYaml,
   validateLessonYaml,
   validateMissionYaml,
   validateNodeYaml,
@@ -39,6 +45,7 @@ import {
   validateSubcategoryYaml,
   validateWorldYaml,
   type CategoryYaml,
+  type GameYaml,
   type LessonYaml,
   type MissionYaml,
   type NodeYaml,
@@ -76,6 +83,71 @@ export const SUPPORTED_SCENARIO_NAMES = [
   'NARROW_STREET_PASS',
   'hand-drill',
 ] as const;
+
+export const MAX_GAME_IMAGE_BYTES = 250 * 1024;
+export const MAX_GAME_IMAGE_WIDTH = 960;
+
+export function validateGameImageBuffer(
+  buffer: Buffer,
+  fileName: string,
+  gameId: string,
+  errors: ValidationError[],
+): void {
+  const file = `games/${gameId}/media/${fileName}`;
+  const isPng =
+    fileName.toLowerCase().endsWith('.png') &&
+    buffer.length >= 8 &&
+    buffer[0] === 0x89 &&
+    buffer[1] === 0x50 &&
+    buffer[2] === 0x4E &&
+    buffer[3] === 0x47 &&
+    buffer[4] === 0x0D &&
+    buffer[5] === 0x0A &&
+    buffer[6] === 0x1A &&
+    buffer[7] === 0x0A;
+
+  if (!isPng) {
+    errors.push({
+      file,
+      field: 'images',
+      message: `Game illustration "${fileName}" is not a valid PNG image`,
+      hint: 'Illustrations must be PNG format with .png extension',
+    });
+    return;
+  }
+
+  if (buffer.length > MAX_GAME_IMAGE_BYTES) {
+    errors.push({
+      file,
+      field: 'images',
+      message: `Game illustration "${fileName}" weighs ${(buffer.length / 1024).toFixed(1)} KB, which exceeds the limit of 250 KB`,
+      hint: 'Reduce image quality or dimensions to stay under 250 KB',
+    });
+  }
+
+  if (buffer.length >= 24) {
+    const width = buffer.readUInt32BE(16);
+    const height = buffer.readUInt32BE(20);
+
+    if (width > MAX_GAME_IMAGE_WIDTH) {
+      errors.push({
+        file,
+        field: 'images',
+        message: `Game illustration "${fileName}" width is ${width} points, exceeding the limit of 960 points`,
+        hint: 'Scale image down to at most 960 points wide',
+      });
+    }
+
+    if (width * 9 !== height * 16) {
+      errors.push({
+        file,
+        field: 'images',
+        message: `Game illustration "${fileName}" has aspect ratio ${width}:${height}, but 16:9 is required`,
+        hint: 'Crop or pad illustration to 16:9 aspect ratio (e.g. 960x540)',
+      });
+    }
+  }
+}
 
 export interface PreviousManifest {
   contentVersion?: number;
@@ -158,6 +230,15 @@ export interface ContentPack {
     }
   >;
   shop?: ContentPackShop;
+  games?: Record<
+    string,
+    {
+      config: GameYaml;
+      text?: Record<string, Partial<ParsedGameContent> | string>;
+      files?: string[];
+      mediaBuffers?: Record<string, Buffer>;
+    }
+  >;
 }
 
 export interface ValidatePackOptions {
@@ -879,6 +960,129 @@ export function validatePack(pack: ContentPack, options: ValidatePackOptions = {
           message: `Orphan Product: "${pId}" does not belong to any Subcategory`,
           hint: `Add "${pId}" to a Subcategory in shop/subcategories/`,
         });
+      }
+    }
+  }
+
+  // 5.6 Validate Dog Games
+  const gameIds = new Set<string>();
+  const SAFETY_MATERIALS = ['fabric', 'plastic', 'bone'];
+
+  for (const [id, gameEntry] of Object.entries(pack.games ?? {})) {
+    const file = `games/${id}/game.yaml`;
+    registerId(id, 'game', file);
+    gameIds.add(id);
+
+    const cfg = gameEntry.config ?? ({} as GameYaml);
+    const res = validateGameYaml({ id, ...cfg }, file);
+    errors.push(...res.errors);
+
+    // needs check against shop index
+    if (Array.isArray(cfg.needs)) {
+      for (const targetId of cfg.needs) {
+        const isShopTarget = categoryIds.has(targetId) || subcategoryIds.has(targetId) || productIds.has(targetId);
+        if (!isShopTarget) {
+          errors.push({
+            file,
+            field: 'needs',
+            message: `Dog Game "${id}" needs unknown shop target "${targetId}"`,
+            hint: 'Target must be an existing Product, Subcategory, or Category in the shop',
+          });
+        }
+      }
+    }
+
+    // Text: Spanish required
+    const textRecord = gameEntry.text ?? {};
+    let parsedEs: Partial<ParsedGameContent> | null = null;
+    if (!textRecord['es']) {
+      errors.push({
+        file: `games/${id}/es.md`,
+        message: `Dog Game "${id}" is missing required Spanish text (es.md)`,
+        hint: 'Create games/<id>/es.md with title, intro, and steps',
+      });
+    } else {
+      try {
+        parsedEs = typeof textRecord['es'] === 'string' ? parseGameMarkdown(textRecord['es'], cfg, `games/${id}/es.md`) : textRecord['es'];
+        if (!parsedEs.title || !parsedEs.title.trim()) {
+          errors.push({ file: `games/${id}/es.md`, field: 'title', message: `Dog Game "${id}" missing title in Spanish`, hint: 'Add # <title>' });
+        }
+        if (!parsedEs.intro || !parsedEs.intro.trim()) {
+          errors.push({ file: `games/${id}/es.md`, field: 'intro', message: `Dog Game "${id}" missing intro in Spanish`, hint: 'Add ## intro' });
+        }
+        if (!parsedEs.steps || parsedEs.steps.length === 0) {
+          errors.push({ file: `games/${id}/es.md`, field: 'steps', message: `Dog Game "${id}" missing steps in Spanish`, hint: 'Add ## steps' });
+        }
+      } catch (err: unknown) {
+        errors.push({
+          file: `games/${id}/es.md`,
+          message: err instanceof Error ? err.message : String(err),
+          hint: 'Fix Markdown formatting or remove raw HTML',
+        });
+      }
+    }
+
+    // Safety note check
+    const materials = (cfg.materials ?? []).map((m) => (typeof m === 'string' ? m.toLowerCase() : ''));
+    const matchedSafetyMaterials = materials.filter((m) => SAFETY_MATERIALS.includes(m));
+    if (matchedSafetyMaterials.length > 0) {
+      if (!parsedEs?.safety || !parsedEs.safety.trim()) {
+        errors.push({
+          file: `games/${id}/es.md`,
+          field: 'safety',
+          message: `Dog Game "${id}" uses swallowable materials (${matchedSafetyMaterials.join(', ')}) but has no safety note`,
+          hint: 'Add a "## safety" section in es.md advising supervision and pieces larger than dog mouth',
+        });
+      }
+    }
+
+    // Images check: declared images exist in media/ and have alt text in Spanish
+    const gameMedia = new Set((gameEntry.files ?? []).filter((f): f is string => typeof f === 'string').map((f) => duelImageFile(f)));
+    if (Array.isArray(cfg.images)) {
+      for (const img of cfg.images) {
+        if (typeof img !== 'string') continue;
+        const rawImg = duelImageFile(img);
+        if (!gameMedia.has(rawImg)) {
+          errors.push({
+            file,
+            field: 'images',
+            message: `Dog Game "${id}": image "${img}" does not exist in games/${id}/media/`,
+            hint: 'Export the image into the game media/ folder or fix the file name',
+          });
+        } else if (parsedEs) {
+          const alt = parsedEs.images?.[rawImg]?.alt ?? parsedEs.images?.[img]?.alt;
+          if (!alt || !alt.trim()) {
+            errors.push({
+              file: `games/${id}/es.md`,
+              field: 'images',
+              message: `Dog Game "${id}": illustration "${img}" is missing Spanish alt text`,
+              hint: `Add "### ${img}" with "- alt: <description>" under "## images" in games/${id}/es.md`,
+            });
+          }
+        }
+      }
+    }
+
+    // Media limits check: PNG, 16:9, width <= 960, weight <= 250 KB
+    for (const rawFile of gameEntry.files ?? []) {
+      const fileName = duelImageFile(rawFile);
+      let buffer: Buffer | null = null;
+      if (gameEntry.mediaBuffers?.[fileName]) {
+        buffer = gameEntry.mediaBuffers[fileName];
+      } else if (gameEntry.mediaBuffers?.[rawFile]) {
+        buffer = gameEntry.mediaBuffers[rawFile];
+      } else if (pack.rootPath) {
+        const diskPath = join(pack.rootPath, 'games', id, 'media', fileName);
+        if (existsSync(diskPath)) {
+          try {
+            buffer = readFileSync(diskPath);
+          } catch {
+            // ignore read error
+          }
+        }
+      }
+      if (buffer) {
+        validateGameImageBuffer(buffer, fileName, id, errors);
       }
     }
   }

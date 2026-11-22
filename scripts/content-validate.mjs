@@ -19,8 +19,9 @@ function getArg(flag, fallback) {
   return fallback;
 }
 
-const channel = getArg('--channel', 'beta');
 const customDir = getArg('--dir', null);
+const positional = args.filter((a, i) => !a.startsWith('-') && (i === 0 || !args[i - 1].startsWith('--')));
+const channel = getArg('--channel', positional[0] ?? 'beta');
 
 if (!customDir && channel !== 'beta' && channel !== 'stable') {
   console.error(`Invalid channel "${channel}". Must be "beta" or "stable".`);

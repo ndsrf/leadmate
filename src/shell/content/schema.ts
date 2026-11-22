@@ -170,6 +170,20 @@ export const RECOMMENDATION_SCHEMA_FIELDS: readonly FieldDoc[] = [
   { name: 'when', type: 'string', required: true, description: 'Trigger condition ("view", "poste-trouble", "poor-score", or "problem:<id>")' },
 ];
 
+export const GAME_DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
+export type GameDifficulty = (typeof GAME_DIFFICULTIES)[number];
+
+export const GAME_SCHEMA_FIELDS: readonly FieldDoc[] = [
+  { name: 'order', type: 'number', required: true, description: 'Sort order in the games list (integer)' },
+  { name: 'free', type: 'boolean', required: false, description: 'Whether this game is fully accessible to Free users' },
+  { name: 'difficulty', type: 'string', required: false, description: 'Game difficulty ("easy", "medium", "hard")', allowedValues: GAME_DIFFICULTIES },
+  { name: 'minutes', type: 'number', required: false, description: 'Approximate duration in minutes (positive integer)' },
+  { name: 'materials', type: 'string[]', required: false, description: 'Material kinds used (e.g. "fabric", "plastic", "bone", "food", "none")' },
+  { name: 'images', type: 'string[]', required: true, description: 'Array of relative illustration filenames in media/' },
+  { name: 'needs', type: 'string[]', required: false, description: 'Shop target IDs (Product, Subcategory, Category) needed for this game' },
+  { name: 'youtube', type: 'Record<string, string>', required: false, description: 'Map of language code to 11-char YouTube video ID' },
+];
+
 // -- TypeScript Types --------------------------------------------------------
 
 export interface StopYaml {
@@ -353,6 +367,18 @@ export interface ProductYaml {
   price?: string;
   priceCheckedAt?: string;
   image?: string;
+}
+
+export interface GameYaml {
+  id?: string;
+  order: number;
+  free?: boolean;
+  difficulty?: GameDifficulty;
+  minutes?: number;
+  materials?: string[];
+  images: string[];
+  needs?: string[];
+  youtube?: Record<string, string>;
 }
 
 // -- Validation Results ------------------------------------------------------
@@ -931,5 +957,86 @@ export function validateProductYaml(raw: unknown, file: string = 'product.yaml')
       errors.push({ file, field: 'image', message: `Invalid image path "${String(obj.image)}" (must be relative inside folder, no ".." or "/")`, hint: 'Use simple filenames or media/filename' });
     }
   }
+  return { valid: errors.length === 0, errors };
+}
+
+export function validateGameYaml(raw: unknown, file: string = 'game.yaml'): ValidationResult {
+  const errors: ValidationError[] = [];
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { valid: false, errors: [{ file, message: 'Game definition must be a YAML object', hint: 'Provide game properties at root' }] };
+  }
+  const obj = raw as Record<string, unknown>;
+
+  if (obj.id !== undefined && !isContentId(obj.id)) {
+    errors.push({ file, field: 'id', message: `Invalid Game ID "${String(obj.id)}"`, hint: 'Use lowercase kebab-case' });
+  }
+
+  if (typeof obj.order !== 'number' || !Number.isInteger(obj.order)) {
+    errors.push({ file, field: 'order', message: 'order must be an integer', hint: 'Set order: 1, 2, ...' });
+  }
+
+  if (obj.free !== undefined && typeof obj.free !== 'boolean') {
+    errors.push({ file, field: 'free', message: 'free must be a boolean', hint: 'Set free: true or false' });
+  }
+
+  if (obj.difficulty !== undefined && !GAME_DIFFICULTIES.includes(obj.difficulty as GameDifficulty)) {
+    errors.push({ file, field: 'difficulty', message: `Invalid game difficulty "${String(obj.difficulty)}"`, hint: `Expected one of: ${GAME_DIFFICULTIES.join(', ')}` });
+  }
+
+  if (obj.minutes !== undefined && (typeof obj.minutes !== 'number' || obj.minutes <= 0)) {
+    errors.push({ file, field: 'minutes', message: 'minutes must be a positive number', hint: 'Set minutes: 5, 10, ...' });
+  }
+
+  if (obj.materials !== undefined) {
+    if (!Array.isArray(obj.materials)) {
+      errors.push({ file, field: 'materials', message: 'materials must be an array of strings', hint: 'materials: ["fabric", "food"]' });
+    } else {
+      for (let i = 0; i < obj.materials.length; i++) {
+        if (typeof obj.materials[i] !== 'string') {
+          errors.push({ file, field: `materials[${i}]`, message: 'Material item must be a string', hint: 'Use material kinds like "fabric", "plastic", "bone", "food", "none"' });
+        }
+      }
+    }
+  }
+
+  if (!Array.isArray(obj.images) || obj.images.length === 0) {
+    errors.push({ file, field: 'images', message: 'images must be a non-empty array of illustration files', hint: 'images: ["game-1.png"]' });
+  } else {
+    for (const img of obj.images) {
+      if (typeof img !== 'string' || img.trim() === '') {
+        errors.push({ file, field: 'images', message: 'Image reference must be a non-empty string', hint: 'Provide a valid image filename or relative path' });
+      } else if (img.includes('/') && !isRelativeMediaPath(img)) {
+        errors.push({ file, field: 'images', message: `Invalid image path "${img}" (must be relative inside folder, no ".." or "/")`, hint: 'Use simple filenames or media/filename' });
+      }
+    }
+  }
+
+  if (obj.needs !== undefined) {
+    if (!Array.isArray(obj.needs)) {
+      errors.push({ file, field: 'needs', message: 'needs must be an array of Shop target IDs', hint: 'needs: ["snuffle-mat"]' });
+    } else {
+      for (const targetId of obj.needs) {
+        if (!isContentId(targetId)) {
+          errors.push({ file, field: 'needs', message: `Invalid shop target ID "${String(targetId)}"`, hint: 'Use lowercase kebab-case' });
+        }
+      }
+    }
+  }
+
+  if (obj.youtube !== undefined) {
+    if (!obj.youtube || typeof obj.youtube !== 'object' || Array.isArray(obj.youtube)) {
+      errors.push({ file, field: 'youtube', message: 'youtube must be a map of language codes to video IDs', hint: 'youtube: { es: "..." }' });
+    } else {
+      for (const [lang, id] of Object.entries(obj.youtube as Record<string, unknown>)) {
+        if (!LANG_REGEX.test(lang)) {
+          errors.push({ file, field: `youtube.${lang}`, message: `Invalid language key "${lang}" in youtube`, hint: 'Use lowercase language code like "es"' });
+        }
+        if (!isYouTubeId(id)) {
+          errors.push({ file, field: `youtube.${lang}`, message: `Invalid YouTube video ID "${String(id)}" (must be 11 characters)`, hint: 'Provide 11-char YouTube ID' });
+        }
+      }
+    }
+  }
+
   return { valid: errors.length === 0, errors };
 }

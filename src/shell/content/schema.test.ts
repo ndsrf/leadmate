@@ -17,6 +17,7 @@ import {
   SHOP_SCHEMA_FIELDS,
   SUBCATEGORY_SCHEMA_FIELDS,
   validateCategoryYaml,
+  validateGameYaml,
   validateLessonYaml,
   validateMissionYaml,
   validateNodeYaml,
@@ -437,5 +438,35 @@ describe('node.yaml checkpoint question kinds', () => {
     expect(compareAppVersions('invalid', '1.0.0')).toBe(-1);
     expect(compareAppVersions('invalid', 'invalid')).toBe(0);
     expect(compareAppVersions('', '')).toBe(0);
+  });
+});
+
+describe('game.yaml validation', () => {
+  it('accepts valid game.yaml', () => {
+    const valid = {
+      id: 'eleccion-mano',
+      order: 1,
+      free: true,
+      difficulty: 'easy',
+      minutes: 5,
+      materials: ['food'],
+      images: ['eleccion-mano-1.png'],
+      needs: ['mantas-olfativas'],
+      youtube: { es: 'dQw4w9WgXcQ' },
+    };
+    const res = validateGameYaml(valid);
+    expect(res.valid).toBe(true);
+    expect(res.errors).toEqual([]);
+  });
+
+  it('rejects invalid game.yaml fields', () => {
+    expect(validateGameYaml(null).valid).toBe(false);
+    expect(validateGameYaml({}).valid).toBe(false); // missing order and images
+    expect(validateGameYaml({ order: '1', images: ['img.png'] }).valid).toBe(false); // order not number
+    expect(validateGameYaml({ order: 1, images: [] }).valid).toBe(false); // images empty
+    expect(validateGameYaml({ order: 1, images: ['img.png'], difficulty: 'extreme' }).valid).toBe(false); // bad difficulty
+    expect(validateGameYaml({ order: 1, images: ['img.png'], minutes: -1 }).valid).toBe(false); // negative minutes
+    expect(validateGameYaml({ order: 1, images: ['img.png'], free: 'yes' }).valid).toBe(false); // free not boolean
+    expect(validateGameYaml({ order: 1, images: ['img.png'], needs: ['Invalid_ID'] }).valid).toBe(false); // bad needs id
   });
 });

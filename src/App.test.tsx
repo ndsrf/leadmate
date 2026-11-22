@@ -195,6 +195,7 @@ for (const m of [
   'DailyResultScreen', 'DiaryScreen', 'DoorbellMatView', 'BarkdokuView', 'MissionScreens', 'LessonScreens', 'WorldMapScreen',
   'NodeScreens', 'PosteMinigameView', 'ReadDogView', 'ReadTheDogView', 'PaywallScreen', 'ValueRecapScreen', 'PlanScreen',
   'IntroScreens', 'SetupScreen', 'SettingsScreen', 'SplashScreen', 'AccountScreens', 'MethodOverviewScreen',
+  'GamesScreen', 'GameDetailScreen',
 ]) {
   jest.mock(`./shell/screens/${m}`, () => mockScreens());
 }
@@ -243,7 +244,7 @@ import { BARKDOKU_INTRO_NODE, CALM_HANDS_NODE, CLOSE_PASS_NODE, WALK_DISTRACTION
 import * as path from 'path';
 import { getActiveContent, setActiveContent } from './shell/content/runtime';
 import { loadPackFromDisk } from './shell/content/loader';
-import { resolvePack, type ResolvedShop } from './shell/content/resolver';
+import { resolvePack, type ResolvedGame, type ResolvedShop } from './shell/content/resolver';
 import { SHOP_STATE_STORAGE_KEY, DEFAULT_SHOP_STATE } from './shell/shop';
 import { POOR_SCORE_BELOW } from './shell/stars';
 import { getAnalytics, resetAnalyticsForTesting, MockAnalyticsService, ANALYTICS_STATE_KEY } from './shell/analytics';
@@ -706,6 +707,129 @@ describe('App - Stage view lifecycle', () => {
     expect(latest('ResumeOverlay')).toBeUndefined();
     expect(latest('DailyResultScreen')).toBeDefined();
     expect(mockSim.live).toBe(0);
+  });
+
+  describe('Dog Games flows (tasks 5.2 & 5.3)', () => {
+    const game = (id: string, order: number, free = false): ResolvedGame => ({
+      id, order, free, title: `game.${id}.title` as TextKey, intro: `game.${id}.intro` as TextKey, steps: [`game.${id}.step1` as TextKey], images: [],
+    });
+    const GAMES = [game('eleccion-mano', 1, true), game('trilero', 2)];
+    let baseContent: ReturnType<typeof getActiveContent>;
+    beforeEach(() => {
+      baseContent = getActiveContent();
+      setActiveContent({ ...baseContent, resolved: { ...baseContent.resolved, games: GAMES } });
+    });
+    afterEach(() => setActiveContent(baseContent));
+
+    const back = () => {
+      let handled = false;
+      act(() => {
+        handled = triggerBack();
+      });
+      return handled;
+    };
+
+    it('passes the pack games to the map and opens the Games list over the mounted map', async () => {
+      await openMap();
+      expect(latest('WorldMapScreen').games.map((g: ResolvedGame) => g.id)).toEqual(['eleccion-mano', 'trilero']);
+      act(() => latest('WorldMapScreen').onScroll(420));
+      act(() => latest('WorldMapScreen').onGames());
+      expect(latest('GamesScreen')).toBeDefined();
+      expect(latest('GamesScreen').games).toHaveLength(2);
+      expect(mockMounted['WorldMapScreen']).toBe(1);
+
+      // system back from the list returns to the map where it was
+      expect(back()).toBe(true);
+      expect(latest('GamesScreen')).toBeUndefined();
+      expect(mockMounted['WorldMapScreen']).toBe(1);
+      expect(latest('WorldMapScreen').initialScrollY).toBe(420);
+    });
+
+    it('system back from a listed game shows the list, and a second back the map', async () => {
+      await openMap();
+      act(() => latest('WorldMapScreen').onGames());
+      act(() => latest('GamesScreen').onOpenGame('trilero'));
+      expect(latest('GameDetailScreen').game.id).toBe('trilero');
+      expect(latest('GamesScreen')).toBeUndefined();
+      expect(mockMounted['WorldMapScreen']).toBe(1);
+
+      expect(back()).toBe(true);
+      expect(latest('GameDetailScreen')).toBeUndefined();
+      expect(latest('GamesScreen')).toBeDefined();
+
+      expect(back()).toBe(true);
+      expect(latest('GamesScreen')).toBeUndefined();
+      expect(latest('WorldMapScreen')).toBeDefined();
+      expect(mockMounted['WorldMapScreen']).toBe(1);
+    });
+
+    it('system back from a random game shows the list, which remembers the last random pick', async () => {
+      await openMap();
+      act(() => latest('WorldMapScreen').onGames());
+      act(() => latest('GamesScreen').onOpenRandom('eleccion-mano'));
+      expect(latest('GameDetailScreen').game.id).toBe('eleccion-mano');
+
+      expect(back()).toBe(true);
+      expect(latest('GameDetailScreen')).toBeUndefined();
+      expect(latest('GamesScreen')).toBeDefined();
+      expect(latest('GamesScreen').lastRandomId).toBe('eleccion-mano');
+    });
+
+    it('sends screen views for the Games list and a game, and one random-pick event with no game text', async () => {
+      const analytics = getAnalytics() as MockAnalyticsService;
+      await openMap();
+      analytics.clear();
+      act(() => latest('WorldMapScreen').onGames());
+      act(() => latest('GamesScreen').onOpenRandom('trilero'));
+      const views = analytics.events.filter((e) => e.name === 'screen_viewed').map((e) => e.properties);
+      expect(views[0]).toMatchObject({ screen: 'games', previous_screen: 'map' });
+      expect(views[1]).toMatchObject({ screen: 'game', previous_screen: 'games', screen_item_id: 'trilero' });
+      const picks = analytics.events.filter((e) => e.name === 'game_random_picked');
+      expect(picks).toHaveLength(1);
+      expect(picks[0].properties).toMatchObject({ game_id: 'trilero', plus_status: 'free' });
+      expect(JSON.stringify(picks[0].properties)).not.toContain('game.trilero');
+    });
+
+    it('a trial started from a locked game returns to that game unlocked', async () => {
+      await openMap();
+      act(() => latest('WorldMapScreen').onGames());
+      act(() => latest('GamesScreen').onOpenGame('trilero'));
+      expect(latest('GameDetailScreen').isPlus).toBe(false);
+
+      act(() => latest('GameDetailScreen').onOpenPaywall());
+      expect(latest('PaywallScreen')).toBeDefined();
+      expect(latest('GameDetailScreen')).toBeUndefined();
+
+      await act(async () => {
+        latest('PaywallScreen').onStartTrial();
+      });
+      expect(latest('PaywallScreen')).toBeUndefined();
+      expect(latest('GameDetailScreen').game.id).toBe('trilero');
+      expect(latest('GameDetailScreen').isPlus).toBe(true);
+      // back still goes to the list, then the map
+      expect(back()).toBe(true);
+      expect(latest('GamesScreen')).toBeDefined();
+    });
+
+    it('a dismissed paywall returns to the same game still locked, by "later" or by system back', async () => {
+      await openMap();
+      act(() => latest('WorldMapScreen').onGames());
+      act(() => latest('GamesScreen').onOpenRandom('trilero'));
+      act(() => latest('GameDetailScreen').onOpenPaywall());
+      act(() => latest('PaywallScreen').onLater());
+      expect(latest('PaywallScreen')).toBeUndefined();
+      expect(latest('GameDetailScreen').game.id).toBe('trilero');
+      expect(latest('GameDetailScreen').isPlus).toBe(false);
+
+      act(() => latest('GameDetailScreen').onOpenPaywall());
+      expect(back()).toBe(true);
+      expect(latest('PaywallScreen')).toBeUndefined();
+      expect(latest('GameDetailScreen').game.id).toBe('trilero');
+      expect(latest('GameDetailScreen').isPlus).toBe(false);
+      // the random origin is kept: back returns to the list
+      expect(back()).toBe(true);
+      expect(latest('GamesScreen')).toBeDefined();
+    });
   });
 
   describe('Barkdoku multi-board and tier integration', () => {

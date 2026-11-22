@@ -74,7 +74,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { createTranslator, es } from '../../i18n';
 import { BarkdokuChip, ComingSoonCard, MORE_COMING_SCENARIO_KEYS, MoreComingCard, NEXT_UP_PULSE_CYCLES, PlusChip, PreviewTeaser, TrialStatusModal, WorldBlock, WorldMapScreen } from './WorldMapScreen';
 import { ShopPopup } from './ShopPopup';
-import type { ResolvedShop } from '../content/resolver';
+import type { ResolvedGame, ResolvedShop } from '../content/resolver';
 import { NO_STREAK } from '../streak';
 import { findWorld, isWorldUnlocked, progressOf, stopsOf, worldsFor, worldTitle, type Progress, type Stop, type WorldDef } from '../world';
 import { mapModel, type MapWorld } from '../mapModel';
@@ -1310,6 +1310,61 @@ describe('MoreComingCard at the end of the map (Task 4.2)', () => {
       );
       expect(basketPressable).toBeDefined();
       expect(gearPressable).toBeDefined();
+    });
+
+    describe('Games chip (task 5.1)', () => {
+      const sampleGames: ResolvedGame[] = [
+        { id: 'eleccion-mano', order: 1, free: true, title: 'game.eleccion-mano.title' as any, intro: 'game.eleccion-mano.intro' as any, steps: [], images: [] },
+      ];
+      const row1Labels = () => {
+        const labels = mockPressables.map((p) => String(p.accessibilityLabel ?? ''));
+        const gear = labels.indexOf(es['map.settings']);
+        return labels.slice(gear, gear + 3);
+      };
+
+      it('shows the Games chip after gear and basket when the pack has games, and opens the Games screen', () => {
+        mockPressables.length = 0;
+        const onGames = jest.fn();
+        renderToStaticMarkup(<WorldMapScreen {...baseMapProps} shop={sampleShop} onShop={() => {}} games={sampleGames} onGames={onGames} />);
+        expect(row1Labels()).toEqual([es['map.settings'], es['map.shopButton'], es['map.gamesButton']]);
+        const chip = mockPressables.find((p) => p.testID === 'map-games-button');
+        expect(chip).toBeDefined();
+        expect(chip.accessibilityLabel).toBe('Juegos');
+        expect(chip.accessibilityRole).toBe('button');
+        expect(chip.style.minHeight).toBeGreaterThanOrEqual(44);
+        chip.onPress();
+        expect(onGames).toHaveBeenCalledTimes(1);
+      });
+
+      it('hides the Games chip without games, keeping gear and basket in place', () => {
+        mockPressables.length = 0;
+        const markup = renderToStaticMarkup(<WorldMapScreen {...baseMapProps} shop={sampleShop} onShop={() => {}} games={[]} onGames={() => {}} />);
+        expect(markup).not.toContain('map-games-button');
+        expect(mockPressables.find((p) => p.testID === 'map-games-button')).toBeUndefined();
+        expect(row1Labels().slice(0, 2)).toEqual([es['map.settings'], es['map.shopButton']]);
+      });
+
+      it('keeps the three icon chips on Row 1 at 320 points, beside Streak and Library', () => {
+        mockPressables.length = 0;
+        const markup = renderToStaticMarkup(
+          <div style={{ width: 320 }}>
+            <WorldMapScreen {...baseMapProps} shop={sampleShop} libraryToday onShop={() => {}} games={sampleGames} onGames={() => {}} />
+          </div>,
+        );
+        const labels = mockPressables.map((p) => String(p.accessibilityLabel ?? ''));
+        const start = labels.findIndex((l) => l.startsWith(es['streak.flame']));
+        expect(labels[start + 1]).toContain(es['library.chip']);
+        expect(labels.slice(start + 2, start + 5)).toEqual([es['map.settings'], es['map.shopButton'], es['map.gamesButton']]);
+        // Row 1 is a single non-wrapping row: the icon group does not shrink, the Streak/Library group does
+        const row1 = markup.indexOf('flex-row items-center justify-between');
+        const row2 = markup.indexOf('flex-row flex-wrap items-center');
+        const gamesAt = markup.indexOf('map-games-button');
+        expect(row1).toBeGreaterThanOrEqual(0);
+        expect(gamesAt).toBeGreaterThan(row1);
+        expect(gamesAt).toBeLessThan(row2);
+        expect(markup).toContain('flex-row items-center flex-shrink-0');
+        expect(markup).toContain('flex-row items-center flex-shrink');
+      });
     });
 
     it('renders general shop offer popup in overlay when shopPopup prop is provided', () => {

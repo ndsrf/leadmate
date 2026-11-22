@@ -57,6 +57,10 @@ export function screenOf({ route, funnelStep, flow, settingsTab }: ScreenInput):
         return { screen: 'diary' };
       case 'lesson':
         return item('lesson', flow.id);
+      case 'games':
+        return { screen: 'games' };
+      case 'game':
+        return item('game', flow.id);
       case 'mission': {
         const screen = MISSION_SCREENS[flow.view ?? ''];
         return screen ? item(screen, flow.id) : null;
