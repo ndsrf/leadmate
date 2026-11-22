@@ -19,6 +19,7 @@ import type {
   ResolvedShop,
   ResolvedSubcategory,
 } from '../content/resolver';
+import { GameButton } from '../ui/components';
 import { handlePress } from '../ui/press';
 import { usePalette } from '../ui/theme';
 import { useProductPictures } from './useProductPictures';
@@ -482,25 +483,13 @@ export function ShopScreen({
                   )}
 
                   <View style={{ marginTop: 4, flexDirection: 'row', gap: 8 }}>
-                    <Pressable
+                    <GameButton
                       testID={`buy-button-${prod.id}`}
-                      onPress={() => handlePress(() => handleBuy(prod.url))}
-                      accessibilityRole="button"
+                      label={t('shop.buyAction')}
                       accessibilityLabel={`${t('shop.buyAction')} ${t(prod.name)}`}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      style={({ pressed }) => ({
-                        backgroundColor: pressed ? color.brandDeep : color.brand,
-                        paddingHorizontal: 16,
-                        minHeight: 44,
-                        justifyContent: 'center',
-                        borderRadius: 16,
-                        alignItems: 'center',
-                      })}
-                    >
-                      <Text style={{ color: color.onBrand, fontWeight: '700', fontSize: 13 }}>
-                        {t('shop.buyAction')}
-                      </Text>
-                    </Pressable>
+                      onPress={() => handleBuy(prod.url)}
+                      className="mt-0"
+                    />
                   </View>
                 </View>
               </View>
@@ -563,24 +552,13 @@ export function ShopScreen({
                 {t(activeProduct.description)}
               </Text>
 
-              <Pressable
+              <GameButton
                 testID={`buy-button-${activeProduct.id}`}
-                onPress={() => handlePress(() => handleBuy(activeProduct!.url))}
-                accessibilityRole="button"
+                label={t('shop.buyAction')}
                 accessibilityLabel={`${t('shop.buyAction')} ${t(activeProduct.name)}`}
-                style={({ pressed }) => ({
-                  backgroundColor: pressed ? color.brandDeep : color.brand,
-                  minHeight: 44,
-                  justifyContent: 'center',
-                  borderRadius: 16,
-                  alignItems: 'center',
-                  marginTop: 8,
-                })}
-              >
-                <Text style={{ color: color.onBrand, fontWeight: '700', fontSize: 15 }}>
-                  {t('shop.buyAction')}
-                </Text>
-              </Pressable>
+                onPress={() => handleBuy(activeProduct!.url)}
+                className="mt-2"
+              />
             </View>
           </View>
         )}
