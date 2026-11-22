@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-cafe-setup.do" data-alt="trail.theory-cafe-setup.do">
+  <!-- do: the dog rests on its mat tucked under the table, out of the way; the waiter passes well clear -->
+  <use href="#cafe-front"/>
+  <use href="#ground-terrace"/>
+  <use href="#cafe-planter" transform="translate(52 306)"/>
+  <g transform="translate(130 306) scale(1.0)">
+    <use href="#cafe-chair"/>
+    <use href="#person-seated"/>
+  </g>
+  <g transform="translate(236 306) scale(1.0)">
+    <use href="#cafe-table"/>
+    <use href="#cafe-cup" transform="translate(18 -108)"/>
+    <use href="#cafe-plate" transform="translate(-22 -108)"/>
+  </g>
+  <use href="#mat" transform="translate(240 306)"/>
+  <use href="#dog-rest" transform="translate(236 304)"/>
+  <use href="#waiter" transform="translate(520 306) scale(0.9)"/>
+  <use href="#motion" transform="translate(490 200) scale(0.9)"/>
+  <use href="#badge-check" transform="translate(590 120) scale(1.5)"/>
+</svg>

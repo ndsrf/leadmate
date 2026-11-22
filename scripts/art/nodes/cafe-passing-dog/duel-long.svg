@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+  <!-- duel option: leash long across the walkway, dog standing out toward the waiter -->
+  <use href="#cafe-front"/>
+  <use href="#ground-terrace"/>
+  <g transform="translate(110 306) scale(1.0)">
+    <use href="#cafe-chair"/>
+    <use href="#person-seated"/>
+  </g>
+  <g transform="translate(216 306) scale(1.0)">
+    <use href="#cafe-table"/>
+    <use href="#cafe-cup" transform="translate(18 -108)"/>
+  </g>
+  <path d="M140 222C170 286 300 276 414 240" fill="none" stroke="#1E2A3A" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M140 222C170 286 300 276 414 240" fill="none" stroke="#6FAF73" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <use href="#dog-look" transform="translate(400 306)"/>
+  <use href="#waiter" transform="translate(560 306) scale(-0.9 0.9)"/>
+</svg>

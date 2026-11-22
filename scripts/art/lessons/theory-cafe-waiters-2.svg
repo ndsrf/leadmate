@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-cafe-waiters.image.2.caption" data-alt="trail.theory-cafe-waiters.image.2.alt">
+  <!-- sequence: the dog looks at the waiter, turns back to you on its own, and a treat lands on the mat -->
+  <use href="#cafe-front"/>
+  <use href="#ground-terrace"/>
+  <g transform="translate(28 306) scale(0.55)">
+    <use href="#cafe-chair"/>
+    <use href="#person-seated"/>
+  </g>
+  <use href="#mat" transform="translate(110 306) scale(0.5)"/>
+  <use href="#dog-down-alert" transform="translate(108 304) scale(0.55)"/>
+  <use href="#waiter" transform="translate(190 306) scale(-0.5 0.5)"/>
+  <use href="#attention" transform="translate(150 262) scale(0.6)"/>
+  <path d="M213 26V340M426 26V340" stroke="#1E2A3A" stroke-width="4" stroke-dasharray="12 10" stroke-linecap="round"/>
+  <g transform="translate(242 306) scale(0.55)">
+    <use href="#cafe-chair"/>
+    <use href="#person-seated"/>
+  </g>
+  <use href="#mat" transform="translate(324 306) scale(0.5)"/>
+  <use href="#dog-down-back" transform="translate(322 304) scale(0.55)"/>
+  <use href="#heart" transform="translate(300 236) scale(0.7)"/>
+  <g transform="translate(456 306) scale(0.55)">
+    <use href="#cafe-chair"/>
+    <use href="#person-seated-drop"/>
+  </g>
+  <use href="#mat" transform="translate(538 306) scale(0.5)"/>
+  <use href="#dog-rest" transform="translate(536 304) scale(0.55)"/>
+  <use href="#treat-drop" transform="translate(492 294) scale(0.9)"/>
+  <use href="#heart" transform="translate(560 248) scale(0.7)"/>
+  <use href="#step-1" transform="translate(36 36)"/>
+  <use href="#step-2" transform="translate(249 36)"/>
+  <use href="#step-3" transform="translate(462 36)"/>
+</svg>

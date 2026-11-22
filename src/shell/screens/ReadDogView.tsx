@@ -5,7 +5,7 @@ import type { DogCoat } from '../../sim/config';
 import { Button } from '../Overlays';
 import { harnessOn, hintKey, isLivingRoomScene, newReadDog, readDogHandlingScore, readDogMetrics, SCENE_ACTIONS, stepReadDog, currentState, type BeatOutcome, type ReadDogAction, type ReadDogEvent, type ReadDogRun, type ReadDogScene } from '../nodes/readDog';
 import { AGITATION_SECONDS, postureSpec, sendsAway, wrongReaction, type CaninePosture } from '../ui/canine';
-import { ActionButtonRow, CueCaption, DoorbellScene, HarnessScene, LivingRoomScene, ResultChip, RoundPips } from '../ui/MinigameProps';
+import { ActionButtonRow, CueCaption, DoorbellScene, HarnessScene, LivingRoomScene, ResultChip, RoundPips, TerraceScene } from '../ui/MinigameProps';
 import { useTicker } from '../ui/useTicker';
 import { Screen } from './Screen';
 
@@ -24,6 +24,7 @@ const HELP_KEYS = {
   destroy: 'minigame.destroy.help',
   'eat-objects': 'minigame.eat-objects.help',
   alone: 'minigame.alone.help',
+  cafe: 'minigame.cafe.help',
 } as const satisfies Record<ReadDogScene, string>;
 
 export interface ReadDogResult {
@@ -52,6 +53,9 @@ export function ReadDogView({ t, scene, seed, coat = 'golden', onCue, onFinish }
   // a right Send away or Send to bed shows the Handler stepping in and the Dog walking to its bed for a moment
   const sendingLeft = useRef(0);
   const [sending, setSending] = useState(false);
+  // a right Marker on the Terrace drops a treat onto the mat for a moment
+  const treatLeft = useRef(0);
+  const [treat, setTreat] = useState(false);
 
   const baseline = currentState(view);
   useEffect(() => {
@@ -70,9 +74,12 @@ export function ReadDogView({ t, scene, seed, coat = 'golden', onCue, onFinish }
       if (next.last.kind === 'wrong' || next.last.kind === 'failed') agitation.current = { left: AGITATION_SECONDS, posture: wrongReaction(next.last.state, next.last.action) };
       else agitation.current.left = 0;
       sendingLeft.current = next.last.kind === 'correct' && sendsAway(next.last.action) ? AGITATION_SECONDS : 0;
+      treatLeft.current = scene === 'cafe' && next.last.kind === 'correct' && next.last.action === 'marker' ? AGITATION_SECONDS : 0;
       setView(next);
     }
     agitation.current.left = Math.max(0, agitation.current.left - dt);
+    treatLeft.current = Math.max(0, treatLeft.current - dt);
+    setTreat(treatLeft.current > 0);
     sendingLeft.current = Math.max(0, sendingLeft.current - dt);
     setSending(sendingLeft.current > 0);
     setPosture(agitation.current.left > 0 ? agitation.current.posture : currentState(next));
@@ -104,7 +111,9 @@ export function ReadDogView({ t, scene, seed, coat = 'golden', onCue, onFinish }
         <RoundPips t={t} total={view.script.length} results={view.outcomes.map((o: BeatOutcome) => o === 'correct')} />
       </View>
       <Text className="mb-4 text-bodyL text-ink">{t(HELP_KEYS[scene])}</Text>
-      {isLivingRoomScene(scene) ? (
+      {scene === 'cafe' ? (
+        <TerraceScene t={t} posture={posture} waiter={posture === 'staring_waiter' && !view.done} treat={treat} coat={coat} />
+      ) : isLivingRoomScene(scene) ? (
         <LivingRoomScene t={t} posture={posture} sending={sending} coat={coat} />
       ) : scene === 'doorbell' ? (
         <DoorbellScene t={t} posture={posture} ringing={started && view.index === 0 && !view.done} coat={coat} />

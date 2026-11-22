@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-cafe-settle.do" data-alt="trail.theory-cafe-settle.do">
+  <!-- do: the dog lies calm without asking for anything, and that is when a treat lands quietly between its paws -->
+  <use href="#cafe-front"/>
+  <use href="#ground-terrace"/>
+  <g transform="translate(150 306) scale(1.0)">
+    <use href="#cafe-chair"/>
+    <use href="#person-seated-drop"/>
+  </g>
+  <g transform="translate(370 306) scale(1.0)">
+    <use href="#cafe-table"/>
+    <use href="#cafe-cup" transform="translate(18 -108)"/>
+  </g>
+  <use href="#mat" transform="translate(290 306)"/>
+  <use href="#dog-rest" transform="translate(300 304) scale(-1 1)"/>
+  <use href="#treat-drop" transform="translate(216 294)"/>
+  <use href="#heart" transform="translate(262 226)"/>
+  <use href="#badge-check" transform="translate(560 120) scale(1.5)"/>
+</svg>

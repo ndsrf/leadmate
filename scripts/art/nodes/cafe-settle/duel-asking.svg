@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+  <!-- duel option: the treat goes down while the dog sits up whining at the table -->
+  <use href="#cafe-front"/>
+  <use href="#ground-terrace"/>
+  <g transform="translate(170 306) scale(1.0)">
+    <use href="#cafe-chair"/>
+    <use href="#person-seated-drop"/>
+  </g>
+  <g transform="translate(410 306) scale(1.0)">
+    <use href="#cafe-table"/>
+    <use href="#cafe-cup" transform="translate(18 -108)"/>
+    <use href="#cafe-plate" transform="translate(-22 -108)"/>
+  </g>
+  <use href="#mat" transform="translate(310 306)"/>
+  <use href="#dog-sit-alert" transform="translate(300 304) scale(-1 1)"/>
+  <use href="#sound" transform="translate(300 150) rotate(-90) scale(0.8)"/>
+  <use href="#treat-drop" transform="translate(234 280)"/>
+</svg>

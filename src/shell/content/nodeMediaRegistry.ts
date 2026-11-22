@@ -3,6 +3,12 @@ import type { ImageSourcePropType } from 'react-native';
 
 /** Every bundled Node picture (an Image Duel pair), by its path inside a pack: `nodes/<node-id>/media/<file>`. */
 export const NODE_MEDIA: Readonly<Record<string, ImageSourcePropType>> = {
+  'nodes/cafe-arrive/media/duel-aisle.png': require('../../../assets/nodes/cafe-arrive/duel-aisle.png'),
+  'nodes/cafe-arrive/media/duel-wall.png': require('../../../assets/nodes/cafe-arrive/duel-wall.png'),
+  'nodes/cafe-passing-dog/media/duel-long.png': require('../../../assets/nodes/cafe-passing-dog/duel-long.png'),
+  'nodes/cafe-passing-dog/media/duel-short.png': require('../../../assets/nodes/cafe-passing-dog/duel-short.png'),
+  'nodes/cafe-settle/media/duel-asking.png': require('../../../assets/nodes/cafe-settle/duel-asking.png'),
+  'nodes/cafe-settle/media/duel-calm.png': require('../../../assets/nodes/cafe-settle/duel-calm.png'),
   'nodes/park-unpredictable/media/duel-autopilot.png': require('../../../assets/nodes/park-unpredictable/duel-autopilot.png'),
   'nodes/park-unpredictable/media/duel-turn-look.png': require('../../../assets/nodes/park-unpredictable/duel-turn-look.png'),
 };

@@ -200,6 +200,28 @@ describe('node.yaml validation', () => {
     expect(validateNodeYaml({ id: 'walk', mode: 'stage', prerequisites: [], introduces: 'not-an-array' }).valid).toBe(false);
     expect(validateNodeYaml({ id: 'walk', mode: 'stage', prerequisites: [], introduces: [123] }).valid).toBe(false);
   });
+
+  it('accepts minigame: cafe-settle and rejects unknown minigame kinds', () => {
+    const valid = {
+      id: 'cafe-settle',
+      mode: 'minigame',
+      prerequisites: ['cafe-arrive'],
+      simulation: { minigame: 'cafe-settle' },
+    };
+    const res = validateNodeYaml(valid);
+    expect(res.valid).toBe(true);
+    expect(res.errors).toEqual([]);
+
+    const invalid = {
+      id: 'cafe-settle',
+      mode: 'minigame',
+      prerequisites: [],
+      simulation: { minigame: 'unknown-minigame' },
+    };
+    const invalidRes = validateNodeYaml(invalid);
+    expect(invalidRes.valid).toBe(false);
+    expect(invalidRes.errors.some((e) => e.field === 'simulation.minigame')).toBe(true);
+  });
 });
 
 describe('mission.yaml validation', () => {
@@ -360,7 +382,7 @@ describe('node.yaml checkpoint question kinds', () => {
     expect(isDuelQuestionYaml({})).toBe(false);
   });
 
-  it('every shipped node.yaml still validates, and holds a duel only in park-unpredictable', () => {
+  it('every shipped node.yaml still validates, and holds a duel only in the Image Duel Nodes of World 6 and World 7', () => {
     for (const channel of ['stable', 'beta']) {
       const dir = join(__dirname, '../../../content', channel, 'nodes');
       const withDuel: string[] = [];
@@ -370,7 +392,13 @@ describe('node.yaml checkpoint question kinds', () => {
         const checkpoint = Array.isArray(cfg.checkpoint) ? cfg.checkpoint : [];
         if (checkpoint.some(isDuelQuestionYaml)) withDuel.push(id);
       }
-      expect({ channel, withDuel }).toEqual({ channel, withDuel: ['park-unpredictable'] });
+      if (channel === 'stable') expect({ channel, withDuel }).toEqual({ channel, withDuel: ['park-unpredictable'] });
+      else {
+        // Beta also carries the World 7 Terrace Nodes that end in an Image Duel.
+        const allowed = ['park-unpredictable', 'cafe-arrive', 'cafe-settle', 'cafe-passing-dog'];
+        expect(withDuel.filter((id) => !allowed.includes(id))).toEqual([]);
+        expect(withDuel).toEqual(expect.arrayContaining(['park-unpredictable', 'cafe-arrive', 'cafe-settle']));
+      }
     }
   });
 

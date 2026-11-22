@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-cafe-settle.image.1.caption" data-alt="trail.theory-cafe-settle.image.1.alt">
+  <!-- concept: a mat that smells of home, a chew to keep the mouth busy, and treats dropped quietly while the dog lies calm -->
+  <use href="#cafe-front"/>
+  <use href="#ground-terrace"/>
+  <use href="#cafe-parasol" transform="translate(560 306)"/>
+  <g transform="translate(150 306) scale(1.0)">
+    <use href="#cafe-chair"/>
+    <use href="#person-seated-drop"/>
+  </g>
+  <g transform="translate(370 306) scale(1.0)">
+    <use href="#cafe-table"/>
+    <use href="#cafe-cup" transform="translate(18 -108)"/>
+  </g>
+  <use href="#mat" transform="translate(290 306)"/>
+  <use href="#dog-down" transform="translate(306 304) scale(-1 1)"/>
+  <use href="#chew" transform="translate(250 300) rotate(-8)"/>
+  <use href="#treat-drop" transform="translate(212 280)"/>
+  <use href="#heart" transform="translate(262 210)"/>
+</svg>

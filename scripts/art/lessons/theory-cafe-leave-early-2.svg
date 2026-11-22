@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-cafe-leave-early.image.2.caption" data-alt="trail.theory-cafe-leave-early.image.2.alt">
+  <!-- leave while it is still easy: you get up and go with the dog relaxed, before it falls apart -->
+  <use href="#cafe-front"/>
+  <use href="#ground-terrace"/>
+  <use href="#cafe-chair" transform="translate(70 306)"/>
+  <g transform="translate(170 306) scale(1.0)">
+    <use href="#cafe-table"/>
+    <use href="#cafe-cup" transform="translate(18 -108)"/>
+  </g>
+  <g transform="translate(300 306)">
+    <use href="#person-walk"/>
+    <use href="#dog-walk-calm" transform="translate(200 0)"/>
+    <use href="#leash-u"/>
+  </g>
+  <use href="#heart" transform="translate(500 196)"/>
+  <use href="#arrow-ink" transform="translate(540 120)"/>
+</svg>

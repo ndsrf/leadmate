@@ -407,4 +407,21 @@ describe('minAppVersion gate: an older app keeps its bundled baseline', () => {
     expect(session.isBaseline).toBe(true);
     expect(session.contentVersion).toBe(BASELINE_PACK.pack.contentVersion);
   });
+
+  it('an app at 1.3.x rejects a 1.4.0 pack and keeps the bundled baseline with World 7 as a Preview', async () => {
+    const v140Pack: ContentPack = {
+      ...BASELINE_PACK,
+      pack: { ...BASELINE_PACK.pack, contentVersion: 9, minAppVersion: '1.4.0' },
+    };
+    expect(appCanLoadPack(v140Pack, '1.3.0')).toBe(false);
+    expect(appCanLoadPack(v140Pack, '1.4.0')).toBe(true);
+
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const session = await initContentRuntime({ channel: 'stable', store: storeHolding(v140Pack), currentAppVersion: '1.3.0' });
+    warn.mockRestore();
+
+    expect(session.isBaseline).toBe(true);
+    expect(session.contentVersion).toBe(BASELINE_PACK.pack.contentVersion);
+    expect(session.pack.worlds['cafe'].config.preview).toBe(true);
+  });
 });

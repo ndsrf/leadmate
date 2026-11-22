@@ -1023,23 +1023,23 @@ describe('WorldMapScreen - Satellite Stops for Puppies (Task 4.2 & 4.3)', () => 
 
 describe('Coming-soon World card (Task 4.1)', () => {
   const t = createTranslator(es);
-  const cafeWorld = findWorld('cafe')!;
-  const cafeEntry: MapWorld = {
-    world: cafeWorld,
+  const trailsWorld = findWorld('trails')!;
+  const trailsEntry: MapWorld = {
+    world: trailsWorld,
     unlocked: false,
     complete: false,
     done: 0,
     total: 4,
     stops: [],
     owed: [],
-    topics: cafeWorld.topics,
+    topics: trailsWorld.topics,
     tier: 'plus',
     preview: true,
   };
 
   const defaultProps = {
     t,
-    entry: cafeEntry,
+    entry: trailsEntry,
     width: 390,
     rusty: false,
     pulse: false,
@@ -1061,14 +1061,14 @@ describe('Coming-soon World card (Task 4.1)', () => {
     expect(markup).toContain(es['map.plusTeaserTitle']);
     expect(markup).toContain(es['map.plusTeaserBody']);
     expect(markup).toContain(es['paywall.badge']);
-    expect(markup).not.toContain(es['world.cafe.preview']);
+    expect(markup).not.toContain(es['world.trails.preview']);
   });
 
   it('renders ComingSoonCard for trial user with blurb, walk count, auto-unlock note, and no paywall button', () => {
     mockPressables.length = 0;
     const markup = renderToStaticMarkup(<WorldBlock {...defaultProps} plus={true} />);
     expect(markup).toContain(es['world.previewBadge']);
-    expect(markup).toContain(es['world.cafe.preview']);
+    expect(markup).toContain(es['world.trails.preview']);
     expect(markup).toContain(es['world.previewWalkCount'].replace('{count}', '4'));
     expect(markup).toContain(es['world.comingSoonAutoUnlock']);
     expect(markup).not.toContain(es['map.plusTeaserTitle']);
@@ -1079,7 +1079,7 @@ describe('Coming-soon World card (Task 4.1)', () => {
   it('renders ComingSoonCard identically for subscribed user with no paywall wording', () => {
     mockPressables.length = 0;
     const markup = renderToStaticMarkup(<WorldBlock {...defaultProps} plus={true} />);
-    expect(markup).toContain(es['world.cafe.preview']);
+    expect(markup).toContain(es['world.trails.preview']);
     expect(markup).not.toContain(es['map.plusTeaserTitle']);
     expect(markup).not.toContain(es['paywall.badge']);
   });
@@ -1096,17 +1096,44 @@ describe('Coming-soon World card (Task 4.1)', () => {
     // Before trial: free teaser
     const free = renderToStaticMarkup(<WorldBlock {...defaultProps} plus={false} />);
     expect(free).toContain(es['map.plusTeaserTitle']);
-    expect(free).not.toContain(es['world.cafe.preview']);
+    expect(free).not.toContain(es['world.trails.preview']);
 
     // Trial starts: flips to Próximamente card
     const activeTrial = renderToStaticMarkup(<WorldBlock {...defaultProps} plus={true} />);
-    expect(activeTrial).toContain(es['world.cafe.preview']);
+    expect(activeTrial).toContain(es['world.trails.preview']);
     expect(activeTrial).not.toContain(es['map.plusTeaserTitle']);
 
     // Trial ends: flips back to free teaser
     const expired = renderToStaticMarkup(<WorldBlock {...defaultProps} plus={false} />);
     expect(expired).toContain(es['map.plusTeaserTitle']);
-    expect(expired).not.toContain(es['world.cafe.preview']);
+    expect(expired).not.toContain(es['world.trails.preview']);
+  });
+
+  it('renders trail of Stretches and Stops, not ComingSoonCard, when World 7 is playable', () => {
+    const cafeWorld = findWorld('cafe')!;
+    const cafePlayable: MapWorld = {
+      world: cafeWorld,
+      unlocked: true,
+      complete: false,
+      done: 0,
+      total: 11,
+      stops: [
+        {
+          stop: { kind: 'lesson', id: 'theory-cafe-setup' },
+          kind: 'theory',
+          title: 'trail.theory-cafe-setup.title' as any,
+          state: 'open',
+          stretch: 0,
+        },
+      ],
+      owed: [],
+      topics: cafeWorld.topics,
+      tier: 'plus',
+      preview: false,
+    };
+    const markup = renderToStaticMarkup(<WorldBlock {...defaultProps} entry={cafePlayable} plus={true} />);
+    expect(markup).not.toContain(es['world.previewBadge']);
+    expect(markup).not.toContain(es['world.comingSoonAutoUnlock']);
   });
 });
 

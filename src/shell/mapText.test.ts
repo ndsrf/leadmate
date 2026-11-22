@@ -7,11 +7,14 @@ import type { MissionState } from './missions/mission';
 import { nodeVisual } from './ui/mapLayout';
 import { lightColor } from './ui/theme';
 import { progressOf } from './world';
+import * as path from 'node:path';
+import { loadPackFromDisk } from './content/loader';
+import { resolvePack } from './content/resolver';
 
 const t = createTranslator();
 const at = (h: number, day = 2, m = 0) => new Date(2026, 4, day, h, m);
 /** The map of a Dog past the Basics World: these tests are about Home & Thresholds and the Worlds after it. */
-const mapModel = (p: Parameters<typeof realMapModel>[0], stars: Parameters<typeof realMapModel>[1], now: Date) => realMapModel(withBasicsDone(p), stars, now);
+const mapModel = (p: Parameters<typeof realMapModel>[0], stars: Parameters<typeof realMapModel>[1], now: Date, content?: Parameters<typeof realMapModel>[3]) => realMapModel(withBasicsDone(p), stars, now, content);
 const find = (m: MapModel, id: string) => m.worlds.flatMap((w) => w.stops).find((s) => s.stop.id === id)!;
 const started = (d: Date): MissionState => ({ target: 'full', skipRun: 0, attempts: [], startedAt: d.toISOString() });
 const stretch1 = progressOf(['harness-ritual'], { readLessons: ['theory-harness', 'howto-tap-hold'] });
@@ -86,9 +89,24 @@ describe('World subtitles and unlock banners', () => {
   it('formats Stop progress and the preview planned count', () => {
     const m = mapModel(stretch1, {}, at(9));
     expect(worldWalkSubtitle(m.worlds[1], t)).toBe('3 de 10 paradas');
-    // World 6 is playable with its two Stretches (8 Stops); World 7 is the first Coming-soon World and shows its planned count
+    // World 6 is playable with its two Stretches; World 8 is the first Coming-soon World and shows its planned count
     expect(worldWalkSubtitle(m.worlds.find((w) => w.world.id === 'recall')!, t)).toBe('0 de 13 paradas');
-    expect(worldWalkSubtitle(m.worlds.find((w) => w.world.id === 'cafe')!, t)).toBe('4 paradas planificadas');
+    expect(worldWalkSubtitle(m.worlds.find((w) => w.world.id === 'trails')!, t)).toBe('4 paradas planificadas');
+  });
+
+  it('formats Stop progress for playable World 7', () => {
+    const betaPack = loadPackFromDisk(path.join(__dirname, '../../content/beta'));
+    const betaResolved = resolvePack(betaPack, 'es');
+    const betaMap = mapModel(stretch1, {}, at(9), {
+      worlds: betaResolved.worlds,
+      nodes: betaResolved.nodes,
+      lessons: betaResolved.lessons,
+      missions: betaResolved.missions,
+    });
+    const cafe = betaMap.worlds.find((w) => w.world.id === 'cafe')!;
+    expect(worldWalkSubtitle(cafe, t)).toBe('0 de 11 paradas');
+    const trails = betaMap.worlds.find((w) => w.world.id === 'trails')!;
+    expect(worldWalkSubtitle(trails, t)).toBe('4 paradas planificadas');
   });
 
   it('names the final missing Stop and the World in the banner', () => {

@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createTranslator, es, type TextKey, type Translate } from '../../i18n';
 import { findMission } from '../missions/content';
@@ -200,5 +200,49 @@ describe('Home Behaviour content method rules', () => {
     expect(findLesson('theory-eat-objects')!.blocks[0]).toEqual({ type: 'notice', text: 'lesson.note.vet' });
     const m = findMission('mission-eat-objects')!;
     for (const f of [...m.problems.map((p) => p.fix), m.generalFix]) expect(f.blocks.some((b) => b.type === 'text' && b.text === 'lesson.note.vet')).toBe(true);
+  });
+});
+
+describe('World 7 terrace content method rules', () => {
+  const root = join(__dirname, '../../../content/beta');
+  const ids = (dir: string, prefix: string) => readdirSync(join(root, dir)).filter((n) => n.startsWith(prefix));
+  const dirs = [
+    ...ids('lessons', 'theory-cafe-').map((n) => `lessons/${n}`),
+    ...ids('missions', 'mission-cafe-').map((n) => `missions/${n}`),
+    ...ids('nodes', 'cafe-').map((n) => `nodes/${n}`),
+  ];
+  const text = (lang: 'es' | 'en') => dirs.map((d) => ({ file: `${d}/${lang}.md`, body: readFileSync(join(root, d, `${lang}.md`), 'utf8') }));
+  const all = [...text('es'), ...text('en')];
+  /** Hitting, aversive tools, leash pops and law claims, in Spanish and English. */
+  const BANNED = /(pegar|golpe|patada|empujar|zarandear|cachete|castigar con|collar de|bozal|descarga|ordenanza|\blaw\b|by-?law|legal|ilegal|prohibid|está permitid|are permitted)/i;
+
+  it('covers the four Lessons, four Missions and three Nodes in both languages', () => {
+    expect(dirs).toHaveLength(11);
+    expect(all).toHaveLength(22);
+  });
+
+  it('never names aversive methods, nor any law about dogs at terraces', () => {
+    expect(all.filter((f) => BANNED.test(f.body)).map((f) => f.file)).toEqual([]);
+  });
+
+  it('never tells the user to pay or leave without paying', () => {
+    expect(all.filter((f) => /pay (inside )?or later|paga(s)? (dentro )?o más tarde/i.test(f.body)).map((f) => f.file)).toEqual([]);
+  });
+
+  it('tells the user to ask the venue wherever access comes up', () => {
+    const mentions = all.filter((f) => /(admiten perros|dogs are welcome|sentarte fuera|sit outside)/i.test(f.body));
+    expect(mentions.length).toBeGreaterThan(0);
+  });
+
+  it('gives an exit in every Lesson about waiters, passing dogs or overload', () => {
+    const exit = /(leave|leaving|change tables|change seats|another table|quieter table|irte|irse|vete|cambia de mesa|otra mesa|mesa más tranquila|levantarte)/i;
+    const lessons = all.filter((f) => /^lessons\/theory-cafe-(waiters|leave-early|settle)\//.test(f.file));
+    expect(lessons).toHaveLength(6);
+    expect(lessons.filter((f) => !exit.test(f.body)).map((f) => f.file)).toEqual([]);
+  });
+
+  it('never pays begging: no Lesson step hands over table food', () => {
+    const lessons = all.filter((f) => /^lessons\/theory-cafe-settle\//.test(f.file));
+    for (const f of lessons) expect(f.body).toMatch(/(nunca|never)/i);
   });
 });

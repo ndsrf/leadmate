@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" data-caption="trail.theory-cafe-waiters.do" data-alt="trail.theory-cafe-waiters.do">
+  <!-- do: a short, slack leash and the dog on your far side; you sit between it and the waiters -->
+  <use href="#cafe-front"/>
+  <use href="#ground-terrace"/>
+  <g transform="translate(200 306) scale(1.0)">
+    <use href="#cafe-chair"/>
+    <use href="#person-seated"/>
+  </g>
+  <g transform="translate(306 306) scale(1.0)">
+    <use href="#cafe-table"/>
+    <use href="#cafe-cup" transform="translate(18 -108)"/>
+  </g>
+  <use href="#mat" transform="translate(104 306)"/>
+  <use href="#dog-down" transform="translate(92 304)"/>
+  <path d="M190 220C174 286 140 286 106 261" fill="none" stroke="#1E2A3A" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M190 220C174 286 140 286 106 261" fill="none" stroke="#6FAF73" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <use href="#waiter" transform="translate(520 306) scale(0.9)"/>
+  <use href="#motion" transform="translate(486 196) scale(0.9)"/>
+  <use href="#badge-check" transform="translate(590 100) scale(1.5)"/>
+</svg>
