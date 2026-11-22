@@ -1,0 +1,22 @@
+id: mission-cafe-settle
+technique: cafe-settle
+reps: 1
+trains:
+  - kind: node
+    id: cafe-settle
+problems:
+  - id: begs
+    label: begs
+    practise:
+      kind: node
+      id: cafe-settle
+  - id: up
+    label: up
+    practise:
+      kind: node
+      id: cafe-settle
+  - id: chew
+    label: chew
+    practise:
+      kind: node
+      id: cafe-settle

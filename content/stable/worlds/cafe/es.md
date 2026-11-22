@@ -1,4 +1,4 @@
 # Terrazas y Cafeterías
 
 ## topics
-permanencia quieto, paso de camareros, relajación en mesa
+preparar la visita, relajación en mesa, paso de camareros, irse a tiempo

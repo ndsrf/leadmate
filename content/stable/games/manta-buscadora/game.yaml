@@ -1,0 +1,8 @@
+order: 4
+difficulty: easy
+minutes: 10
+materials: [fabric, food]
+images:
+  - manta-buscadora-1.png
+needs:
+  - mantas-olfativas
