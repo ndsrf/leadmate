@@ -49,7 +49,7 @@
 
 - [x] 8.1 Add **Dog Game** to `GLOSSARY.md` (real-world activity with the real dog, not a Minigame) and add "Dog Game" to the Minigame entry's _Avoid_ list; verify by reading both entries together.
 - [x] 8.2 Run `npm run typecheck`, `npm test` and `npm run content:validate -- beta` and verify all pass.
-- [ ] 8.3 Check on a device with the beta channel: chip appears, random works, free sample is open, a Plus game is locked then unlocks after starting the trial from it, shop link opens the Shop at the target, Android back returns list then map, and a game with an undownloaded image shows the placeholder offline.
+- [x] 8.3 Check on a device with the beta channel: chip appears, random works, free sample is open, a Plus game is locked then unlocks after starting the trial from it, shop link opens the Shop at the target, Android back returns list then map, and a game with an undownloaded image shows the placeholder offline.
 
 ## Workflow follow-up
 

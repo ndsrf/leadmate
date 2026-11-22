@@ -139,7 +139,7 @@ The system SHALL consume system back while the taste briefing is shown, leaving 
 - **THEN** system back is consumed and the briefing stays
 
 ### Requirement: System back on screens layered over the World Map
-Screens that keep the World Map mounted beneath them (Settings, the Theory Library, the Diary, a Lesson, Shop) and the Plus trial modal SHALL each get their own system back behavior, and the World Map underneath SHALL NOT replace or swallow it. System back SHALL close the Plus trial modal only while that modal is open.
+Screens that keep the World Map mounted beneath them (Settings, the Theory Library, the Diary, a Lesson, Shop, the Games screen, a Dog Game) and the Plus trial modal SHALL each get their own system back behavior, and the World Map underneath SHALL NOT replace or swallow it. System back SHALL close the Plus trial modal only while that modal is open.
 
 #### Scenario: Back from the Library, Diary or a Lesson opened from the map
 - **WHEN** the user opens the Theory Library, the Diary or a Lesson from the map and presses system back
@@ -152,6 +152,14 @@ Screens that keep the World Map mounted beneath them (Settings, the Theory Libra
 #### Scenario: Back on the bare World Map after a closed modal
 - **WHEN** the user has opened and closed the Plus trial modal, the World Map is shown with nothing over it, and the user presses system back
 - **THEN** the platform default applies and the app is left on the first press
+
+#### Scenario: Back from a Dog Game
+- **WHEN** the user opened a Dog Game from the Games list and presses system back
+- **THEN** the Games list is shown, and a second press returns to the World Map
+
+#### Scenario: Back from a random Dog Game
+- **WHEN** the user opened a Dog Game with the random button and presses system back
+- **THEN** the Games list is shown
 
 ### Requirement: Immediate back availability during active Stage loading
 While an active simulation Stage is loading (`bundle === 'loading'`) or has failed to load (`bundle === 'error'`), an on-screen back control SHALL be visible immediately without waiting for the simulation bundle to initialize, and system back SHALL exit the Stage and return to the caller rather than being consumed.

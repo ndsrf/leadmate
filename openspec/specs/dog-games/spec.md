@@ -1,10 +1,10 @@
-# Spec Delta
+# dog-games Specification
 
 ## Purpose
 
 Lets owners find and follow real-world games to play with their own dog, delivered as Content so new games arrive without an app release, with one free sample game and the rest of each game gated behind Plus.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Dog Games are Content
 The system SHALL deliver every Dog Game as an item of the active Content Pack, so adding, editing, reordering or retiring a game needs no app release. A Dog Game is a real-world activity played with the user's real dog and is distinct from a Minigame played with the virtual Dog.
@@ -110,10 +110,14 @@ A game that uses tools or objects a dog could swallow or chew (fabric, plastic, 
 - **THEN** the note is shown in the detail with the materials, and the pack validator flags a game that declares an object kind needing one but has none
 
 ### Requirement: Game illustrations travel with the pack
-Every Dog Game illustration SHALL be a wordless 16:9 image stored in the game's own `media/` folder of the pack and delivered with the content, never in the app bundle. An illustration that is not yet downloaded or fails to load SHALL show the themed media placeholder and SHALL NOT block reading the game.
+Every Dog Game illustration SHALL be a wordless 16:9 image stored in the game's own `media/` folder of the pack and delivered with the content. The illustrations of the games in the stable pack at build time SHALL also be bundled in the app as a fallback, and an installed pack copy SHALL take precedence over the bundled one. An illustration that is neither installed nor bundled, or that fails to load, SHALL show the themed media placeholder and SHALL NOT block reading the game.
+
+#### Scenario: Bundled illustration shows offline
+- **WHEN** the device is offline on first launch and opens a game that was in the stable pack when the app was built
+- **THEN** its illustration is shown from the app bundle
 
 #### Scenario: Offline before the first download
-- **WHEN** the device is offline and a game's illustration has not been downloaded
+- **WHEN** the device is offline and the illustration of a game added after the app was built has not been downloaded
 - **THEN** the themed placeholder is shown in its place and the game text remains readable
 
 #### Scenario: Illustration limits
