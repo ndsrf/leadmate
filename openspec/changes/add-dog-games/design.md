@@ -44,6 +44,8 @@ Pure function `pickRandomGame(ids, lastId, rng)` returns a random id that differ
 ### 6. Illustrations are pack media, not bundled art
 Images resolve through the existing media resolver for pack files (as Shop product pictures do), are downloaded with the content update and show the themed placeholder until then. Validation limits (PNG, 16:9, ≤ 960 wide, ≤ 250 KB) keep the update small: 22 games × 2 images × 250 KB is under 11 MB worst case, usually far less. **Alternative**: bundle the art like Lessons, rejected, it forces a release per game, which is the problem this change exists to avoid.
 
+**Update 2026-11-22: the first batch is also bundled as a fallback.** The 6 game illustrations (and the Shop product pictures) that ship with stable at the 1.4.0 release are copied into the app by `scripts/gen-pack-media.mjs` (`assets/games/`, `assets/shop/`, registry `PACK_MEDIA`, rerun by `release:prepare`), so they show offline on a first launch and while stable is not yet on the content host. The resolver still prefers the installed pack file, so an over-the-air change to one of them wins, and games added after a release keep arriving over the air only (placeholder, then background download), so no release per game. The shared `MediaResolver` is now configured at content bootstrap with the native store, file storage and content base.
+
 ### 7. Producing the PNGs from the Claude Design canvas
 The 6 scenes are inline SVG artboards (640×360). The repo already has the Lesson art kit and `scripts/render-lesson-art.mjs` with palette and no-text checks. Decision: port each scene's SVG into the kit under `scripts/art/games/`, render to `content/<channel>/games/<id>/media/<id>-N.png` at 960×540 and run the same checks, adding the new blue (`#5C8DBE`, `#8DB4DC`) and croquette tones to the palette list if they pass review. **Alternative**: export PNGs straight from the canvas, rejected for now, it skips the palette and no-text checks and the exports would drift from the canvas each time a scene changes; the validator limits above still apply to either route.
 
@@ -70,5 +72,5 @@ The snuffle-mat game targets a Subcategory `mantas-olfativas` under the Shop's e
 
 ## Open Questions
 
-- Should the free sample game and its images go into the bundled baseline so it shows on a first offline launch? Default in this change: baseline includes game text only; images download. Decide when measuring the baseline size.
+- ~~Should the free sample game and its images go into the bundled baseline so it shows on a first offline launch?~~ Decided 2026-11-22: every game illustration in stable at release time is bundled as a fallback (about 0.2 MB for the first 6); later games still arrive over the air. See decision 6.
 - Real buy links for the snuffle mat, cones and Kong are needed from the author; until they exist the Shop links stay hidden.
