@@ -2,6 +2,7 @@ import { LESSON_ART } from '../lessons/lessonArtRegistry';
 import { isLessonArt } from '../ui/lessonArt';
 import { channelFileUrl, hasRemoteContent } from './config';
 import { NODE_MEDIA } from './nodeMediaRegistry';
+import { PACK_MEDIA } from './packMediaRegistry';
 import { getActiveContent } from './runtime';
 import { sha256Hex } from './hash';
 import { ContentStore, type FileStorage } from './store';
@@ -81,6 +82,16 @@ export class MediaResolver {
         return {
           kind: 'bundled',
           source: NODE_MEDIA[candidate],
+        };
+      }
+    }
+
+    // 2c. Check bundled pack media of this release (Dog Game illustrations, Shop product pictures), same keys
+    for (const candidate of this.getCandidates(art, options.itemPath)) {
+      if (candidate in PACK_MEDIA) {
+        return {
+          kind: 'bundled',
+          source: PACK_MEDIA[candidate],
         };
       }
     }

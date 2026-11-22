@@ -116,12 +116,13 @@ describe('content:release-check', () => {
 });
 
 describe('release:prepare', () => {
-  it('chains sim:embed, gen-baseline, release-check in order, without --allow-offline', () => {
+  it('chains sim:embed, gen-baseline, gen-pack-media, release-check in order, without --allow-offline', () => {
     const pkg = require('../../../package.json');
     const steps = (pkg.scripts['release:prepare'] as string).split('&&').map((s) => s.trim());
     expect(steps).toEqual([
       'npm run sim:embed',
       'node scripts/gen-baseline.mjs',
+      'node scripts/gen-pack-media.mjs',
       'npm run content:release-check',
     ]);
     expect(pkg.scripts['content:release-check']).not.toContain('--allow-offline');

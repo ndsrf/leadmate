@@ -3,6 +3,7 @@ import Constants from 'expo-constants';
 import { loadContentChannel, type ContentChannel } from './channelSetting';
 import { switchChannel, type SwitchChannelResult } from './channelSwitcher';
 import { hasRemoteContent, resolveContentBase } from './config';
+import { MediaResolver } from './mediaResolver';
 import { getActiveContent, initContentRuntime, switchContentLanguage, type RuntimeContent } from './runtime';
 import { ContentStore, type FileStorage, type KeyValueStorage } from './store';
 import { ContentUpdater } from './updater';
@@ -270,6 +271,17 @@ export function getNativeContentUpdater(): ContentUpdater {
   return updaterInstance;
 }
 
+/**
+ * Points the shared MediaResolver (used by every ContentPicture) at the installed pack storage and the content host,
+ * so pictures resolve from the installed pack first and missing ones download in the background. With no content
+ * host it still reads installed packs and the bundled pictures, and never touches the network.
+ */
+export function configureNativeMediaResolver(contentBase: string): MediaResolver {
+  const resolver = new MediaResolver(getNativeContentStore(), getNativeFileStorage(), undefined, contentBase);
+  MediaResolver.setInstance(resolver);
+  return resolver;
+}
+
 export function resetNativeRuntimeForTesting(storage?: FileStorage, store?: ContentStore, updater?: ContentUpdater): void {
   cachedStorage = storage ?? null;
   cachedBaseDir = null;
@@ -291,6 +303,7 @@ export async function initNativeContent(options?: {
     options?.isDev ?? (typeof __DEV__ !== 'undefined' ? __DEV__ : process.env.NODE_ENV !== 'production');
   const contentBase = options?.contentBase ?? resolveContentBase({ isDev });
   const hasRemote = hasRemoteContent(contentBase);
+  configureNativeMediaResolver(contentBase);
 
   if (!hasRemote) {
     if (options?.language) {
