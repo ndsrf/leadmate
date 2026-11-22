@@ -53,7 +53,18 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 20, bottom: 0, left: 0, right: 0 }),
 }));
 
+import { MediaResolver } from '../content/mediaResolver';
+import { PACK_MEDIA } from '../content/packMediaRegistry';
 import { ShopScreen } from './ShopScreen';
+
+/** Resolves only arnes-pro's picture, as if its pack were installed on the device. */
+const installedArnes = {
+  resolveImage: jest.fn(async (art: string, opts: { itemPath?: string }) =>
+    opts.itemPath === 'shop/products/arnes-pro' && art === 'arnes.png'
+      ? { kind: 'local' as const, uri: '/content/stable/active/shop/products/arnes-pro/media/arnes.png', source: { uri: '/content/stable/active/shop/products/arnes-pro/media/arnes.png' } }
+      : { kind: 'placeholder' as const, failed: true }
+  ),
+} as unknown as MediaResolver;
 
 describe('ShopScreen component', () => {
   const mockCatalog: Record<string, string> = {
@@ -255,6 +266,7 @@ describe('ShopScreen component', () => {
           onBack={() => {}}
           shop={sampleShop}
           initialTarget={{ level: 'subcategory', id: 'arneses' }}
+          resolver={installedArnes}
         />
       );
     });
@@ -272,6 +284,44 @@ describe('ShopScreen component', () => {
     expect(placeholder).toBeDefined();
     expect(placeholder.props.style.width).toBe(80);
     expect(placeholder.props.style.height).toBe(80);
+  });
+
+  it('shows the installed-pack picture resolved inside the product folder, not the bare relative path', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(
+        <ShopScreen t={mockTranslate} onBack={() => {}} shop={sampleShop} initialTarget={{ level: 'subcategory', id: 'arneses' }} resolver={installedArnes} />
+      );
+    });
+    const img = renderer!.root.findByProps({ testID: 'product-card-arnes-pro' }).findByProps({ testID: 'product-image' });
+    expect(img.props.source).toEqual({ uri: '/content/stable/active/shop/products/arnes-pro/media/arnes.png' });
+  });
+
+  it('shows a bundled stable product picture with no store and no content host', async () => {
+    const bundledShop = JSON.parse(JSON.stringify(sampleShop));
+    const prod = bundledShop.categories[0].subcategories[0].products[0];
+    prod.id = 'arnes-ergonomico-y';
+    prod.image = 'arnes-ergonomico.png';
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(
+        <ShopScreen t={mockTranslate} onBack={() => {}} shop={bundledShop} initialTarget={{ level: 'subcategory', id: 'arneses' }} resolver={new MediaResolver(null, null, undefined, '')} />
+      );
+    });
+    const img = renderer!.root.findByProps({ testID: 'product-card-arnes-ergonomico-y' }).findByProps({ testID: 'product-image' });
+    expect(img.props.source).toBe(PACK_MEDIA['shop/products/arnes-ergonomico-y/media/arnes-ergonomico.png']);
+  });
+
+  it('shows the placeholder when a picture is neither installed, bundled nor downloadable', async () => {
+    let renderer: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = ReactTestRenderer.create(
+        <ShopScreen t={mockTranslate} onBack={() => {}} shop={sampleShop} initialTarget={{ level: 'subcategory', id: 'arneses' }} resolver={new MediaResolver(null, null, undefined, '')} />
+      );
+    });
+    const card = renderer!.root.findByProps({ testID: 'product-card-arnes-pro' });
+    expect(card.findAllByProps({ testID: 'product-image' })).toHaveLength(0);
+    expect(card.findByProps({ testID: 'product-image-placeholder' })).toBeDefined();
   });
 
   describe('Buy Action (Task 5.2)', () => {

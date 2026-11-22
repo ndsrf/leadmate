@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import type { Translate } from '../../i18n';
+import type { MediaResolver } from '../content/mediaResolver';
 import { getActiveContent } from '../content/runtime';
 import type {
   ResolvedCategory,
@@ -20,6 +21,7 @@ import type {
 } from '../content/resolver';
 import { handlePress } from '../ui/press';
 import { usePalette } from '../ui/theme';
+import { useProductPictures } from './useProductPictures';
 
 export type ShopLevel = 'home' | 'category' | 'subcategory' | 'product';
 
@@ -39,6 +41,8 @@ export interface ShopScreenProps {
   isOffline?: boolean;
   openURL?: (url: string) => any;
   canOpenURL?: (url: string) => any;
+  /** Resolves product pictures; defaults to the app-wide MediaResolver. */
+  resolver?: MediaResolver;
 }
 
 export function ShopScreen({
@@ -49,6 +53,7 @@ export function ShopScreen({
   isOffline = false,
   openURL,
   canOpenURL,
+  resolver,
 }: ShopScreenProps) {
   const insets = useSafeAreaInsets();
   const color = usePalette();
@@ -61,6 +66,7 @@ export function ShopScreen({
     const active = getActiveContent();
     return active?.resolved?.shop ?? { categories: [], idToKind: {} };
   }, [shopProp]);
+  const pictures = useProductPictures(shop, resolver);
 
   // Compute initial stack based on initialTarget
   const initialStack = useMemo<ShopStackEntry[]>(() => {
@@ -412,10 +418,10 @@ export function ShopScreen({
                 }}
               >
                 {/* Product Picture or Themed Placeholder */}
-                {prod.image && !failedImages[prod.id] ? (
+                {pictures[prod.id] && !failedImages[prod.id] ? (
                   <Image
                     testID="product-image"
-                    source={{ uri: prod.image }}
+                    source={pictures[prod.id]}
                     onError={() => setFailedImages((prev) => ({ ...prev, [prod.id]: true }))}
                     style={{ width: 80, height: 80, borderRadius: 12, backgroundColor: color.surfaceSunken }}
                     resizeMode="cover"
@@ -503,10 +509,10 @@ export function ShopScreen({
         {current.level === 'product' && activeProduct && (
           <View style={{ gap: 16, backgroundColor: color.surface, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: color.edge }}>
             {/* Main Picture or Placeholder */}
-            {activeProduct.image && !failedImages[activeProduct.id] ? (
+            {pictures[activeProduct.id] && !failedImages[activeProduct.id] ? (
               <Image
                 testID="product-detail-image"
-                source={{ uri: activeProduct.image }}
+                source={pictures[activeProduct.id]}
                 onError={() => setFailedImages((prev) => ({ ...prev, [activeProduct.id]: true }))}
                 style={{ width: '100%', height: 220, borderRadius: 16, backgroundColor: color.surfaceSunken }}
                 resizeMode="contain"

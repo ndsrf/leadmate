@@ -22,7 +22,8 @@
     "content:shop-import": "node scripts/content-shop-import.mjs",
     "content:release-check": "node scripts/content-release-check.mjs",
     "gen:baseline": "node scripts/gen-baseline.mjs",
-    "release:prepare": "npm run sim:embed && node scripts/gen-baseline.mjs && npm run content:release-check",
+    "gen:pack-media": "node scripts/gen-pack-media.mjs",
+    "release:prepare": "npm run sim:embed && node scripts/gen-baseline.mjs && node scripts/gen-pack-media.mjs && npm run content:release-check",
     "eas-build-post-install": "npm run release:prepare"
   },
   "dependencies": {
