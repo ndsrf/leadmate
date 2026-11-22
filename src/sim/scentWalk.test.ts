@@ -254,21 +254,69 @@ describe('changes', () => {
 });
 
 describe('Novelty', () => {
-  it('drops with repeats: the third right turn within 10 s is repeated', () => {
+  it('counts a continuous 90° corner turn over 0.8 s only once', () => {
     const s = createState(7, stage());
-    const dirs = [[0, -1], [-1, 0], [0, 1]];
-    const events: SimEvent[] = [...run(s, 1, walk())];
-    dirs.forEach(([x, y]) => events.push(...run(s, 3.5, walk(0.6, x, y))));
+    run(s, 1, walk());
+    const events: SimEvent[] = [];
+    const duration = 0.8;
+    const steps = Math.round(duration / STEP);
+    for (let i = 1; i <= steps; i++) {
+      const angle = -(Math.PI / 2) * (i / steps);
+      events.push(...tick(s, walk(0.6, Math.cos(angle), Math.sin(angle))));
+    }
     const turns = changes(events).filter((e) => e.change === 'right-turn');
-    expect(turns).toHaveLength(3);
+    expect(turns).toHaveLength(1);
+  });
+
+  it('does not drop non-consecutive turns of the same kind during a quick zigzag', () => {
+    const s = createState(7, stage());
+    run(s, 1, walk());
+    const events: SimEvent[] = [];
+    // right turn, then left turn, then right turn within 1.5 seconds total
+    events.push(...run(s, 0.4, walk(0.6, 0, -1)));
+    events.push(...run(s, 0.4, walk(0.6, 1, 0)));
+    events.push(...run(s, 0.4, walk(0.6, 0, -1)));
+    const counted = changes(events);
+    expect(counted.map((e) => e.change)).toEqual(['right-turn', 'left-turn', 'right-turn']);
+  });
+
+  it('drops with repeats: three right turns within 6 s lower novelty while remaining above repeated, five is repeated', () => {
+    const s = createState(7, stage());
+    const dirs = [[0, -1], [-1, 0], [0, 1], [1, 0], [0, -1]];
+    const events: SimEvent[] = [...run(s, 1, walk())];
+    dirs.forEach(([x, y]) => events.push(...run(s, 1.6, walk(0.6, x, y))));
+    const turns = changes(events).filter((e) => e.change === 'right-turn');
+    expect(turns).toHaveLength(5);
     expect(turns[0]).toMatchObject({ novelty: 1, freshness: 'fresh' });
     expect(turns[2].novelty).toBeLessThan(turns[0].novelty);
-    expect(turns[2].freshness).toBe('repeated');
+    expect(turns[2].freshness).not.toBe('repeated');
+    expect(turns[2].novelty).toBeGreaterThanOrEqual(0.4);
+    expect(turns[4].freshness).toBe('repeated');
+  });
+
+  it('restores +0.15 novelty to all turn kinds on a stop', () => {
+    const s = createState(7, stage());
+    s.scentWalk!.novelty['right-turn'] = 0.3;
+    s.scentWalk!.novelty['left-turn'] = 0.3;
+    s.scentWalk!.novelty['u-turn'] = 0.3;
+    run(s, 1.5, walk());
+    run(s, 0.3, stand);
+    expect(s.scentWalk!.novelty['right-turn']).toBeGreaterThanOrEqual(0.45);
+    expect(s.scentWalk!.novelty['left-turn']).toBeGreaterThanOrEqual(0.45);
+    expect(s.scentWalk!.novelty['u-turn']).toBeGreaterThanOrEqual(0.45);
+  });
+
+  it('restores +0.15 novelty between opposite left and right turns', () => {
+    const s = createState(7, stage());
+    s.scentWalk!.novelty['right-turn'] = 0.3;
+    run(s, 1.5, walk());
+    run(s, 0.5, walk(0.6, 0, 1)); // left turn
+    expect(s.scentWalk!.novelty['right-turn']).toBeGreaterThanOrEqual(0.45);
   });
 
   it('recovers with time: a stop is fresh again after 30 s without one', () => {
     const s = createState(7, stage());
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 4; i++) {
       run(s, 1.5, walk());
       run(s, 0.3, stand);
     }

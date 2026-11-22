@@ -321,7 +321,7 @@ A kind of handled action a walking Stage answers, with feedback and points, beca
 _Avoid_: Unlocked feedback, enabled kind, taught action
 
 **Dog sign**:
-A mark drawn over or around the Dog in a Stage that shows its state: the yellow "!" of a Fixation, the circle of Alert, the eye and gaze line of looking at the Handler, the sound arcs of barking, the scent dots of sniffing and the green glow of Sintonía. It is not a Feedback Message (a reaction to the user's action) or a Hint (the first-time text that explains a sign).
+A mark drawn over or around the Dog in a Stage that shows its state: the yellow "!" of a Fixation, the circle of Alert, the eye and gaze line of looking at the Handler, the sound arcs of barking, the scent dots of sniffing, the green glow of Sintonía and the drifting cloud of Autopilot. It is not a Feedback Message (a reaction to the user's action) or a Hint (the first-time text that explains a sign).
 _Avoid_: Indicator, icon, emote, status icon
 
 **Coach mark**:
@@ -372,7 +372,7 @@ Walking in which the Handler varies direction, pace and stops, so the Dog keeps 
 _Avoid_: Random walk, zig-zag walk
 
 **Autopilot**:
-How far the Dog has stopped paying attention to the Handler because the walk has become routine: it grows while the Handler keeps the same heading and pace, and drops when the Handler changes direction, pace or stops.
+How far the Dog has stopped paying attention to the Handler because the walk has become routine: it grows while the Handler keeps the same heading and pace, and drops when the Handler changes direction, pace or stops. In a Stage it is telegraphed by the Dog looking away in its portrait and the drifting cloud Dog sign, distinguishing a tuned-out dog from a calm, attentive one.
 _Avoid_: Boredom, distraction level
 
 **Novelty**:

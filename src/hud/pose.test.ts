@@ -1,5 +1,6 @@
 import { defaultScenario } from '../sim/config';
 import { runScripted, routeDirection } from '../sim/harness';
+import { updateAutopilotHysteresis } from '../sim/scentWalk';
 import { createState, noInput, tick, type SimInput } from '../sim/sim';
 import { dogPose, gaitPeriod, walkClipFor } from './pose';
 
@@ -115,6 +116,48 @@ describe('Dog pose', () => {
       expect(dogPose(s).gaze).toBe('away-left');
       s.dogDesired = { x: 0, y: -1 };
       expect(dogPose(s).gaze).toBe('away-right');
+    });
+
+    it('Autopilot >= 0.7 triggers turned-away gaze and autopilot pose, clearing below 0.4', () => {
+      const s = createState(3, { ...defaultScenario, distractor: free.distractor, world: 6, scenery: [], scents: [{ pos: { x: 5, y: 0.5 }, strength: 'normal' }] });
+      expect(s.scentWalk).not.toBeNull();
+      s.scentWalk!.autopilot = 0.5;
+      updateAutopilotHysteresis(s.scentWalk!);
+      expect(dogPose(s)).toMatchObject({ gaze: 'ahead', autopilot: false });
+
+      s.scentWalk!.autopilot = 0.75;
+      updateAutopilotHysteresis(s.scentWalk!);
+      expect(dogPose(s)).toMatchObject({ gaze: 'away-right', autopilot: true });
+
+      // Hysteresis: remains active between 0.4 and 0.7
+      s.scentWalk!.autopilot = 0.5;
+      updateAutopilotHysteresis(s.scentWalk!);
+      expect(dogPose(s)).toMatchObject({ gaze: 'away-right', autopilot: true });
+
+      // Clears below 0.4
+      s.scentWalk!.autopilot = 0.35;
+      updateAutopilotHysteresis(s.scentWalk!);
+      expect(dogPose(s)).toMatchObject({ gaze: 'ahead', autopilot: false });
+    });
+
+    it('Autopilot pose and turned-away gaze are suppressed during Check-in, fixation, or sniffing', () => {
+      const s = createState(3, { ...defaultScenario, distractor: free.distractor, world: 6, scenery: [], scents: [{ pos: { x: 5, y: 0.5 }, strength: 'normal' }] });
+      s.scentWalk!.autopilotActive = true;
+      expect(dogPose(s)).toMatchObject({ gaze: 'away-right', autopilot: true });
+
+      // Check-in suppresses autopilot pose and turns gaze to handler
+      s.dogLookUntil = s.time + 1;
+      expect(dogPose(s)).toMatchObject({ gaze: 'handler', autopilot: false });
+      s.dogLookUntil = s.time - 1;
+
+      // Fixation suppresses autopilot pose
+      s.dogMode = 'fixated';
+      expect(dogPose(s).autopilot).toBe(false);
+      s.dogMode = 'goal';
+
+      // Sniffing suppresses autopilot pose
+      s.dogMode = 'sniffing';
+      expect(dogPose(s).autopilot).toBe(false);
     });
 
     it('shows planted and marking only when the simulation has those modes', () => {

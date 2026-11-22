@@ -17,6 +17,7 @@ export function dogSignsShown(state: SimState, pose: DogPose = dogPose(state)): 
   if (pose.barking) signs.add('bark');
   if (pose.headDown) signs.add('scent');
   if (!fixated && isDogLooking(state)) signs.add('eye');
+  if (pose.autopilot) signs.add('autopilot');
   return { fixation: fixated, signs };
 }
 

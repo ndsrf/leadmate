@@ -123,7 +123,7 @@ export type StageSignal = (typeof STAGE_SIGNALS)[number];
  * the Alert circle, the eye of eye contact, the bark arcs, the scent dots and the Sintonía glow. `dog-sign` carries the
  * sign the first time it is drawn; `dog-sign-gone` says it went off screen, so a Hint still waiting for it is dropped.
  */
-export const DOG_SIGNS = ['alert', 'eye', 'bark', 'scent', 'sintonia'] as const;
+export const DOG_SIGNS = ['alert', 'eye', 'bark', 'scent', 'sintonia', 'autopilot'] as const;
 export type DogSign = (typeof DOG_SIGNS)[number];
 
 export function isDogSign(v: unknown): v is DogSign {

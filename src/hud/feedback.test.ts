@@ -229,6 +229,59 @@ describe('Rigid Pull rate limit', () => {
     step(d, 0, rigid(0));
     expect(step(d, 5, rigid(5), checkIn(5))).toMatchObject({ kind: 'check-in-hit' });
   });
+
+  it('rate-limits repeated-move-ignored to at most once every 6 seconds', () => {
+    const d = new FeedbackDecider();
+    const repeated = (time: number): SimEvent => ({
+      type: 'walk-change',
+      time,
+      change: 'left-turn',
+      novelty: 0.2,
+      freshness: 'repeated',
+      followed: false,
+      pos: { x: 0, y: 0 },
+    });
+    expect(step(d, 0, repeated(0))).toMatchObject({ kind: 'repeated-move-ignored' });
+    expect(step(d, 2, repeated(2))).toBeNull();
+    expect(step(d, 5, repeated(5))).toBeNull();
+    expect(step(d, 6.1, repeated(6.1))).toMatchObject({ kind: 'repeated-move-ignored' });
+  });
+
+  it('preserves active Combos when repeated-move-ignored occurs', () => {
+    const d = new FeedbackDecider();
+    const repeated = (time: number): SimEvent => ({
+      type: 'walk-change',
+      time,
+      change: 'left-turn',
+      novelty: 0.2,
+      freshness: 'repeated',
+      followed: false,
+      pos: { x: 0, y: 0 },
+    });
+    step(d, 0, follow(0));
+    expect(step(d, 1, follow(1))?.combo).toBe(2);
+    expect(step(d, 2, repeated(2))).toMatchObject({ kind: 'repeated-move-ignored' });
+    expect(step(d, 3, follow(3))?.combo).toBe(3);
+  });
+
+  it('suppresses followed-turn praise when the Dog follows a repeated turn', () => {
+    const d = new FeedbackDecider();
+    const change: SimEvent = {
+      type: 'walk-change',
+      time: 0,
+      change: 'right-turn',
+      novelty: 0.3,
+      freshness: 'repeated',
+      followed: true,
+      pos: { x: 0, y: 0 },
+    };
+    const followEvt: SimEvent = {
+      type: 'dog-follow',
+      time: 0,
+      change: 'right-turn',
+    };
+    expect(step(d, 0, change, followEvt)).toBeNull();
+  });
 });
 
 describe('Stage Meters', () => {

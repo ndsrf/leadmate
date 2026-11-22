@@ -27,6 +27,8 @@ export interface DogPose {
   trotting: boolean;
   /** Green flow glow around the Dog and Handler (Sintonía). */
   flowGlow: boolean;
+  /** High autopilot attention drift to the environment (scent Stage). */
+  autopilot?: boolean;
   gaze: Gaze;
   head: Head;
   ears: Ears;
@@ -86,9 +88,14 @@ export function walkClipFor(pose: Pick<DogPose, 'action' | 'gaze' | 'tail'>): Wa
 export function dogPose(state: SimState): DogPose {
   const sniffing = state.dogMode === 'sniffing' || state.dogMode === 'planted';
   const reactive = state.tier === 'reactive';
-  const gaze = gazeOf(state);
+  let gaze = gazeOf(state);
   const fixated = state.dogMode === 'fixated';
   const checkIn = isDogLooking(state) && gaze === 'handler';
+  const autopilotActive = state.scentWalk?.autopilotActive ?? false;
+  const autopilot = autopilotActive && !fixated && !sniffing && !isDogLooking(state);
+  if (autopilot && gaze === 'ahead') {
+    gaze = 'away-right';
+  }
   const head: Head = sniffing ? 'down' : state.tier !== 'calm' ? 'up' : 'level';
   let ears: Ears = 'neutral';
   if (state.tension === 'rigid' && !fixated) ears = 'back';
@@ -106,6 +113,7 @@ export function dogPose(state: SimState): DogPose {
     lunging: reactive && state.dogMode === 'fixated',
     trotting: state.sintonia.active,
     flowGlow: state.sintonia.active,
+    autopilot,
   };
 }
 

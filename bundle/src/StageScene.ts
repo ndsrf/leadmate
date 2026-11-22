@@ -939,6 +939,18 @@ export class StageScene extends Phaser.Scene {
       g.fillStyle(0x0ea5e9).fillCircle(dogPos.x, dogPos.y - 38, 4);
     }
 
+    if (pose.autopilot && !looking && s.dogMode !== 'fixated') {
+      // Autopilot: a soft drifting cloud over the Dog's head
+      const drift = Math.sin(this.time.now / 350) * 5;
+      const cy = dogPos.y - 42;
+      const cx = dogPos.x + drift;
+      g.fillStyle(0x94a3b8, 0.8);
+      g.fillCircle(cx - 6, cy + 1, 4);
+      g.fillCircle(cx, cy - 2, 5.5);
+      g.fillCircle(cx + 6, cy + 1, 4);
+      g.fillRoundedRect(cx - 8, cy, 16, 5, 2);
+    }
+
     // leash: around wall corners when a wall is in the way
     const pulse = s.tension === 'slack' ? 1 : 0.65 + 0.35 * Math.sin(this.time.now / (s.tension === 'rigid' ? 60 : 160));
     g.lineStyle(s.tension === 'rigid' ? 5 : 3, COLORS[s.tension], pulse);
