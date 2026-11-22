@@ -148,19 +148,30 @@ function homeStretchOfStop(stop: Stop): Stop[] | undefined {
   return homeStretchStops().map((h) => h.stops).find((stops) => stops.some((s) => sameStop(s, stop)));
 }
 
+/** The location of a trail lesson: its World and its Stretch stops. */
+function locationOfLesson(
+  lessonId: string,
+  worlds: readonly WorldDef[] = WORLDS,
+): { world: WorldDef | undefined; stops: Stop[] | undefined } {
+  const place = placeOf({ kind: 'lesson', id: lessonId }, worlds);
+  if (place) {
+    return { world: place.world, stops: place.world.stretches[place.stretch] };
+  }
+  const home = homeStretchOfStop({ kind: 'lesson', id: lessonId });
+  if (home) {
+    return { world: findWorld('home', worlds), stops: home };
+  }
+  return { world: undefined, stops: undefined };
+}
+
 /** The World holding the Lesson with this id, if placed on a World's trail or Home Stretch; undefined otherwise. */
 export function worldOfLesson(lessonId: string, worlds: readonly WorldDef[] = WORLDS): WorldDef | undefined {
-  const place = placeOf({ kind: 'lesson', id: lessonId }, worlds);
-  if (place) return place.world;
-  if (homeStretchOfStop({ kind: 'lesson', id: lessonId })) return findWorld('home', worlds);
-  return undefined;
+  return locationOfLesson(lessonId, worlds).world;
 }
 
 /** The stops of the Stretch holding the Lesson with this id, looking across worlds and Home Stretches. */
 export function stretchStopsContainingLesson(lessonId: string, worlds: readonly WorldDef[] = WORLDS): Stop[] | undefined {
-  const place = placeOf({ kind: 'lesson', id: lessonId }, worlds);
-  if (place) return place.world.stretches[place.stretch];
-  return homeStretchOfStop({ kind: 'lesson', id: lessonId });
+  return locationOfLesson(lessonId, worlds).stops;
 }
 
 /** The Node ids of the Stretch containing the Lesson with this id. */
@@ -171,19 +182,18 @@ export function nodesOfStretchContainingLesson(lessonId: string, worlds: readonl
 
 /**
  * True when the lesson's stretch is completed: either a Node in the stretch is completed,
- * or (for node-less stretches) the stretch's Mission has been started or passed.
+ * or (for node-less stretches) the stretch's Mission has been passed.
  */
 export function isLessonStretchCompleted(lessonId: string, progress: Progress, worlds: readonly WorldDef[] = WORLDS): boolean {
-  const stops = stretchStopsContainingLesson(lessonId, worlds);
-  if (!stops) return false;
-  const nodes = stops.filter((s) => s.kind === 'node');
+  const nodes = nodesOfStretchContainingLesson(lessonId, worlds);
   if (nodes.length > 0) {
-    return nodes.some((n) => progress.completedNodes.includes(n.id));
+    return nodes.some((n) => progress.completedNodes.includes(n));
   }
-  const mission = stops.find((s) => s.kind === 'mission');
+  const stops = stretchStopsContainingLesson(lessonId, worlds);
+  const mission = stops?.find((s) => s.kind === 'mission');
   if (mission) {
     const m = progress.missions[mission.id];
-    return !!(m?.startedAt || m?.passedOn);
+    return !!m?.passedOn;
   }
   return false;
 }

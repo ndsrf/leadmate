@@ -129,10 +129,10 @@ describe('unlockedLibraryLessons', () => {
     expect(unlocked.map((l) => l.id)).toEqual(['trail-1']);
   });
 
-  it('unlocks a trail lesson in a node-less stretch when its mission is started or passed', () => {
+  it('unlocks a trail lesson in a node-less stretch when its mission is passed', () => {
     const nodeless: LessonDef = { id: 'trail-nodeless', title: 'lesson.title' as never, kind: 'theory', blocks: [] };
     const pStarted = progressOf([], { missions: { 'mission-2': { target: 'full', skipRun: 0, attempts: [], startedAt: '2026-05-01T08:00:00.000Z' } } });
-    expect(unlockedLibraryLessons([nodeless], pStarted, 5, mockWorlds).map((l) => l.id)).toEqual(['trail-nodeless']);
+    expect(unlockedLibraryLessons([nodeless], pStarted, 5, mockWorlds)).toEqual([]);
 
     const pPassed = progressOf([], { missions: { 'mission-2': { target: 'full', skipRun: 0, attempts: [], passedOn: '2026-05-01' } } });
     expect(unlockedLibraryLessons([nodeless], pPassed, 5, mockWorlds).map((l) => l.id)).toEqual(['trail-nodeless']);

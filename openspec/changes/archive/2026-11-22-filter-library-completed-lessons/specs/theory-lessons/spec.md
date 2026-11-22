@@ -3,11 +3,15 @@
 ## MODIFIED Requirements
 
 ### Requirement: Theory Library
-The system SHALL provide a Theory Library listing unlocked Lessons in a fixed order, each entry showing its title, its kind, its suggested day (or, for a trail Lesson, its World and Stretch), an estimated reading time and whether it has been read. The Theory Library SHALL only list Lessons that the user has already encountered or completed: first-week Lessons whose suggested day has arrived or that have been read, and trail Lessons whose World or Node is completed or that have been read.
+The system SHALL provide a Theory Library listing unlocked Lessons in a fixed order, each entry showing its title, its kind, its suggested day (or, for a trail Lesson, its World and Stretch), an estimated reading time and whether it has been read. The Theory Library SHALL only list Lessons that the user has already encountered or completed: first-week Lessons whose suggested day has arrived or that have been read, and trail Lessons whose World or Node is completed (or for stretches without nodes, its Mission is passed) or that have been read. When no lessons or fixes are unlocked, the Theory Library SHALL display a helpful empty-state message explaining that advancing along the trail unlocks lessons.
 
 #### Scenario: Library listed
 - **WHEN** the user opens the Theory Library
 - **THEN** only unlocked Lessons appear in order with title, kind, suggested day or trail place, estimated minutes and a read or unread state that does not rely on colour alone
+
+#### Scenario: Empty library
+- **WHEN** the user opens the Theory Library and has no unlocked lessons or fixes
+- **THEN** an empty-state message is displayed indicating that advancing along the trail unlocks lessons
 
 #### Scenario: Library offline
 - **WHEN** the device is offline
@@ -57,7 +61,7 @@ The system SHALL ship at least five Lessons whose suggested days run from day 1 
 - **THEN** no Lesson is marked "for today"
 
 ### Requirement: Trail Lessons
-A Lesson MAY be placed on a World's trail as a Lesson Stop. Such a Lesson SHALL have no suggested day and SHALL never be marked "for today". A trail Lesson SHALL appear in the Theory Library only if its World is completed, or its associated Node is completed, or the Lesson has already been read on the trail. Reading a trail Lesson from the Library or from the trail SHALL mark it read and complete its Stop.
+A Lesson MAY be placed on a World's trail as a Lesson Stop. Such a Lesson SHALL have no suggested day and SHALL never be marked "for today". A trail Lesson SHALL appear in the Theory Library only if its World is completed, or its associated Node is completed (or for stretches without nodes, its Mission is passed), or the Lesson has already been read on the trail. Reading a trail Lesson from the Library or from the trail SHALL mark it read and complete its Stop.
 
 #### Scenario: Read from the Library first
 - **WHEN** a trail Lesson was unlocked in the Library by node/world completion and the user reads it from the Library
@@ -72,7 +76,7 @@ A Lesson MAY be placed on a World's trail as a Lesson Stop. Such a Lesson SHALL 
 - **THEN** the Lesson is marked read and any unpassed Missions on the trail stay unpassed
 
 #### Scenario: Completed Node unlocks Stretch Lessons
-- **WHEN** the user completes a Node on the trail
+- **WHEN** the user completes a Node on the trail, or passes the Mission of a Stretch without Nodes
 - **THEN** the theory Lessons associated with that Node's Stretch appear in the Theory Library
 
 #### Scenario: Completed World unlocks all its Lessons

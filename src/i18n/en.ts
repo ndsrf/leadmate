@@ -963,7 +963,7 @@ export const EN_INTERFACE = {
   'library.open': 'Open lesson',
   'library.chip': 'Library',
   'library.chipToday': 'Lesson for today',
-  'library.empty': 'Complete stages on the trail to unlock lessons in your library.',
+  'library.empty': 'Advance along the trail to unlock lessons in your library.',
   'media.video.play': 'Play video',
   'media.video.source': 'Plays from YouTube',
   'media.video.loading': 'Loading video…',

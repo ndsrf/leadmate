@@ -1180,7 +1180,7 @@ export function PlusChip({
   daysRemaining,
   isSubscribed = false,
   onPress,
-  compact = false,
+  compact,
 }: {
   t: Translate;
   state: TrialState;
@@ -1189,10 +1189,11 @@ export function PlusChip({
   onPress: () => void;
   compact?: boolean;
 }) {
+  const isCompact = compact ?? (isSubscribed || state === 'active');
   if (isSubscribed) {
     return (
       <Chip
-        compact={compact || true}
+        compact={isCompact}
         label={t('map.plus.chip')}
         value={t('map.plus.subscribed')}
         highlight={false}
@@ -1205,7 +1206,7 @@ export function PlusChip({
   if (state === 'unstarted') {
     return (
       <Chip
-        compact={compact}
+        compact={isCompact}
         label={t('map.plus.chip')}
         value={t('map.plus.trialChip')}
         highlight
@@ -1220,7 +1221,7 @@ export function PlusChip({
     const value = `${days} d`;
     return (
       <Chip
-        compact={compact || true}
+        compact={isCompact}
         label={t('map.plus.chip')}
         value={value}
         highlight
@@ -1232,7 +1233,7 @@ export function PlusChip({
   }
   return (
     <Chip
-      compact={compact}
+      compact={isCompact}
       label={t('map.plus.chip')}
       value={t('map.plus.expired')}
       highlight

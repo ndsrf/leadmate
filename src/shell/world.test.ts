@@ -1079,7 +1079,7 @@ describe('stretch and lesson helpers for Library (Task 1.2)', () => {
     expect(isLessonStretchCompleted('nodeless-lesson', unstarted, [nodelessWorld])).toBe(false);
 
     const withStartedMission = progressOf([], { missions: { 'nodeless-mission': { target: 'full', skipRun: 0, attempts: [], startedAt: '2026-05-01T08:00:00.000Z' } } });
-    expect(isLessonStretchCompleted('nodeless-lesson', withStartedMission, [nodelessWorld])).toBe(true);
+    expect(isLessonStretchCompleted('nodeless-lesson', withStartedMission, [nodelessWorld])).toBe(false);
 
     const withPassedMission = progressOf([], { missions: { 'nodeless-mission': { target: 'full', skipRun: 0, attempts: [], passedOn: '2026-05-01' } } });
     expect(isLessonStretchCompleted('nodeless-lesson', withPassedMission, [nodelessWorld])).toBe(true);

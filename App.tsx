@@ -1910,13 +1910,14 @@ export default function App() {
   } else if (route.name === 'flow') {
     const f = route.flow;
     if (f.name === 'library' && record) {
+      const day = lessonDay(record, new Date());
       const worlds = worldsFor(record.onboarding?.plan ?? [], record);
       screen = mapWith(
         <LibraryScreen
           t={t}
-          lessons={unlockedLibraryLessons(LESSONS, record, lessonDay(record, new Date()), worlds)}
+          lessons={unlockedLibraryLessons(LESSONS, record, day, worlds)}
           readIds={record.readLessons}
-          day={lessonDay(record, new Date())}
+          day={day}
           seenFixes={record.seenFixes}
           onOpen={(lesson) => setFlow({ name: 'lesson', id: lesson.id, returnTo: 'library', source: 'library' })}
           onOpenFix={(entry) => setFlow({ name: 'mission', id: entry.mission.id, view: 'fix', fixId: entry.fix.id, returnTo: 'library' })}

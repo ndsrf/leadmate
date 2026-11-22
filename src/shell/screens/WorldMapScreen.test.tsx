@@ -480,6 +480,20 @@ describe('WorldMapScreen - Row 2 Status Chips (Task 3.3)', () => {
     expect(markup).toContain('text-body');
   });
 
+  it('allows overriding compact to false on PlusChip when subscribed or active', () => {
+    const markupSubscribed = renderToStaticMarkup(
+      <PlusChip t={t} state="expired" isSubscribed={true} compact={false} onPress={() => {}} />
+    );
+    expect(markupSubscribed).toContain('text-button');
+    expect(markupSubscribed).not.toContain('text-body');
+
+    const markupActive = renderToStaticMarkup(
+      <PlusChip t={t} state="active" daysRemaining={5} compact={false} onPress={() => {}} />
+    );
+    expect(markupActive).toContain('text-button');
+    expect(markupActive).not.toContain('text-body');
+  });
+
   it('renders all three Row 2 chips with compact styling on a 320pt viewport without wrapping', () => {
     mockPressables.length = 0;
     const markup = renderToStaticMarkup(
