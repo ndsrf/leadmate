@@ -100,8 +100,17 @@ describe('WalkCountdown', () => {
 });
 
 describe('HintOverlay', () => {
-  it('starts below the Stage top row on a device with a tall top inset', () => {
-    const r = render(<HintOverlay text="x" />);
-    expect(JSON.stringify(r.toJSON())).toContain('"top":92');
+  const root = (r: ReactTestRenderer.ReactTestRenderer) => r.root.findAll((n) => n.type === 'div' && String(n.props.className).includes('inset-x-0'))[0];
+
+  it('keeps its usual place in a Stage, whatever the top inset', () => {
+    const { className, style } = root(render(<HintOverlay text="x" />)).props;
+    expect(className.split(' ')).toContain('top-16');
+    expect(JSON.stringify(style)).not.toContain('"top"');
+  });
+
+  it('starts below the Stage top row when asked to, on a device with a tall top inset', () => {
+    const { className, style } = root(render(<HintOverlay text="x" belowTopRow />)).props;
+    expect(className.split(' ')).not.toContain('top-16');
+    expect(JSON.stringify(style)).toContain('"top":92');
   });
 });

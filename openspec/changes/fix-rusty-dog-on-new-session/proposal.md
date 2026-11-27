@@ -36,7 +36,7 @@ None.
   reset restart them.
 - New `src/shell/useRustyDog.ts`, with tests, plus App-level wiring tests in `src/App.test.tsx`.
 - Countdown: a scenario flag set by the warm-up, a new bundle-to-shell message sent by the Stage, a shell
-  overlay in `src/shell/Overlays.tsx`, and new Spanish and English catalog keys. The hint panel sits
-  lower on devices with a tall top inset, so it does not cover the countdown.
+  overlay in `src/shell/Overlays.tsx`, and new Spanish and English catalog keys. In the warm-up only,
+  the hint panel starts below the top row, so it does not cover the countdown.
 - No change to the Dog record, sync, analytics events or content packs. The embedded Stage bundle must be
   rebuilt with the app (`npm run sim:embed`).

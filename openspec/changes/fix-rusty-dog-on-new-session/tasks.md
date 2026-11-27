@@ -10,6 +10,8 @@
 
 - [x] 2.1 Add the scenario flag, the seconds-left rule and the `countdown` message, report it from the Stage, and verify tests show 40 at the start, a falling value, no change while paused, 0 at the end and nothing for other scenarios
 - [x] 2.2 Show the countdown overlay in the warm-up with Spanish and English text, below which the hint panel starts, and verify the overlay and App tests cover showing, updating, pausing and disappearing
+- [x] 2.3 Keep the hint panel's usual place in every other Stage, and verify the overlay and App tests cover both places
+- [x] 2.4 Verify an App test covers a new App Session starting during the warm-up walk
 
 ## 3. Integration
 

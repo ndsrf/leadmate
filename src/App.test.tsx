@@ -2877,6 +2877,51 @@ describe('App - warm-up countdown (LEA-5)', () => {
     expect(countdown()).toBeUndefined();
   });
 
+  it('puts a Hint below the countdown in the warm-up only', async () => {
+    await startWarmup();
+    await sendFromView({ type: 'stage-signal', signal: 'first-taut', time: 1 });
+    expect(latest('HintOverlay').belowTopRow).toBe(true);
+    await sendFromView({ type: 'paused' });
+    act(() => latest('ResumeOverlay').onExit());
+
+    openStop(WALK_DISTRACTION.id);
+    throughPrimerAndCheckpoint();
+    await sendFromView({ type: 'ready' });
+    await sendFromView({ type: 'stage-signal', signal: 'leash-limit', time: 1 });
+    expect(latest('HintOverlay').belowTopRow).toBe(false);
+  });
+
+  it('goes on through a new App Session: the walk is not restarted and still counts as completed', async () => {
+    const analytics = getAnalytics() as MockAnalyticsService;
+    await startWarmup();
+    await tick(25);
+    analytics.clear();
+
+    // the bundle pauses itself when the app leaves the screen
+    await act(async () => mockAppStateListeners.forEach((cb) => cb('background')));
+    await sendFromView({ type: 'paused' });
+    await act(async () => {
+      jest.setSystemTime(Date.now() + 31 * 60_000);
+      mockAppStateListeners.forEach((cb) => cb('active'));
+    });
+
+    expect(analytics.events.filter((e) => e.name === 'session_started')).toHaveLength(1);
+    expect(latest('WorldMapScreen')).toBeUndefined();
+    expect(posted('start')).toHaveLength(1);
+    expect(countdown()).toBe(25);
+
+    act(() => latest('ResumeOverlay').onResume());
+    await tick(0);
+    await sendFromView({ type: 'debrief', payload: {} });
+
+    const { rusty, rustyPrompt, skippedWarmup } = latest('WorldMapScreen');
+    expect({ rusty, rustyPrompt, skippedWarmup }).toEqual({ rusty: false, rustyPrompt: false, skippedWarmup: false });
+    openStop(WALK_DISTRACTION.id);
+    throughPrimerAndCheckpoint();
+    await sendFromView({ type: 'ready' });
+    expect(posted('start')[1].scenario.learning.capacityMultiplier).toBe(1);
+  });
+
   it('starts at 40 and follows the seconds the Stage reports', async () => {
     await startWarmup();
     await tick(40);

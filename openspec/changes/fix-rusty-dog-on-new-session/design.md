@@ -52,4 +52,5 @@ safe-area insets, which the shell's Stage overlays do. See proposal.md - Why.
   its Series snapshot are unaffected.
 - [The record is stale when the session starts, before sync brings a Stage from another device] → same as
   at launch today; left out of scope.
-- [The hint panel covers the countdown below a tall top inset] → the panel starts below the top row.
+- [The hint panel covers the countdown] → in the warm-up only, the panel starts below the top row; every
+  other Stage keeps its place.

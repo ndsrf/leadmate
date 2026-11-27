@@ -98,16 +98,17 @@ export function LoadingOverlay({ t }: { t: Translate }) {
   );
 }
 
-/** Below the Stage's top row (back button, countdown) however tall the top inset; 64 points at least. */
-const HINT_TOP = 64;
 const TOP_ROW_GAP = 8;
 
-/** A one-shot hint over the Stage: it never takes a touch, so play goes on underneath. */
-export function HintOverlay({ text }: { text: string }) {
+/**
+ * A one-shot hint over the Stage: it never takes a touch, so play goes on underneath. `belowTopRow` starts it under
+ * the Stage's top row however tall the top inset, for a Stage that shows something there (the warm-up countdown).
+ */
+export function HintOverlay({ text, belowTopRow = false }: { text: string; belowTopRow?: boolean }) {
   const insets = useSafeAreaInsets();
-  const top = Math.max(HINT_TOP, Math.max(insets?.top ?? 0, 12) + BACK_BUTTON.height + TOP_ROW_GAP);
+  const below = Math.max(insets?.top ?? 0, 12) + BACK_BUTTON.height + TOP_ROW_GAP;
   return (
-    <LightRegion pointerEvents="none" className="absolute inset-x-0 items-center px-4" style={{ top }}>
+    <LightRegion pointerEvents="none" className={`absolute inset-x-0 items-center px-4${belowTopRow ? '' : ' top-16'}`} style={belowTopRow ? { top: below } : undefined}>
       <Panel className="w-full max-w-md">
         <Text className="text-bodyL text-ink">{text}</Text>
       </Panel>

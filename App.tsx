@@ -2404,7 +2404,9 @@ export default function App() {
             {playingStage && route.name === 'flow' && route.flow.name === 'warmup' && secondsLeft !== null && secondsLeft > 0 && (
               <WalkCountdown t={t} secondsLeft={secondsLeft} />
             )}
-            {playingStage && hint && !dogWarning && !paused && !isCloseExerciseFlow(route) && <HintOverlay text={t(HINT_TEXT[hint])} />}
+            {playingStage && hint && !dogWarning && !paused && !isCloseExerciseFlow(route) && (
+              <HintOverlay text={t(HINT_TEXT[hint])} belowTopRow={route.name === 'flow' && route.flow.name === 'warmup'} />
+            )}
             {playingStage && record && !tastePayoff && !paused && bundle === 'ready' && !isCloseExerciseFlow(route) && (
               <CoachMarksOverlay
                 moveText={t('coach.controls.move')}
