@@ -26,12 +26,13 @@ export function sessionCapacity(rusty: boolean, outcome: WarmupOutcome): number 
   return rusty && outcome === 'skipped' ? RUSTY_CAPACITY : 1;
 }
 
-/** The warm-up walk: easy, 30 to 45 s, no Distractor, no Marks; the result never changes the Dog. */
+/** The warm-up walk: easy, 30 to 45 s with a countdown, no Distractor, no Marks; the result never changes the Dog. */
 export function warmupScenario(base: ScenarioConfig = defaultScenario): ScenarioConfig {
   return {
     ...base,
     distractor: { ...base.distractor, activateAfterMeters: 1e9 },
     markBudget: 0,
     endCondition: { kind: 'time-limit', seconds: WARMUP_SECONDS },
+    countdown: true,
   };
 }

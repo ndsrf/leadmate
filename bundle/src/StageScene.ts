@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { Translate } from '../../src/i18n';
 import { HUD_AROUSAL_NUM, HUD_BORDER, HUD_COLOR, HUD_COLOR_NUM, HUD_DEPTH, HUD_PRIMARY_BUTTON, HUD_TENSION_NUM } from './tokens.generated';
+import { countdownSeconds } from '../../src/hud/countdown';
 import { CUE_LABEL_WIDTH, CUE_RADIUS, fitFontSize, hudLayout, isPointInPortrait, JACKPOT_RADIUS, JOY_RADIUS, MARKER_RADIUS, SNIFF_RADIUS, visibleCues, type PortraitLayout } from '../../src/hud/layout';
 import { dogPose, gaitPeriod, walkClipFor, type WalkClip } from '../../src/hud/pose';
 import { applyDetents, keyboardInput, screenToWorldDirection, type Keys } from '../../src/hud/input';
@@ -47,6 +48,8 @@ export interface StageOptions {
   guidedFirstStage?: boolean;
   /** A count-in beat (1 to 3) of the Approach ring at Full assist; the shell plays the tick. */
   onTelegraphTick?: (beat: 1 | 2 | 3) => void;
+  /** The whole seconds left of a Stage with a countdown, called when they change. */
+  onCountdown?: (secondsLeft: number) => void;
   /** The Timing assist changed; the shell records it in the Dog record. */
   onAssistChange?: (state: AssistState) => void;
   /** The OS asks for reduced motion: the Dog's tail stops wagging (the still raised-tail pose). Defaults to the browser's `prefers-reduced-motion`. */
@@ -164,6 +167,8 @@ export class StageScene extends Phaser.Scene {
   private cameraDirty = createChangeDetector();
   /** Fixed simulation steps run so far (dev readout). */
   simSteps = 0;
+  /** The countdown value last reported to the shell; null before the first, and in a Stage without one. */
+  private secondsLeft: number | null = null;
   private camPos: Vec2 = { x: 0, y: 0 };
   private ended = false;
   private signalGate = createSignalGate();
@@ -191,6 +196,7 @@ export class StageScene extends Phaser.Scene {
     this.signalGate = createSignalGate();
     this.trackDogSigns = this.newDogSignTracker();
     this.accumulator = 0;
+    this.secondsLeft = null;
     const seenKinds = options.seenKinds ?? lastStartMessage?.seenKinds ?? [];
     const isTasteStage = options.isTasteStage ?? lastStartMessage?.isTasteStage ?? false;
     this.introducedKinds = resolveIntroducedKinds(options.introducedKinds, lastStartMessage?.introducedKinds);
@@ -345,6 +351,7 @@ export class StageScene extends Phaser.Scene {
     const start = project(this.sim.handler);
     this.camPos = { ...start };
     this.cameras.main.centerOn(start.x, start.y);
+    this.reportCountdown();
     this.options.onReady?.();
   }
 
@@ -697,6 +704,7 @@ export class StageScene extends Phaser.Scene {
         const pre = { dogMode: this.sim.dogMode as string, calmElapsed: this.sim.calmElapsed };
         const events = tick(this.sim, input, step);
         this.stepTelegraph(events, pre);
+        this.reportCountdown(); // before the events: the last value goes out ahead of the Debrief
         this.handleEvents(events);
         input = { ...input, marker: false, cue: false, sniff: false, jackpot: false }; // a press counts for one tick only
         this.markerPressed = false;
@@ -719,6 +727,13 @@ export class StageScene extends Phaser.Scene {
       this.sim.meters,
       this.options.t,
     );
+  }
+
+  private reportCountdown(): void {
+    const left = countdownSeconds(this.sim.config, this.sim.time);
+    if (left === null || left === this.secondsLeft) return;
+    this.secondsLeft = left;
+    this.options.onCountdown?.(left);
   }
 
   /** Feeds the telegraph one sim tick: count-in beats go to the shell and a changed Timing assist is recorded. */

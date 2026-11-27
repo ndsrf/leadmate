@@ -175,6 +175,8 @@ export const EN_INTERFACE = {
   'rusty.skip': 'Skip',
   'rusty.skipped': 'Your Dog performs slightly less today. No progress has been lost.',
   'warmup.title': 'Warm-up Walk',
+  'warmup.countdown': '{n} s',
+  'warmup.timeLeft': 'Time left: {n} s',
   'node.back': 'Exit',
   'node.next': 'Next',
   'node.checkpoint.title': 'Quick Check',

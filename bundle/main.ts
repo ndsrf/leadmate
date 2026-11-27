@@ -184,6 +184,7 @@ function startStage(message: Extract<ShellMessage, { type: 'start' }> | null): v
     alwaysTimingHelp: message?.alwaysTimingHelp,
     guidedFirstStage: message?.guidedFirstStage,
     onTelegraphTick: (beat) => send({ type: 'telegraph-tick', beat }),
+    onCountdown: (secondsLeft) => send({ type: 'countdown', secondsLeft }),
     onAssistChange: (state) => send({ type: 'marker-assist', state }),
     onCue: (cueType) => send({ type: 'playCue', cueType }),
     onTier: (tier, time) => send({ type: 'reaction-tier-change', tier, time }),

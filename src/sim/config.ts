@@ -318,6 +318,8 @@ export interface ScenarioConfig {
   configVersion: string;
   camera: CameraConfig;
   endCondition: EndCondition;
+  /** Reports the seconds left of a `time-limit` Stage to the shell, which shows them (the warm-up walk). */
+  countdown?: boolean;
   /** Stage Meters (at most `MAX_STAGE_METERS` of `meters.ts`); without them the handling score follows ADR 0005. */
   meters?: StageMeterConfig[];
   /** Scent Spots (see `scentSpotsOf`, which adds those carried by scenery items); a Stage with any is a scent Stage. */

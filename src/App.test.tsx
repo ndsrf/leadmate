@@ -283,8 +283,8 @@ const posted = (type: string) => mockSim.posts.filter((m) => m.type === type);
 let renderer: ReactTestRenderer;
 
 /** Renders the app with a finished-onboarding Dog and lets the splash end, so the World Map is showing. */
-async function openMap() {
-  const record = { ...newDogRecord(), onboarding: { ...NEW_ONBOARDING, step: 'done' as const }, version: RECORD_VERSION };
+async function openMap(overrides: Partial<ReturnType<typeof newDogRecord>> = {}) {
+  const record = { ...newDogRecord(), onboarding: { ...NEW_ONBOARDING, step: 'done' as const }, version: RECORD_VERSION, ...overrides };
   mockStore.set(RECORD_KEY, JSON.stringify(record));
   await act(async () => {
     renderer = create(<App />);
@@ -2759,5 +2759,211 @@ describe('Simulation sound preferences (mute-simulator-when-sound-disabled)', ()
 
     act(() => latest('DoorbellMatView').onCue());
     expect(mockPlayResolvedCue).not.toHaveBeenCalled();
+  });
+});
+
+describe('App - Rusty Dog and App Sessions (LEA-5)', () => {
+  const MINUTE = 60_000;
+  const daysAgo = (days: number) => new Date(Date.now() - days * 24 * 60 * MINUTE).toISOString();
+  const rustyOnMap = () => {
+    const { rusty, rustyPrompt, skippedWarmup } = latest('WorldMapScreen');
+    return { rusty, rustyPrompt, skippedWarmup };
+  };
+  const offered = { rusty: true, rustyPrompt: true, skippedWarmup: false };
+  const skipped = { rusty: true, rustyPrompt: false, skippedWarmup: true };
+  const notRusty = { rusty: false, rustyPrompt: false, skippedWarmup: false };
+
+  /** Sends the app to the background, moves the clock on and brings it back. */
+  async function awayFor(ms: number) {
+    await act(async () => mockAppStateListeners.forEach((cb) => cb('background')));
+    await act(async () => {
+      jest.setSystemTime(Date.now() + ms);
+      mockAppStateListeners.forEach((cb) => cb('active'));
+    });
+  }
+
+  it('turns the Dog Rusty when the 3-day gap is reached with the app in the background', async () => {
+    await openMap({ lastStageDate: daysAgo(2) });
+    expect(rustyOnMap()).toEqual(notRusty);
+
+    await awayFor(5 * 24 * 60 * MINUTE);
+
+    expect(rustyOnMap()).toEqual(offered);
+  });
+
+  it('keeps the current choice after less than 30 minutes away', async () => {
+    // the gap reaches 3 days during the absence, but no new App Session starts
+    await openMap({ lastStageDate: daysAgo(3 - 10 / (24 * 60)) });
+    await awayFor(29 * MINUTE);
+    expect(rustyOnMap()).toEqual(notRusty);
+  });
+
+  it('keeps a skipped warm-up after less than 30 minutes away, and its penalty', async () => {
+    await openMap({ lastStageDate: daysAgo(5) });
+    act(() => latest('WorldMapScreen').onSkipWarmup());
+
+    await awayFor(29 * MINUTE);
+
+    expect(rustyOnMap()).toEqual(skipped);
+    openStop(WALK_DISTRACTION.id);
+    throughPrimerAndCheckpoint();
+    await sendFromView({ type: 'ready' });
+    expect(posted('start')[0].scenario.learning.capacityMultiplier).toBe(0.8);
+  });
+
+  it('offers a skipped warm-up again in a new App Session, with full capacity until it is skipped', async () => {
+    await openMap({ lastStageDate: daysAgo(5) });
+    act(() => latest('WorldMapScreen').onSkipWarmup());
+
+    await awayFor(30 * MINUTE);
+
+    expect(rustyOnMap()).toEqual(offered);
+    openStop(WALK_DISTRACTION.id);
+    throughPrimerAndCheckpoint();
+    await sendFromView({ type: 'ready' });
+    expect(posted('start')[0].scenario.learning.capacityMultiplier).toBe(1);
+  });
+
+  it('reads the latest record in a new App Session: a graded Stage since launch clears Rusty', async () => {
+    await openMap({ lastStageDate: daysAgo(5) });
+    act(() => latest('WorldMapScreen').onSettings());
+    act(() => latest('SettingsScreen').update((r: any) => ({ ...r, lastStageDate: new Date().toISOString() })));
+    act(() => latest('SettingsScreen').onClose());
+
+    await awayFor(30 * MINUTE);
+
+    expect(rustyOnMap()).toEqual(notRusty);
+  });
+
+  it('clears Rusty and the warm-up outcome on a progress reset', async () => {
+    await openMap({ lastStageDate: daysAgo(5) });
+    act(() => latest('WorldMapScreen').onSkipWarmup());
+    act(() => latest('WorldMapScreen').onSettings());
+    await act(async () => {
+      await latest('SettingsScreen').onReset();
+    });
+
+    // the same running app, back on the map once the funnel is over
+    act(() => latest('SplashScreen').actions.onStart());
+    act(() => latest('LanguageScreen').onDone('es'));
+    act(() => latest('DogLookScreen').onDone('Toby', 'golden', 'mixed', 'adult'));
+    act(() => latest('ConcernScreen').onDone([]));
+    act(() => latest('TasteBriefScreen').onStart());
+    await sendFromView({ type: 'ready' });
+    await sendFromView({ type: 'debrief', payload: {} });
+    await act(async () => {
+      jest.advanceTimersByTime(5000);
+    });
+    act(() => latest('PayoffOverlay').onContinue());
+    await act(async () => latest('SetupScreen').update((r: any) => ({ ...r, onboarding: { ...r.onboarding, step: 'done' } })));
+
+    expect(rustyOnMap()).toEqual(notRusty);
+  });
+});
+
+describe('App - warm-up countdown (LEA-5)', () => {
+  const countdown = () => latest('WalkCountdown')?.secondsLeft;
+  const tick = (secondsLeft: number) => sendFromView({ type: 'countdown', secondsLeft });
+
+  async function startWarmup() {
+    await openMap({ lastStageDate: new Date(Date.now() - 5 * 86_400_000).toISOString() });
+    act(() => latest('WorldMapScreen').onWarmup());
+    await sendFromView({ type: 'ready' });
+  }
+
+  it('asks the Stage for a countdown and shows nothing until it reports one', async () => {
+    await startWarmup();
+    expect(posted('start')[0].scenario).toMatchObject({ countdown: true, endCondition: { kind: 'time-limit', seconds: 40 } });
+    expect(countdown()).toBeUndefined();
+  });
+
+  it('puts a Hint below the countdown in the warm-up only', async () => {
+    await startWarmup();
+    await sendFromView({ type: 'stage-signal', signal: 'first-taut', time: 1 });
+    expect(latest('HintOverlay').belowTopRow).toBe(true);
+    await sendFromView({ type: 'paused' });
+    act(() => latest('ResumeOverlay').onExit());
+
+    openStop(WALK_DISTRACTION.id);
+    throughPrimerAndCheckpoint();
+    await sendFromView({ type: 'ready' });
+    await sendFromView({ type: 'stage-signal', signal: 'leash-limit', time: 1 });
+    expect(latest('HintOverlay').belowTopRow).toBe(false);
+  });
+
+  it('goes on through a new App Session: the walk is not restarted and still counts as completed', async () => {
+    const analytics = getAnalytics() as MockAnalyticsService;
+    await startWarmup();
+    await tick(25);
+    analytics.clear();
+
+    // the bundle pauses itself when the app leaves the screen
+    await act(async () => mockAppStateListeners.forEach((cb) => cb('background')));
+    await sendFromView({ type: 'paused' });
+    await act(async () => {
+      jest.setSystemTime(Date.now() + 31 * 60_000);
+      mockAppStateListeners.forEach((cb) => cb('active'));
+    });
+
+    expect(analytics.events.filter((e) => e.name === 'session_started')).toHaveLength(1);
+    expect(latest('WorldMapScreen')).toBeUndefined();
+    expect(posted('start')).toHaveLength(1);
+    expect(countdown()).toBe(25);
+
+    act(() => latest('ResumeOverlay').onResume());
+    await tick(0);
+    await sendFromView({ type: 'debrief', payload: {} });
+
+    const { rusty, rustyPrompt, skippedWarmup } = latest('WorldMapScreen');
+    expect({ rusty, rustyPrompt, skippedWarmup }).toEqual({ rusty: false, rustyPrompt: false, skippedWarmup: false });
+    openStop(WALK_DISTRACTION.id);
+    throughPrimerAndCheckpoint();
+    await sendFromView({ type: 'ready' });
+    expect(posted('start')[1].scenario.learning.capacityMultiplier).toBe(1);
+  });
+
+  it('starts at 40 and follows the seconds the Stage reports', async () => {
+    await startWarmup();
+    await tick(40);
+    expect(countdown()).toBe(40);
+    await tick(39);
+    expect(countdown()).toBe(39);
+    await tick(1);
+    expect(countdown()).toBe(1);
+  });
+
+  it('keeps its value while the walk is paused, however long', async () => {
+    await startWarmup();
+    await tick(25);
+    await sendFromView({ type: 'paused' });
+    await act(async () => {
+      jest.advanceTimersByTime(60_000);
+    });
+    expect(latest('ResumeOverlay')).toBeDefined();
+    expect(countdown()).toBe(25);
+    act(() => latest('ResumeOverlay').onResume());
+    expect(countdown()).toBe(25);
+  });
+
+  it('is gone at 0', async () => {
+    await startWarmup();
+    await tick(1);
+    await tick(0);
+    expect(countdown()).toBeUndefined();
+  });
+
+  it('is gone with the walk, and the next walk does not start from an old value', async () => {
+    await startWarmup();
+    await tick(12);
+    await sendFromView({ type: 'paused' });
+    act(() => latest('ResumeOverlay').onExit());
+    expect(latest('WorldMapScreen')).toBeDefined();
+    expect(countdown()).toBeUndefined();
+
+    openStop(WALK_DISTRACTION.id);
+    throughPrimerAndCheckpoint();
+    await sendFromView({ type: 'ready' });
+    expect(posted('start')[1].scenario.countdown).toBeUndefined();
+    expect(countdown()).toBeUndefined();
   });
 });

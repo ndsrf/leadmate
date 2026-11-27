@@ -98,10 +98,17 @@ export function LoadingOverlay({ t }: { t: Translate }) {
   );
 }
 
-/** A one-shot hint over the Stage: it never takes a touch, so play goes on underneath. */
-export function HintOverlay({ text }: { text: string }) {
+const TOP_ROW_GAP = 8;
+
+/**
+ * A one-shot hint over the Stage: it never takes a touch, so play goes on underneath. `belowTopRow` starts it under
+ * the Stage's top row however tall the top inset, for a Stage that shows something there (the warm-up countdown).
+ */
+export function HintOverlay({ text, belowTopRow = false }: { text: string; belowTopRow?: boolean }) {
+  const insets = useSafeAreaInsets();
+  const below = Math.max(insets?.top ?? 0, 12) + BACK_BUTTON.height + TOP_ROW_GAP;
   return (
-    <LightRegion pointerEvents="none" className="absolute inset-x-0 top-16 items-center px-4">
+    <LightRegion pointerEvents="none" className={`absolute inset-x-0 items-center px-4${belowTopRow ? '' : ' top-16'}`} style={belowTopRow ? { top: below } : undefined}>
       <Panel className="w-full max-w-md">
         <Text className="text-bodyL text-ink">{text}</Text>
       </Panel>
@@ -228,14 +235,37 @@ export function EncounterResultOverlay({ t, title, paws, hint, onRetry, onNext }
   );
 }
 
+/** Where a pill goes in the Stage's top row: level with the back button, to its right. */
+function useTopRowSlot(): { top: number; left: number } {
+  const insets = useSafeAreaInsets();
+  return { top: Math.max(insets?.top ?? 0, 12), left: Math.max(insets?.left ?? 0, 12) + BACK_BUTTON.width + 10 };
+}
+
+/** The warm-up walk's seconds left, in the Stage's top row. It never takes a touch. */
+export function WalkCountdown({ t, secondsLeft }: { t: Translate; secondsLeft: number }) {
+  const slot = useTopRowSlot();
+  return (
+    <LightRegion pointerEvents="none" className="absolute inset-0">
+      <View
+        testID="walk-countdown"
+        accessible
+        accessibilityRole="timer"
+        accessibilityLabel={fill(t('warmup.timeLeft'), { n: secondsLeft })}
+        className="items-center justify-center rounded-full bg-surface px-3"
+        style={{ position: 'absolute', ...slot, minHeight: 44, minWidth: 72, borderWidth: 2.5, borderColor: lightColor.outline }}
+      >
+        <Text className="font-display text-title text-ink">{fill(t('warmup.countdown'), { n: secondsLeft })}</Text>
+      </View>
+    </LightRegion>
+  );
+}
+
 /**
  * The Series progress strip in the Stage chrome, right of the back button: "Encounter n of total" and the kept Paws of the
  * Encounters already played (a gold Paw and its count); the rest are hollow dots. It never takes a touch.
  */
 export function SeriesProgressStrip({ t, index, total, kept }: { t: Translate; index: number; total: number; kept: number[] }) {
-  const insets = useSafeAreaInsets();
-  const top = Math.max(insets?.top ?? 0, 12);
-  const left = Math.max(insets?.left ?? 0, 12) + BACK_BUTTON.width + 10;
+  const slot = useTopRowSlot();
   const label = fill(t('encounter.progress'), { n: index, total });
   return (
     <LightRegion pointerEvents="none" className="absolute inset-0">
@@ -244,7 +274,7 @@ export function SeriesProgressStrip({ t, index, total, kept }: { t: Translate; i
         accessible
         accessibilityLabel={label}
         className="flex-row items-center rounded-full bg-surface px-3"
-        style={{ position: 'absolute', top, left, minHeight: 44, gap: 8, borderWidth: 2.5, borderColor: lightColor.outline }}
+        style={{ position: 'absolute', ...slot, minHeight: 44, gap: 8, borderWidth: 2.5, borderColor: lightColor.outline }}
       >
         <Text className="font-display text-body text-ink">{label}</Text>
         {Array.from({ length: total }, (_, i) =>

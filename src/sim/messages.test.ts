@@ -182,3 +182,16 @@ describe('dog-sign stage signals', () => {
     expect(read({ signal: 'first-taut' })).not.toBeNull();
   });
 });
+
+describe('countdown bridge message', () => {
+  it('passes the seconds left, down to 0', () => {
+    for (const secondsLeft of [40, 1, 0]) {
+      const message: BundleMessage = { type: 'countdown', secondsLeft };
+      expect(decode<BundleMessage>(encode(message), BUNDLE_MESSAGE_TYPES)).toEqual(message);
+    }
+  });
+
+  it.each([-1, 1.5, '3', undefined])('drops a countdown of %p seconds', (secondsLeft) => {
+    expect(decode<BundleMessage>({ type: 'countdown', secondsLeft }, BUNDLE_MESSAGE_TYPES)).toBeNull();
+  });
+});
