@@ -30,7 +30,7 @@ import { lookOf } from './src/shell/onboarding/look';
 import { INTRO_NODE } from './src/shell/onboarding/introNode';
 import { celebrationsFor, starsShown, type Celebration } from './src/shell/celebrations';
 import { completeDaily, dateSeed, generateDailyStage, todayString, warmupAfterDaily, type DailyCompletion } from './src/shell/daily';
-import { CloseCoachMarksOverlay, CoachMarksOverlay, DogWarningOverlay, EncounterResultOverlay, ErrorOverlay, HintOverlay, LoadingOverlay, ResumeOverlay, SeriesProgressStrip, SimulatorBackButton } from './src/shell/Overlays';
+import { CloseCoachMarksOverlay, CoachMarksOverlay, DogWarningOverlay, EncounterResultOverlay, ErrorOverlay, HintOverlay, LoadingOverlay, ResumeOverlay, SeriesProgressStrip, SimulatorBackButton, WalkCountdown } from './src/shell/Overlays';
 import { pawHintKey } from './src/shell/nodes/encounterHint';
 import { keptAttempt, pawsFor } from './src/shell/nodes/encounters';
 import { findNode, nodeForDog, POSTE_PRACTICE } from './src/shell/nodes/content';
@@ -74,7 +74,8 @@ import { SplashScreen } from './src/shell/screens/SplashScreen';
 import { initNativeContent, switchContentChannel } from './src/shell/content/nativeRuntime';
 import { getActiveContent, switchContentLanguage, type RuntimeContent } from './src/shell/content/runtime';
 import type { ContentChannel } from './src/shell/content/channelSetting';
-import { isRusty, sessionCapacity, warmupScenario, type WarmupOutcome } from './src/shell/rusty';
+import { warmupScenario } from './src/shell/rusty';
+import { useRustyDog } from './src/shell/useRustyDog';
 import { SimView } from './src/shell/SimView';
 import { ContentUpdateBanner } from './src/shell/ui/ContentUpdateBanner';
 import type { SimViewHandle } from './src/shell/simViewTypes';
@@ -394,7 +395,10 @@ export default function App() {
   const [stageRun, setStageRun] = useState(0);
   const [stageIntroducedKinds, setStageIntroducedKinds] = useState<readonly string[] | undefined>(undefined);
   const stageIntroducedKindsRef = useRef<readonly string[] | undefined>(undefined);
-  const [warmup, setWarmup] = useState<WarmupOutcome>('none');
+  // decided for each App Session: when the app opens and on a return after 30 minutes or more away
+  const { rusty, warmup, setWarmup, capacity, startSession: startRustySession } = useRustyDog(record);
+  // the seconds left of a Stage with a countdown (the warm-up walk), as the Stage last reported them
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
   // celebrations are diffed once when a result opens and then only displayed, so each shows once
   const [celebrations, setCelebrations] = useState<{ id: string; list: Celebration[] } | null>(null);
   const [attempt, setAttempt] = useState(0); // bumping it reloads the bundle
@@ -472,6 +476,7 @@ export default function App() {
         lessonTimer.current?.resume();
         setAnalyticsForeground(true);
         if (shouldStartSession(lastBackgroundAt.current, new Date())) {
+          startRustySession(recordRef.current);
           const state = getAnalyticsState();
           if (state) {
             startAnalyticsSession();
@@ -550,10 +555,6 @@ export default function App() {
   const routeRef = useRef(route);
   routeRef.current = route;
 
-  // the Dog is Rusty if the gap was there when the app opened; decided once, per session
-  const rusty = useRef<boolean | null>(null);
-  if (record && rusty.current === null) rusty.current = isRusty(record.lastStageDate, new Date());
-  const capacity = sessionCapacity(rusty.current === true, warmup);
   const capacityRef = useRef(capacity);
   capacityRef.current = capacity;
 
@@ -656,6 +657,7 @@ export default function App() {
       setDogWarning(null);
       setHintQueue(EMPTY_HINT_QUEUE);
       hintQueueActive.current = false;
+      setSecondsLeft(null);
       setControlsUsed({});
       setStageRun((n) => n + 1);
       feedback.preloadStage();
@@ -1093,6 +1095,8 @@ export default function App() {
             update((r) => markHintSeen(r, shown));
           }
         }
+      } else if (message.type === 'countdown') {
+        setSecondsLeft(message.secondsLeft);
       } else if (message.type === 'telegraph-tick') {
         feedback.telegraphTick();
       } else if (message.type === 'marker-assist') {
@@ -1435,8 +1439,7 @@ export default function App() {
       const fresh = await resetProgress(dogStore, current);
       funnelTracker.current.resetLastStep();
       account.resetSync();
-      rusty.current = null;
-      setWarmup('none');
+      startRustySession(fresh);
       setCelebrations(null);
       setReminder(false);
       setHint(null);
@@ -1584,7 +1587,7 @@ export default function App() {
           progress={record}
           membership={record}
           stars={record.stars}
-          rusty={rusty.current === true && warmup !== 'completed'}
+          rusty={rusty && warmup !== 'completed'}
           streak={record.streak}
           today={todayString()}
           libraryToday={todaysLesson(LESSONS, record.readLessons, lessonDay(record, new Date())) !== null}
@@ -1594,7 +1597,7 @@ export default function App() {
           barkdokuToday={record.dailyBarkdoku[todayString()]}
           onDaily={() => setFlow({ name: 'daily', attempt: 0, result: null })}
           onBarkdoku={() => setFlow({ name: 'puzzle', date: todayString() })}
-          rustyPrompt={rusty.current === true && warmup === 'none'}
+          rustyPrompt={rusty && warmup === 'none'}
           skippedWarmup={warmup === 'skipped'}
           onWarmup={() => setFlow({ name: 'warmup' })}
           onSkipWarmup={() => setWarmup('skipped')}
@@ -2397,6 +2400,9 @@ export default function App() {
             )}
             {playingStage && cardShowing && seriesRun?.card && (
               <EncounterResultOverlay t={t} title={t(seriesRun.card.title)} paws={seriesRun.card.paws} hint={seriesRun.card.hint ? t(seriesRun.card.hint) : null} onRetry={retryEncounter} onNext={nextEncounter} />
+            )}
+            {playingStage && route.name === 'flow' && route.flow.name === 'warmup' && secondsLeft !== null && secondsLeft > 0 && (
+              <WalkCountdown t={t} secondsLeft={secondsLeft} />
             )}
             {playingStage && hint && !dogWarning && !paused && !isCloseExerciseFlow(route) && <HintOverlay text={t(HINT_TEXT[hint])} />}
             {playingStage && record && !tastePayoff && !paused && bundle === 'ready' && !isCloseExerciseFlow(route) && (

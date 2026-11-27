@@ -56,6 +56,8 @@ export type BundleMessage =
   | { type: 'stage-signal'; signal: StageSignal; time: number; control?: StageControl; bearing?: number; assist?: MarkerAssistLevel; sign?: DogSign }
   /** A count-in tick of the Approach ring (beat 1 to 3, Full assist only); the shell plays it (fire and forget). */
   | { type: 'telegraph-tick'; beat: 1 | 2 | 3 }
+  /** The whole seconds left of a Stage with a countdown, sent when they change; 0 once the time is up. */
+  | { type: 'countdown'; secondsLeft: number }
   /** The Timing assist changed; the shell writes it to the Dog record in recorded Stages. */
   | { type: 'marker-assist'; state: MarkerAssistState }
   /**
@@ -159,6 +161,7 @@ export function decode<T extends { type: string }>(raw: unknown, types: readonly
       const v = value as Record<string, unknown>;
       if (v.type === 'feedback' && !isFeedbackMessage(v)) return null;
       if (v.type === 'telegraph-tick' && ![1, 2, 3].includes(v.beat as number)) return null;
+      if (v.type === 'countdown' && !(Number.isInteger(v.secondsLeft) && (v.secondsLeft as number) >= 0)) return null;
       if (v.type === 'marker-assist' && !isMarkerAssistState(v.state)) return null;
       if (v.type === 'stage-signal' && v.assist !== undefined && !(ASSIST_LEVELS as readonly unknown[]).includes(v.assist)) return null;
       if (v.type === 'stage-signal') {
@@ -180,7 +183,7 @@ export function decode<T extends { type: string }>(raw: unknown, types: readonly
 }
 
 export const SHELL_MESSAGE_TYPES: readonly ShellMessage['type'][] = ['start', 'pause', 'resume', 'focus', 'suspend', 'wake'];
-export const BUNDLE_MESSAGE_TYPES: readonly BundleMessage['type'][] = ['ready', 'paused', 'debrief', 'playCue', 'reaction-tier-change', 'stage-signal', 'feedback', 'telegraph-tick', 'marker-assist', 'error'];
+export const BUNDLE_MESSAGE_TYPES: readonly BundleMessage['type'][] = ['ready', 'paused', 'debrief', 'playCue', 'reaction-tier-change', 'stage-signal', 'feedback', 'telegraph-tick', 'marker-assist', 'countdown', 'error'];
 
 /** Where the bundle sends its messages: the native WebView bridge, the parent window, or nowhere. */
 export type Outbox = (message: BundleMessage) => void;

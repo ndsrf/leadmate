@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
-import { createTranslator, es } from '../i18n';
-import { EncounterResultOverlay, SeriesProgressStrip } from './Overlays';
+import { createTranslator, en, es } from '../i18n';
+import { EncounterResultOverlay, HintOverlay, SeriesProgressStrip, WalkCountdown } from './Overlays';
 
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 40, bottom: 20, left: 0, right: 0 }) }));
 jest.mock('react-native-svg', () => {
@@ -79,5 +79,29 @@ describe('SeriesProgressStrip', () => {
     expect(text(r)).toContain('Encuentro 3 de 4');
     expect(byId(r, 'series-kept')).toHaveLength(2);
     expect(byId(r, 'series-pending')).toHaveLength(2);
+  });
+});
+
+describe('WalkCountdown', () => {
+  it.each([
+    ['Spanish', es, '40 s', 'Tiempo restante: 40 s'],
+    ['English', en, '40 s', 'Time left: 40 s'],
+  ] as const)('shows the seconds left in %s and says what they are', (_name, catalog, shown, spoken) => {
+    const r = render(<WalkCountdown t={createTranslator(catalog)} secondsLeft={40} />);
+    const pill = byId(r, 'walk-countdown')[0];
+    expect(pill.props.accessibilityLabel).toBe(spoken);
+    expect(r.root.findByType('span' as any).props.children).toBe(shown);
+  });
+
+  it('sits in the top row below the safe-area inset, right of the back button', () => {
+    const r = render(<WalkCountdown t={t} secondsLeft={7} />);
+    expect(byId(r, 'walk-countdown')[0].props.style).toMatchObject({ top: 40, left: 66, minHeight: 44 });
+  });
+});
+
+describe('HintOverlay', () => {
+  it('starts below the Stage top row on a device with a tall top inset', () => {
+    const r = render(<HintOverlay text="x" />);
+    expect(JSON.stringify(r.toJSON())).toContain('"top":92');
   });
 });

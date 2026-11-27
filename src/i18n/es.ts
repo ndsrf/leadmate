@@ -174,6 +174,8 @@ export const ES_INTERFACE = {
   'rusty.skip': 'Saltar',
   'rusty.skipped': 'Hoy tu perro rinde algo menos. No pierde nada de lo aprendido.',
   'warmup.title': 'Paseo de calentamiento',
+  'warmup.countdown': '{n} s',
+  'warmup.timeLeft': 'Tiempo restante: {n} s',
   'node.back': 'Salir',
   'node.next': 'Siguiente',
   'node.checkpoint.title': 'Pregunta rápida',
